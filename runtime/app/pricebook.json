@@ -1,0 +1,562 @@
+{
+  "$schema": "./pricebook.schema.json",
+  "$comment": "Machine source of truth for prices (built from docs/PRICEBOOK.md). Claude never invents a price: it picks codes, code computes totals. Change = PRICEBOOK.md + this file, approved by Meir; tools/pricebook_test.py diffs the two.",
+  "version": "1.0",
+  "updated": "2026-10-11",
+  "currency": "USD",
+  "rules": {
+    "core_codes": [
+      "RCP",
+      "WEB",
+      "BNDL"
+    ],
+    "one_core_offer_per_quote": true,
+    "deposit_pct": 50,
+    "deposit_rounding": "whole_dollars",
+    "rush_pct": 25,
+    "manual_price_setup_over_cents": 1000000,
+    "quote_valid_days": 14,
+    "discounts": {
+      "FOUNDING": {
+        "setup_pct": 30,
+        "monthly_pct": 0,
+        "max_clients": 3,
+        "applied_by": "admin"
+      }
+    },
+    "monthly_discounts_allowed": false,
+    "monthly_billing": "monthly in advance from the go-live date",
+    "cancel_notice_days": 30,
+    "included_usage": {
+      "voice_minutes": 400,
+      "sms_segments": 1000
+    },
+    "overage_markup_pct": 20,
+    "custom_triggers": {
+      "max_auto_locations": 3,
+      "max_auto_voice_minutes_per_month": 3000,
+      "hipaa_baa_requested": "custom",
+      "ehr_or_practice_management": "custom"
+    },
+    "upwork_same_prices": true
+  },
+  "refund_rules": {
+    "status": "pending attorney review; owner to confirm",
+    "deposit": {
+      "refund_pct": 100,
+      "window_days": 7,
+      "window_from": "payment",
+      "on_request": true,
+      "condition": "client has not completed the access checklist",
+      "text": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed."
+    },
+    "retainer": {
+      "refund_pct": 75,
+      "applies_to": "first_payment",
+      "window_days": 7,
+      "codes": [
+        "RET-CARE",
+        "RET-GROW",
+        "RET-STUDIO"
+      ],
+      "text": "Retainers: 75% refund of the first payment if cancelled within 7 days."
+    }
+  },
+  "items": [
+    {
+      "code": "RCP",
+      "name": "Missed-Call AI Receptionist",
+      "group": "core",
+      "kind": "fixed",
+      "setup_cents": 350000,
+      "monthly_cents": 30000,
+      "applies_to": [],
+      "delivery_business_days": 10,
+      "delivery_starts": "after access is complete",
+      "marketed": true,
+      "includes": [
+        "1 location, 1 AI line (a US number we provision; you keep your existing number and forward unanswered calls to it)",
+        "Voice answering of missed and forwarded calls, plus an automatic text-back to callers who hang up",
+        "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
+        "Booking into 1 calendar: Google Calendar or Calendly",
+        "Up to 25 FAQ entries, business hours, after-hours mode, emergency keywords with an owner alert",
+        "Owner notifications by SMS and email for every lead, plus a daily summary email",
+        "1 outgoing Zapier webhook (lead and booking events) to connect any other tool",
+        "English. Client portal with call log, transcripts, bookings and settings",
+        "A2P 10DLC SMS registration handled by us (registration fees included)",
+        "Included usage per month: 400 voice minutes and 1,000 SMS segments; overage billed at cost + 20%, reported monthly",
+        "Monthly: monitoring, prompt/FAQ updates, 1 active change request at a time (small changes, up to 1 hour each)"
+      ],
+      "excludes": [
+        "Outbound AI calls and marketing text messages",
+        "Additional locations or AI lines (add-on ADD-LOC)",
+        "Spanish / bilingual line (add-on ADD-ES)",
+        "Native CRM/FSM integrations (add-on ADD-CRM)",
+        "Website chat widget (add-on ADD-CHAT)",
+        "Usage above the included 400 voice minutes and 1,000 SMS segments per month (billed at cost + 20%)",
+        "Call audio recording (calls are transcribed; audio is not stored)",
+        "Handling of medical records or other protected health information (no HIPAA BAA)"
+      ]
+    },
+    {
+      "code": "WEB",
+      "name": "Business Website (template-based, 5 pages)",
+      "group": "core",
+      "kind": "fixed",
+      "setup_cents": 190000,
+      "monthly_cents": 12900,
+      "applies_to": [],
+      "delivery_business_days": 7,
+      "delivery_starts": "after content is complete",
+      "marketed": true,
+      "direct_checkout": true,
+      "includes": [
+        "5 pages (Home, Services, About, Reviews/FAQ, Contact), mobile-first, fast static hosting, SSL",
+        "Lead form to email and Google Sheet; click-to-call and click-to-text buttons",
+        "Basic local SEO: titles/meta, LocalBusiness schema, sitemap, Google Search Console and Google Business Profile link",
+        "Copywriting from your questionnaire (AI-drafted, approved by you), stock or your own photos",
+        "Monthly: hosting, uptime check, 1 small content edit per month"
+      ],
+      "excludes": [
+        "Pages beyond the 5 included (add-on ADD-PAGE)",
+        "Spanish version of the website (add-on ADD-WEB-ES)",
+        "Logo design (add-on ADD-LOGO)",
+        "Blog section and articles (add-on ADD-BLOG)",
+        "Ongoing SEO campaigns and paid advertising",
+        "More than 1 small content edit per month"
+      ]
+    },
+    {
+      "code": "BNDL",
+      "name": "Receptionist + Website bundle",
+      "group": "core",
+      "kind": "fixed",
+      "setup_cents": 490000,
+      "monthly_cents": 40000,
+      "applies_to": [],
+      "delivery_business_days": 14,
+      "delivery_starts": "after access and content are complete",
+      "marketed": true,
+      "contains": [
+        "RCP",
+        "WEB"
+      ],
+      "includes": [
+        "Everything in the Missed-Call AI Receptionist (RCP)",
+        "Everything in the Business Website (WEB)",
+        "Your AI line number on the website",
+        "Web chat widget on the website (same AI brain) included"
+      ],
+      "excludes": [
+        "Outbound AI calls and marketing text messages",
+        "Additional locations or AI lines (add-on ADD-LOC)",
+        "Spanish / bilingual line (add-on ADD-ES)",
+        "Native CRM/FSM integrations (add-on ADD-CRM)",
+        "Usage above the included 400 voice minutes and 1,000 SMS segments per month (billed at cost + 20%)",
+        "Call audio recording (calls are transcribed; audio is not stored)",
+        "Handling of medical records or other protected health information (no HIPAA BAA)",
+        "Pages beyond the 5 included (add-on ADD-PAGE)",
+        "Spanish version of the website (add-on ADD-WEB-ES)",
+        "Logo design (add-on ADD-LOGO)",
+        "Blog section and articles (add-on ADD-BLOG)",
+        "Ongoing SEO campaigns and paid advertising",
+        "More than 1 small content edit per month"
+      ]
+    },
+    {
+      "code": "ADD-LOC",
+      "name": "Additional location / AI line",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 90000,
+      "monthly_cents": 10000,
+      "applies_to": [
+        "RCP"
+      ],
+      "includes": [
+        "1 more location with its own AI line, hours and FAQ"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-ES",
+      "name": "Spanish (bilingual line)",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 75000,
+      "monthly_cents": 5000,
+      "applies_to": [
+        "RCP"
+      ],
+      "includes": [
+        "Callers can speak or text in Spanish; summaries to you stay in English"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 120000,
+      "monthly_cents": 5000,
+      "applies_to": [
+        "RCP"
+      ],
+      "per": "system",
+      "includes": [
+        "Leads and bookings written directly into 1 supported system (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
+      ],
+      "excludes": [
+        "Systems not listed here (quoted as custom)"
+      ]
+    },
+    {
+      "code": "ADD-CHAT",
+      "name": "Website chat widget (same AI brain)",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 50000,
+      "monthly_cents": 2500,
+      "applies_to": [
+        "RCP"
+      ],
+      "includes": [
+        "A chat widget for your website that uses the same answers, rules and booking as your phone line"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-REV",
+      "name": "Post-job review-request SMS",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 40000,
+      "monthly_cents": 0,
+      "applies_to": [
+        "RCP"
+      ],
+      "includes": [
+        "A text after each completed job asking the customer for a Google review"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-USAGE",
+      "name": "Extra usage block: +400 min / +1,000 SMS",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 0,
+      "monthly_cents": 6000,
+      "applies_to": [
+        "RCP"
+      ],
+      "includes": [
+        "400 more voice minutes and 1,000 more SMS segments every month"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-PAGE",
+      "name": "Extra website page",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 25000,
+      "monthly_cents": 0,
+      "applies_to": [
+        "WEB"
+      ],
+      "includes": [
+        "1 additional page"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-WEB-ES",
+      "name": "Spanish version of the website",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 90000,
+      "monthly_cents": 2000,
+      "applies_to": [
+        "WEB"
+      ],
+      "includes": [
+        "A Spanish version of every page"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-LOGO",
+      "name": "Simple logo (wordmark + icon)",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 30000,
+      "monthly_cents": 0,
+      "applies_to": [
+        "WEB"
+      ],
+      "includes": [
+        "A simple wordmark and icon"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-BLOG",
+      "name": "Blog section + 3 starter articles",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 60000,
+      "monthly_cents": 0,
+      "applies_to": [
+        "WEB"
+      ],
+      "includes": [
+        "A blog section and 3 starter articles"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "ADD-RUSH",
+      "name": "Rush delivery (half the business days)",
+      "group": "addon",
+      "kind": "percent",
+      "setup_cents": null,
+      "monthly_cents": 0,
+      "applies_to": [
+        "any"
+      ],
+      "setup_pct": 25,
+      "pct_of": "setup_subtotal_before_rush",
+      "includes": [
+        "Delivery in half the business days"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "MAP",
+      "name": "AI Opportunity Map (written report + Loom walkthrough)",
+      "group": "later",
+      "kind": "fixed",
+      "setup_cents": 190000,
+      "monthly_cents": 0,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [
+        "A written report and a recorded walkthrough"
+      ],
+      "excludes": []
+    },
+    {
+      "code": "AUTO",
+      "name": "Workflow automation (1 process, up to 3 tools)",
+      "group": "later",
+      "kind": "from",
+      "setup_cents": 350000,
+      "monthly_cents": 50000,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "AGENT",
+      "name": "Custom AI agent (beyond the receptionist)",
+      "group": "later",
+      "kind": "from",
+      "setup_cents": 500000,
+      "monthly_cents": 40000,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "SYS",
+      "name": "Internal system (portal/dashboard, custom)",
+      "group": "later",
+      "kind": "from",
+      "setup_cents": 1200000,
+      "monthly_cents": null,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "APP",
+      "name": "Mobile/web app",
+      "group": "later",
+      "kind": "from",
+      "setup_cents": 1800000,
+      "monthly_cents": null,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "RET-CARE",
+      "name": "Retainer — Care (monitoring + 1 active request, ~4 h/mo)",
+      "group": "later",
+      "kind": "fixed",
+      "setup_cents": 0,
+      "monthly_cents": 50000,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "RET-GROW",
+      "name": "Retainer — Growth (1 active request, ~15 h/mo)",
+      "group": "later",
+      "kind": "fixed",
+      "setup_cents": 0,
+      "monthly_cents": 150000,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "RET-STUDIO",
+      "name": "Retainer — Studio (unlimited requests, 1 at a time)",
+      "group": "later",
+      "kind": "fixed",
+      "setup_cents": 0,
+      "monthly_cents": 400000,
+      "applies_to": [],
+      "marketed": false,
+      "includes": [],
+      "excludes": []
+    }
+  ],
+  "integrations": {
+    "google_calendar": "native",
+    "outlook_calendar": "custom",
+    "calendly": "native",
+    "jobber": "addon:ADD-CRM",
+    "housecall_pro": "addon:ADD-CRM",
+    "servicetitan": "custom",
+    "gohighlevel": "addon:ADD-CRM",
+    "hubspot": "addon:ADD-CRM",
+    "quickbooks": "zapier",
+    "google_business_profile": "native",
+    "zapier": "native",
+    "follow_up_boss": "zapier",
+    "dentrix": "custom",
+    "open_dental": "custom",
+    "other": "custom"
+  },
+  "integration_meta": {
+    "google_calendar": {
+      "label": "Google Calendar",
+      "category": "calendar",
+      "niches": [
+        "*"
+      ]
+    },
+    "outlook_calendar": {
+      "label": "Outlook / Microsoft 365 Calendar",
+      "category": "calendar",
+      "niches": [
+        "*"
+      ],
+      "note": "Not a native booking calendar in v1 (Google Calendar or Calendly only); priced manually."
+    },
+    "calendly": {
+      "label": "Calendly",
+      "category": "calendar",
+      "niches": [
+        "*"
+      ]
+    },
+    "jobber": {
+      "label": "Jobber",
+      "category": "fsm",
+      "niches": [
+        "*"
+      ]
+    },
+    "housecall_pro": {
+      "label": "Housecall Pro",
+      "category": "fsm",
+      "niches": [
+        "*"
+      ]
+    },
+    "servicetitan": {
+      "label": "ServiceTitan",
+      "category": "fsm",
+      "niches": [
+        "*"
+      ]
+    },
+    "gohighlevel": {
+      "label": "GoHighLevel",
+      "category": "crm",
+      "niches": [
+        "*"
+      ]
+    },
+    "hubspot": {
+      "label": "HubSpot",
+      "category": "crm",
+      "niches": [
+        "*"
+      ]
+    },
+    "quickbooks": {
+      "label": "QuickBooks",
+      "category": "accounting",
+      "niches": [
+        "*"
+      ]
+    },
+    "google_business_profile": {
+      "label": "Google Business Profile",
+      "category": "listing",
+      "niches": [
+        "*"
+      ]
+    },
+    "zapier": {
+      "label": "Zapier",
+      "category": "automation",
+      "niches": [
+        "*"
+      ],
+      "note": "RCP includes 1 outgoing Zapier webhook."
+    },
+    "follow_up_boss": {
+      "label": "Follow Up Boss",
+      "category": "crm",
+      "niches": [
+        "real_estate"
+      ]
+    },
+    "dentrix": {
+      "label": "Dentrix",
+      "category": "practice_management",
+      "niches": [
+        "dental"
+      ]
+    },
+    "open_dental": {
+      "label": "Open Dental",
+      "category": "practice_management",
+      "niches": [
+        "dental"
+      ]
+    },
+    "other": {
+      "label": "Other",
+      "category": "other",
+      "niches": [
+        "*"
+      ],
+      "note": "Free-text tool name; priced manually."
+    }
+  }
+}

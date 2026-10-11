@@ -1,0 +1,5 @@
+description: FAQ answered from config only.
+channel: sms
+turns:
+  - say: "Do you service Trane units?"
+    expect: {reply_contains: ["all major brands"]}

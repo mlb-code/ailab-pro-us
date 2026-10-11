@@ -139,6 +139,7 @@ Phase B lanes R and W can start the same day as phase A (they need only A0/A3). 
 - **Produce:** `runtime/app/voice.py`: `/voice/incoming`, `/voice/turn`, `/voice/status`, `/voice/fallback`; Gather speech (`speechModel=phone_call`, `speechTimeout=auto`), Polly Neural voice, transcription disclosure, 12-turn / 6-minute caps, 2-silence hangup, `<Dial>` handoff with timeout → message, emergency 911 line first, abandoned → enqueue text-back.
 - **Acceptance:** TwiML snapshots valid XML for every branch; sim "call" scenarios (booked, handoff-dial-no-answer, emergency, silence, after-hours) end with correct `calls.outcome`; p95 server time per turn excluding Claude < 150 ms.
 - **Checks:** `pytest -q tests/test_voice.py`; `python -m sim run --channel voice --all`.
+- **Note from B2 review (2026-10-11):** add a per-number cap on voice calls (e.g. 50 calls of "are you a robot" from one number must not get 50 answered calls): count calls per caller per 10 min/day through `Engine.state` (`runtime_state`), and feed call minutes to `engine.usage.record(tenant, "voice", minutes, now)`.
 - **Deps:** B2. [SIM] (real audio only in B9)
 
 ### B4 · SMS flow
@@ -210,3 +211,4 @@ Phase B lanes R and W can start the same day as phase A (they need only A0/A3). 
 - **A4/A5:** real estate = same RCP runtime, positioned as lead screening + instant text-back + Follow Up Boss (via Zapier); hero sells RCP only; founder price display behind `brand.show_founder_price` (owner decision pending); SMS 10DLC timing disclaimer.
 - **A9:** add client consent for a case study (founder price), "client is the sender of SMS" clause; Upwork cadence 20–30 proposals/week with a short Loom.
 - **Async ceiling:** external reports put no-call purchases at $1,500–3,500; anything above (bundle, systems) gets an optional 15-min call offer prominently.
+- **A6:** quote-view and quote-accept must refuse quotes with `anonymized=true`. **A2:** verify `delete from auth.users` works from pg_cron on a real Supabase project.

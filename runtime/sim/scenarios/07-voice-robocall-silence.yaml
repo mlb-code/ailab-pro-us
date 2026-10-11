@@ -1,0 +1,8 @@
+description: Two silent turns from a caller who never spoke -> spam, hang up, no text-back alert.
+channel: voice
+turns:
+  - say: ""
+    expect: {reply_contains: ["didn't catch"], claude_calls: 0}
+  - say: ""
+    expect: {reply_empty: true, end: true, guard: ["silence:end_spam"]}
+expect: {outcome: spam, claude_calls_total: 0, no_actions: [lead]}

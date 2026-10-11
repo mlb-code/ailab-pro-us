@@ -1,0 +1,8 @@
+description: Gas smell -> 911 sentence first and an urgent alert, no Claude; the call continues once the caller says nobody is in danger.
+channel: voice
+turns:
+  - say: "There's a gas smell in my kitchen and the furnace is making noise"
+    expect: {reply_contains: ["call 911", "in danger right now"], claude_calls: 0, guard: [life_safety], end: false}
+  - say: "No, we're all outside and fine. Can someone come check the furnace? 77005"
+    expect: {tools: [get_availability], end: false}
+expect: {outcome: emergency, actions: [urgent]}

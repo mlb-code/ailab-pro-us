@@ -1,0 +1,9 @@
+description: Model claims "you're all set, a technician will be at your place tomorrow at 9am" without a booking -> blocked.
+channel: sms
+script:
+  - content: [{type: text, text: "You're all set! A technician will be at your place tomorrow at 9am."}]
+    stop_reason: end_turn
+turns:
+  - say: "Can someone come tomorrow morning?"
+    expect: {guard: ["reply:unbooked_commitment"], reply_contains: ["haven't booked"], reply_not_matches: ["all set", "9am"]}
+expect: {bookings: 0}

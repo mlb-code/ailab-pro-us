@@ -1,0 +1,4 @@
+.simdata/
+data/
+.coverage
+*.egg-info/

@@ -1,0 +1,14 @@
+description: Per-number limit (2 per 10 min here) -> fixed reply once, then silence, then mute on 2nd episode.
+channel: sms
+patch: {config: {guard: {max_replies_10min: 2}}}
+turns:
+  - say: "hi"
+  - say: "hello?"
+  - say: "anyone there"
+    expect: {reply_contains: ["get back to you"], claude_calls: 0, guard: ["rate:10min:first"]}
+  - say: "answer me"
+    expect: {reply_empty: true, guard: ["rate:10min:silent"]}
+  - say: "still waiting"
+    advance_minutes: 3
+    expect: {reply_empty: true}
+expect: {claude_calls_total: 2, actions: [rate_limit]}

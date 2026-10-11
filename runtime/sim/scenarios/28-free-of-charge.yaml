@@ -1,0 +1,13 @@
+description: Model reply "free of charge, no discount needed" / "half price" is blocked.
+channel: sms
+script:
+  - content: [{type: text, text: "Sure, it's free of charge, no discount needed!"}]
+    stop_reason: end_turn
+  - content: [{type: text, text: "For you, half price on the service call."}]
+    stop_reason: end_turn
+turns:
+  - say: "Can you do the visit for free?"
+    expect: {guard: ["reply:discount"], reply_not_matches: ["free of charge"]}
+  - say: "What about half off?"
+    expect: {guard: ["reply:discount"], reply_not_matches: ["half price"]}
+expect: {reply_never_matches: ["free of charge", "half price"]}

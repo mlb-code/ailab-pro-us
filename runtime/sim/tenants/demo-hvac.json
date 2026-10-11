@@ -1,0 +1,45 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "slug": "demo-hvac",
+  "status": "sandbox",
+  "twilio_number": "+17135550199",
+  "client_id": null,
+  "config": {
+    "business": {
+      "name": "Cool Breeze HVAC",
+      "niche": "home_services",
+      "trade": "HVAC",
+      "timezone": "America/Chicago",
+      "service_area_zips": ["77002", "77005", "77006", "77019", "77098"],
+      "main_phone": "+17135550100"
+    },
+    "voice": {"tts_voice": "Polly.Joanna-Neural", "greeting": "", "languages": ["en"]},
+    "hours": {
+      "mon": ["07:00", "18:00"], "tue": ["07:00", "18:00"], "wed": ["07:00", "18:00"],
+      "thu": ["07:00", "18:00"], "fri": ["07:00", "18:00"], "sat": ["08:00", "12:00"], "sun": null
+    },
+    "after_hours": {"mode": "book_next_day"},
+    "booking": {
+      "provider": "fake",
+      "calendar_id": "primary",
+      "windows": [["08:00", "12:00"], ["12:00", "16:00"]],
+      "lead_time_hours": 2,
+      "max_per_window": 3,
+      "days_ahead": 7,
+      "job_types": ["AC repair", "Furnace repair", "Maintenance", "New install estimate"],
+      "booking_link": null
+    },
+    "pricing": {"mode": "none", "items": []},
+    "faq": [
+      {"q": "Do you service Trane units?", "a": "Yes, all major brands."},
+      {"q": "Do you offer maintenance plans?", "a": "Yes, we offer a yearly maintenance plan with two tune-ups."},
+      {"q": "Are you licensed and insured?", "a": "Yes, we are licensed and insured in Texas."}
+    ],
+    "emergency": {"keywords": ["gas smell", "carbon monoxide"], "dial": "+17135550111"},
+    "handoff": {"mode": "dial", "number": "+17135550111", "hours": "business"},
+    "notify": {"sms": ["+17135550111"], "email": ["owner@example.com"], "daily_summary": "19:00"},
+    "zapier": {"webhook_url": null, "events": ["lead.created", "booking.created"]},
+    "guard": {"daily_budget_usd": 3, "blocklist": ["+17135550666"], "max_replies_10min": 8, "max_replies_day": 30},
+    "paused": false
+  }
+}

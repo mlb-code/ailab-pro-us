@@ -1,0 +1,6 @@
+description: No heat with an elderly person -> urgent alert, conversation continues to booking flow.
+channel: sms
+turns:
+  - say: "We have no heat and my elderly mother lives here"
+    expect: {guard: [urgent], claude_calls: 1}
+expect: {outcome: emergency, actions: [urgent]}

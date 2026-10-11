@@ -1,0 +1,6 @@
+description: pricing.mode=none -> no amount is ever said.
+channel: sms
+turns:
+  - say: "How much do you charge for a service call?"
+    expect: {reply_contains: ["exact price on site"], reply_not_matches: ["\\$\\s?\\d"]}
+expect: {reply_never_matches: ["\\$\\s?\\d"]}

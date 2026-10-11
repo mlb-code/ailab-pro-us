@@ -1,0 +1,6 @@
+description: Caller asks for a person during business hours and handoff.mode=dial -> Dial the owner.
+channel: voice
+turns:
+  - say: "Can I talk to a real person please"
+    expect: {tools: [handoff], end: true}
+expect: {outcome: handoff, dial: ["+17135550111"]}

@@ -1,0 +1,9 @@
+description: Same number already booked that day -> no second booking; message for the team.
+channel: sms
+setup: {prior_booking_slot: true}
+turns:
+  - say: "My AC is not working, 77005"
+    expect: {tools: [get_availability]}
+  - say: "The first one. I'm Dana Miller, 2100 Rice Blvd Houston 77005"
+    expect: {tools: [book_slot]}
+expect: {bookings: 0, outcome: message}

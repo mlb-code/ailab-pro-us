@@ -1,0 +1,7 @@
+description: Blocklisted number gets no reply and no Claude call.
+channel: sms
+from: "+17135550666"
+turns:
+  - say: "Hello I need AC repair"
+    expect: {reply_empty: true, claude_calls: 0, guard: [blocklist]}
+expect: {outcome: spam, claude_calls_total: 0}

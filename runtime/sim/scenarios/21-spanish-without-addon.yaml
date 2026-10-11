@@ -1,0 +1,6 @@
+description: Spanish message while ADD-ES is off -> fixed English reply + callback alert, no Claude.
+channel: sms
+turns:
+  - say: "Hola, necesito ayuda, el aire acondicionado no funciona"
+    expect: {reply_contains: ["only help in English"], claude_calls: 0, guard: [language]}
+expect: {outcome: message, actions: [lead], claude_calls_total: 0}

@@ -1,0 +1,7 @@
+description: Paused tenant -> polite fixed reply, no Claude.
+channel: sms
+patch: {config: {paused: true}}
+turns:
+  - say: "Need AC repair"
+    expect: {reply_contains: ["get back to you"], claude_calls: 0, guard: [tenant_paused]}
+expect: {claude_calls_total: 0}
