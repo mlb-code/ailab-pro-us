@@ -265,6 +265,12 @@ begin
   ok := false;
   begin select count(*) into n from private.tenant_credentials; exception when others then ok := true; end;
   if not ok then raise exception 'FAIL client read private.tenant_credentials'; end if; c := c + 1;
+  ok := false;
+  begin select count(*) into n from public.runtime_state; exception when others then ok := true; end;
+  if not ok then raise exception 'FAIL client read runtime_state'; end if; c := c + 1;
+  ok := false;
+  begin insert into public.runtime_state (key, tenant_id, value) values ('spoof', ta, '0'); exception when others then ok := true; end;
+  if not ok then raise exception 'FAIL client wrote runtime_state'; end if; c := c + 1;
 
   -- ============================================================ client B
   perform set_config('request.jwt.claims', json_build_object('sub', ub, 'role', 'authenticated')::text, true);
@@ -363,6 +369,15 @@ begin
   ok := false;
   begin perform public.runtime_put_credential(ta, 'dropbox', 'x'); exception when others then ok := true; end;
   if not ok then raise exception 'FAIL unknown credential provider accepted'; end if; c := c + 1;
+  insert into public.runtime_state (key, tenant_id, value, updated_at) values ('rate:sms:' || ta::text, ta, '3', now());
+  insert into public.runtime_state (key, value) values ('budget:global:2026-10', '{"usd": 1.25}');
+  update public.runtime_state set value = '4', updated_at = now()
+   where id = (select r.id from public.runtime_state r where r.key = 'rate:sms:' || ta::text);
+  select value = '4'::jsonb into ok from public.runtime_state where key = 'rate:sms:' || ta::text;
+  if not coalesce(ok, false) then raise exception 'FAIL service role runtime_state insert/update/select'; end if; c := c + 1;
+  ok := false;
+  begin insert into public.runtime_state (key, value) values ('budget:global:2026-10', '0'); exception when unique_violation then ok := true; end;
+  if not ok then raise exception 'FAIL runtime_state key not unique'; end if; c := c + 1;
   ok := false;
   begin update public.quotes set status = 'accepted' where id = quo_a_sent; exception when others then ok := true; end;
   if not ok then raise exception 'FAIL accept without name/agreement'; end if; c := c + 1;
@@ -380,7 +395,7 @@ begin
   perform set_config('role', 'anon', true);
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   foreach tbl in array array['profiles','leads','questionnaires','quotes','clients','payments','onboarding_items','requests',
-                             'attachments','tenants','calls','sms_messages','bookings','opt_outs','events','admin_notes'] loop
+                             'attachments','tenants','calls','sms_messages','bookings','opt_outs','events','admin_notes','runtime_state'] loop
     n := 0;
     begin execute format('select count(*) from public.%I', tbl) into n; exception when insufficient_privilege then n := 0; end;
     if n <> 0 then raise exception 'FAIL anon reads public.%', tbl; end if;
@@ -396,6 +411,9 @@ begin
   ok := false;
   begin perform public.runtime_get_credential(ta, 'google'); exception when others then ok := true; end;
   if not ok then raise exception 'FAIL anon read a credential'; end if; c := c + 1;
+  ok := false;
+  begin insert into public.runtime_state (key, value) values ('anon', '1'); exception when others then ok := true; end;
+  if not ok then raise exception 'FAIL anon wrote runtime_state'; end if; c := c + 1;
 
   -- ============================================================ jobs (as owner)
   perform set_config('role', 'postgres', true);
@@ -431,6 +449,7 @@ begin
   insert into public.tenants (client_id, slug, config) values (cc, 'rls-tenant-c', '{}') returning id into tc;
   insert into public.calls (tenant_id, call_sid, transcript) values (tc, 'CA_rls_c', '[{"r":"caller","t":"c"}]');
   insert into public.requests (client_id, title) values (cc, 'C request') returning id into rc;
+  insert into public.runtime_state (key, tenant_id, value) values ('usage:' || tc::text || ':2026-10', tc, '{"min": 12}');
   insert into public.admin_notes (entity, entity_id, body) values ('client', cc, 'internal C'), ('quote', quo_c, 'q note'),
     ('quote', quo_c2, 'q2 note'), ('questionnaire', qc, 'qn note'), ('tenant', tc, 't note'), ('request', rc, 'r note'),
     ('lead', lc, 'lead note');
@@ -485,6 +504,8 @@ begin
   if n <> 0 then raise exception 'FAIL C tenant not deleted'; end if; c := c + 1;
   select count(*) into n from public.calls where call_sid = 'CA_rls_c';
   if n <> 0 then raise exception 'FAIL C calls not deleted'; end if; c := c + 1;
+  select count(*) into n from public.runtime_state where tenant_id = tc;
+  if n <> 0 then raise exception 'FAIL C runtime_state not deleted'; end if; c := c + 1;
   select count(*) into n from public.requests where id = rc;
   if n <> 0 then raise exception 'FAIL C requests not deleted'; end if; c := c + 1;
   select count(*) into n from public.admin_notes where entity_id = cc;

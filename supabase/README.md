@@ -13,3 +13,6 @@
 | `public.update_onboarding_item(p_id uuid, p_status onboarding_status, p_data jsonb default null)` | לקוח (שלו) / אדמין | סטטוס `todo`/`done`/`need_help` + מיזוג `data` |
 
 החתימות של `runtime_*` תואמות ל-`runtime/app/store.py` (`SupabaseStore.put_credential`/`get_credential`, פרמטרים `p_tenant_id`, `p_provider`, `p_ciphertext`, `p_expires_at`). anon/authenticated חסומים גם בהרשאות וגם בבדיקת תפקיד בתוך הפונקציה; נבדק ב-`tests/rls_test.sql`.
+
+## `public.runtime_state` (מיגרציה `20261011100300_us_runtime_state.sql`)
+מצב קטן ועמיד של ה-runtime: מוני קצב, תקציב, שימוש חודשי. עמודות `id`, `key` (ייחודי גלובלית), `tenant_id` (nullable, נמחק יחד עם ה-tenant), `value jsonb`, `updated_at`. החוזה זהה ל-`StateStore` ב-`runtime/app/store.py`: select לפי `key`, update לפי `id`, insert, הכל דרך PostgREST. הטבלה ב-`public` רק כדי ש-PostgREST יגיע אליה; ל-anon ול-authenticated אין הרשאות ואין מדיניות, כך שרק service role ניגש אליה. נבדק ב-`tests/rls_test.sql`.
