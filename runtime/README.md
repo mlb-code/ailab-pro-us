@@ -21,9 +21,16 @@ Env: `RUNTIME_MODE` (prod|sim), `STORE_BACKEND` (json|supabase), `DATA_DIR`, `SU
 `VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `VOICE_RELAY_GRACE_SECONDS` (20).
 
 Voice/SMS routes: `/voice/incoming|turn|dial-result|status|fallback|relay-end`, WebSocket `/voice/relay`, `/sms/incoming|status`; cron `/jobs/tick` (B6 routes).
-Latency in the simulator: the runtime records per turn (total ms, Claude ms) from receiving the final transcript to having the
-reply ready; event `voice.latency` holds server p50/p95 (= total - Claude) per call, and `FakeCall` measures client-side ms per turn.
-Target: server p95 < 150 ms (tested); end-to-end < 1 s needs Claude time, measured in live runs (B12).
+Claude models (brand.json `claude.*`): realtime turns (voice, SMS, web chat) use `claude.voice_model` (Haiku; env `CLAUDE_VOICE_MODEL`),
+quotes use `claude.quote_model` (Edge), `claude.model` is the general default. Voice/realtime knobs: `claude.voice.max_tokens`
+(`CLAUDE_VOICE_MAX_TOKENS`), `.thinking` disabled|adaptive (`CLAUDE_VOICE_THINKING`), `.prompt_cache` (`CLAUDE_PROMPT_CACHE`, also the
+call-start prewarm), `.tool_fillers` (`CLAUDE_VOICE_FILLERS`); per-model prices in `claude.price_usd_per_mtok`.
+Voice replies stream sentence by sentence (`app/speech.py`): each sentence passes `guard.check_reply` before it is sent to Twilio; a
+blocked sentence is replaced by the safe text and the rest of the turn is muted; gather mode gives the identical reply at the end.
+Latency in the simulator: the runtime records per turn (total ms, Claude ms) and, for Claude turns, the time to the first sentence;
+event `voice.latency` holds server p50/p95 (= total - Claude) and `first_sentence_*` per call; `FakeCall` measures client-side ms to
+the first text frame. Target: server p95 < 150 ms (tested, scenario 45 with a live-like streaming model). Live numbers:
+`docs/reports/VOICE-LATENCY.md`.
 Twilio cost estimate per call: `TWILIO_VOICE_USD_PER_MIN` (default 0.0785 = inbound local minute 0.0085 + ConversationRelay
 0.07, list prices assumed Oct 2026; 0.0125 when `VOICE_MODE=gather`), billed in whole minutes; SMS `TWILIO_SMS_USD_PER_SEGMENT`.
 Invalid tenant config = safe mode (`app/voice_safe.py`): polite sentence + name/number message, SMS text-back, minimal SMS replies

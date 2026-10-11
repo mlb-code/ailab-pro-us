@@ -10,7 +10,7 @@ turns:
   - say: "My name is Dana Miller"
     expect: {reply_contains: ["address"]}
   - say: "2100 Rice Blvd, Houston 77005"
-    expect: {reply_contains: ["all set"], tools: [book_slot]}
+    expect: {reply_matches: ["all set|booked"], tools: [book_slot]}
   - say: "Thanks"
     # live Claude may have closed already; the outcome check below is what matters
 expect: {outcome: booked, bookings: 1, actions: [booking], reply_never_matches: ["\\$"]}

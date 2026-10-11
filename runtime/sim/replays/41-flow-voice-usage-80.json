@@ -1,10 +1,10 @@
 {
- "8cb087bb309430614bb3c69d": {
+ "edb09e75a085896b74342000": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
       "type": "text"
      },
      {
@@ -14,21 +14,26 @@
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
-     "text": "Yes, we service all major brands, including Trane. What's going on with your unit?",
+     "text": "Yes, we service all major brands, including Trane. Is there something going on with your unit that you'd like us to look at?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 808.9,
+    "first_text_ms": 809.0,
+    "total_ms": 1130.9
+   },
    "usage": {
     "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 137,
-    "output_tokens": 27
+    "cache_read_input_tokens": 2052,
+    "input_tokens": 4,
+    "output_tokens": 38
    }
   }
  }

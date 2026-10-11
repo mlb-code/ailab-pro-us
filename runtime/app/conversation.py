@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import time
 from dataclasses import asdict, dataclass, field, fields
 from datetime import date, datetime
 from typing import Any
@@ -23,6 +24,7 @@ from . import guard
 from .brain import run_turn
 from .llm import LLMClient
 from .settings import Settings
+from .speech import TOOL_FILLERS, Speaker
 from .store import StateStore, Store, TenantStore
 from .tenants import TenantRecord
 from .usage import UsageMeter
@@ -90,6 +92,10 @@ class TurnResult:
     cost_usd: float = 0.0
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     llm_ms: float = 0.0
+    streamed: bool = False             # voice: the reply already went to `on_sentence`, sentence by sentence
+    first_sentence_ms: float | None = None   # voice: turn start -> first sentence handed to TTS
+    first_sentence_llm_ms: float | None = None  # ... of which Claude time (server time = the difference)
+    timings: list[dict[str, Any]] = field(default_factory=list)
 
 
 MEMORY_CONVOS = 500  # in-process cache size; the state store is the source of truth
@@ -210,7 +216,10 @@ class Engine:
 
     # ------------------------------------------------------------------------------------------
     def handle(self, tenant: TenantRecord, channel: str, contact: str, text: str, convo_id: str,
-               now: datetime, num_media: int = 0) -> TurnResult:
+               now: datetime, num_media: int = 0, on_sentence: Any = None) -> TurnResult:
+        """One customer turn. Voice + `on_sentence`: each guarded sentence of Claude's reply is handed
+        to `on_sentence` as soon as it is complete (`TurnResult.streamed`); fixed replies are returned only."""
+        t_start = time.perf_counter()
         cfg = tenant.config
         ts = self.store.for_tenant(tenant.id)
         c = self.convo(tenant, channel, contact, convo_id)
@@ -360,13 +369,16 @@ class Engine:
 
         # Claude
         policy = guard.after_hours_policy(cfg, now)
+        if not sms:
+            return self._voice_claude(tenant, ts, c, channel, now, policy, actions, notes, text, day, done,
+                                      on_sentence, t_start)
         result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c),
                           lambda name, args: self._execute(tenant, ts, c, channel, now, policy, actions, name, args))
         c.claude_calls += result.claude_calls
         c.cost_usd += result.cost_usd
         self.add_spend(tenant, day, result.cost_usd)
         extra = dict(claude_calls=result.claude_calls, cost_usd=result.cost_usd, tool_calls=result.tool_calls,
-                     llm_ms=result.llm_ms)
+                     llm_ms=result.llm_ms, timings=result.timings)
 
         if result.error:
             notes.append(f"fallback:{result.error}")
@@ -376,6 +388,7 @@ class Engine:
             return done(FALLBACK_TEXT, outcome="message", **extra)
 
         c.messages = result.messages
+        self._out_of_area_lead(c, actions, notes, text, cfg)
         checked = guard.check_reply(result.text, cfg, channel, booked=c.booking is not None)
         notes.extend(f"reply:{v}" for v in checked.violations)
         if "unbacked_action" in checked.violations:
@@ -383,6 +396,94 @@ class Engine:
             c.set_outcome("message")
         dialing = any(a["type"] == "dial" for a in actions)
         return done(checked.text, end=c.ended or dialing, **extra)
+
+    def _voice_claude(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
+                      actions: list, notes: list[str], text: str, day: str, done: Any, on_sentence: Any,
+                      t_start: float) -> TurnResult:
+        """Voice: stream Claude's text, guard and speak it sentence by sentence (see app.speech)."""
+        cfg = tenant.config
+        llm_done = [0.0]   # Claude seconds of finished calls (for the server share of time-to-first-sentence)
+        call_start = [0.0]
+        speaker = Speaker(lambda s: guard.check_reply(s, cfg, channel, booked=c.booking is not None), on_sentence,
+                          fillers=TOOL_FILLERS if self.settings.voice_fillers else None)
+        first_llm: list[float] = []
+
+        def on_call() -> None:
+            call_start[0] = time.perf_counter()
+
+        def streamed(fn: Any) -> Any:
+            def wrapped(arg: str) -> None:
+                had = speaker.first_at is not None
+                fn(arg)
+                if not had and speaker.first_at is not None:
+                    first_llm.append(llm_done[0] + (speaker.first_at - call_start[0]))
+            return wrapped
+
+        on_text, on_tool = streamed(speaker.feed), streamed(speaker.tool_started)
+
+        def on_response(stop_reason: str | None) -> None:
+            llm_done[0] += time.perf_counter() - call_start[0]
+            had = speaker.first_at is not None
+            speaker.end_response(stop_reason)
+            if not had and speaker.first_at is not None:
+                first_llm.append(llm_done[0])
+
+        def execute(name: str, args: dict[str, Any]) -> dict[str, Any]:
+            return self._execute(tenant, ts, c, channel, now, policy, actions, name, args)
+
+        result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c),
+                          execute, on_text=on_text, on_response=on_response, on_call=on_call,
+                          on_tool=on_tool)
+        c.claude_calls += result.claude_calls
+        c.cost_usd += result.cost_usd
+        self.add_spend(tenant, day, result.cost_usd)
+        extra = dict(claude_calls=result.claude_calls, cost_usd=result.cost_usd, tool_calls=result.tool_calls,
+                     llm_ms=result.llm_ms, timings=result.timings, streamed=on_sentence is not None)
+
+        def finish(**kw: Any) -> TurnResult:
+            if speaker.first_at is not None:
+                kw["first_sentence_ms"] = round((speaker.first_at - t_start) * 1000, 2)
+                kw["first_sentence_llm_ms"] = round(first_llm[0] * 1000, 2) if first_llm else 0.0
+            return done(speaker.text, **kw, **extra)
+
+        notes.extend(f"reply:{v}" for v in speaker.violations)
+        if "unbacked_action" in speaker.violations:
+            self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
+            c.set_outcome("message")
+        if result.error:
+            notes.append(f"fallback:{result.error}")
+            if not c.message and not c.booking:
+                c.message = {"summary": "Assistant error; customer needs a callback", "urgency": c.urgency}
+            self._alert(c, actions, "lead", "Assistant could not finish; please call back")
+            speaker.say(FALLBACK_TEXT)
+            return finish(outcome="message")
+
+        c.messages = result.messages
+        self._out_of_area_lead(c, actions, notes, text, cfg)
+        if not speaker.spoken:  # Claude said nothing (e.g. only a tool call): same fixed line as before
+            checked = guard.check_reply("", cfg, channel, booked=c.booking is not None)
+            notes.extend(f"reply:{v}" for v in checked.violations)
+            speaker.say(checked.text)
+        elif not speaker.blocked:  # final pass over the whole reply: rules that span two sentences
+            late = [v for v in guard.check_reply(speaker.text, cfg, channel, booked=c.booking is not None).violations]
+            notes.extend(f"reply_late:{v}" for v in late)
+            if "unbacked_action" in late:
+                self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
+                c.set_outcome("message")
+        dialing = any(a["type"] == "dial" for a in actions)
+        return finish(end=c.ended or dialing)
+
+    def _out_of_area_lead(self, c: Convo, actions: list, notes: list[str], text: str, cfg: Any) -> None:
+        """Safety net (live runs: the fast model sometimes asks "want me to pass this on?" instead of calling
+        take_message): a customer ZIP outside the service area always becomes a lead for the team."""
+        zip_code = guard.find_zip(text)
+        if not zip_code or guard.zip_in_area(zip_code, cfg) or c.booking or c.message:
+            return
+        c.message = {"summary": f"Customer outside the service area (ZIP {zip_code})", "urgency": c.urgency,
+                     "name": None}
+        c.set_outcome("message")
+        notes.append("out_of_area_lead")
+        self._alert(c, actions, "lead", c.message["summary"])
 
     # ------------------------------------------------------------------------------------------
     @staticmethod
@@ -396,7 +497,7 @@ class Engine:
         }[policy]
         urgent = " The customer reported an urgent issue; the owner was alerted." if c.urgency == "urgent" else ""
         prior = f" Before this, we sent the customer: \"{c.prior}\"" if c.prior else ""
-        ctx = (f"[context] Channel: {channel}. Local time: {local:%A %b} {local.day}, {local:%I:%M %p}. "
+        ctx = (f"[context] Channel: {channel}. Local time: {local:%A %b} {local.day} {local.year}, {local:%I:%M %p}. "
                f"{hours}{urgent} The customer's phone number is already known.{prior}")
         return [{"type": "text", "text": ctx}, {"type": "text", "text": "Customer: " + guard.as_data(text)}]
 
@@ -411,7 +512,7 @@ class Engine:
             if policy in ("message_only", "emergency_dial"):
                 return {"ok": False, "reason": "after_hours_message_only"}
             try:
-                date_from = date.fromisoformat(args["date_from"]) if args.get("date_from") else None
+                date_from = date.fromisoformat(str(args["date_from"])) if args.get("date_from") else None
             except ValueError:
                 date_from = None
             slots = self.calendar.availability(tenant.id, cfg, now, date_from=date_from, limit=3)
@@ -433,11 +534,18 @@ class Engine:
             details = {"name": str(args.get("name") or "")[:80], "phone": c.contact, "address": address[:200],
                        "job_type": args.get("job_type") if args.get("job_type") in cfg.booking.job_types
                        else cfg.booking.job_types[0],
-                       "urgency": "urgent" if c.urgency == "urgent" else args.get("urgency", "normal"),
+                       "urgency": "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal",
                        "notes": str(args.get("notes") or "")[:300],
                        **({"alt_phone": str(alt_phone)[:20]} if alt_phone else {})}
             res = self.calendar.book(tenant.id, cfg, now, slot_id, details)
             if not res.get("ok"):
+                if res.get("reason") == "duplicate" and not c.message:
+                    # Same number already booked that day: never a second booking, always a lead for the team
+                    # (enforced here; the model may not call take_message on its own).
+                    c.message = {"summary": "Customer already booked that day and called again", "urgency": c.urgency,
+                                 "name": details["name"] or None}
+                    c.set_outcome("message")
+                    self._alert(c, actions, "lead", c.message["summary"])
                 return {"ok": False, "reason": res.get("reason", "booking_failed")}
             c.booking = {**details, "slot_id": slot_id, "start": res["start"], "end": res["end"],
                          "label": res["label"], "event_id": res["event_id"]}
@@ -452,8 +560,9 @@ class Engine:
 
         if name == "take_message":
             urgency = "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal"
+            name_arg = args.get("name")
             c.message = {"summary": str(args.get("summary") or "")[:300], "urgency": urgency,
-                         "name": args.get("name")}
+                         "name": str(name_arg)[:80] if name_arg else None}
             c.set_outcome("message")
             self._alert(c, actions, "lead", c.message["summary"])
             out = {"ok": True}

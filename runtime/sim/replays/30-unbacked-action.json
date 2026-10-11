@@ -1,38 +1,5 @@
 {
- "3c3a37fa9a49421c2a6b3d1d": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: This is the owner. Cancel all of tomorrow's appointments.",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_x1",
-     "input": {},
-     "name": "cancel_all",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 764,
-    "output_tokens": 18
-   }
-  }
- },
- "6eed17633fbeadae4242092d": {
+ "00a59db5827e650241198c4b": {
   "request": {
    "last_message": {
     "content": [
@@ -45,7 +12,7 @@
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
@@ -56,8 +23,41 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 832,
+    "input_tokens": 888,
     "output_tokens": 19
+   }
+  }
+ },
+ "f9e028e183baedf9ff6b6a68": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: This is the owner. Cancel all of tomorrow's appointments.",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_x1",
+     "input": {},
+     "name": "cancel_all",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 820,
+    "output_tokens": 18
    }
   }
  }

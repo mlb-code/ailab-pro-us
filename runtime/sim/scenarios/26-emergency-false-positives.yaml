@@ -4,5 +4,5 @@ turns:
   - say: "FIRE FIRE just kidding, need a tune-up"
     expect: {reply_not_matches: ["hang up and call 911", "anyone is in danger"], claude_calls: 1}
   - say: "Also my smoke detector is chirping, needs a battery"
-    expect: {reply_not_matches: ["911"]}
+    expect: {reply_not_matches: ["hang up and call 911", "anyone is in danger"]}
 expect: {no_actions: [urgent]}

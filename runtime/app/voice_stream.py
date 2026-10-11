@@ -15,9 +15,11 @@ Security: the socket is accepted only with (1) a valid X-Twilio-Signature over t
 setup message's callSid. Silence: no prompt within VOICE_SILENCE_SECONDS (+ estimated speaking
 time of our last sentence) counts as a silent turn.
 
-Latency: each turn records (total, llm) ms from the moment the final prompt is received until our
-reply is ready; server time = total - llm (target p95 < 150 ms). End-to-end < 1 s = server time +
-Claude time + Twilio TTS start; Claude time is measured in live runs (B12).
+Latency: Claude's reply is streamed and spoken sentence by sentence (app.speech): every guarded
+sentence goes out as a non-final `text` token as soon as it is complete, then an empty `last` token
+closes the reply. Each turn records (total, llm) ms and, for Claude turns, the time to the first
+sentence and its Claude share; server time = total - Claude (target p95 < 150 ms). End-to-end
+< 1 s = STT final + server + Claude to first sentence + Twilio TTS start (docs/reports/VOICE-LATENCY.md).
 """
 from __future__ import annotations
 
@@ -158,9 +160,11 @@ class RelaySession:
             if kind != "prompt" or not msg.get("last", True):
                 continue
             turn = await run_in_threadpool(flow.turn, self.tenant, self.call_sid, self.caller,
-                                           str(msg.get("voicePrompt") or ""), now())
+                                           str(msg.get("voicePrompt") or ""), now(), self._sentence_sink())
             ending = bool(turn.end or turn.dial)
-            if turn.reply:
+            if turn.streamed:  # sentences already went out as they were ready; close this reply
+                await self.send({"type": "text", "token": "", "last": True, "interruptible": not ending})
+            elif turn.reply:
                 await self.send({"type": "text", "token": turn.reply, "last": True, "interruptible": not ending})
             if ending:
                 await asyncio.sleep(speaking_seconds(self.rt, turn.reply))  # let the goodbye be heard
@@ -170,6 +174,24 @@ class RelaySession:
                 await self.send({"type": "end", "handoffData": json.dumps(handoff)})
                 return
             timeout = self.rt.settings.voice_silence_s + speaking_seconds(self.rt, turn.reply)
+
+    def _sentence_sink(self):
+        """Called from the worker thread for each guarded sentence: send it now, in order, as a
+        non-final `text` token (Twilio starts TTS on it while Claude is still writing the next one)."""
+        loop = asyncio.get_running_loop()
+        sent = [0]
+
+        def sink(sentence: str) -> None:
+            token = (" " if sent[0] else "") + sentence  # Twilio concatenates tokens as they are
+            sent[0] += 1
+            fut = asyncio.run_coroutine_threadsafe(
+                self.send({"type": "text", "token": token, "last": False, "interruptible": True}), loop)
+            try:
+                fut.result(timeout=5)
+            except Exception:  # noqa: BLE001 - socket gone: the turn still completes and is persisted
+                log.warning("relay: sentence not sent")
+
+        return sink
 
     def _note_interrupt(self, msg: dict[str, Any]) -> None:
         eng = self.rt.engine

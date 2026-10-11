@@ -48,6 +48,11 @@ def _brand_model() -> str:
     return model
 
 
+def _brand_claude() -> dict:
+    claude = brand().get("claude") or {}
+    return claude if isinstance(claude, dict) else {}
+
+
 @dataclass(frozen=True)
 class Settings:
     mode: str = "prod"
@@ -59,7 +64,13 @@ class Settings:
     public_base_url: str = ""
     cred_key: str = field(default="", repr=False)
     brain_mode: str = "live"
-    model: str = ""
+    model: str = ""            # claude.model: the general default (health ping fallback, cost tests)
+    # claude.voice_model: every realtime turn (voice, SMS, web chat demo). Quotes use claude.quote_model (Edge).
+    voice_model: str = ""
+    voice_max_tokens: int = 400
+    voice_thinking: str = "disabled"   # "disabled" | "adaptive" (see docs/reports/VOICE-LATENCY.md)
+    prompt_cache: bool = True
+    voice_fillers: bool = True         # fixed "One moment." style line when a turn starts with a tool call
     replay_dir: Path = field(default_factory=lambda: RUNTIME_DIR / "sim" / "replays")
     secrets_file: Path = field(default_factory=lambda: REPO_DIR / ".secrets.env")
     twilio_protected_prefixes: tuple[str, ...] = ("/voice/", "/sms/")
@@ -91,6 +102,8 @@ class Settings:
             raise SettingsError(f"BRAIN_MODE must be one of {BRAIN_MODES}, got {self.brain_mode!r}")
         if self.voice_mode not in VOICE_MODES:
             raise SettingsError(f"VOICE_MODE must be one of {VOICE_MODES}, got {self.voice_mode!r}")
+        if self.voice_thinking not in ("disabled", "adaptive"):
+            raise SettingsError(f"CLAUDE_VOICE_THINKING must be 'disabled' or 'adaptive', got {self.voice_thinking!r}")
         if self.store_backend == "supabase" and not (self.supabase_url and self.supabase_service_key):
             raise SettingsError("STORE_BACKEND=supabase needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY")
         return self
@@ -102,6 +115,7 @@ class Settings:
             "store": self.store_backend,
             "brain_mode": self.brain_mode,
             "model": self.model,
+            "voice_model": self.voice_model,
             "twilio_auth_configured": bool(self.twilio_auth_token),
             "cred_key_configured": bool(self.cred_key),
             "public_base_url": self.public_base_url or None,
@@ -128,6 +142,15 @@ def load(env: dict[str, str] | None = None) -> Settings:
         cred_key=env.get("CRED_KEY") or (SIM_CRED_KEY if sim else ""),
         brain_mode=brain_mode,
         model=env.get("CLAUDE_MODEL") or _brand_model(),
+        voice_model=(env.get("CLAUDE_VOICE_MODEL") or _brand_claude().get("voice_model")
+                     or env.get("CLAUDE_MODEL") or _brand_model()),
+        voice_max_tokens=int(env.get("CLAUDE_VOICE_MAX_TOKENS") or (_brand_claude().get("voice") or {}).get("max_tokens") or 400),
+        voice_thinking=(env.get("CLAUDE_VOICE_THINKING") or (_brand_claude().get("voice") or {}).get("thinking")
+                        or "disabled").strip().lower(),
+        prompt_cache=(env.get("CLAUDE_PROMPT_CACHE") or str((_brand_claude().get("voice") or {}).get("prompt_cache", True))
+                      ).strip().lower() not in ("0", "false", "no", "off"),
+        voice_fillers=(env.get("CLAUDE_VOICE_FILLERS") or str((_brand_claude().get("voice") or {}).get("tool_fillers", True))
+                       ).strip().lower() not in ("0", "false", "no", "off"),
         brand_name=str(brand().get("name") or "Receptionist"),
         global_daily_budget_usd=float(env.get("GLOBAL_DAILY_BUDGET_USD", "25")),
         voice_mode=env.get("VOICE_MODE", "stream").strip().lower(),

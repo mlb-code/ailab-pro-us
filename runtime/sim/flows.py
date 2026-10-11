@@ -15,13 +15,17 @@ Steps (one key each, optional `advance_minutes` / `advance_seconds` before the s
 Step `expect`: reply_contains, reply_matches (regex), reply_not_matches, reply_starts_with, reply_empty, end, dial, rejected.
 Final `expect`: outcome, bookings, sms_sent, sms_sent_contains, sms_sent_max, alerts, no_alerts,
   events {type: n}, claude_calls_max, latency_p95_ms_max, opted_out, burst {answered_max, capped,
-  rejected_min}, usage_voice_min.
+  rejected_min}, usage_voice_min, first_sentence {server_p95_ms_max, client_p95_ms_max, total_p95_ms_min}.
+Scenario `slow_model: {first_ms, rest_ms}`: the mock model streams like a live one (first text after
+first_ms, then rest_ms before the rest of the reply) in every mode; nothing is recorded or replayed.
+In stream mode `latency_p95_ms_max` measures the time to the first text frame (first spoken sentence).
 """
 from __future__ import annotations
 
 import json
 import re
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -36,6 +40,32 @@ from . import harness
 from .fake_calendar import FakeCalendar
 from .fake_call import CallTurn, FakeCall
 from .fake_twilio import FakeTwilioClient, parse_twiml
+
+
+class SlowStreamModel:
+    """MockBrain behind a live-like stream: `first_ms` before the first block, then the first sentence of a
+    text reply at once and `rest_ms` before the rest. Tool calls are announced as soon as they start."""
+
+    def __init__(self, brain: MockBrain, first_ms: float = 0, rest_ms: float = 600):
+        self.brain, self.first_s, self.rest_s = brain, first_ms / 1000, rest_ms / 1000
+
+    def __call__(self, request: dict[str, Any], on_text=None, on_tool=None) -> dict[str, Any]:
+        resp = self.brain.respond(request)
+        time.sleep(self.first_s)
+        for block in resp.get("content") or []:
+            if block.get("type") == "tool_use":
+                if on_tool:
+                    on_tool(block["name"])
+            elif block.get("type") == "text" and on_text:
+                text = block.get("text", "")
+                m = re.search(r"(?<=[.!?])\s+", text)
+                head, tail = (text[:m.end()], text[m.end():]) if m else (text, "")
+                on_text(head)
+                if tail:
+                    time.sleep(self.rest_s)
+                    on_text(tail)
+                on_text("\n")
+        return resp
 
 
 def modes_for(sc: dict[str, Any]) -> list[str]:
@@ -55,10 +85,15 @@ def run_flow(sc: dict[str, Any], out, mode: str = "replay", source: str = "mock"
     llms: list[LLMClient] = []
     vm = voice_mode if voice_mode != "-" else "gather"
 
+    slow = sc.get("slow_model")
+
     def boot(seed: bool):
         settings = harness.sim_settings(data_dir, BRAIN_MODE="mock", VOICE_MODE=vm)
         live_call = MockBrain(script).respond if (mode == "record" and (source == "mock" or script)) else None
-        llm = LLMClient(settings, namespace=sc["name"], script=script, mode=mode, live_call=live_call)
+        llm_mode = mode
+        if slow:  # a deterministic model that streams with live-like delays (latency scenarios)
+            live_call, llm_mode = SlowStreamModel(MockBrain(script), **slow), "live"
+        llm = LLMClient(settings, namespace=sc["name"], script=script, mode=llm_mode, live_call=live_call)
         llms.append(llm)
         return harness.build(data_dir, clock=clock, llm=llm, calendar=calendar, twilio_client=twilio_client,
                              seed=seed, VOICE_MODE=vm)
@@ -220,6 +255,18 @@ def _check_final(out, exp: dict[str, Any], sim, tenant, contact, latencies, burs
         out.notes.append(f"turn latency p95 {p95:.1f} ms over {len(latencies)} turns")
         if not latencies or p95 > exp["latency_p95_ms_max"]:
             f.append(f"turn latency p95 {p95:.1f} ms > {exp['latency_p95_ms_max']} ms")
+    fs = exp.get("first_sentence") or {}
+    if fs:
+        lat = [e["payload"] for e in events if e["type"] == "voice.latency"]
+        got = lat[-1] if lat else {}
+        out.notes.append(f"first sentence: server p95 {got.get('first_sentence_server_ms_p95')} ms, "
+                         f"turn total p95 {got.get('total_ms_p95')} ms, client p95 {percentile(latencies, 95):.1f} ms")
+        if "server_p95_ms_max" in fs and not (got.get("first_sentence_server_ms_p95", 1e9) <= fs["server_p95_ms_max"]):
+            f.append(f"first sentence server p95 {got.get('first_sentence_server_ms_p95')} > {fs['server_p95_ms_max']} ms")
+        if "client_p95_ms_max" in fs and not (latencies and percentile(latencies, 95) <= fs["client_p95_ms_max"]):
+            f.append(f"first sentence client p95 {percentile(latencies, 95):.1f} > {fs['client_p95_ms_max']} ms")
+        if "total_p95_ms_min" in fs and not (got.get("total_ms_p95", 0) >= fs["total_p95_ms_min"]):
+            f.append(f"turn total p95 {got.get('total_ms_p95')} < {fs['total_p95_ms_min']} ms (reply not streamed?)")
     if "opted_out" in exp and sim.store.is_opted_out(tenant.id, contact) != exp["opted_out"]:
         f.append(f"opted_out != {exp['opted_out']}")
     b = exp.get("burst") or {}

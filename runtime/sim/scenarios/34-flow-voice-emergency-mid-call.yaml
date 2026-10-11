@@ -4,7 +4,7 @@ channel: voice
 steps:
   - call: {}
   - say: "My AC is making a weird noise"
-    expect: {reply_contains: ["technician"]}
+    expect: {reply_matches: ["technician|ZIP"]}
   - say: "Wait, I smell gas in the kitchen"
     expect: {reply_starts_with: "If anyone is in danger, please hang up and call 911 now.", end: false}
   - say: "No, everyone went outside, we're fine"

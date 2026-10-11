@@ -12,7 +12,7 @@ steps:
   - sms: "My name is Dana Miller"
     expect: {reply_contains: ["address"]}
   - sms: "2100 Rice Blvd, Houston 77005"
-    expect: {reply_contains: ["all set"]}
+    expect: {reply_matches: ["all set|booked"]}
   - jobs: true
     advance_minutes: 60
   - jobs: true

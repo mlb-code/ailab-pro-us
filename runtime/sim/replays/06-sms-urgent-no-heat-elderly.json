@@ -1,10 +1,10 @@
 {
- "8aafdd1bac1abf4f5cc9ad0e": {
+ "c41865bdce43e6aac45457df": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
       "type": "text"
      },
      {
@@ -14,26 +14,26 @@
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
-     "signature": "CAQStQYKEAgSGAI4AUIIdGhpbmtpbmcSDNqa6Ez+D4NZk/eLpBoMfWpJmOEJcemM0EREIjCfmJl4q6CiElhZYiUEAIgnS0THGcWswdNcWgB27cHDGC+TBsCIchWHRaFO+bFPTKsq0gUHVF0tjvsQDwqh/ihXxPuB4Qq7nEBdC+sLRKRZw8rNwqprpdo6tcW0IXfWjKToYb7btG8bo7oXJxO/dtqSTQpXsl2l+0AkIz92zYr1RiAX1B9p30hcMsC0mSbdH4j1p3znwiW823fIBoQ/Pe4/qrtn9X62soGs+m6x7zYzuySL3w3a9VwSFta80BTs8r/Xl0Z7hXSzWfn4Kto6isHy0o7IEdNuO9qWN4BxgFlEM5knj4232WouMMF7G5b61X2PZq3nZr/atNxHEvhQDE1mlRSfUDkIqGdRcR3Sd9Hl5AuIDLdiqvTzDLla2Gcct9ZCJWmArAzyG9xRcey+Ox603a81KajDqOGIPfrRMo9z9xPw3q5p+u8qKLK6lZPwOKFabhd0KSq2xQuFaBPcpDPo6xbwstcKA7XDoWHTRJjnP/xX/lzExB3bHc15AQrXqKUPjlB3I9US44jw2tJ7p7WEnkxZqrgylsw3TyUjW20qBYljsNzLw0q0okYetLTdSvjT7dewewvMYK7lUqsWSxAf+8nO95H10DSl17cEXTvJ5kMsdh8VjikOAZaUEyyGmB1CSaoGN1nkA2DfUJSDmO7gqVO6EPnNJk2EsJN9bqIK0PyZpgazC5wXEszoFQyKqxUUi/WuEGJb/vUo2G/gT+HOwJQS6n5HuiJuOIcP8NQWQ5lKAsiCyWE5l9M200qdj9n2GNLbBQI1Oq69Ren5wwo5txb2bHLBkliBmee7BIw+YefM2NOeUukk/auEwZp63JV0Y/XnDqDfLEG3rOedenga57QEWRuahe2nKwYXQxbiR9QQYbIGyoGs3gSAdlb8i2vU4WgRBV2/K1ooAPz0ZzcdPpX48fl0DtgdNM3zTIsVQmI/QjuCczV98TD8B5FrI2OzQoyBfzNBePo9QbrGAsZAWDT9Oa5mHeK0nDB5klke7AMAKLjYiWDT13P4zPXwKCWPHmny5xgB",
-     "thinking": "",
-     "type": "thinking"
-    },
-    {
-     "text": "I'm sorry you're dealing with that. Let's get a technician out to you as soon as we can. What's the ZIP code where you need service? If anyone is in danger, please call 911.",
+     "text": "This sounds urgent. If anyone in the home is in danger from the cold, please call 911. I'm sorry you're without heat. To book a furnace repair visit, what is the service ZIP code?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 1863.9,
+    "first_text_ms": 1864.0,
+    "total_ms": 2343.9
+   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2042,
-    "input_tokens": 163,
-    "output_tokens": 157
+    "cache_creation_input_tokens": 162,
+    "cache_read_input_tokens": 2107,
+    "input_tokens": 4,
+    "output_tokens": 64
    }
   }
  }

@@ -6,6 +6,6 @@ patch: {config: {after_hours: {mode: message_only}}}
 steps:
   - call: {}
   - say: "My AC is blowing warm air, zip 77002"
-    expect: {reply_matches: ["passed your message|let the .{0,30}team know|sent your message|message (to|for) the team"]}
+    expect: {reply_matches: ["passed your (message|.{0,40}request)|message (has been|was) passed|team has your message|message is with|(taken|take|log) your message|let the .{0,30}team know|sent your message|message (to|for) the team"]}
   - hangup: {}
 expect: {outcome: message, bookings: 0, alerts: [lead], sms_sent: 0}

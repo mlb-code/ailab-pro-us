@@ -1,70 +1,10 @@
 {
- "24224bff8d5081b1e0db86a0": {
+ "1c129b7976a4d7d0343ee02b": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01Ja82X8XGd3h3ZLLmPygJwa",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm sorry your AC is blowing warm air. We're closed right now, so I sent your message to the team and they'll call you back to set up a repair visit.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 303,
-    "output_tokens": 51
-   }
-  }
- },
- "30a6a8254014321fe21d61f9": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_016PgSbn8RoKXWrrhT3eLuQN",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm sorry your AC is blowing warm air. We're closed right now, so I've passed your message to the team and they'll call you back when we open.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 292,
-    "output_tokens": 47
-   }
-  }
- },
- "63541b9c966506dc43fc1b12": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Sunday Oct 11, 10:30 PM. The business is closed now: do not book; take a message. The customer's phone number is already known.",
+      "text": "[context] Channel: voice. Local time: Sunday Oct 11 2026, 10:30 PM. The business is closed now: do not book; take a message. The customer's phone number is already known.",
       "type": "text"
      },
      {
@@ -74,18 +14,22 @@
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
+     "text": "Sorry about the warm air. Our office is closed right now, so I'm taking a message for the team to call you back first thing.",
+     "type": "text"
+    },
+    {
      "caller": {
       "type": "direct"
      },
-     "id": "toolu_01Ja82X8XGd3h3ZLLmPygJwa",
+     "id": "toolu_0162fux3Py3LQYuofvhe8ZiF",
      "input": {
       "name": null,
-      "summary": "AC blowing warm air, service ZIP 77002. Customer called after hours Sunday night and needs a callback to schedule AC repair.",
+      "summary": "Customer reports AC blowing warm air, ZIP 77002. Called Sunday 10:30 PM, outside business hours. Needs AC repair; team to call back when open (Mon 07:00).",
       "urgency": "normal"
      },
      "name": "take_message",
@@ -93,11 +37,127 @@
     }
    ],
    "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 565.1,
+    "first_text_ms": 565.2,
+    "total_ms": 1393.4
+   },
    "usage": {
     "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 154,
-    "output_tokens": 137
+    "cache_read_input_tokens": 2069,
+    "input_tokens": 4,
+    "output_tokens": 196
+   }
+  }
+ },
+ "1e43c3a5de958320e69e54cf": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01455LBve7Ay64FYBY53a3r3",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "The team has your message about the AC blowing warm air, and they will call you back when we open Monday at 7 AM.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01LdK76mBkjwos3vQQGGVExa",
+     "input": {
+      "outcome": "message"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 541.2,
+    "first_text_ms": 541.4,
+    "total_ms": 940.7
+   },
+   "usage": {
+    "cache_creation_input_tokens": 199,
+    "cache_read_input_tokens": 2069,
+    "input_tokens": 2,
+    "output_tokens": 87
+   }
+  }
+ },
+ "468339fbe867001c4a307aaa": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01LdK76mBkjwos3vQQGGVExa",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 563.6
+   },
+   "usage": {
+    "cache_creation_input_tokens": 99,
+    "cache_read_input_tokens": 2268,
+    "input_tokens": 2,
+    "output_tokens": 1
+   }
+  }
+ },
+ "e6b194437aee4c2f3081c9e8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
+      "tool_use_id": "toolu_0162fux3Py3LQYuofvhe8ZiF",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "The message went through, though the system flagged it as out of area. Our team has your message and will call you back when we open Monday at 7 AM. Thanks for your patience.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 571.8,
+    "first_text_ms": 572.0,
+    "total_ms": 938.7
+   },
+   "usage": {
+    "cache_creation_input_tokens": 222,
+    "cache_read_input_tokens": 2069,
+    "input_tokens": 2,
+    "output_tokens": 52
    }
   }
  }
