@@ -14,7 +14,7 @@
     "reply_to": "support@ailabpro.co",
     "fallback": "AI Lab Pro <pro@ai-lab.co.il>"
   },
-  "smtp_from": "",
+  "smtp_from": "AI Lab Pro <hello@ailabpro.co>",
   "owner": {
     "admin_email": "laviemb@gmail.com",
     "admin_lang": "he",

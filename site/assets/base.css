@@ -27,7 +27,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:1rem
 img,svg,video{max-width:100%;display:block}
 a{color:inherit;text-decoration-color:var(--line-2);text-underline-offset:3px}
 a:hover{text-decoration-color:var(--acc)}
-:focus-visible{outline:none;box-shadow:var(--focus);border-radius:4px}
+:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--amber-2),0 0 0 9px rgba(232,166,74,.18)}
+a:not([class]):focus-visible{border-radius:4px}
 ::selection{background:var(--acc);color:var(--on-acc)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
