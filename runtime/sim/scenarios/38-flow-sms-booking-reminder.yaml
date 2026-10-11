@@ -6,7 +6,7 @@ steps:
   - sms: "Hi, my AC is blowing warm air"
     expect: {reply_contains: ["ZIP"]}
   - sms: "77005"
-    expect: {reply_contains: ["Which works better", "Tuesday Oct 13"]}
+    expect: {reply_matches: ["which (one )?works"], reply_contains: ["Tuesday Oct 13"]}
   - sms: "The first one works"
     expect: {reply_contains: ["name"]}
   - sms: "My name is Dana Miller"

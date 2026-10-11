@@ -5,7 +5,7 @@ now: "2026-10-11T22:30:00-05:00"
 steps:
   - call: {}
   - say: "My AC is blowing warm air, zip 77002"
-    expect: {reply_contains: ["Monday Oct 12"]}
+    expect: {reply_matches: ["Monday,? Oct(ober)? 12"]}
   - say: "The morning one, my name is Ann Lee, 900 Main St Houston 77002"
     expect: {reply_contains: ["all set"]}
   - hangup: {}

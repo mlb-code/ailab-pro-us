@@ -1,5 +1,5 @@
 {
- "85a725898ecd32b6651c6f64": {
+ "b61ffe0eaedc12966e72b2ec": {
   "request": {
    "last_message": {
     "content": [
@@ -19,14 +19,16 @@
   "response": {
    "content": [
     {
-     "text": "Yes, all major brands.",
+     "text": "Yes, we service all major brands, including Trane. What's going on with your unit?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 720,
-    "output_tokens": 13
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 137,
+    "output_tokens": 27
    }
   }
  }

@@ -1,5 +1,5 @@
 {
- "0d9ac7c81c6796798673f10e": {
+ "2893cd3cee8975df8c2b2735": {
   "request": {
    "last_message": {
     "content": [
@@ -19,18 +19,25 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "signature": "CAQSzAYKEAgSGAI4AUIIdGhpbmtpbmcSDPhKr5hSG9PC5Zi6JxoMb50MxoQuZa4BiJu6IjC3cW7QKjTrYpLkYurFzg+wFc/cSYgd80ymtRfqnm+OZcEqlL0oigG8jOi2PQ8nHY0q6QWjGtGPcYVEMwMccN9Fes9AqJTYYcvTaG+kbi9KHTQGSWEb6HUb8Zng+qkJ6vGDEYUV4n9wD+tsvXGJHbHPketg1rlXU2SotZ26+aTsipHzGIz0IyKg4Wn0K7u5flLQM0sEcnETrXh/fEXgRECxEuvwT6JCPE6Xn898D1qErjy85PPjutlG2yagHpPdjH8CRXOzeiel2BGfkTJp5hhlsLmkyV6qlFzl3Cd6Xx/7QCAKpuYo9JhJrmM+1c7DBrSj1pHOLPd1O/lx0rBCaOBaTz7lyuzpGSNLRKbLMFBilJHIvl7vd9PYqqTk5O9y/ZR45PeAPm8F/VyZ3/deBxCrC0ExRsuFfW7C4fqxhk11yoDGs5Z53FE3FwbRfgRd31zevzinB/hi6hyFHcbC7LK9voQVgbZHywh/XDIDX8x+vlUXgV7HfWDIuwom5SrINa9ZpRppG3htMTeN0F0n1dL5FTr5pKgd5J72Gnn5945LXPBACl+CMv+PgMwmG9W6VWWJH9KtESIUQYqAeg+mFDw1asg+wLh4S88U4gl4KCldiO4SFD7DVDswVKlIf5o9HzxPAI6dTMtMmMd4Lb11kxYS47E5fIzlQNUS7U2GATH/cQz7Yp1mHYHfT9GcNqnjgPKOoAtnsH3xJrxdWqi04t7r1/s74fRUJDRQOCRkft48zHrikBlyqMjxhb2hjdiAXmcsLHZvurM01XOQUpZozS20a/SwJgjossdA7E4pR11ayXaIUXn3h8bYdTgKuYWQLxg/OhoqvCBfmOk/60ZggdFq95ia60ZwD6NGlqVUFcJNYl6mclaFsr4biijbxgdnqTEeQQE2wmM2dk8s/zf9Qj/XKkKw492J/R0iSPz3TM6R4YPnNn9G15YWglYu62sJp3M7K/EkPEYMDRXk/7AmG/TNRPLDitHaYrMvQyYKsS57RyXeO/TwFdFGL4GkUVNJoBoFFb+/lygFEuoz4J70D+beTSx1U3dV3iHxHVhlGAE=",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "text": "Smoke detectors aren't something I can help with, sorry. For your tune-up, what's the ZIP code where you need service?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 833,
-    "output_tokens": 30
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 328,
+    "output_tokens": 116
    }
   }
  },
- "cc8ce9c009262ea476a8b3e4": {
+ "662a38aa953f4e4b8e933eab": {
   "request": {
    "last_message": {
     "content": [
@@ -50,14 +57,21 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "signature": "CAQSyQUKEAgSGAI4AUIIdGhpbmtpbmcSDKC2QOTO3f97xa8rxxoMSMDhthG+eSuWF/RbIjDBbeZExt9d8rU1w2LWrwRJ9LWQGdgN1MbzYbY4Pfzky/XvNtvC+lXTyYJJ6lBYQfUq5gQgQF3VVRca5lBEvbH2btya1eMckJzsW2Dy+3yNQDcDIocn68SMbdf+zwUXsvkzniSuNAS3t6mpQo98cSN8S9zreqIPYjHwS/xyB9OwMqbtvcTBRRdTeyZeimXY67KerukrpTyT59FiXj1NwLiT4ZFZefx1eTnRjD9QWTUzMKsvjsx4YEfBCuc8bOfvlWg8hcrWegxmTqeyMRdUwlPsSNTyNxfeyCeeJ25tF7jmkMjJe4b1ib/kZvaVZYJX1hhWlLGuIJ0SesDbfRcklpb2HCAhDwAZ9GJmTnYDGjSowfQzAta0TmPFCdLjtaX10jM0CagmGAO/vP5RfR6zr45UJaZF3N+XmJpb2Pm32GUr3VdKOtgbc5Ff3Gmlz1NBI9OhVvu9+luPv+raqa3rSif4zTZRYeLL5lB7rzzvnZNT2EkPKoS9zXInKU0Lfs43oskCKYS+cONuZTa4aJlEqjNLulJWqfvUaaFPGniBlDtkKavLoHrdsquQAKFUQJBsuQguy5cgKjZCQIKW6Hj/z4upoCQGErN8Ibqi0Ki2p0rPDKYF3cS5tUr9A5qY/TCFJWc+uAsZ2dhvbuH1k0jp/1+dmPXdYMzD4j5P2lM0Pw0nZjnWC/UDIV0+fvXhrLNZEtAgasfWswz35sBOU7an+5NVptYv49yIKHXQtwPUtu22Bl4oVOx3eZXFdqvOIuOcjW6FLr5K+wewclQ68v/X2cz/VFT8uFC1B+B13zXu7QOtdq8qf+NLFHWWuwIv/ijDPWJUL+jJCSpfeNMEjQBrXQgqrlvWL7SSFg8P9dmCLtpJ96uReOyUfQQc8hgB",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "text": "Glad it's a joke! If there's ever a real fire, please call 911. I can help book a tune-up. What's the ZIP code where you need service?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 722,
-    "output_tokens": 30
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 147,
+    "output_tokens": 107
    }
   }
  }

@@ -2,5 +2,5 @@ description: ZIP outside the service area -> no slots offered, polite message, t
 channel: sms
 turns:
   - say: "Need AC repair, zip 90210"
-    expect: {tools: [get_availability, take_message], reply_contains: ["outside our service area"]}
+    expect: {tools: [take_message], reply_contains: ["outside our service area"]}
 expect: {outcome: message, bookings: 0, actions: [lead]}

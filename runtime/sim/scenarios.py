@@ -74,7 +74,8 @@ def run(path: Path, mode: str = "replay", source: str = "mock", data_dir: Path |
     tenant = store.upsert_tenant(load_record(deep_merge(raw, sc.get("patch") or {})))
 
     script = sc.get("script") or []
-    live_call = MockBrain(script).respond if (mode == "record" and source == "mock") else None
+    # A `script:` is a deliberately misbehaving model (guard tests): always recorded from the mock.
+    live_call = MockBrain(script).respond if (mode == "record" and (source == "mock" or script)) else None
     llm = LLMClient(settings, namespace=out.name, script=script, mode=mode, live_call=live_call)
     engine = Engine(store, llm, FakeCalendar(), settings)
 
@@ -142,6 +143,9 @@ def _check_turn(out: Outcome, i: int, exp: dict, res) -> None:
     for pat in exp.get("reply_not_matches", []):
         if re.search(pat, res.reply or "", re.I):
             f.append(f"turn {i}: reply matches forbidden /{pat}/: {res.reply!r}")
+    for pat in exp.get("reply_matches", []):
+        if not re.search(pat, res.reply or "", re.I):
+            f.append(f"turn {i}: reply does not match /{pat}/: {res.reply!r}")
     if exp.get("reply_empty") and res.reply:
         f.append(f"turn {i}: expected no reply, got {res.reply!r}")
     if "claude_calls" in exp and res.claude_calls != exp["claude_calls"]:
@@ -154,6 +158,8 @@ def _check_turn(out: Outcome, i: int, exp: dict, res) -> None:
     for tool in exp.get("tools", []):
         if tool not in [t["name"] for t in res.tool_calls]:
             f.append(f"turn {i}: tool {tool!r} not called ({[t['name'] for t in res.tool_calls]})")
+    if exp.get("tools_any") and not set(exp["tools_any"]) & {t["name"] for t in res.tool_calls}:
+        f.append(f"turn {i}: none of {exp['tools_any']} called ({[t['name'] for t in res.tool_calls]})")
 
 
 def _check_final(out: Outcome, exp: dict, replies: list[str], actions: list[dict], store, tenant, contact, engine) -> None:

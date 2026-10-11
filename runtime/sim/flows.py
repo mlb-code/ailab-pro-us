@@ -11,6 +11,8 @@ Steps (one key each, optional `advance_minutes` / `advance_seconds` before the s
   dial: no-answer|completed                      sms: "text" (inbound text)
   jobs: true             POST /jobs/tick (cron)  restart: true (new app, same data)
   burst_calls: {count, within_s, say?}           many calls from one number
+  if_open: true on a say/silence/dial step skips it when the call already ended (live model may close first)
+Step `expect`: reply_contains, reply_matches (regex), reply_not_matches, reply_starts_with, reply_empty, end, dial, rejected.
 Final `expect`: outcome, bookings, sms_sent, sms_sent_contains, sms_sent_max, alerts, no_alerts,
   events {type: n}, claude_calls_max, latency_p95_ms_max, opted_out, burst {answered_max, capped,
   rejected_min}, usage_voice_min.
@@ -55,7 +57,7 @@ def run_flow(sc: dict[str, Any], out, mode: str = "replay", source: str = "mock"
 
     def boot(seed: bool):
         settings = harness.sim_settings(data_dir, BRAIN_MODE="mock", VOICE_MODE=vm)
-        live_call = MockBrain(script).respond if (mode == "record" and source == "mock") else None
+        live_call = MockBrain(script).respond if (mode == "record" and (source == "mock" or script)) else None
         llm = LLMClient(settings, namespace=sc["name"], script=script, mode=mode, live_call=live_call)
         llms.append(llm)
         return harness.build(data_dir, clock=clock, llm=llm, calendar=calendar, twilio_client=twilio_client,
@@ -84,6 +86,11 @@ def run_flow(sc: dict[str, Any], out, mode: str = "replay", source: str = "mock"
         exp = step.get("expect") or {}
         turn: CallTurn | None = None
         reply = None
+        if call is not None and call.ended and any(k in step for k in ("say", "silence", "dial")):
+            if step.get("if_open"):  # optional caller line; the assistant may already have ended the call
+                continue
+            out.failures.append(f"step {i}: call already ended before this step")
+            break
         if "call" in step:
             call = FakeCall(sim.twilio, tenant.twilio_number, (step.get("call") or {}).get("from", contact),
                             clock=clock, settled=sim.settled(tenant.slug))
@@ -162,6 +169,9 @@ def _check_step(out, i: int, exp: dict[str, Any], reply: str | None, turn: CallT
     for pat in exp.get("reply_not_matches", []):
         if re.search(pat, reply or "", re.I):
             f.append(f"step {i}: reply matches forbidden /{pat}/: {reply!r}")
+    for pat in exp.get("reply_matches", []):
+        if not re.search(pat, reply or "", re.I):
+            f.append(f"step {i}: reply does not match /{pat}/: {reply!r}")
     if "reply_starts_with" in exp and not (reply or "").startswith(exp["reply_starts_with"]):
         f.append(f"step {i}: reply does not start with {exp['reply_starts_with']!r}: {reply!r}")
     if exp.get("reply_empty") and reply:

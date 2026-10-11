@@ -1,11 +1,11 @@
 {
- "938983c3f15df75b33cedf3e": {
+ "24224bff8d5081b1e0db86a0": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_003",
+      "tool_use_id": "toolu_01Ja82X8XGd3h3ZLLmPygJwa",
       "type": "tool_result"
      }
     ],
@@ -16,25 +16,26 @@
   "response": {
    "content": [
     {
-     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "text": "I'm sorry your AC is blowing warm air. We're closed right now, so I sent your message to the team and they'll call you back to set up a repair visit.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 919,
-    "output_tokens": 28
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 303,
+    "output_tokens": 51
    }
   }
  },
- "fc053a97f57c250178b2ad3b": {
+ "30a6a8254014321fe21d61f9": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": false, \"reason\": \"after_hours_message_only\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_001",
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_016PgSbn8RoKXWrrhT3eLuQN",
       "type": "tool_result"
      }
     ],
@@ -45,24 +46,20 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_003",
-     "input": {
-      "name": null,
-      "summary": "Customer needs service: My AC is blowing warm air, zip 77002",
-      "urgency": "normal"
-     },
-     "name": "take_message",
-     "type": "tool_use"
+     "text": "I'm sorry your AC is blowing warm air. We're closed right now, so I've passed your message to the team and they'll call you back when we open.",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
+   "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 833,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 292,
     "output_tokens": 47
    }
   }
  },
- "fc6924fbc497147732244959": {
+ "63541b9c966506dc43fc1b12": {
   "request": {
    "last_message": {
     "content": [
@@ -82,20 +79,25 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_001",
-     "input": {
-      "date_from": null,
-      "job_type": "AC repair",
-      "zip": "77002"
+     "caller": {
+      "type": "direct"
      },
-     "name": "get_availability",
+     "id": "toolu_01Ja82X8XGd3h3ZLLmPygJwa",
+     "input": {
+      "name": null,
+      "summary": "AC blowing warm air, service ZIP 77002. Customer called after hours Sunday night and needs a callback to schedule AC repair.",
+      "urgency": "normal"
+     },
+     "name": "take_message",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 743,
-    "output_tokens": 36
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 154,
+    "output_tokens": 137
    }
   }
  }

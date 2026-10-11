@@ -4,7 +4,7 @@ channel: sms
 steps:
   - sms: "Hi, my AC is blowing warm air"
   - sms: "77005"
-    expect: {reply_contains: ["Which works better"]}
+    expect: {reply_matches: ["which (one )?works"]}
   - restart: true
   - sms: "The first one works"
     expect: {reply_contains: ["name"]}

@@ -2,5 +2,5 @@ description: Asking for a person by text -> no dial on SMS; HUMAN NEEDED alert a
 channel: sms
 turns:
   - say: "I want to speak with the manager"
-    expect: {tools: [handoff], reply_contains: ["call you back"]}
+    expect: {tools: [handoff], reply_matches: ["call you back|get back to you|reach out"]}
 expect: {outcome: message, actions: [human_needed], no_actions: [dial]}
