@@ -1,0 +1,47 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "BNDL",
+        "qty": 1,
+        "reason": "Wants both.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-CRM",
+        "qty": 1,
+        "reason": "Housecall Pro.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-ES",
+        "qty": 1,
+        "reason": "Some Spanish callers.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-BLOG",
+        "qty": 1,
+        "reason": "Wants a blog.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-CHAT",
+        "qty": 1,
+        "reason": "chat",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "An AI receptionist and a new website for All Seasons Home Services, connected to Housecall Pro, with Spanish support on the phone line and a blog section with three starter articles.",
+    "assumptions": [],
+    "not_included_extra": [],
+    "timeline_text": "Everything is ready about 14 business days after access and content are complete.",
+    "questions_for_client": [],
+    "risk_flags": []
+  }
+}

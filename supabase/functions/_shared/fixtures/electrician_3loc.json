@@ -1,0 +1,116 @@
+{
+  "name": "electrician_3loc",
+  "profile": {
+    "full_name": "Jen Walsh",
+    "company": "Bright Spark Electric"
+  },
+  "questionnaire": {
+    "offer": "RCP",
+    "niche": "home_services",
+    "status": "submitted",
+    "answers": {
+      "offer": "RCP",
+      "niche": "home_services",
+      "services": [
+        "electrical"
+      ],
+      "service_area": "Dallas, Fort Worth, Plano",
+      "locations": "3",
+      "who_answers": "owner",
+      "calls_week": "50_150",
+      "missed_pct": "25_50",
+      "after_hours": "voicemail",
+      "urgent": "sometimes",
+      "job_value": "200_1k",
+      "tools": [
+        "google_calendar"
+      ],
+      "spanish": "no",
+      "price_on_phone": "no",
+      "timeline": "month",
+      "decider": "me"
+    },
+    "summary": [
+      {
+        "k": "offer",
+        "q": "offer",
+        "a": "RCP"
+      },
+      {
+        "k": "niche",
+        "q": "niche",
+        "a": "home_services"
+      },
+      {
+        "k": "services",
+        "q": "services",
+        "a": "electrical"
+      },
+      {
+        "k": "service_area",
+        "q": "service_area",
+        "a": "Dallas, Fort Worth, Plano"
+      },
+      {
+        "k": "locations",
+        "q": "locations",
+        "a": "3"
+      },
+      {
+        "k": "who_answers",
+        "q": "who_answers",
+        "a": "owner"
+      },
+      {
+        "k": "calls_week",
+        "q": "calls_week",
+        "a": "50_150"
+      },
+      {
+        "k": "missed_pct",
+        "q": "missed_pct",
+        "a": "25_50"
+      },
+      {
+        "k": "after_hours",
+        "q": "after_hours",
+        "a": "voicemail"
+      },
+      {
+        "k": "urgent",
+        "q": "urgent",
+        "a": "sometimes"
+      },
+      {
+        "k": "job_value",
+        "q": "job_value",
+        "a": "200_1k"
+      },
+      {
+        "k": "tools",
+        "q": "tools",
+        "a": "google_calendar"
+      },
+      {
+        "k": "spanish",
+        "q": "spanish",
+        "a": "no"
+      },
+      {
+        "k": "price_on_phone",
+        "q": "price_on_phone",
+        "a": "no"
+      },
+      {
+        "k": "timeline",
+        "q": "timeline",
+        "a": "month"
+      },
+      {
+        "k": "decider",
+        "q": "decider",
+        "a": "me"
+      }
+    ]
+  }
+}

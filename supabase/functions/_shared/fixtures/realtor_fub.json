@@ -1,0 +1,123 @@
+{
+  "name": "realtor_fub",
+  "profile": {
+    "full_name": "Sarah Kim",
+    "company": "Sarah Kim Realty"
+  },
+  "questionnaire": {
+    "offer": "RCP",
+    "niche": "real_estate",
+    "status": "submitted",
+    "answers": {
+      "offer": "RCP",
+      "niche": "real_estate",
+      "services": [
+        "buyers",
+        "listings"
+      ],
+      "service_area": "Austin, Round Rock",
+      "locations": "1",
+      "who_answers": "owner",
+      "calls_week": "20_50",
+      "missed_pct": "25_50",
+      "re_lead_types": [
+        "buyers",
+        "sellers"
+      ],
+      "re_qualify": [
+        "timeline",
+        "preapproval"
+      ],
+      "job_value": "8k_15k",
+      "re_crm": "follow_up_boss",
+      "tools": [
+        "google_calendar"
+      ],
+      "spanish": "no",
+      "timeline": "month",
+      "decider": "me"
+    },
+    "summary": [
+      {
+        "k": "offer",
+        "q": "offer",
+        "a": "RCP"
+      },
+      {
+        "k": "niche",
+        "q": "niche",
+        "a": "real_estate"
+      },
+      {
+        "k": "services",
+        "q": "services",
+        "a": "buyers, listings"
+      },
+      {
+        "k": "service_area",
+        "q": "service_area",
+        "a": "Austin, Round Rock"
+      },
+      {
+        "k": "locations",
+        "q": "locations",
+        "a": "1"
+      },
+      {
+        "k": "who_answers",
+        "q": "who_answers",
+        "a": "owner"
+      },
+      {
+        "k": "calls_week",
+        "q": "calls_week",
+        "a": "20_50"
+      },
+      {
+        "k": "missed_pct",
+        "q": "missed_pct",
+        "a": "25_50"
+      },
+      {
+        "k": "re_lead_types",
+        "q": "re_lead_types",
+        "a": "buyers, sellers"
+      },
+      {
+        "k": "re_qualify",
+        "q": "re_qualify",
+        "a": "timeline, preapproval"
+      },
+      {
+        "k": "job_value",
+        "q": "job_value",
+        "a": "8k_15k"
+      },
+      {
+        "k": "re_crm",
+        "q": "re_crm",
+        "a": "follow_up_boss"
+      },
+      {
+        "k": "tools",
+        "q": "tools",
+        "a": "google_calendar"
+      },
+      {
+        "k": "spanish",
+        "q": "spanish",
+        "a": "no"
+      },
+      {
+        "k": "timeline",
+        "q": "timeline",
+        "a": "month"
+      },
+      {
+        "k": "decider",
+        "q": "decider",
+        "a": "me"
+      }
+    ]
+  }
+}

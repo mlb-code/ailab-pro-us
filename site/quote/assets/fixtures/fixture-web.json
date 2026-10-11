@@ -1,0 +1,101 @@
+{
+  "status": "open",
+  "client": {
+    "name": "Luis Romero",
+    "company": "Desert Green Landscaping"
+  },
+  "created_at": "2026-10-12T15:00:00.000Z",
+  "sent_at": "2026-10-12T15:00:00.000Z",
+  "valid_until": "2026-10-26T15:00:00.000Z",
+  "scope_md": "A five-page website for Desert Green Landscaping plus one extra service page and a simple logo, with a lead form and click-to-call buttons.",
+  "assumptions": [
+    "You send photos of your work and three customer reviews."
+  ],
+  "timeline_text": "Your site is ready about 7 business days after you send the content.",
+  "delivery_business_days": 7,
+  "items": [
+    {
+      "code": "WEB",
+      "name": "Business Website (template-based, 5 pages)",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 190000,
+      "monthly_cents": 12900
+    },
+    {
+      "code": "ADD-LOGO",
+      "name": "Simple logo (wordmark + icon)",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 30000,
+      "monthly_cents": 0
+    },
+    {
+      "code": "ADD-PAGE",
+      "name": "Extra website page",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 25000,
+      "monthly_cents": 0
+    }
+  ],
+  "includes": [
+    {
+      "code": "WEB",
+      "name": "Business Website (template-based, 5 pages)",
+      "list": [
+        "5 pages (Home, Services, About, Reviews/FAQ, Contact), mobile-first, fast static hosting, SSL",
+        "Lead form to email and Google Sheet; click-to-call and click-to-text buttons",
+        "Basic local SEO: titles/meta, LocalBusiness schema, sitemap, Google Search Console and Google Business Profile link",
+        "Copywriting from your questionnaire (AI-drafted, approved by you), stock or your own photos",
+        "Monthly: hosting, uptime check, 1 small content edit per month"
+      ]
+    },
+    {
+      "code": "ADD-LOGO",
+      "name": "Simple logo (wordmark + icon)",
+      "list": [
+        "A simple wordmark and icon"
+      ]
+    },
+    {
+      "code": "ADD-PAGE",
+      "name": "Extra website page",
+      "list": [
+        "1 additional page"
+      ]
+    }
+  ],
+  "excludes": [
+    "Spanish version of the website (add-on ADD-WEB-ES)",
+    "Blog section and articles (add-on ADD-BLOG)",
+    "Ongoing SEO campaigns and paid advertising",
+    "More than 1 small content edit per month"
+  ],
+  "not_included_extra": [],
+  "totals": {
+    "setup_subtotal_cents": 245000,
+    "rush_cents": 0,
+    "discount_cents": 0,
+    "discount_label": null,
+    "setup_cents": 245000,
+    "monthly_cents": 12900,
+    "deposit_cents": 122500,
+    "final_cents": 122500,
+    "deposit_pct": 50
+  },
+  "refund": {
+    "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+    "retainer": null,
+    "status": "pending attorney review; owner to confirm"
+  },
+  "payment": {
+    "method": "wire",
+    "link": null
+  },
+  "agreement_version": "1.0-draft",
+  "accepted": null,
+  "call_offer_prominent": false,
+  "currency": "USD",
+  "cancel_notice_days": 30
+}

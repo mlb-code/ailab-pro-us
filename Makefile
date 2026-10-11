@@ -3,11 +3,12 @@
 #   make secrets   secrets scan of the whole repo (fails on any finding)
 #   make qa        every automated check that exists so far (A10 extends this)
 #   make qa-start  client portal E2E + per-step overflow (mock backend)
+#   make qa-admin  owner admin E2E + per-tab overflow (mock backend)
 PY ?= python3
 NODE ?= node
 PORT ?= 8787
 
-.PHONY: serve secrets qa qa-static qa-browser qa-start install
+.PHONY: serve secrets qa qa-static qa-browser qa-start qa-admin install
 
 install:
 	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund
@@ -39,5 +40,10 @@ qa-start:
 	$(NODE) tools/e2e_start.mjs
 	$(NODE) tools/overflow_start.mjs
 
-qa: qa-static qa-browser qa-start
+qa: qa-static qa-browser qa-start qa-admin
 	@echo "make qa: all checks passed"
+
+# Owner admin (/start/admin/, Hebrew RTL): E2E on the mock backend (Puppeteer) + overflow per tab/detail in 3 engines. Own servers.
+qa-admin:
+	$(NODE) tools/e2e_admin.mjs
+	$(NODE) tools/overflow_admin.mjs

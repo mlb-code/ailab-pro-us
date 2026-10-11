@@ -1,0 +1,25 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Missed buyer and seller calls.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "A lead assistant for Sarah Kim Realty that answers missed calls, asks every caller about their timeline and mortgage pre-approval, and sends each qualified lead to Follow Up Boss through Zapier.",
+    "assumptions": [
+      "Follow Up Boss is connected with the included Zapier webhook."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [],
+    "risk_flags": []
+  }
+}

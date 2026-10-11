@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "test": "deno test -A --node-modules-dir=none .",
+    "quote:live": "CLAUDE_MODE=live deno run -A --node-modules-dir=none quote-draft/live.ts",
+    "quote:fixtures": "deno run -A --node-modules-dir=none ../../tools/build_quote_fixtures.ts"
+  }
+}

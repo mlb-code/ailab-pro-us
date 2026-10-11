@@ -1,0 +1,98 @@
+{
+  "name": "web_only",
+  "profile": {
+    "full_name": "Luis Romero",
+    "company": "Desert Green Landscaping"
+  },
+  "questionnaire": {
+    "offer": "WEB",
+    "niche": "home_services",
+    "status": "submitted",
+    "answers": {
+      "offer": "WEB",
+      "niche": "home_services",
+      "services": [
+        "landscaping"
+      ],
+      "service_area": "Phoenix",
+      "has_website": "no",
+      "domain": "no",
+      "gbp": "yes",
+      "content_have": [
+        "photos",
+        "reviews"
+      ],
+      "web_extras": [
+        "logo",
+        "extra_pages"
+      ],
+      "tools": [
+        "google_business_profile"
+      ],
+      "timeline": "month",
+      "decider": "me"
+    },
+    "summary": [
+      {
+        "k": "offer",
+        "q": "offer",
+        "a": "WEB"
+      },
+      {
+        "k": "niche",
+        "q": "niche",
+        "a": "home_services"
+      },
+      {
+        "k": "services",
+        "q": "services",
+        "a": "landscaping"
+      },
+      {
+        "k": "service_area",
+        "q": "service_area",
+        "a": "Phoenix"
+      },
+      {
+        "k": "has_website",
+        "q": "has_website",
+        "a": "no"
+      },
+      {
+        "k": "domain",
+        "q": "domain",
+        "a": "no"
+      },
+      {
+        "k": "gbp",
+        "q": "gbp",
+        "a": "yes"
+      },
+      {
+        "k": "content_have",
+        "q": "content_have",
+        "a": "photos, reviews"
+      },
+      {
+        "k": "web_extras",
+        "q": "web_extras",
+        "a": "logo, extra_pages"
+      },
+      {
+        "k": "tools",
+        "q": "tools",
+        "a": "google_business_profile"
+      },
+      {
+        "k": "timeline",
+        "q": "timeline",
+        "a": "month"
+      },
+      {
+        "k": "decider",
+        "q": "decider",
+        "a": "me"
+      }
+    ]
+  }
+}
