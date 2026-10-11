@@ -1,0 +1,11 @@
+.env
+.env.*
+*.secrets*
+.secrets.env
+*.p8
+node_modules/
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+qa-shots/
