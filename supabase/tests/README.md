@@ -2,7 +2,7 @@
 
 | File | What it is |
 |---|---|
-| `rls_test.sql` | One `DO` block: creates 4 users (client A, client B, admin, cancelled client C), fixtures in every table, then checks RLS, guard triggers, RPC whitelists, storage policies, anon access and the retention/expiry jobs (152 checks). It **always ends with an error** so everything rolls back. Success = message starts with `RLS_TESTS_PASSED`; failure = `FAIL <which check>`. |
+| `rls_test.sql` | One `DO` block: creates 4 users (client A, client B, admin, cancelled client C), fixtures in every table, then checks RLS, guard triggers, RPC whitelists, storage policies, anon access and the retention/expiry jobs (159 checks). It **always ends with an error** so everything rolls back. Success = message starts with `RLS_TESTS_PASSED`; failure = `FAIL <which check>`. |
 | `offline/supabase_shim.sql` | OFFLINE ONLY. Minimal stand-in for Supabase internals (roles `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`, `storage.buckets/objects`, `storage.foldername()`, `cron.schedule()`, Supabase's default grants). Never apply to a real project. |
 | `offline/run.ts` | Runs everything in real Postgres 18 compiled to WASM (PGlite), in-process. No Docker, no Supabase project. |
 
@@ -39,7 +39,7 @@ Offline differences from a real project: `create extension pg_cron|pg_net` lines
 ## Run against a real project (after A2)
 
 - `python3 tools/us_setup.py --only test` (runs `rls_test.sql` through the Management API), or
-- Supabase SQL editor: paste `rls_test.sql`, run, expect `ERROR: RLS_TESTS_PASSED (152 checks)`, or
+- Supabase SQL editor: paste `rls_test.sql`, run, expect `ERROR: RLS_TESTS_PASSED (159 checks)`, or
 - with Docker + Supabase CLI: `supabase db reset && psql "$LOCAL_DB" -f supabase/tests/rls_test.sql`.
 
 ### Manual checks that only a real project can prove
