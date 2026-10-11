@@ -96,6 +96,7 @@ def create_app(settings: settings_mod.Settings | None = None, store: store_mod.S
     app.include_router(stream_router)
     app.include_router(sms_router)
     app.include_router(__import__("app.notify.routes", fromlist=["router"]).router)  # B5/B6: oauth, jobs/tick, reports, zapier, health/deep
+    app.include_router(__import__("app.webchat", fromlist=["router"]).router)  # B8: live chat demo (/demo/*)
     return app
 
 
