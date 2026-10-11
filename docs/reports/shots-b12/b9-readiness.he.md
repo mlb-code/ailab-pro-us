@@ -1,7 +1,7 @@
 # הכנה ל-B9: Railway + Twilio, לחיצה-לחיצה (טיוטת B12, 11.10.2026)
 
 > לא לקנות ולא לפרוס כלום לפני אישור מפורש של המתזמר. מחירים הם הערכה לפי דפי Twilio, ויש לאמת אותם במסך הרכישה.
-> לפני שמתחילים צריך לסגור את שלושת החוסמים ב-`B12.md`. במיוחד חוסם 3: **v1 = חשבון Twilio ראשי אחד, בלי subaccounts.**
+> **החלטה (TASKS, נספח B9):** ב-v1 יש **חשבון Twilio ראשי אחד**. כל המספרים נקנים בו, ואין subaccounts. החתימה נבדקת מול `TWILIO_AUTH_TOKEN` יחיד, ו-subaccount לכל לקוח יגיע רק עם תמיכה בטוקן לכל tenant. לפני פריסה צריך לסגור את החוסם הפתוח ב-`B12.md` (`/health/deep` חושף ערכי קונפיג).
 
 ## 0. מה צריך להכין לפני כן (מאיר)
 1. חשבון Railway (כבר קיים, ה-Hobby של $5 לחודש מספיק לשירות אחד).
@@ -33,11 +33,11 @@
 | `ADMIN_EMAIL` | המייל של מאיר (ב-`brand.json` השדה `owner.admin_email` ריק) | לא |
 | `CLIENT_EMAILS_ENABLED` | `false` עד אישור הנוסחים (התראות ליד ושימוש יוצאות בכל מקרה) | לא |
 | `ZAPIER_SIGNING_SECRET` | אותה פקודה כמו CRED_KEY | כן |
-| `TWILIO_VOICE_USD_PER_MIN` | `0.0785` (ConversationRelay ‏0.07 + קו נכנס 0.0085). בלי זה מעקב העלויות מחשב רק 0.0125 | לא |
+| `TWILIO_VOICE_USD_PER_MIN` | `0.0785` (ConversationRelay ‏0.07 + קו נכנס 0.0085). **חובה** לפי נספח TASKS | לא |
 | `DEMO_LIVE` | `0` עד שמאיר מאשר דמו חי | לא |
 | `GOOGLE_CALENDAR_CLIENT_ID/_SECRET`, `CALENDLY_CLIENT_ID/_SECRET` | אחר כך, כשיש אפליקציות OAuth | כן |
 
-5. Deploy. **הצלחה =** `https://<domain>/health` מחזיר `"ok": true`. אחר כך `https://<domain>/health/deep` מחזיר 200, וכל ה-`checks` הם `true`. אם אחד מהם `false`, זה המשתנה החסר.
+5. Deploy. **הצלחה =** (אם `tenant_configs:false`, ב-`tenants_invalid` מופיע ה-tenant התקול. מתקנים אותו בעורך האדמין) `https://<domain>/health` מחזיר `"ok": true`. אחר כך `https://<domain>/health/deep` מחזיר 200, וכל ה-`checks` הם `true`. אם אחד מהם `false`, זה המשתנה החסר.
 6. (רק במצב json) **Settings → Volumes → Add Volume**, ‏Mount path `/data`.
 7. **Cron ל-`/jobs/tick` כל 10 דקות:** New → **Cron Job** (או שירות נפרד עם Cron Schedule `*/10 * * * *`), פקודה:
    `curl -fsS -X POST -H "Authorization: Bearer $RUNTIME_ADMIN_TOKEN" https://<domain>/jobs/tick`
@@ -98,5 +98,5 @@
 ## 7. אישורים פתוחים של מאיר
 1. הקלטת replay חיה: `cd runtime && .venv/bin/python -m sim record --all --source live --yes` (≤ $2). זה גם "המעבר החי" ש-TASKS B12 דורש.
 2. הרצת הצעה חיה: `deno task quote:live fixtures/hvac_basic.json` (~$0.05) → `docs/reports/A6-live.json`.
-3. רכישת מספר Twilio, ‏Upgrade, ‏Trust Hub ו-10DLC.
+3. רכישת מספר Twilio (בחשבון הראשי), ‏Upgrade, ‏Trust Hub ו-10DLC.
 4. נוסחי מיילים ללקוח (`CLIENT_EMAILS_ENABLED`) והדמו החי (`DEMO_LIVE`, ‏`brand.demo.runtime_url`).

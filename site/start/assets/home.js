@@ -205,7 +205,7 @@
   const depPct = () => (S.PB.rules && S.PB.rules.deposit_pct) || 50;
   const payKind = k => ({ deposit: 'Deposit (' + depPct() + '% of setup)', final: 'Final payment before go-live', monthly: 'Monthly fee', overage: 'Usage overage' })[k] || k;
   const PAY_STATUS = { due: 'Due', paid: 'Paid', refunded: 'Refunded' };
-  const quoteUrl = q => '/quote/?t=' + encodeURIComponent(q.public_token || '');
+  const quoteUrl = q => '/quote/#t=' + encodeURIComponent(q.public_token || '');   // token in the fragment: never sent to servers/logs
   const offerName = (code, niche) => { const o = Q.offerOpts({ niche }).find(x => x.v === code); return o ? o.l : 'Questionnaire'; };
 
   function stageOf(d) {
@@ -216,6 +216,12 @@
       const rcp = (d.client.products || []).some(p => p === 'RCP' || p === 'BNDL');
       return { i: 5, text: rcp ? 'You’re live. Calls you miss are answered for you.' : 'You’re live. Your website is online.', action: null };
     }
+    const glr = (d.ob || []).find(o => o.data && o.data.go_live_requested_at);
+    const fin = d.payments.find(p => p.kind === 'final' && p.status !== 'paid');
+    if (d.client && glr && (fin || d.client.status === 'testing')) {
+      const amt = fin ? ' (' + S.money(fin.amount_cents) + ')' : '';
+      return { i: 4, text: 'Go-live requested. Next step: Final payment' + amt + ' — we email your secure link ' + S.sla() + '; you’re switched live once it’s paid.', action: { id: 'goBilling', label: 'Final payment' + amt } };
+    }
     if (d.client && d.client.status === 'testing') return { i: 4, text: 'Your setup is ready to test. Check your email for the test number.', action: null };
     if (dep && dep.status === 'paid') {
       const ob = d.ob || [], left = ob.filter(o => o.status !== 'done').length;
@@ -225,10 +231,11 @@
     if (live) {
       return live.pay_link
         ? { i: 2, text: 'Quote accepted. Next: the deposit (' + S.money(live.deposit_cents) + ').', action: { href: live.pay_link, label: 'Pay deposit ' + S.money(live.deposit_cents), ext: true } }
-        : { i: 2, text: 'Quote accepted. We’ll send your secure payment link within 1 business day.', action: { href: quoteUrl(live), label: 'View your quote' } };
+        : { i: 2, text: 'Quote accepted. We’ll send your secure payment link ' + S.sla() + '.', action: { href: quoteUrl(live), label: 'View your quote' } };
     }
     if (open) return { i: 1, text: 'Your fixed quote is ready.', action: { href: quoteUrl(open), label: 'Review your quote' } };
     const sub = d.qs.find(q => q.status !== 'draft');
+    if (sub && sub.offer === 'WEB') return { i: 2, text: 'Content received. Your deposit link is on its way — we email it ' + S.sla() + '. Draft in 3 business days after we have your content.', action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
     if (sub) return { i: 1, text: 'Questionnaire received. You’ll get a written fixed quote ' + S.sla() + '.', action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
     const draft = d.qs.find(q => q.status === 'draft');
     if (draft) return { i: 0, text: 'Your questionnaire is saved. Pick up where you left off.', action: { href: '/start/q/?id=' + draft.id, label: 'Continue the questionnaire' } };
@@ -350,6 +357,8 @@
     if (window.PortalB && window.PortalB.bind(d, tab, phaseBApi(d))) return;
     const gob = S.$('#goOnboarding');
     if (gob) gob.addEventListener('click', () => { switchTab(d, 'onboarding'); S.$('#tab-onboarding').focus(); });
+    const gbill = S.$('#goBilling');
+    if (gbill) gbill.addEventListener('click', () => { switchTab(d, 'billing'); S.$('#tab-billing').focus(); });
     if (tab !== 'home') return;
     ['#startQ', '#anotherQ'].forEach(sel => {
       const b = S.$(sel); if (!b) return;

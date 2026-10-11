@@ -111,10 +111,17 @@ def test_admin_alert_reaches_notify_in_hebrew(tmp_path, demo_raw):
 
 def test_health_deep_lists_invalid_tenants(tmp_path, demo_raw):
     sim, _ = broken(tmp_path, demo_raw)
-    body = sim.client.get("/health/deep", headers={"Authorization": f"Bearer {SIM_ADMIN_TOKEN}"}).json()
+    auth = {"Authorization": f"Bearer {SIM_ADMIN_TOKEN}"}
+    assert sim.client.get("/health/deep").status_code == 401
+    assert sim.client.get("/health/deep", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    r = sim.client.get("/health/deep", headers=auth)
+    body = r.json()
     assert body["checks"]["tenant_configs"] is False
-    assert body["tenants_invalid"][0]["slug"] == "demo-hvac" and "hours.mon" in body["tenants_invalid"][0]["problems"][0]
-    ok = harness.build(tmp_path / "ok").client.get("/health/deep").json()
+    assert body["tenants_invalid"] == [{"slug": "demo-hvac", "fields": ["hours.mon", "hours.mon[0]", "hours.mon[1]"]}]
+    # no tenant value of any kind in the response (phones, e-mails, FAQ, hours, names)
+    for value in ("+1713555", "owner@example.com", "Trane", "Cool Breeze", "'9'", '"9"', "77005"):
+        assert value not in r.text, value
+    ok = harness.build(tmp_path / "ok").client.get("/health/deep", headers=auth).json()
     assert ok["checks"]["tenant_configs"] is True and ok["tenants_invalid"] == []
 
 

@@ -210,6 +210,9 @@
           db.outbox.push({ id: uuid(), to: u.email, template: 'q_received', subject: 'Got it — your fixed quote arrives ' + ((window.Start && window.Start.BRAND.quote_sla_text) || 'soon'), created_at: now() });
           db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_q_submitted', subject: 'owner alert: questionnaire submitted', payload, created_at: now() });
         }
+        if (type === 'web_deposit_link_requested') {   // WEB: no quote step; the owner sends the deposit link
+          db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_web_deposit_link_requested', subject: 'owner alert: website deposit link requested', payload, created_at: now() });
+        }
         store(db);
         return later({ ok: true, via: 'mock-outbox', type });
       }

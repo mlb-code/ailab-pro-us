@@ -193,7 +193,7 @@ Phase B lanes R and W can start the same day as phase A (they need only A0/A3). 
 
 ### B9 · Real Twilio + Railway deploy (last)
 - **Inputs:** Meir's Twilio account (upgraded), Railway project. [REAL-TWILIO]
-- **Produce:** `docs/runbooks/twilio-setup.he.md` (Hebrew click-by-click: account, upgrade, Trust Hub primary profile as ISV, buy number, webhook URLs, fallback URL, 10DLC brand + campaign per client), `tools/twilio_provision.py` (subaccount per tenant, buy number by area code, set webhooks, store SID), Railway service deploy (`runtime/`), smoke test: real call to the demo tenant number → booking in a test Google Calendar → SMS alert to Meir.
+- **Produce:** `docs/runbooks/twilio-setup.he.md` (Hebrew click-by-click: account, upgrade, Trust Hub primary profile as ISV, buy number, webhook URLs, fallback URL, 10DLC brand + campaign per client), `tools/twilio_provision.py` (buy number by area code, set webhooks, store SID; all numbers in one main account in v1 — see B12), Railway service deploy (`runtime/`), smoke test: real call to the demo tenant number → booking in a test Google Calendar → SMS alert to Meir.
 - **Acceptance:** smoke test passes; Twilio signature validation on; `/health/deep` green; fallback URL plays the voicemail message when runtime is stopped.
 - **Checks:** `python3 tools/twilio_provision.py --dry-run`; manual smoke checklist in report with timestamps and call SIDs.
 - **Deps:** B12 + Meir actions (SPEC §9). Nothing is bought without the orchestrator's explicit OK.

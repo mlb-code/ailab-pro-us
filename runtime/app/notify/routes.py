@@ -117,6 +117,9 @@ def claude_ping(settings: Settings, ttl_s: float = 60.0) -> bool:
 
 @router.get("/health/deep")
 def health_deep(request: Request) -> JSONResponse:
+    """Admin only (Bearer RUNTIME_ADMIN_TOKEN): booleans and tenant slugs + field paths, never values."""
+    if (denied := require_admin(request)) is not None:
+        return denied
     svc = services(request.app)
     s = svc.settings
     try:
@@ -143,14 +146,16 @@ def health_deep(request: Request) -> JSONResponse:
 
 
 def invalid_tenants(store: Store) -> list[dict[str, Any]]:
-    """Every stored tenant config validated (B12 #2): slug + the first problems of each invalid one."""
+    """Every stored tenant config validated (B12 #2): slug + the failing field paths only. Validation
+    messages can quote config values (phones, e-mails, FAQ), so they never leave the server."""
     from ..tenants import TenantConfigError, load_record
     out = []
     for row in store.select("tenants"):
         try:
             load_record(row)
         except TenantConfigError as exc:
-            out.append({"slug": row.get("slug"), "problems": exc.problems[:3]})
+            fields = sorted({p.split(":", 1)[0].strip() for p in exc.problems})
+            out.append({"slug": row.get("slug"), "fields": fields[:10]})
     return out
 
 

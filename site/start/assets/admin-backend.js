@@ -75,7 +75,8 @@
         const p = must(await sb.from('profiles').select('id,email,is_admin').eq('id', id).maybeSingle());
         return { user: { id, email: (p && p.email) || '' }, is_admin: !!(p && p.is_admin) };
       },
-      async adminListLeads() { return must(await sb.from('leads').select('id,email,niche,source_page,utm,created_at').order('created_at', { ascending: false }).limit(500)); },
+      // public.leads (insert only via the `lead` Edge Function, A6); select * so columns added there show up without a change here
+      async adminListLeads() { return must(await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(500)); },
       async adminListProfiles() { return must(await sb.from('profiles').select('*').limit(2000)); },
       async adminListQuestionnaires() { return must(await sb.from('questionnaires').select('*').order('updated_at', { ascending: false }).limit(500)); },
       async adminListAttachments(qid) { return must(await sb.from('attachments').select('*').eq('questionnaire_id', qid).order('created_at')); },

@@ -16,8 +16,12 @@
              missed_pct, after_hours (not RE),
              urgent (not real_estate), job_value
              re_lead_types[], re_qualify[]     real_estate only (lead screening: buyer/seller/renter, timeline, pre-approval)
-   website   has_website, domain, gbp,         WEB/BNDL; domain + gbp WEB only
-             content_have[], web_extras[]      web_extras: extra_pages->ADD-PAGE, spanish->ADD-WEB-ES, logo->ADD-LOGO, blog->ADD-BLOG
+   website   has_website, domain, gbp,         WEB/BNDL; domain, gbp, web_hours, web_address WEB only
+             web_hours, web_address
+   look      web_tone, web_colors,             WEB/BNDL; web_tone, web_colors, web_reviews WEB only
+             content_have[], web_reviews,
+             web_extras[]                      web_extras: extra_pages->ADD-PAGE, spanish->ADD-WEB-ES, logo->ADD-LOGO, blog->ADD-BLOG
+   (WEB has no quote step: it ends with a deposit-link request, event web_deposit_link_requested; no tools step, no decider)
    tools     re_crm (real_estate only: integration_meta crm/real_estate keys + other|none; mapped via pricebook.integrations), tools[], tools_other
                                                each tool key maps via pricebook.integrations: native | zapier | addon:<code> | custom
    prefs     spanish, price_on_phone (not RE)  spanish 'many'|'some' -> ADD-ES
@@ -89,7 +93,7 @@
 
   const STEPS = [
     { id: 'project', title: 'Your project', sub: 'About 6 minutes. Everything saves as you go, so you can stop and come back.', fields: [
-      { k: 'offer', label: 'What would you like a fixed quote for?', type: 'offer', req: true },
+      { k: 'offer', label: 'What would you like us to build?', type: 'offer', req: true },
       { k: 'niche', label: 'Your industry', type: 'niche', req: true },
       { k: 'dental_note', type: 'note', when: a => a.niche === 'dental',
         text: 'Dental is in early access. We review every dental request by hand and confirm fit before quoting. The assistant collects only name, phone number and a general reason for the visit — no patient records.' }
@@ -126,16 +130,24 @@
       { k: 'job_value', label: a => a.niche === 'real_estate' ? 'Average commission per closed deal' : a.niche === 'dental' ? 'Average value of a new patient' : 'Average value of a job',
         type: 'single', opts: a => NICHE_OPTS.job_value[nicheOf(a)] }
     ] },
-    { id: 'website', title: 'Your website', sub: 'What you have today and what you’d like.', when: offerIs('WEB', 'BNDL'), fields: [
+    { id: 'website', title: a => a.offer === 'WEB' ? 'Your site details' : 'Your website', sub: a => a.offer === 'WEB' ? 'The facts your site will show. Rough is fine — you review every page before it goes live.' : 'What you have today.', when: offerIs('WEB', 'BNDL'), fields: [
       { k: 'has_website', label: 'Do you have a website today?', type: 'single', opts: [O('yes', 'Yes'), O('outdated', 'Yes, but it’s outdated'), O('no', 'No')] },
       { k: 'domain', label: 'Do you own a domain name?', type: 'single', when: offerIs('WEB'), opts: [O('yes', 'Yes'), O('no', 'Not yet'), O('unsure', 'Not sure')] },
       { k: 'gbp', label: 'Do you have a Google Business Profile?', type: 'single', when: offerIs('WEB'), opts: [O('yes', 'Yes'), O('no', 'No'), O('unsure', 'Not sure')] },
+      { k: 'web_hours', label: 'Business hours to show', type: 'text', when: offerIs('WEB'), ph: 'e.g. Mon–Fri 7am–6pm, Sat 8am–noon, 24/7 emergencies' },
+      { k: 'web_address', label: 'Address to show', hint: 'Leave empty if you only list your service area.', type: 'text', when: offerIs('WEB'), ph: 'Street, city, state, ZIP' }
+    ] },
+    { id: 'look', title: 'Look and content', sub: 'How the site should feel, and what you already have.', when: offerIs('WEB', 'BNDL'), fields: [
+      { k: 'web_tone', label: 'Tone of voice', type: 'single', when: offerIs('WEB'), opts: [O('friendly', 'Friendly and local'), O('professional', 'Professional and polished'),
+        O('bold', 'Bold and modern')] },
+      { k: 'web_colors', label: 'Brand colors (optional)', type: 'text', when: offerIs('WEB'), ph: 'e.g. navy and orange, or “match my logo”' },
       { k: 'content_have', label: 'What can you send us?', hint: 'Pick all that apply.', type: 'multi', none: 'none',
         opts: [O('logo', 'Logo'), O('photos', 'Photos of our work'), O('reviews', 'Customer reviews'), O('colors', 'Brand colors'), O('none', 'Nothing yet')] },
+      { k: 'web_reviews', label: 'Paste 2–3 customer reviews (optional)', hint: 'First name and town with each one is perfect.', type: 'textarea', when: offerIs('WEB') },
       { k: 'web_extras', label: 'Anything beyond the 5 standard pages?', hint: 'Optional extras. Pick all that apply.', type: 'multi', none: 'none',
         opts: [O('extra_pages', 'More pages'), O('spanish', 'Spanish version'), O('logo', 'Logo design'), O('blog', 'Blog with starter articles'), O('none', 'No, 5 pages is fine')] }
     ] },
-    { id: 'tools', title: 'Your tools', sub: 'Just tick what you use. We connect everything after you accept the quote — no logins needed now.', fields: [
+    { id: 'tools', when: a => a.offer !== 'WEB', title: 'Your tools', sub: 'Just tick what you use. We connect everything after you accept the quote — no logins needed now.', fields: [
       { k: 're_crm', label: 'Which CRM holds your leads?', type: 'single', when: isRE, hint: 'Any CRM works: the ones not listed connect through Zapier.',
         opts: reCrmOptions },
       { k: 'tools', label: a => isRE(a) ? 'Anything else you use?' : 'Which of these do you use?', hint: 'Pick all that apply.', type: 'multi', opts: toolOptions },
@@ -149,7 +161,7 @@
     { id: 'finish', title: 'Timing and anything else', sub: 'Last step. Files are optional.', fields: [
       { k: 'timeline', label: 'When would you like to start?', type: 'single', opts: [O('asap', 'As soon as possible (rush delivery is available)'),
         O('month', 'Within a month'), O('quarter', 'In the next 3 months'), O('exploring', 'Just exploring')] },
-      { k: 'decider', label: 'Who signs off on this?', type: 'single', opts: [O('me', 'Just me'), O('partner', 'Me and a partner'), O('other', 'Someone else')] },
+      { k: 'decider', label: 'Who signs off on this?', type: 'single', when: a => a.offer !== 'WEB', opts: [O('me', 'Just me'), O('partner', 'Me and a partner'), O('other', 'Someone else')] },
       { k: 'files', label: 'Files (optional, up to 5, 10 MB each)', hint: 'Logo, a screenshot of your current site, a price sheet — anything that helps.', type: 'files' },
       { k: 'more', label: 'Anything else we should know?', type: 'textarea' }
     ] }

@@ -33,7 +33,7 @@ FALLBACK_TZ = "America/New_York"
 
 
 def safe_greeting(name: str) -> str:
-    return (f"Thanks for calling {name}. Sorry we missed you. This call may be recorded. "
+    return (f"Thanks for calling {name}. Sorry we missed you. This call may be transcribed. "
             "Please say your name and the best number to reach you, and someone will call you back.")
 
 
