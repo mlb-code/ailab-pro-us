@@ -44,8 +44,8 @@ async function newPage(browser, opts = {}) {
   page.on('request', r => {
     const u = r.url();
     if (/fonts\.(googleapis|gstatic)\.com/.test(u)) return r.respond({ status: 200, contentType: 'text/css', body: '' });
-    if (opts.founder && u.endsWith('/assets/brand.json')) {
-      const b = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8')); b.show_founder_price = true;
+    if ((opts.founder || opts.brandPatch) && u.endsWith('/assets/brand.json')) {
+      const b = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8')); if (opts.founder) b.show_founder_price = true; Object.assign(b, opts.brandPatch || {});
       return r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(b) });
     }
     r.continue();
@@ -182,7 +182,7 @@ async function main() {
     // branch: WEB → website step, no calls
     await pick(page, 'input[name=offer][value=WEB]');
     const webSteps = await page.evaluate(() => window.StartQ.stepsFor({ offer: 'WEB', niche: 'home_services' }).map(s => s.id).join());
-    ok(webSteps === 'project,business,website,tools,finish', 'WEB branch steps');
+    ok(webSteps === 'project,business,website,look,finish', 'WEB branch steps');
     // branch: real estate
     await pick(page, 'input[name=offer][value=RCP]');
     await pick(page, 'input[name=niche][value=real_estate]');
@@ -307,7 +307,7 @@ async function main() {
     ok(await waitText(page, 'Questionnaire received'), 'home: questionnaire received');
     ok((await text(page, '.stepper [aria-current=step]')).includes('Quote'), 'stepper current = Quote');
     await page.goto(BASE + '/start/?mock_seed=quote_sent', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
-    ok((await page.$eval('#nextAction', a => a.getAttribute('href'))).startsWith('/quote/?t='), 'home: next action = review quote');
+    ok((await page.$eval('#nextAction', a => a.getAttribute('href'))).startsWith('/quote/#t='), 'home: next action = review quote (token in fragment)');
     await page.focus('#tab-home'); await page.keyboard.press('ArrowRight'); await sleep(50);
     ok((await page.$eval('#tab-quotes', t => t.getAttribute('aria-selected'))) === 'true', 'tabs: arrow key moves to Quotes');
     ok(await waitText(page, usd(rcp.setup_cents) + ' setup + ' + usd(rcp.monthly_cents) + '/mo'), 'quotes tab shows pricebook totals');
@@ -318,6 +318,17 @@ async function main() {
     ok((await overflowAt(page)).length === 0, 'billing tab: no overflow');
     await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
     ok((await text(page, '.stepper [aria-current=step]')).includes('Setup checklist'), 'stepper: deposit paid → setup checklist');
+    { const dir = path.join(SITE, 'start/assets'); const lit = fs.readdirSync(dir).filter(f => f.endsWith('.js')).flatMap(f => fs.readFileSync(path.join(dir, f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l) && /24 hours|1 business day/.test(l)).map(l => f + ': ' + l.trim().slice(0, 60)));
+      ok(lit.length === 0, 'no hard-coded turnaround in portal JS (' + lit.join(' | ') + ')'); }
+    // go-live requested (B7 checklist) → status card shows Final payment as the next step
+    await page.evaluate(() => { const db = JSON.parse(localStorage.getItem('aplp_mock_db_v1')); const c = db.clients[db.clients.length - 1];
+      const ob = db.onboarding_items.filter(o => o.client_id === c.id); ob.forEach(o => { o.status = 'done'; }); if (ob[0]) ob[0].data = Object.assign({}, ob[0].data, { go_live_requested_at: new Date().toISOString() });
+      c.status = 'testing'; if (!db.payments.some(p => p.client_id === c.id && p.kind === 'final')) db.payments.push({ id: 'fin-1', client_id: c.id, kind: 'final', amount_cents: 1, method: 'paypal', status: 'due', created_at: new Date().toISOString() });
+      localStorage.setItem('aplp_mock_db_v1', JSON.stringify(db)); });
+    await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
+    ok((await text(page, '.status__text')).includes('Next step: Final payment') && (await text(page, '#goBilling') || '').startsWith('Final payment'), 'go-live requested → next step Final payment');
+    await page.click('#goBilling'); await sleep(80);
+    ok((await page.$eval('#tab-billing', t => t.getAttribute('aria-selected'))) === 'true', 'Final payment button opens Billing');
     // ---------------------------------------------------------------- RLS: client B
     console.log('isolation');
     await page.click('#logoutBtn'); await page.waitForSelector('#email');
@@ -347,6 +358,42 @@ async function main() {
     await page.goto(link, { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]', { timeout: 5000 });
     ok(!(await page.evaluate(() => location.search.includes('mock_token'))), 'magic link signs in and is removed from the URL');
     ok((await page.evaluate(() => window.Backend.listQuestionnaires())).length === 1, 'magic link → same account (A) data');
+    // ---------------------------------------------------------------- WEB: no quote step, deposit link
+    console.log('web');
+    const wid = await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'WEB', niche: 'home_services' }).then(r => r.id));
+    await page.goto(BASE + '/start/q/?id=' + wid, { waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
+    ok((await page.evaluate(() => window.StartQ.stepsFor({ offer: 'WEB', niche: 'home_services' }).map(s => s.id).join())) === 'project,business,website,look,finish', 'WEB steps: content-focused, no tools');
+    await clickNext(page); await clickNext(page);
+    ok((await text(page, '#stepTitle')) === 'Your site details' && await exists(page, '#f_web_hours') && await exists(page, '#f_web_address') && await exists(page, 'input[name=domain]'), 'WEB: hours, address, domain');
+    await page.type('#f_web_hours', 'Mon–Fri 7–6');
+    await clickNext(page);
+    ok(await exists(page, 'input[name=web_tone]') && await exists(page, '#f_web_colors') && await exists(page, 'input[name=content_have][value=logo]') && await exists(page, '#f_web_reviews'), 'WEB: tone, colors, logo/photos, reviews');
+    await pick(page, 'input[name=web_tone][value=friendly]');
+    await clickNext(page);
+    ok(!(await exists(page, 'input[name=decider]')), 'WEB: no decider question');
+    await clickNext(page);
+    ok((await text(page, '#submitBtn')).includes('deposit link'), 'WEB submit button = request deposit link');
+    await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
+    ok(await waitText(page, 'Your deposit link is on its way — we email it ' + brand.quote_sla_text), 'WEB finish: deposit link + brand SLA');
+    ok(await waitText(page, 'Draft in 3 business days after we have your content'), 'WEB finish: draft timing');
+    ok(!(await waitText(page, 'written fixed quote', 300)) && !(await waitText(page, 'text-back', 300)), 'WEB finish: no quote / receptionist steps');
+    ok(await waitText(page, 'Review:') && await waitText(page, 'Go live:'), 'WEB next steps: content → draft → review → go-live');
+    ok(!(await exists(page, '#payDeposit')) === !(brand.endpoints && brand.endpoints.payment), 'deposit button only when brand.endpoints.payment exists');
+    const wdb = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
+    ok(wdb.events.some(e => e.type === 'web_deposit_link_requested' && e.entity_id === wid) && wdb.outbox.some(m => m.template === 'admin_web_deposit_link_requested'), 'owner event web_deposit_link_requested');
+    ok(!wdb.events.some(e => e.type === 'q_submitted' && e.entity_id === wid), 'WEB does not emit the quote event');
+    await page.close();
+    // payment endpoint configured → direct deposit button
+    page = await newPage(browser, { brandPatch: { endpoints: { payment: 'https://pay.example.test/deposit' } } });
+    await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
+    const wid2 = await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'WEB', niche: 'home_services' }).then(r => r.id));
+    await page.goto(BASE + '/start/q/?id=' + wid2 + '#review', { waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
+    await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
+    ok((await page.$eval('#payDeposit', a => a.textContent + '|' + a.getAttribute('href'))).startsWith('Pay the ' + pb.rules.deposit_pct + '% deposit|https://pay.example.test/deposit?offer=WEB&ref='), 'endpoints.payment → Pay the deposit button');
+    await page.close();
+    page = await newPage(browser);
+    // BNDL stays on the quote path
+    ok(await (async () => { await page.goto(BASE + '/start/', { waitUntil: 'load' }); return page.evaluate(() => window.StartQ.stepsFor({ offer: 'BNDL' }).some(s => s.id === 'tools')); })(), 'BNDL keeps the quote path');
     await page.close();
     // ---------------------------------------------------------------- founder flag (brand.json show_founder_price)
     page = await newPage(browser, { founder: true });

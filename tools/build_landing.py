@@ -133,6 +133,18 @@ def analytics(c):
     return '\n'.join(out)
 
 
+def inline_css():
+    """base.css + landing.css inlined (no render-blocking requests; Lighthouse mobile). Rebuild after editing either."""
+    out = []
+    for name in ('base.css', 'landing.css'):
+        with open(os.path.join(SITE, 'assets', name), encoding='utf-8') as fh:
+            css = fh.read()
+        css = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
+        css = re.sub(r'\s*\n\s*', '', css)
+        out.append(css)
+    return ''.join(out).replace('</', '<\\/')
+
+
 def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title, jsonld=None):
     canon = c.site_url + (canonical or path)
     robots = 'index, follow, max-image-preview:large' if index else 'noindex, nofollow'
@@ -156,9 +168,9 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F1A26'/%3E%3Cpath d='M16 6l8 10-8 10-8-10z' fill='%23E8A64A'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}">
-<link rel="stylesheet" href="/assets/base.css">
-<link rel="stylesheet" href="/assets/landing.css">
+<link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}"></noscript>
+<style>{inline_css()}</style>
 {analytics(c)}
 {ld}
 </head>
@@ -643,7 +655,10 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
 
 def website_page(c, w, year):
     path = '/website/'
+    mode = 'online' if (c.brand.get('endpoints') or {}).get('payment') else 'link'
     c.page = {}
+    for k, v in (w.get('variants') or {}).items():  # pay-online wording only once brand.endpoints.payment exists
+        c.page[k] = c.t(v[mode])
     seo = w['seo']
     title, desc = c.t(seo['title']), c.t(seo['description'])
     faqs = faq_items(c, w['faq'])

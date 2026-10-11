@@ -23,7 +23,14 @@
     try { history.replaceState(null, '', location.pathname + (token ? '#t=' + encodeURIComponent(token) : '')); } catch (e) { /* keep going */ }
   }
   const cleanUrl = location.origin + location.pathname;
-  const isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  // Mock backend = the same browser-only store the client portal and admin use (site/start/assets/mock/mock-backend.js,
+  // localStorage 'aplp_mock_db_v1'); same switch rules as /start/assets/backend.js (BACKEND:'mock', or ?mock=1 on localhost).
+  const ssGet = k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+  const qsMock = new URLSearchParams(location.search).get('mock');
+  if (qsMock === '1' && (isLocal || CFG.ALLOW_MOCK_SWITCH)) { try { sessionStorage.setItem('start_force_mock', '1'); } catch (e) { /* blocked */ } }
+  if (qsMock === '0') { try { sessionStorage.removeItem('start_force_mock'); } catch (e) { /* blocked */ } }
+  const mockMode = CFG.BACKEND === 'mock' || ssGet('start_force_mock') === '1';
   const fixture = /^fixture(-[a-z]+)?$/.test(token) && (isLocal || CFG.BACKEND === 'mock');
   const fnUrl = name => (CFG.SUPABASE_URL || '').replace(/\/$/, '') + '/functions/v1/' + name;
   const fnHeaders = () => ({ 'Content-Type': 'application/json', apikey: CFG.SUPABASE_ANON_KEY || '', Authorization: 'Bearer ' + (CFG.SUPABASE_ANON_KEY || '') });
@@ -51,8 +58,55 @@
     try { if (window.gtag && ((BRAND.analytics && BRAND.analytics.events) || []).indexOf(n) !== -1) window.gtag('event', n); } catch (e) { /* never breaks the page */ }
   }
 
+  // ---- mock adapter: reads/writes the shared mock DB; view + accept rules come from the server's own module
+  const MOCK_KEY = 'aplp_mock_db_v1';
+  const mockDb = () => { try { return JSON.parse(localStorage.getItem(MOCK_KEY) || 'null') || {}; } catch (e) { return {}; } };
+  const mockSave = db => { try { localStorage.setItem(MOCK_KEY, JSON.stringify(db)); } catch (e) { /* storage blocked */ } };
+  let QV = null, PB = null;
+  async function mockDeps() {
+    if (!QV) { QV = await import('/assets/quote_view.mjs'); PB = await getJson('/assets/pricebook.json'); }
+  }
+  const mockId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+  function mockFind(db) {
+    const q = (db.quotes || []).find(x => x.public_token === token);
+    if (!QV.TOKEN_RX.test(token) || !QV.isPublic(q)) throw new Error('not_found');
+    return q;
+  }
+  const mockProfile = (db, q) => (db.profiles || []).find(p => p.id === q.user_id) || null;
+  function mockEvent(db, q, type, payload) {
+    (db.events = db.events || []).push({ id: mockId(), actor: 'system', entity: 'quote', entity_id: q.id, user_id: q.user_id, type,
+      payload: payload || {}, client_visible: false, created_at: new Date().toISOString() });
+  }
+  async function mockView() {
+    await mockDeps();
+    const db = mockDb(), q = mockFind(db), now = new Date();
+    if (['sent', 'viewed'].includes(q.status) && QV.isExpired(q, now)) q.status = 'expired';
+    else if (q.status === 'sent') { q.status = 'viewed'; q.viewed_at = q.viewed_at || now.toISOString(); }
+    mockSave(db);
+    return QV.toPublicView(q, mockProfile(db, q), now, PB, BRAND.agreement_version);
+  }
+  async function mockAccept(name) {
+    await mockDeps();
+    const db = mockDb(), q = mockFind(db), now = new Date();
+    const chk = QV.acceptCheck(q, { name, agree: true, agreement_version: Q.agreement_version }, now, BRAND.agreement_version);
+    if (chk && chk.code) throw new Error(chk.code);
+    if (!chk) {
+      Object.assign(q, { status: 'accepted', accepted_name: QV.normName(name), accepted_at: now.toISOString(), updated_at: now.toISOString(),
+        agreement_version: q.agreement_version || BRAND.agreement_version, accepted_ip: 'mock', accepted_ua: 'mock' });
+      const prof = mockProfile(db, q);
+      [['quote', 'accepted'], ['admin', 'quote', 'accepted']].map(p => p.join('_')).forEach(t => {   // names joined: analytics event name is a substring
+        mockEvent(db, q, 'email_requested', { template: t });
+        (db.outbox = db.outbox || []).push({ id: mockId(), to: t.indexOf('admin') === 0 ? 'owner' : (prof && prof.email) || '', template: t, quote_id: q.id,
+          subject: t, created_at: now.toISOString() });
+      });
+      mockSave(db);
+    }
+    return QV.toPublicView(q, mockProfile(db, q), now, PB, BRAND.agreement_version);
+  }
+
   async function loadQuote() {
     if (fixture) return getJson('/quote/assets/fixtures/' + token + '.json');
+    if (mockMode) return mockView();
     if (CFG.BACKEND !== 'supabase' || !CFG.SUPABASE_URL) throw new Error('backend_off');
     // POST with the token in the body, so it never lands in edge/proxy access logs
     const r = await fetch(fnUrl('quote-view'), { method: 'POST', headers: fnHeaders(), cache: 'no-store', body: JSON.stringify({ t: token }) });
@@ -70,7 +124,7 @@
 
   function linesHtml(q) {
     const t = q.totals;
-    const row = (name, sub, setup, monthly, cls) => '<div class="q-line' + (cls ? ' ' + cls : '') + '"><div class="q-line__name">' + name + (sub ? '<small>' + sub + '</small>' : '') + '</div>' +
+    const row = (name, sub, setup, monthly, cls) => '<div role="listitem" class="q-line' + (cls ? ' ' + cls : '') + '"><div class="q-line__name">' + name + (sub ? '<small>' + sub + '</small>' : '') + '</div>' +
       '<div class="q-line__amt">' + [setup, monthly].filter(Boolean).join('<br>') + '</div></div>';
     let h = q.items.map(i => row(esc(i.name) + (i.qty > 1 ? ' × ' + i.qty : ''), esc(i.code),
       i.setup_cents ? '<b>' + money(i.setup_cents) + '</b> setup' : (i.monthly_cents ? '' : 'Included'),
@@ -78,7 +132,7 @@
     if (t.discount_cents) h += row(esc(t.discount_label || 'Discount'), '', '−' + money(t.discount_cents), '', 'q-line--minus');
     h += row('Setup total', 'one time', '<b>' + money(t.setup_cents) + '</b>', '', 'q-line--total');
     h += row('Monthly total', 'from go-live', '<b>' + money(t.monthly_cents) + '/mo</b>', '', 'q-line--total');
-    return '<div class="q-lines" role="list">' + h.replace(/class="q-line/g, 'role="listitem" class="q-line') + '</div>' +
+    return '<div class="q-lines" role="list" aria-label="Price lines">' + h + '</div>' +
       '<div class="q-sched">' +
       '<div><span>Deposit to start (' + esc(t.deposit_pct) + '%)</span><b class="num">' + money(t.deposit_cents) + '</b></div>' +
       '<div><span>Before go-live</span><b class="num">' + money(t.final_cents) + '</b></div>' +
@@ -102,7 +156,7 @@
     }
     const ep = BRAND.endpoints && BRAND.endpoints.payment;
     if (ep && /^https:/.test(ep)) return '<a class="btn btn--primary btn--block" href="' + esc(ep) + '" target="_blank" rel="noopener">Pay deposit ' + dep + '</a>';
-    return '<div class="notice notice--ok" role="status">We’ll email your secure payment link for the ' + dep + ' deposit ' + esc(BRAND.quote_sla_text || 'within 1 business day') + '.</div>';
+    return '<div class="notice notice--ok" role="status">We’ll email your secure payment link for the ' + dep + ' deposit ' + esc(BRAND.quote_sla_text || 'soon') + '.</div>';
   }
 
   function acceptHtml(q) {
@@ -177,6 +231,8 @@
       let q;
       if (fixture) {
         q = Object.assign({}, Q, { status: 'accepted', accepted: { name, at: new Date().toISOString() } });
+      } else if (mockMode) {
+        q = await mockAccept(name);
       } else {
         const r = await fetch(fnUrl('quote-accept'), { method: 'POST', headers: fnHeaders(),
           body: JSON.stringify({ t: token, name, agree: true, agreement_version: Q.agreement_version }) });
