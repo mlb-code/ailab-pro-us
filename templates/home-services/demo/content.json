@@ -1,0 +1,365 @@
+{
+  "$comment": "One file per client. Demo client: FICTIONAL business (Copperleaf Air & Plumbing, Houston TX). 555-01xx numbers are reserved for fiction. Build: python3 templates/home-services/_generator/build.py --content <this file> <out dir>",
+  "flags": {
+    "demo": true,
+    "noindex": true,
+    "powered_by": true,
+    "emergency_banner": true,
+    "financing_banner": true,
+    "show_street": false
+  },
+  "trades": [
+    "hvac",
+    "plumbing"
+  ],
+  "copy": {
+    "$comment": "Trade/state-specific sentences. Tokens: {name} {city} {state} {state_name} {phone} {trade} {founded} {tagline}. Omit a key to use the default from trades/state (README section 4).",
+    "trade_phrase": "HVAC and plumbing",
+    "services_h2": "Heating, cooling and plumbing, one call.",
+    "services_lead": "Licensed HVAC and plumbing for homes in {city} and nearby. Every job starts with a diagnosis and a written price.",
+    "license_badge": "TX ACR contractor license",
+    "license_lookup": "You can look up {state_name} licenses on the state licensing website (TDLR for AC, TSBPE for plumbing).",
+    "form_placeholder": "E.g. AC blowing warm air since this morning"
+  },
+  "seo": {
+    "home_title": "{name} | Heating, cooling & plumbing in {city}, {state}",
+    "home_desc": "{name}: AC repair, heating, plumbing and water heaters in {city}, {state}. Licensed and insured, upfront pricing. Call or text {phone}.",
+    "services_desc": "AC repair and installation, heating, plumbing repair, water heaters, drain cleaning and maintenance plans in {city}, {state}. Call or text {phone}.",
+    "about_desc": "Family-owned HVAC and plumbing company in {city}, {state} since {founded}. Licensed, insured, upfront pricing.",
+    "contact_desc": "Request HVAC or plumbing service in {city}, {state}. Call or text {phone}, or send the form. Service area ZIP codes and hours."
+  },
+  "business": {
+    "name": "Copperleaf Air & Plumbing",
+    "short_name": "Copperleaf",
+    "tagline": "Heating, cooling & plumbing",
+    "owner": "Ray Medina",
+    "owner_title": "Owner, licensed ACR contractor",
+    "founded": "2009",
+    "city": "Houston",
+    "state": "TX",
+    "street": "",
+    "zip": "",
+    "phone": "(713) 555-0100",
+    "phone_e164": "+17135550100",
+    "sms_e164": "+17135550100",
+    "sms_body": "Hi, I need help with ",
+    "email": "office@example.com",
+    "site_url": "@brand/demo-site/home-services/",
+    "schema_types": [
+      "HVACBusiness",
+      "Plumber"
+    ],
+    "price_range": "$$",
+    "gbp_url": "",
+    "reviews_url": "",
+    "ga4_id": "",
+    "leads_url": "",
+    "ld_description": "Family-owned HVAC and plumbing company serving Houston-area homes: AC repair and installation, heating, plumbing repair, water heaters and drain service.",
+    "licenses": [
+      {
+        "label": "Texas ACR contractor license",
+        "number": "TACLA 00000C",
+        "sample": true
+      },
+      {
+        "label": "Texas Responsible Master Plumber",
+        "number": "RMP 00000",
+        "sample": true
+      }
+    ],
+    "insurance": "General liability and workers' comp insured",
+    "hours": [
+      {
+        "days": [
+          "Mo",
+          "Tu",
+          "We",
+          "Th",
+          "Fr"
+        ],
+        "opens": "07:00",
+        "closes": "19:00"
+      },
+      {
+        "days": [
+          "Sa"
+        ],
+        "opens": "08:00",
+        "closes": "16:00"
+      }
+    ],
+    "emergency": {
+      "enabled": true,
+      "short": "24/7 emergency service",
+      "text": "No AC in August or water on the floor? Call any time, day or night. A dispatcher answers and a tech is sent out."
+    },
+    "financing": {
+      "enabled": true,
+      "short": "Financing on new systems",
+      "text": "Replacing an AC, furnace or water heater? Ask about monthly payment plans, subject to credit approval.",
+      "link": ""
+    },
+    "service_area": {
+      "cities": [
+        "Houston",
+        "Bellaire",
+        "West University Place",
+        "Pearland",
+        "Sugar Land",
+        "Katy",
+        "Missouri City",
+        "Pasadena"
+      ],
+      "zips": [
+        "77005",
+        "77007",
+        "77008",
+        "77019",
+        "77025",
+        "77096",
+        "77401",
+        "77584",
+        "77478",
+        "77494",
+        "77489",
+        "77502"
+      ]
+    }
+  },
+  "hero": {
+    "eyebrow": "HVAC & plumbing · Houston, TX",
+    "h1": "Cold air. Hot water. *Fixed right the first time.*",
+    "lead": "Family-owned and licensed for both trades, so one call covers the AC, the furnace and the pipes. We give you the price before any work starts.",
+    "facts": [
+      [
+        "Upfront pricing",
+        "Price approved before work"
+      ],
+      [
+        "Same-day service",
+        "When booked before noon"
+      ],
+      [
+        "Both trades",
+        "HVAC + plumbing, one visit"
+      ]
+    ]
+  },
+  "services": [
+    {
+      "id": "ac",
+      "icon": "ac",
+      "tone": "cool",
+      "name": "AC repair & installation",
+      "short": "Warm air, short cycling, iced lines, noisy outdoor unit. We find the cause and fix it, or quote a new system if repair no longer makes sense.",
+      "signs": [
+        "House won't cool below 78°F",
+        "Outdoor unit runs but air is warm",
+        "Ice on the refrigerant lines",
+        "Power bills jumped this summer"
+      ],
+      "includes": "Full diagnostic, written repair options with prices, refrigerant and electrical checks, and a load calculation before any replacement.",
+      "note": "Diagnostic fee $89, credited toward the repair (sample terms)."
+    },
+    {
+      "id": "heat",
+      "icon": "heat",
+      "tone": "hot",
+      "name": "Heating & furnaces",
+      "short": "Gas furnaces and heat pumps: no-heat calls, ignition problems, strange smells and yearly safety checks.",
+      "signs": [
+        "Furnace clicks but won't light",
+        "Burning or gas smell",
+        "Some rooms stay cold",
+        "Heat pump stuck in defrost"
+      ],
+      "includes": "Burner and flame-sensor service, heat-exchanger and carbon-monoxide check, thermostat setup.",
+      "note": "Smell gas? Leave the house first, then call the gas utility and us."
+    },
+    {
+      "id": "plumb",
+      "icon": "plumb",
+      "tone": "cool",
+      "name": "Plumbing repair",
+      "short": "Leaks, running toilets, low pressure, faucets, disposals and slab-leak detection, done by a licensed plumber.",
+      "signs": [
+        "Water stain on a ceiling or wall",
+        "Water bill higher than usual",
+        "Low pressure in one fixture",
+        "Toilet that won't stop running"
+      ],
+      "includes": "Leak location, repair or replacement of fixtures and supply lines, shut-off valve replacement, pressure test.",
+      "note": "We protect floors and clean up before we leave."
+    },
+    {
+      "id": "water",
+      "icon": "water",
+      "tone": "hot",
+      "name": "Water heaters",
+      "short": "Tank and tankless repair and replacement, same-day when the unit is in stock.",
+      "signs": [
+        "Lukewarm or rusty water",
+        "Popping or rumbling tank",
+        "Water around the base",
+        "Unit older than 10 years"
+      ],
+      "includes": "Code-compliant install with expansion tank and pan as required, permit where required, haul-away of the old unit.",
+      "note": "Tankless flush and descaling also available."
+    },
+    {
+      "id": "drain",
+      "icon": "drain",
+      "tone": "cool",
+      "name": "Drain & sewer",
+      "short": "Slow drains, backups and main-line clogs, cleared with the right tool and checked with a camera when needed.",
+      "signs": [
+        "Several drains slow at once",
+        "Gurgling sounds",
+        "Sewage smell in the yard",
+        "Backup in the lowest drain"
+      ],
+      "includes": "Snaking and hydro-jetting, camera inspection with video for your records, cleanout installation.",
+      "note": "Recurring clogs usually have a cause. We show you what we find."
+    },
+    {
+      "id": "plan",
+      "icon": "plan",
+      "tone": "hot",
+      "name": "Comfort Club maintenance",
+      "short": "Two tune-ups a year (AC in spring, heat in fall), priority scheduling and a yearly plumbing check.",
+      "signs": [
+        "System older than 5 years",
+        "You want fewer surprise breakdowns",
+        "Warranty requires yearly service",
+        "You rent out a property"
+      ],
+      "includes": "Spring AC tune-up, fall heating tune-up, water-heater flush, whole-home plumbing check, priority booking.",
+      "note": "From $15 a month, cancel anytime (sample terms)."
+    }
+  ],
+  "steps": [
+    [
+      "Call or text",
+      "Tell us what's going on. We book a 2-hour arrival window and text you when the tech is on the way."
+    ],
+    [
+      "See the price first",
+      "The tech finds the cause and gives you written options with prices. Nothing starts until you approve."
+    ],
+    [
+      "Fixed and cleaned up",
+      "We do the work, test it with you, and leave the space clean. You get the invoice and warranty by email."
+    ]
+  ],
+  "reviews": [
+    {
+      "text": "AC died on a Saturday in July. They answered, came out that afternoon, showed me the bad capacitor and the price before touching anything.",
+      "name": "Marisol G.",
+      "place": "Bellaire",
+      "stars": 5
+    },
+    {
+      "text": "Same company did our water heater and the AC tune-up. On time both visits, and the tech explained everything without upselling.",
+      "name": "Dwayne P.",
+      "place": "Pearland",
+      "stars": 5
+    },
+    {
+      "text": "Found a slab leak the other plumber missed. Clear quote, clean work, and they texted me updates the whole day.",
+      "name": "Hannah L.",
+      "place": "West University Place",
+      "stars": 5
+    },
+    {
+      "text": "Easy to book by text. Two options for the furnace with prices on paper, no pressure. We picked the repair.",
+      "name": "Tom R.",
+      "place": "Katy",
+      "stars": 5
+    }
+  ],
+  "faq": [
+    [
+      "Do you charge to come out?",
+      "There is a diagnostic fee for repair visits, and it is credited toward the repair if you go ahead. Estimates for a new system or water heater are free. (Sample terms for this demo.)"
+    ],
+    [
+      "Do you offer emergency service at night and on weekends?",
+      "Yes. Call any time and a dispatcher answers. After-hours rates apply and are explained on the phone before we send a tech."
+    ],
+    [
+      "Are you licensed and insured?",
+      "Yes. We hold a Texas ACR contractor license and a Texas master plumber license, and we carry general liability and workers' comp insurance. License numbers are listed on our About page."
+    ],
+    [
+      "Which areas do you serve?",
+      "Houston and nearby cities including Bellaire, West University Place, Pearland, Sugar Land and Katy. Not sure about your address? Text us your ZIP code."
+    ],
+    [
+      "Do you work on all brands?",
+      "Yes. We repair all major AC, furnace and water heater brands. For new systems we will recommend a few options at different price points."
+    ],
+    [
+      "Can I pay over time?",
+      "Financing is available on new systems and water heaters, subject to credit approval. Ask the tech or the office for current plans."
+    ],
+    [
+      "Is your work guaranteed?",
+      "Repairs carry a labor warranty and parts carry the manufacturer warranty. The exact terms are printed on your invoice."
+    ],
+    [
+      "A pipe burst. What do I do first?",
+      "Turn off the main water shut-off (often near the street or where the line enters the house), switch off the water heater, then call us. If water is near outlets, keep clear and switch off that circuit at the breaker if it is safe to reach."
+    ]
+  ],
+  "about": {
+    "h1": "Two trades. *One family.*",
+    "story": [
+      "Ray Medina started Copperleaf in 2009 with one truck and an AC license. His wife Dolores ran the phones from the kitchen table. A few years later we added a master plumber, because customers kept asking us to look at the water heater while we were there.",
+      "Today we run a small team of licensed techs across the Houston area. Every truck carries AC and plumbing parts, so most jobs are finished in one visit.",
+      "We still answer the phone ourselves, and we still give you the price before we pick up a tool."
+    ],
+    "team": [
+      [
+        "Ray Medina",
+        "Owner, licensed ACR contractor"
+      ],
+      [
+        "Dolores Medina",
+        "Office & dispatch"
+      ],
+      [
+        "Luis Ortega",
+        "Responsible master plumber"
+      ]
+    ],
+    "values": [
+      [
+        "Price before work",
+        "Written options with prices. You choose, then we start."
+      ],
+      [
+        "Show, don't tell",
+        "We show you the worn part or the camera footage, not just a diagnosis."
+      ],
+      [
+        "Leave it clean",
+        "Shoe covers, drop cloths, and we take the old equipment with us."
+      ]
+    ]
+  },
+  "form": {
+    "services_extra": [
+      "Not sure / something else"
+    ],
+    "urgency": [
+      "Emergency (today)",
+      "This week",
+      "Flexible"
+    ],
+    "contact_pref": [
+      "Call me",
+      "Text me",
+      "Email me"
+    ]
+  }
+}

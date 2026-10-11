@@ -1,0 +1,3 @@
+# Draft / demo: pages carry <meta name="robots" content="noindex">. Crawling stays allowed so the tag is seen.
+User-agent: *
+Allow: /
