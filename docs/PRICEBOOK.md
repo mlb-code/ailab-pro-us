@@ -52,7 +52,7 @@ All prices USD, fixed-price, excluding any sales tax (none expected; service per
 | `ADD-BLOG` | Blog section + 3 starter articles | WEB | $600 | $0 |
 | `ADD-RUSH` | Rush delivery (half the business days) | any | +25% of setup | $0 |
 
-Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan, Dentrix/Open Dental/any EHR, Clio or other legal practice systems, more than 3 locations, call volume > 3,000 min/month, HIPAA BAA requests.
+Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan, Dentrix/Open Dental/any EHR, more than 3 locations, call volume > 3,000 min/month, HIPAA BAA requests.
 
 ## 3. Later offers (on the price book, not marketed in phase A)
 
@@ -76,4 +76,4 @@ Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan,
 4. If any item is `custom` or setup total > $10,000 → quote status `needs_manual_price`; it cannot be sent until Meir enters prices.
 5. Discount: only `FOUNDING` (founding-client, first 3 clients) = 30% off setup, applied by Meir in admin, never by Claude. Monthly fees are never discounted.
 6. Quote valid 14 days. Upwork jobs: same prices; Upwork fee is ours to absorb.
-7. Refund policy (pending lawyer): full deposit refund on request within 7 days of payment if the client has not yet completed the access checklist.
+7. Refund policy (pending lawyer; owner to confirm): the setup deposit is fully refunded on request within 7 days of payment, as long as the client has not completed the access checklist. Retainers: 75% refund of the first payment if cancelled within 7 days.

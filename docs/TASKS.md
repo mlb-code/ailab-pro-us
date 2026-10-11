@@ -196,3 +196,9 @@ Phase B lanes R and W can start the same day as phase A (they need only A0/A3). 
 - **Acceptance:** smoke test passes; Twilio signature validation on; `/health/deep` green; fallback URL plays the voicemail message when runtime is stopped.
 - **Checks:** `python3 tools/twilio_provision.py --dry-run`; manual smoke checklist in report with timestamps and call SIDs.
 - **Deps:** B12 + Meir actions (SPEC §9). Nothing is bought without the orchestrator's explicit OK.
+
+---
+## Addendum (2026-10-11, owner decisions)
+- **Law firms are removed entirely**: no landing variant, no questionnaire branch, no price-book entries, no copy. Niches: home services (full), real estate (full), dental (built, hidden/noindex, early-access only until legal review).
+- Brand "AI Lab Pro"; domain will be a cheap TLD (ailabpro.co) on Cloudflare; treat domain/brand as config values.
+- Supabase project will be created under a new mailbox on the new domain (owner action). Until then, all tasks must run against a local/mock backend; nothing may block on Supabase.

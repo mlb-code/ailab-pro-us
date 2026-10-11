@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pricebook.schema.json",
+  "title": "AI Lab Pro price book",
+  "type": "object",
+  "required": [
+    "version",
+    "updated",
+    "currency",
+    "rules",
+    "refund_rules",
+    "items",
+    "integrations",
+    "integration_meta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "$comment": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "updated": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "currency": {
+      "enum": [
+        "USD"
+      ]
+    },
+    "rules": {
+      "type": "object",
+      "required": [
+        "core_codes",
+        "deposit_pct",
+        "rush_pct",
+        "manual_price_setup_over_cents",
+        "quote_valid_days",
+        "discounts",
+        "included_usage",
+        "overage_markup_pct",
+        "custom_triggers"
+      ],
+      "properties": {
+        "core_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "one_core_offer_per_quote": {
+          "type": "boolean"
+        },
+        "deposit_pct": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "deposit_rounding": {
+          "enum": [
+            "whole_dollars"
+          ]
+        },
+        "rush_pct": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "manual_price_setup_over_cents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quote_valid_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "discounts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "setup_pct",
+              "monthly_pct",
+              "applied_by"
+            ],
+            "properties": {
+              "setup_pct": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "monthly_pct": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 0
+              },
+              "max_clients": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "applied_by": {
+                "enum": [
+                  "admin"
+                ]
+              }
+            }
+          }
+        },
+        "monthly_discounts_allowed": {
+          "const": false
+        },
+        "monthly_billing": {
+          "type": "string"
+        },
+        "cancel_notice_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "included_usage": {
+          "type": "object",
+          "required": [
+            "voice_minutes",
+            "sms_segments"
+          ],
+          "properties": {
+            "voice_minutes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sms_segments": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "overage_markup_pct": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "custom_triggers": {
+          "type": "object"
+        },
+        "upwork_same_prices": {
+          "type": "boolean"
+        }
+      }
+    },
+    "refund_rules": {
+      "type": "object",
+      "required": [
+        "deposit",
+        "retainer"
+      ],
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "deposit": {
+          "type": "object",
+          "required": [
+            "refund_pct",
+            "window_days",
+            "text"
+          ],
+          "properties": {
+            "refund_pct": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "window_days": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "retainer": {
+          "type": "object",
+          "required": [
+            "refund_pct",
+            "window_days",
+            "text"
+          ],
+          "properties": {
+            "refund_pct": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "window_days": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(native|zapier|custom|addon:[A-Z][A-Z0-9-]*)$"
+      }
+    },
+    "integration_meta": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "label",
+          "category",
+          "niches"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string"
+          },
+          "niches": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "*",
+                "home_services",
+                "real_estate",
+                "dental"
+              ]
+            },
+            "minItems": 1
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "cents": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "code",
+        "name",
+        "group",
+        "kind",
+        "setup_cents",
+        "monthly_cents",
+        "applies_to",
+        "includes",
+        "excludes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "group": {
+          "enum": [
+            "core",
+            "addon",
+            "later"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "fixed",
+            "from",
+            "custom",
+            "percent"
+          ]
+        },
+        "setup_cents": {
+          "$ref": "#/$defs/cents"
+        },
+        "monthly_cents": {
+          "$ref": "#/$defs/cents"
+        },
+        "setup_pct": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "pct_of": {
+          "enum": [
+            "setup_subtotal_before_rush"
+          ]
+        },
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "delivery_business_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "delivery_starts": {
+          "type": "string"
+        },
+        "marketed": {
+          "type": "boolean"
+        },
+        "direct_checkout": {
+          "type": "boolean"
+        },
+        "contains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "per": {
+          "type": "string"
+        },
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
