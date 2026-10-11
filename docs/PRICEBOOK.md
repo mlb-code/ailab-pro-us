@@ -22,7 +22,7 @@ All prices USD, fixed-price, excluding any sales tax (none expected; service per
 - 1 outgoing Zapier webhook (lead/booking events) to connect any other tool.
 - English. Client portal with call log, transcripts, bookings, settings.
 - A2P 10DLC SMS registration handled by us (registration fees included).
-- Included usage per month: 400 voice minutes + 1,000 SMS segments. Overage billed at cost + 20%, reported monthly.
+- Included usage per month: 400 voice minutes + 1,000 SMS segments. We alert you at 80% and 100%. No automatic overage billing: extra usage blocks (ADD-USAGE) are added only with your approval.
 - Monthly: monitoring, prompt/FAQ updates, 1 active change request at a time (small changes, ≤ 1 hour each).
 
 ### `WEB` includes

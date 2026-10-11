@@ -138,7 +138,7 @@ def main():
     check(R['cancel_notice_days'] == num(r'(\d+) days notice', md), 'cancel notice days')
     check(R['included_usage']['voice_minutes'] == num(r'(\d+) voice minutes \+', md), 'included voice minutes')
     check(R['included_usage']['sms_segments'] == num(r'voice minutes \+ ([\d,]+) SMS', md), 'included SMS segments')
-    check(R['overage_markup_pct'] == num(r'at cost \+ (\d+)%', md), 'overage markup %')
+    check(R['overage_markup_pct'] == 0 and 'No automatic overage billing' in md and R.get('overage_policy','').startswith('no_auto_billing'), 'overage: no automatic billing (alerts at 80/100, add-on with approval)')
     check(R['custom_triggers']['max_auto_locations'] == num(r'more than (\d+) locations', md), 'custom: > N locations')
     check(R['custom_triggers']['max_auto_voice_minutes_per_month'] == num(r'call volume > ([\d,]+) min/month', md), 'custom: call volume')
     s_save, m_save = num(r'Saves \$([\d,]+) setup', md), num(r'setup / \$([\d,]+) monthly', md)
