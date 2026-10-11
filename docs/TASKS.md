@@ -202,3 +202,11 @@ Phase B lanes R and W can start the same day as phase A (they need only A0/A3). 
 - **Law firms are removed entirely**: no landing variant, no questionnaire branch, no price-book entries, no copy. Niches: home services (full), real estate (full), dental (built, hidden/noindex, early-access only until legal review).
 - Brand "AI Lab Pro"; domain will be a cheap TLD (ailabpro.co) on Cloudflare; treat domain/brand as config values.
 - Supabase project will be created under a new mailbox on the new domain (owner action). Until then, all tasks must run against a local/mock backend; nothing may block on Supabase.
+
+## Addendum 2 (2026-10-11, after external research synthesis — see docs/סינתזה-מחקרים-חיצוניים-2026-10-11.md)
+- **B3 (voice):** plan for streaming from the start (Twilio ConversationRelay or Media Streams + streaming STT/TTS) instead of turn-based Gather/Say; turn-based is acceptable only as the simulator fallback. Target < 1s response latency.
+- **B5 (calendar):** Calendly is the default integration (no Google OAuth verification needed); Google Calendar second.
+- **A3/A6 (pricing):** no automatic overage billing. Alert at 80% of included usage; extra usage blocks (ADD-USAGE) added only with client approval. Monthly ROI report to the client (calls answered, bookings, est. value) is part of RCP monthly (B6).
+- **A4/A5:** real estate = same RCP runtime, positioned as lead screening + instant text-back + Follow Up Boss (via Zapier); hero sells RCP only; founder price display behind `brand.show_founder_price` (owner decision pending); SMS 10DLC timing disclaimer.
+- **A9:** add client consent for a case study (founder price), "client is the sender of SMS" clause; Upwork cadence 20–30 proposals/week with a short Loom.
+- **Async ceiling:** external reports put no-call purchases at $1,500–3,500; anything above (bundle, systems) gets an optional 15-min call offer prominently.
