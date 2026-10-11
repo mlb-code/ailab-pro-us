@@ -33,6 +33,11 @@ export async function samples(): Promise<Record<string, Sample>> {
   return {
     lead_capture: { ctx: { to: "dani@example.com", lead: { niche: "home_services", source_page: "/home-services/" } } },
     q_received: { ctx: { to: profile.email, profile, questionnaire: { id: sent.questionnaire_id!, offer: "RCP", niche: "home_services", status: "submitted" } } },
+    web_deposit_ack: { ctx: { to: profile.email, profile, questionnaire: { id: sent.questionnaire_id!, offer: "WEB", niche: "home_services", status: "submitted" } } },
+    web_deposit_link_requested: { ctx: { to: "owner@example.com", profile, questionnaire: { id: sent.questionnaire_id!, offer: "WEB", niche: "home_services",
+      status: "submitted", summary: [{ q: "Do you have a domain?", a: "Yes, coolbreezehvac.example" }, { q: "Pages", a: "Home, Services, About, Reviews, Contact" }, { q: "Spanish", a: "" }] } } },
+    request_cancelled: { ctx: { to: profile.email, profile, request: { id: "r2", title: "Change the greeting", status: "cancelled", admin_reply: null } } },
+    admin_request_cancelled: { ctx: { to: "owner@example.com", profile, request: { id: "r2", title: "Change the greeting", status: "cancelled", admin_reply: null } } },
     admin_new_quote: { ctx: { to: "owner@example.com", profile, quote: draft, offer: "RCP", niche: "home_services",
       review: { risk_flags: ["Asks for after-hours emergency dispatch: confirm on-call number"], manual_reasons: [], questions: [] } } },
     quote_sent: { ctx: { to: profile.email, profile, quote: sent, offer: "RCP" } },
