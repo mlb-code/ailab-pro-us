@@ -114,7 +114,7 @@ def _tenant(niche: str, budget: float, max_session: int) -> TenantRecord:
     }
     if niche == "home_services":
         cfg = {
-            "business": {"name": "Lone Star Comfort", "niche": "home_services", "trade": "heating, air and plumbing",
+            "business": {"name": "Copperleaf Air & Plumbing", "niche": "home_services", "trade": "heating, air and plumbing",
                          "timezone": "America/Chicago", "main_phone": "+17135550100",
                          "service_area_zips": ["77002", "77003", "77004", "77005", "77006", "77007", "77008",
                                                "77019", "77024", "77027", "77030", "77056", "77057", "77098"]},

@@ -17,8 +17,9 @@
   let Q = null;
   // The token is a bearer secret: read it from ?t= (email links) or #t=, then keep it only in the fragment, which browsers
   // never send to servers or in Referer. The query is removed BEFORE analytics loads; GA gets a token-free page_location.
+  const QS0 = new URLSearchParams(location.search);   // read once: the query is stripped from the URL right below
   const fromHash = new URLSearchParams(location.hash.replace(/^#/, '')).get('t');
-  const token = ((new URLSearchParams(location.search).get('t')) || fromHash || '').trim();
+  const token = ((QS0.get('t')) || fromHash || '').trim();
   if (location.search && history.replaceState) {
     try { history.replaceState(null, '', location.pathname + (token ? '#t=' + encodeURIComponent(token) : '')); } catch (e) { /* keep going */ }
   }
@@ -27,7 +28,7 @@
   // Mock backend = the same browser-only store the client portal and admin use (site/start/assets/mock/mock-backend.js,
   // localStorage 'aplp_mock_db_v1'); same switch rules as /start/assets/backend.js (BACKEND:'mock', or ?mock=1 on localhost).
   const ssGet = k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
-  const qsMock = new URLSearchParams(location.search).get('mock');
+  const qsMock = QS0.get('mock');
   if (qsMock === '1' && (isLocal || CFG.ALLOW_MOCK_SWITCH)) { try { sessionStorage.setItem('start_force_mock', '1'); } catch (e) { /* blocked */ } }
   if (qsMock === '0') { try { sessionStorage.removeItem('start_force_mock'); } catch (e) { /* blocked */ } }
   const mockMode = CFG.BACKEND === 'mock' || ssGet('start_force_mock') === '1';
