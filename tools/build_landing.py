@@ -311,7 +311,9 @@ def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False):
     note = c.brand['disclaimers']['demo']
     av = esc(first['business'][:1])
     ev = esc(c.brand.get('analytics', {}).get('events', ['demo_start'])[0])
-    return f'''<div class="demo" data-demo data-niche="{keys[0]}" data-ev-start="{ev}">
+    live_url = str((c.brand.get('demo') or {}).get('runtime_url') or '').rstrip('/')  # B8: live demo runtime ('' = scripted only)
+    live = f' data-live="{esc(live_url)}"' if live_url.startswith('https://') else ''
+    return f'''<div class="demo" data-demo data-niche="{keys[0]}" data-ev-start="{ev}"{live}>
 <div class="demo__side">
 {sw}
 <p class="small muted">Pick a situation:</p>

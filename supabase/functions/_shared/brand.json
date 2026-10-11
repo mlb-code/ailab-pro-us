@@ -86,5 +86,20 @@
   "proof": {
     "worked_with": "Worked with Samsung and Haier in Israel (through their Israeli distributor) and with other Israeli corporate clients.",
     "worked_with_status": "pending owner approval"
+  },
+  "demo": {
+    "runtime_url": "",
+    "daily_budget_usd": 3,
+    "max_messages_per_session": 20,
+    "max_messages_per_ip_hour": 60,
+    "max_sessions_per_ip_day": 60,
+    "max_concurrent": 4,
+    "session_ttl_minutes": 30,
+    "retention_hours": 24,
+    "live_niches": [
+      "home_services",
+      "real_estate"
+    ],
+    "allowed_origins": []
   }
 }
