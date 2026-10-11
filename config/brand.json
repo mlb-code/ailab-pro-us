@@ -78,5 +78,11 @@
   ],
   "fonts": {
     "google_css": "https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap"
+  },
+  "show_founder_price": false,
+  "quote_sla_text": "within 24 hours",
+  "proof": {
+    "worked_with": "Worked with Samsung and Haier in Israel (through their Israeli distributor) and with other Israeli corporate clients.",
+    "worked_with_status": "pending owner approval"
   }
 }
