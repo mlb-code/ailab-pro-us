@@ -1,5 +1,6 @@
 /* /start/ — sign in (email magic link + 6-digit code, Google when configured), profile, portal (Home / Quotes / Billing).
-   Onboarding, My receptionist and Requests tabs arrive in task B7. */
+   Phase B tabs (Setup checklist, My receptionist, Requests) and the Billing usage card come from portal-b.js (task B7),
+   shown only once the signed-in user has a client record. */
 (function () {
   const S = window.Start, B = window.Backend, Q = window.StartQ;
   const app = S.$('#app');
@@ -216,7 +217,11 @@
       return { i: 5, text: rcp ? 'You’re live. Calls you miss are answered for you.' : 'You’re live. Your website is online.', action: null };
     }
     if (d.client && d.client.status === 'testing') return { i: 4, text: 'Your setup is ready to test. Check your email for the test number.', action: null };
-    if (dep && dep.status === 'paid') return { i: 3, text: 'Deposit received — thank you. Your setup checklist opens here shortly; we’ll email you when it’s ready.', action: null };
+    if (dep && dep.status === 'paid') {
+      const ob = d.ob || [], left = ob.filter(o => o.status !== 'done').length;
+      if (ob.length) return { i: 3, text: 'Deposit received — thank you. Your setup checklist is ready: ' + (ob.length - left) + ' of ' + ob.length + ' steps done.', action: { id: 'goOnboarding', label: left ? 'Continue the setup checklist' : 'Review your setup' } };
+      return { i: 3, text: 'Deposit received — thank you. Your setup checklist opens here shortly; we’ll email you when it’s ready.', action: null };
+    }
     if (live) {
       return live.pay_link
         ? { i: 2, text: 'Quote accepted. Next: the deposit (' + S.money(live.deposit_cents) + ').', action: { href: live.pay_link, label: 'Pay deposit ' + S.money(live.deposit_cents), ext: true } }
@@ -269,22 +274,31 @@
       h += '<div class="card"><h2 class="h-card">Monthly plan</h2><p>' + S.money(d.client.monthly_cents) + '/mo' +
         (d.client.next_bill_on ? ' · next bill ' + S.fmtDate(d.client.next_bill_on + 'T12:00:00Z') : ' · starts on your go-live date') + '</p></div>';
     }
+    if (window.PortalB) h = window.PortalB.usageHtml(d) + h;
     if (!d.payments.length) return h + '<div class="empty"><b>No payments yet.</b> Payments you make (deposit, final payment, monthly fees) are listed here.</div>';
     return h + '<div class="table-wrap"><table class="table"><caption class="sr-only">Payments</caption><thead><tr><th scope="col">Payment</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead><tbody>' +
       d.payments.map(p => '<tr><td>' + S.esc(payKind(p.kind)) + '</td><td class="num">' + S.money(p.amount_cents) + '</td><td>' + S.esc(PAY_STATUS[p.status] || p.status) +
         '</td><td>' + S.fmtDate(p.paid_at || p.created_at) + '</td></tr>').join('') + '</tbody></table></div>';
   }
 
-  const TABS = [['home', 'Home', homeHtml], ['quotes', 'Quotes', quotesHtml], ['billing', 'Billing', billingHtml]];
+  const BASE_TABS = [['home', 'Home', homeHtml], ['quotes', 'Quotes', quotesHtml], ['billing', 'Billing', billingHtml]];
+  let TABS = BASE_TABS;
+  const withPhaseB = d => window.PortalB ? [BASE_TABS[0]].concat(window.PortalB.tabs(d), BASE_TABS.slice(1)) : BASE_TABS;
   async function showPortal(tab) {
     tab = tab || (location.hash.replace('#', '') || 'home');
-    if (!TABS.some(t => t[0] === tab)) tab = 'home';
     app.innerHTML = '<p class="muted">Loading…</p>';
     let d;
     try {
       const [qs, quotes, client, payments] = await Promise.all([B.listQuestionnaires(), B.listQuotes(), B.getClient(), B.listPayments()]);
       d = { qs: qs || [], quotes: quotes || [], client, payments: payments || [] };
+      window.__profile = profile; window.__profileTz = profile && profile.timezone || undefined;
+      if (window.PortalB) {
+        await window.PortalB.load(d);
+        if (await window.PortalB.handleCalendarReturn(d)) { await window.PortalB.load(d); tab = 'onboarding'; }
+      }
     } catch (err) { app.innerHTML = S.msgHtml(S.errText(err)); return; }
+    TABS = withPhaseB(d);
+    if (!TABS.some(t => t[0] === tab)) tab = 'home';
     const first = (profile.full_name || '').trim().split(/\s+/)[0];
     app.innerHTML = '<div class="phead"><div><span class="eyebrow">' + S.esc(profile.company || 'Client portal') + '</span>' +
       '<h1 class="t" id="hello">' + (first ? 'Hi ' + S.esc(first) + '.' : 'Welcome.') + '</h1></div>' +
@@ -317,7 +331,25 @@
     history.replaceState(null, '', '/start/' + (tab === 'home' ? '' : '#' + tab));
     bindPanel(d, tab);
   }
+  // phase B panels re-load their data and redraw in place; focus goes to the first matching selector
+  function phaseBApi(d) {
+    return {
+      async refresh(tab, focusSels, keepOpen) {
+        const open = keepOpen ? S.$$('#panel details[open]').map(x => x.id).filter(Boolean) : [];
+        try { await window.PortalB.load(d); } catch (err) { S.toast(S.errText(err)); }
+        const tabsNow = withPhaseB(d);
+        if (tabsNow.map(t => t[0]).join() !== TABS.map(t => t[0]).join()) { showPortal(tab); return; }
+        switchTab(d, tab);
+        open.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
+        const el = (focusSels || []).map(sel => S.$(sel)).find(x => x && !x.disabled);
+        if (el) el.focus();
+      }
+    };
+  }
   function bindPanel(d, tab) {
+    if (window.PortalB && window.PortalB.bind(d, tab, phaseBApi(d))) return;
+    const gob = S.$('#goOnboarding');
+    if (gob) gob.addEventListener('click', () => { switchTab(d, 'onboarding'); S.$('#tab-onboarding').focus(); });
     if (tab !== 'home') return;
     ['#startQ', '#anotherQ'].forEach(sel => {
       const b = S.$(sel); if (!b) return;

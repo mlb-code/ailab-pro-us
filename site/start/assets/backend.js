@@ -23,6 +23,14 @@
      listAttachments(qid) / uploadAttachment(qid, file) / removeAttachment(att) / downloadUrl(att)
      listQuotes() / getClient() / listPayments()
      notify(type, payload)                     -> event stub (see below)
+   Phase B (task B7; SQL in supabase/migrations/*_us_portal_b7.sql):
+     listOnboarding() / updateOnboarding(id, status, data)       update_onboarding_item RPC (todo|done|need_help + data merge)
+     startForwardingTest(itemId)               -> {number, started_at, window_minutes}  (start_forwarding_test RPC)
+     calendarConnectUrl(tenantId, provider)    -> {url}  (Edge Function calendar-connect -> runtime /oauth/<p>/ticket; A8/B9)
+     getTenant() / updateTenantSettings(tenantId, patch)          update_tenant_settings RPC (whitelist hours/faq/notify/paused)
+     listCalls(tenantId) / listSms(tenantId) / listBookings(tenantId) / getUsage(tenantId, month)   (client_tenant_usage RPC)
+     listRequests() / createRequest({title, body}) / saveRequest(id, {title, body, position, paused}) / cancelRequest(id)
+     listRequestAttachments(rid) / uploadRequestAttachment(rid, file, safeName, mime) / removeRequestAttachment(att)
    Error messages carry the same codes the DB guards raise (questionnaire_locked, offer_required, too_many_files, ...). */
 (function () {
   const C = window.SITE_CONFIG || {};   // /assets/config.js (written by tools/us_setup.py, task A2)
@@ -119,6 +127,62 @@
         return must(await sb.from('clients').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle());
       },
       async listPayments() { return must(await sb.from('payments').select('*').order('created_at', { ascending: false })); },
+      // ---------------------------------------------------------- phase B (B7)
+      async listOnboarding() { return must(await sb.from('onboarding_items').select('*').order('sort')); },
+      async updateOnboarding(id, status, data) {
+        return must(await sb.rpc('update_onboarding_item', { p_id: id, p_status: status, p_data: data || null }));
+      },
+      async startForwardingTest(id) { return must(await sb.rpc('start_forwarding_test', { p_item: id })); },
+      async calendarConnectUrl(tenantId, provider) {
+        const r = await sb.functions.invoke('calendar-connect', { body: { tenant_id: tenantId, provider } });
+        if (r.error) { let code = r.error.message; try { const j = await r.error.context.json(); if (j && j.error) code = j.error; } catch (e) { /* not JSON */ } throw new Error(code); }
+        return r.data;
+      },
+      async getTenant() {
+        return must(await sb.from('tenants').select('id,client_id,slug,status,twilio_number,config').order('created_at', { ascending: false }).limit(1).maybeSingle());
+      },
+      async updateTenantSettings(tenantId, patch) { return must(await sb.rpc('update_tenant_settings', { p_tenant_id: tenantId, p_patch: patch })); },
+      async listCalls(tenantId, limit) {
+        return must(await sb.from('calls').select('id,call_sid,from_e164,started_at,duration_s,outcome,transcript,summary').eq('tenant_id', tenantId).order('started_at', { ascending: false }).limit(limit || 50));
+      },
+      async listSms(tenantId, limit) {
+        return must(await sb.from('sms_messages').select('id,contact_e164,direction,body,created_at').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(limit || 200));
+      },
+      async listBookings(tenantId, limit) {
+        return must(await sb.from('bookings').select('id,customer_name,contact_e164,address,job_type,urgency,start_at,end_at,status').eq('tenant_id', tenantId).order('start_at', { ascending: false }).limit(limit || 50));
+      },
+      async getUsage(tenantId, month) { return must(await sb.rpc('client_tenant_usage', { p_tenant_id: tenantId, p_month: month || null })); },
+      async listRequests() { return must(await sb.from('requests').select('*').order('position')); },
+      async createRequest(row) {
+        const c = must(await sb.from('clients').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle());
+        if (!c) throw new Error('no_client');
+        return must(await sb.from('requests').insert({ client_id: c.id, title: row.title, body: row.body || '' }).select('*').single());
+      },
+      async saveRequest(id, patch) {
+        const p = {}; ['title', 'body', 'position', 'paused'].forEach(k => { if (k in patch) p[k] = patch[k]; });
+        return must(await sb.from('requests').update(p).eq('id', id).select('*').maybeSingle());
+      },
+      async cancelRequest(id) {
+        const files = must(await sb.from('attachments').select('storage_path').eq('request_id', id)) || [];
+        const r = await sb.from('requests').delete().eq('id', id).select('id');
+        if (r.error) throw r.error;
+        if (!r.data || !r.data.length) throw new Error('request_locked');
+        if (files.length) await sb.storage.from(C.BUCKET).remove(files.map(f => f.storage_path));
+        return null;
+      },
+      async listRequestAttachments(rid) { return must(await sb.from('attachments').select('*').eq('request_id', rid).order('created_at')); },
+      async uploadRequestAttachment(rid, file, safeName, mime) {
+        const rand = Math.random().toString(36).slice(2, 12).replace(/[^a-z0-9]/g, '') || 'f00000';
+        const path = (await uid()) + '/' + rid + '/' + rand.padEnd(6, '0') + '-' + safeName;
+        must(await sb.storage.from(C.BUCKET).upload(path, file, { contentType: mime, upsert: false, cacheControl: '3600' }));
+        const r = await sb.from('attachments').insert({ request_id: rid, storage_path: path, filename: file.name.slice(0, 255), size: file.size, mime_type: mime }).select().single();
+        if (r.error) { await sb.storage.from(C.BUCKET).remove([path]); throw r.error; }
+        return r.data;
+      },
+      async removeRequestAttachment(att) {
+        must(await sb.from('attachments').delete().eq('id', att.id));
+        await sb.storage.from(C.BUCKET).remove([att.storage_path]);
+      },
       // Event stub. With Supabase the DB writes the event itself (questionnaires_log trigger -> public.events) and
       // task A8 turns 'submitted' into the q_received (client) + owner e-mails. Nothing to send from the browser.
       async notify(type, payload) { return { ok: true, via: 'db-trigger', type, payload }; }
@@ -145,7 +209,11 @@
   ['getSession', 'consumeLink', 'sendCode', 'verifyCode', 'signInWithGoogle', 'signOut', 'getProfile', 'saveProfile',
     'listQuestionnaires', 'createQuestionnaire', 'getQuestionnaire', 'saveQuestionnaire', 'submitQuestionnaire',
     'deleteQuestionnaire', 'listAttachments', 'uploadAttachment', 'removeAttachment', 'downloadUrl', 'listQuotes',
-    'getClient', 'listPayments', 'notify'].forEach(fn => {
+    'getClient', 'listPayments', 'notify',
+    // phase B (B7)
+    'listOnboarding', 'updateOnboarding', 'startForwardingTest', 'calendarConnectUrl', 'getTenant', 'updateTenantSettings',
+    'listCalls', 'listSms', 'listBookings', 'getUsage', 'listRequests', 'createRequest', 'saveRequest', 'cancelRequest',
+    'listRequestAttachments', 'uploadRequestAttachment', 'removeRequestAttachment'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
   });
   window.Backend = api;

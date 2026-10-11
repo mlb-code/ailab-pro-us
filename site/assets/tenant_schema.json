@@ -1,0 +1,703 @@
+{
+  "$defs": {
+    "AfterHours": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "book_next_day",
+          "enum": [
+            "book_next_day",
+            "message_only",
+            "emergency_dial"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "title": "AfterHours",
+      "type": "object"
+    },
+    "Booking": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "default": "calendly",
+          "description": "Calendly is the default integration (TASKS Addendum 2); Google second",
+          "enum": [
+            "google",
+            "calendly",
+            "fake"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "calendar_id": {
+          "default": "primary",
+          "title": "Calendar Id",
+          "type": "string"
+        },
+        "windows": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "description": "24h time HH:MM",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                "type": "string"
+              },
+              {
+                "description": "24h time HH:MM",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Windows",
+          "type": "array"
+        },
+        "lead_time_hours": {
+          "default": 2,
+          "maximum": 168,
+          "minimum": 0,
+          "title": "Lead Time Hours",
+          "type": "number"
+        },
+        "max_per_window": {
+          "default": 3,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Max Per Window",
+          "type": "integer"
+        },
+        "days_ahead": {
+          "default": 7,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Days Ahead",
+          "type": "integer"
+        },
+        "job_types": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Job Types",
+          "type": "array"
+        },
+        "booking_link": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Public self-booking link used in text-back",
+          "title": "Booking Link"
+        }
+      },
+      "required": [
+        "windows",
+        "job_types"
+      ],
+      "title": "Booking",
+      "type": "object"
+    },
+    "Business": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "niche": {
+          "enum": [
+            "home_services",
+            "real_estate",
+            "dental"
+          ],
+          "title": "Niche",
+          "type": "string"
+        },
+        "trade": {
+          "default": "",
+          "description": "e.g. 'HVAC', 'plumbing'; used in the prompt",
+          "maxLength": 60,
+          "title": "Trade",
+          "type": "string"
+        },
+        "timezone": {
+          "title": "Timezone",
+          "type": "string"
+        },
+        "service_area_zips": {
+          "description": "Empty list = no ZIP restriction",
+          "items": {
+            "pattern": "^\\d{5}$",
+            "type": "string"
+          },
+          "maxItems": 500,
+          "title": "Service Area Zips",
+          "type": "array"
+        },
+        "main_phone": {
+          "description": "Phone number in E.164, e.g. +17135550100",
+          "pattern": "^\\+[1-9]\\d{7,14}$",
+          "title": "Main Phone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "niche",
+        "timezone",
+        "main_phone"
+      ],
+      "title": "Business",
+      "type": "object"
+    },
+    "Emergency": {
+      "additionalProperties": false,
+      "properties": {
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Keywords",
+          "type": "array"
+        },
+        "dial": {
+          "anyOf": [
+            {
+              "description": "Phone number in E.164, e.g. +17135550100",
+              "pattern": "^\\+[1-9]\\d{7,14}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dial"
+        }
+      },
+      "title": "Emergency",
+      "type": "object"
+    },
+    "FaqItem": {
+      "additionalProperties": false,
+      "properties": {
+        "q": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Q",
+          "type": "string"
+        },
+        "a": {
+          "maxLength": 600,
+          "minLength": 1,
+          "title": "A",
+          "type": "string"
+        }
+      },
+      "required": [
+        "q",
+        "a"
+      ],
+      "title": "FaqItem",
+      "type": "object"
+    },
+    "Guard": {
+      "additionalProperties": false,
+      "properties": {
+        "daily_budget_usd": {
+          "default": 3,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Daily Budget Usd",
+          "type": "number"
+        },
+        "blocklist": {
+          "items": {
+            "description": "Phone number in E.164, e.g. +17135550100",
+            "pattern": "^\\+[1-9]\\d{7,14}$",
+            "type": "string"
+          },
+          "maxItems": 1000,
+          "title": "Blocklist",
+          "type": "array"
+        },
+        "max_replies_10min": {
+          "default": 8,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Replies 10Min",
+          "type": "integer"
+        },
+        "max_replies_day": {
+          "default": 30,
+          "maximum": 500,
+          "minimum": 1,
+          "title": "Max Replies Day",
+          "type": "integer"
+        }
+      },
+      "title": "Guard",
+      "type": "object"
+    },
+    "Handoff": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "message",
+          "enum": [
+            "dial",
+            "message"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "description": "Phone number in E.164, e.g. +17135550100",
+              "pattern": "^\\+[1-9]\\d{7,14}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
+        },
+        "hours": {
+          "default": "business",
+          "enum": [
+            "business",
+            "always"
+          ],
+          "title": "Hours",
+          "type": "string"
+        }
+      },
+      "title": "Handoff",
+      "type": "object"
+    },
+    "Hours": {
+      "additionalProperties": false,
+      "properties": {
+        "mon": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mon"
+        },
+        "tue": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tue"
+        },
+        "wed": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wed"
+        },
+        "thu": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thu"
+        },
+        "fri": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fri"
+        },
+        "sat": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sat"
+        },
+        "sun": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                },
+                {
+                  "description": "24h time HH:MM",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sun"
+        }
+      },
+      "title": "Hours",
+      "type": "object"
+    },
+    "Notify": {
+      "additionalProperties": false,
+      "properties": {
+        "sms": {
+          "items": {
+            "description": "Phone number in E.164, e.g. +17135550100",
+            "pattern": "^\\+[1-9]\\d{7,14}$",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "title": "Sms",
+          "type": "array"
+        },
+        "email": {
+          "items": {
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "title": "Email",
+          "type": "array"
+        },
+        "daily_summary": {
+          "anyOf": [
+            {
+              "description": "24h time HH:MM",
+              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "19:00",
+          "title": "Daily Summary"
+        }
+      },
+      "title": "Notify",
+      "type": "object"
+    },
+    "PriceItem": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "price_usd": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Price Usd",
+          "type": "number"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "price_usd"
+      ],
+      "title": "PriceItem",
+      "type": "object"
+    },
+    "Pricing": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "none",
+          "enum": [
+            "none",
+            "listed"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/PriceItem"
+          },
+          "maxItems": 30,
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "title": "Pricing",
+      "type": "object"
+    },
+    "Voice": {
+      "additionalProperties": false,
+      "properties": {
+        "tts_voice": {
+          "default": "Polly.Joanna-Neural",
+          "title": "Tts Voice",
+          "type": "string"
+        },
+        "greeting": {
+          "default": "",
+          "description": "Empty = generated from business name",
+          "maxLength": 400,
+          "title": "Greeting",
+          "type": "string"
+        },
+        "languages": {
+          "items": {
+            "enum": [
+              "en",
+              "es"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Languages",
+          "type": "array"
+        }
+      },
+      "title": "Voice",
+      "type": "object"
+    },
+    "Zapier": {
+      "additionalProperties": false,
+      "properties": {
+        "webhook_url": {
+          "anyOf": [
+            {
+              "pattern": "^https://",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Webhook Url"
+        },
+        "events": {
+          "items": {
+            "enum": [
+              "lead.created",
+              "booking.created",
+              "call.completed"
+            ],
+            "type": "string"
+          },
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "title": "Zapier",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "`tenants.config` jsonb. Field names follow SPEC 6.6.",
+  "properties": {
+    "business": {
+      "$ref": "#/$defs/Business"
+    },
+    "voice": {
+      "$ref": "#/$defs/Voice"
+    },
+    "hours": {
+      "$ref": "#/$defs/Hours"
+    },
+    "after_hours": {
+      "$ref": "#/$defs/AfterHours"
+    },
+    "booking": {
+      "$ref": "#/$defs/Booking"
+    },
+    "pricing": {
+      "$ref": "#/$defs/Pricing"
+    },
+    "faq": {
+      "items": {
+        "$ref": "#/$defs/FaqItem"
+      },
+      "maxItems": 25,
+      "title": "Faq",
+      "type": "array"
+    },
+    "emergency": {
+      "$ref": "#/$defs/Emergency"
+    },
+    "handoff": {
+      "$ref": "#/$defs/Handoff"
+    },
+    "notify": {
+      "$ref": "#/$defs/Notify"
+    },
+    "zapier": {
+      "$ref": "#/$defs/Zapier"
+    },
+    "guard": {
+      "$ref": "#/$defs/Guard"
+    },
+    "paused": {
+      "default": false,
+      "title": "Paused",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "business",
+    "hours",
+    "booking",
+    "notify"
+  ],
+  "title": "TenantConfig",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ailab.pro/schemas/tenant-config.json"
+}

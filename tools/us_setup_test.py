@@ -27,6 +27,7 @@ GCID = "1234-test.apps.googleusercontent.com"
 GSEC = "GOCSPX-" + "w" * 24
 PUB = "sb_publishable_" + "p" * 24
 REF = "abcdefghijklmnopqrst"
+SRK = "eyJ" + "s" * 20 + "." + "t" * 30 + "." + "u" * 20   # fake service_role JWT
 
 
 class FakeApi:
@@ -91,7 +92,7 @@ class FakeApi:
             if "from storage.buckets" in q:
                 return ok([{"id": "client-files", "public": False}, {"id": "videos-public", "public": True}] if self.buckets else [])
             if "from cron.job" in q and "jobname" in q and "delete" not in q:
-                return ok([{"jobname": j, "schedule": "x", "active": True} for j in S.CRON_JOBS] if self.cron else [])
+                return ok([{"jobname": j, "schedule": "x", "active": True} for j in S.cron_job_names()] if self.cron else [])
             return ok([])
         if path.endswith("/config/auth"):
             if method == "PATCH":
@@ -105,9 +106,10 @@ class FakeApi:
             self.deploys.append((path, headers.get("Content-Type"), data))
             return ok({"id": "f1", "slug": "x", "status": "ACTIVE"}, 201)
         if "/api-keys" in path:
+            reveal = "reveal=true" in path
             return ok([{"name": "anon", "type": "legacy", "api_key": "eyJ.anon.key"},
                        {"name": "default", "type": "publishable", "api_key": PUB},
-                       {"name": "service_role", "type": "legacy", "api_key": None}])
+                       {"name": "service_role", "type": "legacy", "api_key": SRK if reveal else None}])
         return 404, b'{"message":"not in fake"}'
 
     def methods(self):
@@ -152,7 +154,7 @@ class Base(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             rc = S.run(argv, transport=fake)
         text = out.getvalue()
-        for secret in (TOKEN, RESEND, ANTHROPIC, GSEC):
+        for secret in (TOKEN, RESEND, ANTHROPIC, GSEC, SRK):
             self.assertNotIn(secret, text, "a secret was printed")
         self.assertNotIn("Bearer " + TOKEN[:6], text)
         return rc, text
@@ -233,7 +235,15 @@ class TestSetup(Base):
         self.assertTrue(a["external_google_enabled"])
         # vault + function secrets
         vault = [q for q in fake.sql if "vault.create_secret" in q]
-        self.assertEqual(len(vault), 2)
+        self.assertEqual(len(vault), 4)
+        for name in ("ailab_us_project_url", "ailab_us_service_role_key", "resend_api_key", "anthropic_api_key"):
+            self.assertTrue(any(f"'{name}'" in q for q in vault), name)
+        self.assertTrue(any(SRK in q and "ailab_us_service_role_key" in q for q in vault))
+        self.assertTrue(any(f"https://{REF}.supabase.co" in q and "ailab_us_project_url" in q for q in vault))
+        # A8 e-mail cron jobs installed AFTER the vault secrets
+        inst = next(i for i, q in enumerate(fake.sql) if q.strip() == "select private.install_email_jobs();")
+        last_vault = max(i for i, q in enumerate(fake.sql) if "vault.create_secret" in q)
+        self.assertGreater(inst, last_vault)
         self.assertEqual({s["name"] for s in fake.secrets[0]}, {"ANTHROPIC_API_KEY", "RESEND_API_KEY"})
         # config.js
         cfg = S.read_text(S.CONFIG_JS)
@@ -428,6 +438,29 @@ class TestSetup(Base):
         self.assertEqual(rc, 1)
         self.assertTrue(any("cron.schedule('ailab-us-retention'" in q for q in fake.sql))
         self.assertIn("משימות cron חסרות", out)
+
+    def test_cron_names_from_migrations(self):
+        names = S.cron_job_names()
+        for n in ("ailab-us-retention", "ailab-us-expire-quotes", "ailab-us-email-dispatch", "ailab-us-email-scan",
+                  "ailab-us-monthly-invoice", "ailab-us-quote-expiring", "ailab-us-storage-purge"):
+            self.assertIn(n, names)
+        self.assertEqual(len(names), 7)
+        self.assertTrue(S.has_email_jobs())
+        self.assertIn("email-unsubscribe", S.NO_VERIFY_JWT)
+        self.assertTrue({"quote-view", "quote-accept"} <= S.NO_VERIFY_JWT)
+        self.assertIn("RESEND_API_KEY", S.FUNCTION_SECRET_KEYS)
+
+    def test_only_vault_without_service_key_fails_loudly(self):
+        fake = FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+        orig = fake.__call__
+
+        def no_srk(method, url, headers, data):
+            if "reveal=true" in url:
+                return 200, json.dumps([{"name": "service_role", "api_key": None}]).encode()
+            return orig(method, url, headers, data)
+        rc, out = self.run_cli(["--only", "vault"], no_srk)
+        self.assertEqual(rc, 1)
+        self.assertIn("service_role", out)
 
     def test_bad_resend_key_rejected_before_sql(self):
         self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "RESEND_API_KEY": "re_x'; drop table x; --"})

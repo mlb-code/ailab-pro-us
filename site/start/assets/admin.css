@@ -155,3 +155,16 @@ details[open]>.digest__head{margin-bottom:12px}
 .input.code{text-align:center;font-family:var(--mono);font-size:1.5rem;letter-spacing:.45em}
 
 .toast{position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:9500;max-width:440px;margin:0 auto;background:var(--cream);color:var(--navy);padding:12px 16px;border-radius:var(--radius-sm);font-size:.92rem;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center;pointer-events:none}
+
+/* Tenants tab (B7) */
+.tusage{margin-bottom:16px;min-width:0}
+.tusage__h{justify-content:space-between;margin-bottom:10px}
+.tusage__h h2{margin:0}
+.tusage__h .input{width:auto;min-height:40px;padding:6px 10px;max-width:100%}
+.tu th,.tu td{text-align:start;vertical-align:top}
+.detail .row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:0 10px}
+.tjson{min-height:360px;font-family:var(--mono);font-size:.82rem;line-height:1.45;white-space:pre;overflow:auto;tab-size:2}
+.errs{margin:0;padding-inline-start:18px;display:grid;gap:4px;overflow-wrap:anywhere}
+.obdata pre{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px;max-width:100%}
+.pill--sandbox,.pill--tenant{color:var(--fg-3)}
+.pill--paused{color:var(--acc)}
