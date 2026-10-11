@@ -5,6 +5,10 @@
 //   mock   -> a function supplied by the caller (tests).
 import { BRAND } from "./config.ts";
 
+/** Quotes (non-realtime) use claude.quote_model; voice/SMS turns use claude.voice_model in the runtime. */
+// deno-lint-ignore no-explicit-any
+export const QUOTE_MODEL: string = (BRAND.claude as any).quote_model ?? BRAND.claude.model;
+
 export interface ClaudeRequest {
   system: string;
   user: string;
@@ -38,7 +42,7 @@ export function mockModel(fn: (req: ClaudeRequest) => unknown): QuoteModel {
     mode: "mock",
     complete(req) {
       const output = fn(req);
-      return Promise.resolve({ output, raw: output, model: BRAND.claude.model, input_tokens: 0, output_tokens: 0, cost_usd: 0 });
+      return Promise.resolve({ output, raw: output, model: QUOTE_MODEL, input_tokens: 0, output_tokens: 0, cost_usd: 0 });
     },
   };
 }
@@ -52,7 +56,7 @@ export function replayModel(dir: URL = new URL("./fixtures/replays/", import.met
         try {
           const rec = JSON.parse(await Deno.readTextFile(new URL(`${key}.json`, dir)));
           const output = rec.output ?? rec;
-          return { output, raw: rec, model: rec.model ?? BRAND.claude.model, input_tokens: rec.input_tokens ?? 0,
+          return { output, raw: rec, model: rec.model ?? QUOTE_MODEL, input_tokens: rec.input_tokens ?? 0,
             output_tokens: rec.output_tokens ?? 0, cost_usd: 0 };
         } catch (e) {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
@@ -73,7 +77,7 @@ export function liveModel(): QuoteModel {
       const spec = SDK_SPEC;
       const { default: Anthropic } = await import(spec);
       const client = new Anthropic();
-      const model = BRAND.claude.model;
+      const model = QUOTE_MODEL;
       // deno-lint-ignore no-explicit-any
       const params: any = {
         model,

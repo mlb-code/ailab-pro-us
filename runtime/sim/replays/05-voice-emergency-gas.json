@@ -1,10 +1,10 @@
 {
- "37ec65a26e7b0f350dd9e253": {
+ "13481de164b93d2d26e0b80f": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:01 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
       "type": "text"
      },
      {
@@ -14,17 +14,21 @@
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
+     "text": "Let me check the schedule for a furnace repair visit in your area.",
+     "type": "text"
+    },
+    {
      "caller": {
       "type": "direct"
      },
-     "id": "toolu_01NduEDv4zXyVqXzpJVEjefr",
+     "id": "toolu_015ZGgp1STu1USmhTzCY5L8Z",
      "input": {
-      "date_from": null,
+      "date_from": "2026-10-12",
       "job_type": "Furnace repair",
       "zip": "77005"
      },
@@ -33,41 +37,51 @@
     }
    ],
    "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 687.4,
+    "first_text_ms": 687.5,
+    "total_ms": 1236.0
+   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 173,
-    "output_tokens": 101
+    "cache_creation_input_tokens": 172,
+    "cache_read_input_tokens": 1916,
+    "input_tokens": 4,
+    "output_tokens": 128
    }
   }
  },
- "5384bbbf99332108228b005d": {
+ "55359be52e1e11192be6e3f5": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_01NduEDv4zXyVqXzpJVEjefr",
+      "tool_use_id": "toolu_015ZGgp1STu1USmhTzCY5L8Z",
       "type": "tool_result"
      }
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
-     "text": "I'm glad everyone is outside and safe. I can get a technician out today between 12 and 4 PM, or tomorrow between 8 AM and 12 PM, which works better for you?",
+     "text": "I have two openings: today, Monday October 12, from 12 PM to 4 PM, or tomorrow, Tuesday October 13, from 8 AM to 12 PM. Which one works better for you? Also, what is your name and the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 746.6,
+    "first_text_ms": 746.7,
+    "total_ms": 1108.0
+   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 446,
-    "output_tokens": 61
+    "cache_creation_input_tokens": 302,
+    "cache_read_input_tokens": 2088,
+    "input_tokens": 2,
+    "output_tokens": 79
    }
   }
  }

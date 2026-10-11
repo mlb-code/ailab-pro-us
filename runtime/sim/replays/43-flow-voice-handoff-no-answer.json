@@ -1,29 +1,94 @@
 {
- "99a0592779662d390e81e5fb": {
+ "67e48ebf3fc041200db94b32": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_01JNLozM1VszPPVzRtWsfh5Q",
+      "tool_use_id": "toolu_01AXMGEEPX1F5BwqEQFQfVHo",
       "type": "tool_result"
      }
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
-     "text": "I'm connecting you with someone on the Cool Breeze HVAC team now. Please stay on the line.",
+     "text": "Please hold while I connect you to a member of our team.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 804.8,
+    "first_text_ms": 805.1,
+    "total_ms": 836.1
+   },
+   "usage": {
+    "cache_creation_input_tokens": 96,
+    "cache_read_input_tokens": 2053,
+    "input_tokens": 2,
+    "output_tokens": 18
+   }
+  }
+ },
+ "9b923be0ddb68ae44b9c1272": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01EGDQjnemfw97Kc9ANJGZUj",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 648.9
+   },
+   "usage": {
+    "cache_creation_input_tokens": 85,
+    "cache_read_input_tokens": 2152,
+    "input_tokens": 2,
+    "output_tokens": 1
+   }
+  }
+ },
+ "bcdf190d9c33fe07cddfeb1f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"dial\", \"ok\": true}",
+      "tool_use_id": "toolu_011MDuE6VijEE8h25Uvzz8Te",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I'm connecting you now. Please hold for just a moment.",
      "type": "text"
     },
     {
      "caller": {
       "type": "direct"
      },
-     "id": "toolu_01L7BTmwBTriMvfGdJ4ttgXG",
+     "id": "toolu_01EGDQjnemfw97Kc9ANJGZUj",
      "input": {
       "outcome": "handoff"
      },
@@ -32,61 +97,25 @@
     }
    ],
    "stop_reason": "tool_use",
-   "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 217,
-    "output_tokens": 88
-   }
-  }
- },
- "a61780394001898814f8bac3": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_01BCMeoYcuMBeyVSL7E1wdfu",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
+   "timing": {
+    "first_block_ms": 672.3,
+    "first_text_ms": 672.3,
+    "total_ms": 947.3
    },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm connecting you with someone on our team now, so please hold for just a moment.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01Rrg8JfJZbnbmeQ3zzrBCNg",
-     "input": {
-      "outcome": "handoff"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 217,
-    "output_tokens": 79
+    "cache_creation_input_tokens": 99,
+    "cache_read_input_tokens": 2053,
+    "input_tokens": 2,
+    "output_tokens": 73
    }
   }
  },
- "c788dff1b4895208e33c865a": {
+ "cb90564c29482a89f504b053": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
       "type": "text"
      },
      {
@@ -96,15 +125,19 @@
     ],
     "role": "user"
    },
-   "model": "claude-opus-5-5"
+   "model": "claude-haiku-5-5"
   },
   "response": {
    "content": [
     {
+     "text": "I'll connect you with a member of our team now.",
+     "type": "text"
+    },
+    {
      "caller": {
       "type": "direct"
      },
-     "id": "toolu_01BCMeoYcuMBeyVSL7E1wdfu",
+     "id": "toolu_01AXMGEEPX1F5BwqEQFQfVHo",
      "input": {
       "reason": "Customer asked to speak with a real person."
      },
@@ -113,71 +146,16 @@
     }
    ],
    "stop_reason": "tool_use",
-   "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 138,
-    "output_tokens": 60
-   }
-  }
- },
- "e0fc75ce141dadf5b3b950f1": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01L7BTmwBTriMvfGdJ4ttgXG",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
+   "timing": {
+    "first_block_ms": 728.6,
+    "first_text_ms": 728.7,
+    "total_ms": 1197.4
    },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I've connected you to someone on the Cool Breeze HVAC team. Please stay on the line while they pick up.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
    "usage": {
     "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 317,
-    "output_tokens": 38
-   }
-  }
- },
- "ec52b209e6d6493b4be57849": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01Rrg8JfJZbnbmeQ3zzrBCNg",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm putting you through to someone on our team now.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 308,
-    "output_tokens": 17
+    "cache_read_input_tokens": 2053,
+    "input_tokens": 4,
+    "output_tokens": 75
    }
   }
  }

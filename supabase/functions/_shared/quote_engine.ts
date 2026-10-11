@@ -1,7 +1,7 @@
 // Quote engine core, independent of HTTP: draft (questionnaire -> Claude codes + text -> priced draft),
 // public view, accept (e-signature-lite), send gate, expiring reminders. Every function takes its Store and clock.
 import { BRAND, PRICEBOOK } from "./config.ts";
-import type { QuoteModel } from "./claude.ts";
+import { QUOTE_MODEL, type QuoteModel } from "./claude.ts";
 import { customLabel, quoteHints, type Hints } from "./hints.ts";
 import { allowedCodes, outputSchema, SYSTEM_PROMPT, userPrompt } from "./quote_prompt.ts";
 import { cleanList, cleanText, violation } from "./sanitize.ts";
@@ -161,7 +161,7 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
   const user = userPrompt(pb, { offer: (answers.offer as string) ?? null, niche: (answers.niche as string) ?? null, summary: q.summary, answers },
     preHints, preHints.add.map(({ code, qty }) => ({ code, qty })));
   const schema = outputSchema(pb);
-  const promptHash = await sha256Hex(BRAND.claude.model + "\n" + SYSTEM_PROMPT + "\n" + user);
+  const promptHash = await sha256Hex(QUOTE_MODEL + "\n" + SYSTEM_PROMPT + "\n" + user);
   const res = await deps.model.complete({ system: SYSTEM_PROMPT, user, schema, promptHash, replayKey: deps.replayKey });
 
   const flags: string[] = [];

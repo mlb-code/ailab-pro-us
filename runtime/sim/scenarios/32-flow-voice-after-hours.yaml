@@ -7,6 +7,6 @@ steps:
   - say: "My AC is blowing warm air, zip 77002"
     expect: {reply_matches: ["Monday,? Oct(ober)? 12"]}
   - say: "The morning one, my name is Ann Lee, 900 Main St Houston 77002"
-    expect: {reply_contains: ["all set"]}
+    expect: {reply_matches: ["all set|booked"]}
   - hangup: {}
 expect: {outcome: booked, bookings: 1, sms_sent: 1, alerts: [booking]}

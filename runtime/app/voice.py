@@ -77,6 +77,17 @@ class VoiceTurn:
     dial: str | None = None
     outcome: str | None = None
     actions: list[dict[str, Any]] = field(default_factory=list)
+    streamed: bool = False  # the reply was already sent sentence by sentence (relay); only `last` remains
+
+
+def _first_sentence_stats(rows: list[list[float]]) -> dict[str, float]:
+    """Time to first spoken sentence per Claude turn: total and server share (= total - Claude time)."""
+    if not rows:
+        return {}
+    server = [t - llm for t, llm in rows]
+    return {"first_sentence_ms_p50": round(percentile([t for t, _ in rows], 50), 2),
+            "first_sentence_ms_p95": round(percentile([t for t, _ in rows], 95), 2),
+            "first_sentence_server_ms_p95": round(percentile(server, 95), 2)}
 
 
 def percentile(values: list[float], pct: float) -> float:
@@ -144,14 +155,28 @@ class VoiceFlow:
         c.transcript.append({"who": "assistant", "text": greeting(tenant)})
         eng.save_convo(c)
         ts.log_event("voice.incoming", {"call_sid": call_sid, "mode": mode})
+        if eng.llm.mode == "live" and eng.llm.prompt_cache:
+            # While the greeting plays: warm the API connection and the tools+system prompt cache, so the
+            # caller's first turn does not pay the cold start (~$0.0003 cache write per call, Haiku).
+            threading.Thread(target=self._prewarm, args=(tenant,), daemon=True).start()
         return c
 
-    def turn(self, tenant: TenantRecord, call_sid: str, caller: str, text: str, now: datetime) -> VoiceTurn:
-        """One caller utterance ("" = silence). Thread-safe per call."""
-        with self._lock(call_sid):
-            return self._turn(tenant, call_sid, caller, text, now)
+    def _prewarm(self, tenant: TenantRecord) -> None:
+        from .brain import prewarm
+        try:
+            prewarm(self.rt.engine.llm, tenant.config, "voice")
+        except Exception:  # noqa: BLE001 - best effort, never affects the call
+            log.warning("prewarm crashed")
 
-    def _turn(self, tenant: TenantRecord, call_sid: str, caller: str, text: str, now: datetime) -> VoiceTurn:
+    def turn(self, tenant: TenantRecord, call_sid: str, caller: str, text: str, now: datetime,
+             on_sentence: Any = None) -> VoiceTurn:
+        """One caller utterance ("" = silence). Thread-safe per call. `on_sentence` (stream mode) receives
+        each guarded sentence of Claude's reply as soon as it is ready."""
+        with self._lock(call_sid):
+            return self._turn(tenant, call_sid, caller, text, now, on_sentence)
+
+    def _turn(self, tenant: TenantRecord, call_sid: str, caller: str, text: str, now: datetime,
+              on_sentence: Any = None) -> VoiceTurn:
         t0 = time.perf_counter()
         eng = self.rt.engine
         c = eng.convo(tenant, "voice", caller, call_sid)
@@ -167,7 +192,7 @@ class VoiceFlow:
             self.rt.deliver(tenant, actions, call_sid)
             return VoiceTurn(TURN_CAP_TEXT, end=True, outcome=c.outcome, actions=actions)
 
-        res = eng.handle(tenant, "voice", caller, text, call_sid, now)
+        res = eng.handle(tenant, "voice", caller, text, call_sid, now, on_sentence=on_sentence)
         c = eng.convo(tenant, "voice", caller, call_sid)
         c.meta["turns"] = c.meta.get("turns", 0) + 1
         dial = next((a["number"] for a in res.actions if a.get("type") == "dial"), None)
@@ -181,8 +206,12 @@ class VoiceFlow:
         after_turn(self.rt, tenant, c, now)
         total_ms = (time.perf_counter() - t0) * 1000
         c.meta["timing"] = (c.meta.get("timing") or []) + [[round(total_ms, 2), round(res.llm_ms, 2)]]
+        if res.first_sentence_ms is not None:  # Claude turns: [to first sentence, Claude share of it] ms
+            c.meta["first_sentence"] = (c.meta.get("first_sentence") or []) + [
+                [res.first_sentence_ms, res.first_sentence_llm_ms or 0.0]]
         self._persist(tenant, c)
-        return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions)
+        streamed = res.streamed and reply == res.reply
+        return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions, streamed=streamed)
 
     # --- relay socket lost (streaming mode) ---------------------------------------------------------
     def relay_lost(self, tenant: TenantRecord, call_sid: str, now: datetime) -> None:
@@ -268,7 +297,8 @@ class VoiceFlow:
             ts.log_event("voice.latency", {"call_sid": call_sid, "mode": c.meta.get("mode"), "turns": len(timing),
                                            "server_ms_p50": round(percentile(server, 50), 2),
                                            "server_ms_p95": round(percentile(server, 95), 2),
-                                           "total_ms_p95": round(percentile([t for t, _ in timing], 95), 2)})
+                                           "total_ms_p95": round(percentile([t for t, _ in timing], 95), 2),
+                                           **_first_sentence_stats(c.meta.get("first_sentence") or [])})
             self.rt.emit(tenant, "call.completed", {"call_sid": call_sid, "outcome": c.outcome,
                                                     "duration_s": c.meta["duration_s"], "summary": summary(c)},
                          call_sid)

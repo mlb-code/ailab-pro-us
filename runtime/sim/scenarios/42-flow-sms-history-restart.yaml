@@ -10,5 +10,5 @@ steps:
     expect: {reply_contains: ["name"]}
   - sms: "My name is Dana Miller"
   - sms: "2100 Rice Blvd, Houston 77005"
-    expect: {reply_contains: ["all set"]}
+    expect: {reply_matches: ["all set|booked"]}
 expect: {outcome: booked, bookings: 1}
