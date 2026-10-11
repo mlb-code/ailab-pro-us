@@ -648,34 +648,51 @@
     });
   }
   const HHMM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/, E164 = /^\+[1-9][0-9]{6,14}$/, EMAIL = /^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{2,}$/;
-  // public.update_tenant_settings shape checks (A1), same error codes
+  // public.update_tenant_settings checks (migration *_us_settings_portal_b7.sql = runtime/app/tenant_schema.json limits),
+  // same error codes: invalid_setting:<path>, field_not_allowed: <key>
+  const US_E164 = v => typeof v === 'string' && /^\+[1-9][0-9]{7,14}$/.test(v) && /^\+1[2-9][0-9]{9}$/.test(v);
   function checkSettingsPatch(patch) {
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return 'patch_must_be_object';
+    const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
     for (const k of Object.keys(patch)) {
       const v = patch[k];
       if (['hours', 'faq', 'notify', 'paused', 'after_hours', 'on_call_number'].indexOf(k) === -1) return 'field_not_allowed: ' + k;
-      if (k === 'after_hours' && !(v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 1 &&
-        ['book_next_day', 'message_only', 'emergency_dial'].indexOf(v.mode) !== -1)) return 'after_hours_bad_mode';
-      if (k === 'on_call_number' && !(v === null || (typeof v === 'string' && /^\+[1-9][0-9]{7,14}$/.test(v)))) return 'on_call_number_bad';
-      if (k === 'paused' && typeof v !== 'boolean') return 'paused_must_be_boolean';
+      if (k === 'paused' && typeof v !== 'boolean') return 'invalid_setting:paused';
       if (k === 'hours') {
-        if (!v || typeof v !== 'object' || Array.isArray(v)) return 'hours_must_be_object';
+        if (!isObj(v)) return 'invalid_setting:hours';
         for (const d of Object.keys(v)) {
-          if (['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].indexOf(d) === -1) return 'hours_bad_day: ' + d;
-          if (!(v[d] === null || (Array.isArray(v[d]) && v[d].length === 2 && HHMM.test(v[d][0]) && HHMM.test(v[d][1])))) return 'hours_bad_value: ' + d;
+          if (['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].indexOf(d) === -1) return 'invalid_setting:hours.' + d;
+          const x = v[d];
+          if (!(x === null || (Array.isArray(x) && x.length === 2 && HHMM.test(x[0]) && HHMM.test(x[1]) && x[0] < x[1]))) return 'invalid_setting:hours.' + d;
         }
       }
       if (k === 'faq') {
-        if (!Array.isArray(v) || v.length > 25) return 'faq_must_be_array_max_25';
-        if (v.some(e => !e || typeof e !== 'object' || Object.keys(e).length !== 2 || typeof e.q !== 'string' || typeof e.a !== 'string' ||
-          e.q.length < 1 || e.q.length > 300 || e.a.length < 1 || e.a.length > 1000)) return 'faq_bad_entry';
+        if (!Array.isArray(v) || v.length > 25) return 'invalid_setting:faq';
+        for (let i = 0; i < v.length; i++) {
+          const e = v[i];
+          if (!isObj(e) || Object.keys(e).some(x => x !== 'q' && x !== 'a')) return 'invalid_setting:faq[' + i + ']';
+          if (typeof e.q !== 'string' || e.q.length < 1 || e.q.length > 300) return 'invalid_setting:faq[' + i + '].q';
+          if (typeof e.a !== 'string' || e.a.length < 1 || e.a.length > 600) return 'invalid_setting:faq[' + i + '].a';
+        }
       }
       if (k === 'notify') {
-        if (!v || typeof v !== 'object' || Array.isArray(v) || Object.keys(v).some(x => ['sms', 'email', 'daily_summary'].indexOf(x) === -1)) return 'notify_bad_shape';
-        if ('sms' in v && (!Array.isArray(v.sms) || v.sms.length > 5 || v.sms.some(x => typeof x !== 'string' || !E164.test(x)))) return 'notify_bad_sms';
-        if ('email' in v && (!Array.isArray(v.email) || v.email.length > 5 || v.email.some(x => typeof x !== 'string' || !EMAIL.test(x)))) return 'notify_bad_email';
-        if ('daily_summary' in v && !(v.daily_summary === null || HHMM.test(v.daily_summary))) return 'notify_bad_time';
+        if (!isObj(v) || Object.keys(v).some(x => ['sms', 'email', 'daily_summary'].indexOf(x) === -1)) return 'invalid_setting:notify';
+        if ('sms' in v) {
+          if (!Array.isArray(v.sms) || v.sms.length > 5) return 'invalid_setting:notify.sms';
+          for (let i = 0; i < v.sms.length; i++) if (!US_E164(v.sms[i])) return 'invalid_setting:notify.sms[' + i + ']';
+        }
+        if ('email' in v) {
+          if (!Array.isArray(v.email) || v.email.length > 5) return 'invalid_setting:notify.email';
+          for (let i = 0; i < v.email.length; i++) if (typeof v.email[i] !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email[i]) || v.email[i].length > 320) return 'invalid_setting:notify.email[' + i + ']';
+        }
+        if ('daily_summary' in v && !(v.daily_summary === null || (typeof v.daily_summary === 'string' && HHMM.test(v.daily_summary)))) return 'invalid_setting:notify.daily_summary';
+        if ((Array.isArray(v.sms) ? v.sms.length : 0) + (Array.isArray(v.email) ? v.email.length : 0) === 0) return 'invalid_setting:notify';
       }
+      if (k === 'after_hours') {
+        if (!isObj(v) || Object.keys(v).some(x => x !== 'mode')) return 'invalid_setting:after_hours';
+        if (['book_next_day', 'message_only', 'emergency_dial'].indexOf(v.mode) === -1) return 'invalid_setting:after_hours.mode';
+      }
+      if (k === 'on_call_number' && !(v === null || US_E164(v))) return 'invalid_setting:on_call_number';
     }
     return null;
   }
