@@ -1,0 +1,17 @@
+description: HELP answers, STOP opts out; afterwards nothing goes out - not a Claude reply, not a text-back after a missed call.
+kind: flow
+channel: sms
+steps:
+  - sms: "HELP"
+    expect: {reply_contains: ["Reply STOP"]}
+  - sms: "STOP"
+    expect: {reply_contains: ["unsubscribed"]}
+  - sms: "Actually my AC is broken"
+    expect: {reply_empty: true}
+  - call: {}
+  - hangup: {duration_s: 5}
+  - jobs: true
+    advance_minutes: 5
+  - sms: "yes"
+    expect: {reply_contains: ["resubscribed"]}
+expect: {opted_out: false, sms_sent: 0, claude_calls_max: 0, events: {sms.textback: 1}}

@@ -1,0 +1,1 @@
+{"kind": "calendar#events", "etag": "\"p32g9nb5bt6fva0g\"", "summary": "owner@example.com", "updated": "2026-10-11T15:00:00.000Z", "timeZone": "America/Chicago", "accessRole": "owner", "defaultReminders": [{"method": "popup", "minutes": 30}], "items": []}

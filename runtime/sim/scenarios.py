@@ -52,15 +52,21 @@ class Outcome:
     transcript: list[tuple[str, str]] = field(default_factory=list)
     claude_calls: int = 0
     outcome: str | None = None
+    notes: list[str] = field(default_factory=list)
+    kind: str = "engine"
+    channel: str = "sms"
 
     @property
     def ok(self) -> bool:
         return not self.failures
 
 
-def run(path: Path, mode: str = "replay", source: str = "mock", data_dir: Path | None = None) -> Outcome:
+def run(path: Path, mode: str = "replay", source: str = "mock", data_dir: Path | None = None,
+        voice_modes: list[str] | None = None) -> Outcome:
     sc = load(path)
-    out = Outcome(sc["name"])
+    if sc.get("kind") == "flow":
+        return _run_flow(sc, mode, source, data_dir, voice_modes)
+    out = Outcome(sc["name"], channel=sc.get("channel", "sms"))
     data_dir = Path(data_dir or tempfile.mkdtemp(prefix="ailab-scn-"))
     settings = harness.sim_settings(data_dir, BRAIN_MODE="mock")
     store = JsonStore(data_dir)
@@ -104,6 +110,24 @@ def run(path: Path, mode: str = "replay", source: str = "mock", data_dir: Path |
     out.outcome = c.outcome if c else None
     _check_final(out, sc.get("expect") or {}, replies, all_actions, store, tenant, contact, engine)
     return out
+
+
+def _run_flow(sc: dict, mode: str, source: str, data_dir: Path | None, voice_modes: list[str] | None) -> Outcome:
+    from .flows import modes_for, run_flow
+    total = Outcome(sc["name"], kind="flow", channel=sc.get("channel", "sms"))
+    for vm in modes_for(sc):
+        if voice_modes and vm != "-" and vm not in voice_modes:
+            continue
+        one = Outcome(sc["name"])
+        sub = Path(data_dir) / vm if data_dir else None
+        run_flow(sc, one, mode=mode, source=source, voice_mode=vm, data_dir=sub)
+        tag = f"[{vm}] " if vm != "-" else ""
+        total.failures += [tag + x for x in one.failures]
+        total.notes += [tag + x for x in one.notes]
+        total.transcript += one.transcript if not total.transcript else []
+        total.claude_calls = max(total.claude_calls, one.claude_calls)
+        total.outcome = one.outcome
+    return total
 
 
 def _has(text: str, needle: str) -> bool:

@@ -1,0 +1,33 @@
+{
+ "d65849c466c9e6d38dc29464": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:03 AM. The business is open now. The customer's phone number is already known. Before this, we sent the customer: \"Hi, this is Cool Breeze HVAC. Sorry we missed your call! What can we help with? Reply STOP to opt out.\"",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, my AC is blowing warm air",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 756,
+    "output_tokens": 30
+   }
+  }
+ }
+}

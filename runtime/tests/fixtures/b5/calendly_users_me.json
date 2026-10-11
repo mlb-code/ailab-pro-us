@@ -1,0 +1,1 @@
+{"resource": {"uri": "https://api.calendly.com/users/FAKEUSER0001", "name": "Dani Owner", "slug": "dani-owner", "email": "owner@example.com", "scheduling_url": "https://calendly.com/dani-owner", "timezone": "America/Chicago", "current_organization": "https://api.calendly.com/organizations/FAKEORG0001", "resource_type": "User"}}

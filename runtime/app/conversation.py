@@ -4,15 +4,17 @@ Channel-agnostic: the voice flow (B3) and SMS flow (B4) wrap `Engine.handle()` i
 persist `Convo.transcript` / outcome into `calls` / `sms_messages`. Owner alerts are returned
 as `actions` for the notifier (B6) to deliver; nothing here sends anything.
 
-Rate-limit state, spend and monthly usage are persisted through `StateStore` (table
-`runtime_state`; in-memory fallback only in sim). Conversation histories stay in memory per
-worker until B3/B4 persist transcripts. All row access goes through `store.for_tenant()`.
+Rate-limit state, spend, monthly usage and every conversation (Claude history, offered slots,
+flags, transcript) are persisted through `StateStore` (table `runtime_state`, key
+`convo:<tenant>:<channel>:<convo_id>`; in-memory fallback only in sim), so a restart or another
+worker continues the same conversation. The voice/SMS layers also write transcripts and outcomes
+to `calls` / `sms_messages`. All row access goes through `store.for_tenant()`.
 """
 from __future__ import annotations
 
 import hashlib
 import logging
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -57,10 +59,24 @@ class Convo:
     alerted: set[str] = field(default_factory=set)
     cost_usd: float = 0.0
     claude_calls: int = 0
+    prior: str = ""          # what we sent before the customer wrote (e.g. the missed-call text-back)
+    meta: dict[str, Any] = field(default_factory=dict)  # channel data: call row id, turn timings, flags
 
     def set_outcome(self, outcome: str) -> None:
         if OUTCOME_RANK.get(outcome, 0) > OUTCOME_RANK.get(self.outcome or "", 0):
             self.outcome = outcome
+
+    def to_dict(self) -> dict[str, Any]:
+        d = asdict(self)
+        d["alerted"] = sorted(self.alerted)
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "Convo":
+        names = {f.name for f in fields(cls)}
+        c = cls(**{k: v for k, v in d.items() if k in names})
+        c.alerted = set(c.alerted or ())
+        return c
 
 
 @dataclass
@@ -73,6 +89,10 @@ class TurnResult:
     claude_calls: int = 0
     cost_usd: float = 0.0
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    llm_ms: float = 0.0
+
+
+MEMORY_CONVOS = 500  # in-process cache size; the state store is the source of truth
 
 
 class Engine:
@@ -121,11 +141,55 @@ class Engine:
             self.state.incr(f"spend:global:{day}", usd)
 
     # ------------------------------------------------------------------------------------------
+    @staticmethod
+    def _convo_key(tenant_id: str, channel: str, convo_id: str) -> str:
+        return f"convo:{tenant_id}:{channel}:{convo_id}"
+
     def convo(self, tenant: TenantRecord, channel: str, contact: str, convo_id: str) -> Convo:
+        """The conversation, from the state store first (survives restarts, shared by workers)."""
         key = (tenant.id, channel, convo_id)
-        if key not in self.convos:
+        raw = self.state.get(self._convo_key(tenant.id, channel, convo_id))
+        if raw:
+            self.convos[key] = Convo.from_dict(raw)
+        elif key not in self.convos:
             self.convos[key] = Convo(tenant.id, channel, contact, convo_id)
+        if len(self.convos) > MEMORY_CONVOS:
+            self.convos.pop(next(iter(self.convos)))
         return self.convos[key]
+
+    def find_convo(self, tenant: TenantRecord, channel: str, convo_id: str) -> Convo | None:
+        raw = self.state.get(self._convo_key(tenant.id, channel, convo_id))
+        return Convo.from_dict(raw) if raw else self.convos.get((tenant.id, channel, convo_id))
+
+    def save_convo(self, c: Convo) -> None:
+        self.convos[(c.tenant_id, c.channel, c.convo_id)] = c
+        self.state.put(self._convo_key(c.tenant_id, c.channel, c.convo_id), c.to_dict(), c.tenant_id)
+
+    def close(self, tenant: TenantRecord, c: Convo, outcome: str, alert_kind: str | None, summary: str,
+              force: bool = False) -> list[dict[str, Any]]:
+        """End a conversation from outside a customer turn (hang-up, caps, unanswered dial)."""
+        actions: list[dict[str, Any]] = []
+        if force:
+            c.outcome = outcome
+        else:
+            c.set_outcome(outcome)
+        if alert_kind:
+            if outcome == "message" and not c.message and not c.booking:
+                c.message = {"summary": summary[:300], "urgency": c.urgency}
+            self._alert(c, actions, alert_kind, summary)
+        c.ended = True
+        self.save_convo(c)
+        return actions
+
+    def note_outbound(self, tenant: TenantRecord, channel: str, contact: str, convo_id: str, text: str,
+                      prior: str = "") -> Convo:
+        """Record a message we sent proactively (text-back, reminder) in the thread."""
+        c = self.convo(tenant, channel, contact, convo_id)
+        c.transcript.append({"who": "assistant", "text": text})
+        if prior:
+            c.prior = prior
+        self.save_convo(c)
+        return c
 
     @staticmethod
     def local_day(tenant: TenantRecord, now: datetime) -> str:
@@ -171,6 +235,7 @@ class Engine:
                     self._usage(tenant, ts, "sms", guard.sms_segments(reply), now, actions)
             if notes:
                 ts.log_event("guard", {"convo_id": convo_id, "channel": channel, "rules": notes})
+            self.save_convo(c)
             return TurnResult(reply=reply, end=c.ended, outcome=c.outcome, actions=actions, guard=notes, **kw)
 
         def gate() -> TurnResult | None:
@@ -196,6 +261,8 @@ class Engine:
             return done("", end=True, outcome="spam")
 
         kw = guard.sms_keyword(text) if sms else None
+        if kw == "start" and not ts.is_opted_out(contact):
+            kw = None  # "yes" / "start" from a subscribed number is just a normal message
         if kw == "stop":  # the only reply that is never rate limited
             notes.append("stop")
             was_out = ts.is_opted_out(contact)
@@ -298,7 +365,8 @@ class Engine:
         c.claude_calls += result.claude_calls
         c.cost_usd += result.cost_usd
         self.add_spend(tenant, day, result.cost_usd)
-        extra = dict(claude_calls=result.claude_calls, cost_usd=result.cost_usd, tool_calls=result.tool_calls)
+        extra = dict(claude_calls=result.claude_calls, cost_usd=result.cost_usd, tool_calls=result.tool_calls,
+                     llm_ms=result.llm_ms)
 
         if result.error:
             notes.append(f"fallback:{result.error}")
@@ -327,8 +395,9 @@ class Engine:
             "emergency_dial": "The business is closed now: take a message; urgent issues are escalated automatically.",
         }[policy]
         urgent = " The customer reported an urgent issue; the owner was alerted." if c.urgency == "urgent" else ""
+        prior = f" Before this, we sent the customer: \"{c.prior}\"" if c.prior else ""
         ctx = (f"[context] Channel: {channel}. Local time: {local:%A %b} {local.day}, {local:%I:%M %p}. "
-               f"{hours}{urgent} The customer's phone number is already known.")
+               f"{hours}{urgent} The customer's phone number is already known.{prior}")
         return [{"type": "text", "text": ctx}, {"type": "text", "text": "Customer: " + guard.as_data(text)}]
 
     def _execute(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
@@ -370,12 +439,13 @@ class Engine:
             res = self.calendar.book(tenant.id, cfg, now, slot_id, details)
             if not res.get("ok"):
                 return {"ok": False, "reason": res.get("reason", "booking_failed")}
-            c.booking = {**details, "slot_id": slot_id, "start": res["start"], "end": res["end"]}
+            c.booking = {**details, "slot_id": slot_id, "start": res["start"], "end": res["end"],
+                         "label": res["label"], "event_id": res["event_id"]}
             ts.insert("bookings", {
-                "call_id": None, "customer_name": details["name"], "contact_e164": c.contact,
+                "call_id": c.meta.get("call_row_id"), "customer_name": details["name"], "contact_e164": c.contact,
                 "address": details["address"], "job_type": details["job_type"], "urgency": details["urgency"],
                 "start_at": res["start"], "end_at": res["end"], "provider_event_id": res["event_id"],
-                "status": "booked"})
+                "status": "confirmed"})
             c.set_outcome("booked")
             self._alert(c, actions, "booking", f"New booking: {details['job_type']} {res['label']}")
             return {"ok": True, "label": res["label"]}

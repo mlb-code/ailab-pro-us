@@ -91,7 +91,8 @@ class AfterHours(_Strict):
 
 
 class Booking(_Strict):
-    provider: Literal["google", "calendly", "fake"] = "google"
+    provider: Literal["google", "calendly", "fake"] = Field(
+        default="calendly", description="Calendly is the default integration (TASKS Addendum 2); Google second")
     calendar_id: str = "primary"
     windows: list[tuple[HHMM, HHMM]] = Field(min_length=1, max_length=8)
     lead_time_hours: float = Field(default=2, ge=0, le=168)

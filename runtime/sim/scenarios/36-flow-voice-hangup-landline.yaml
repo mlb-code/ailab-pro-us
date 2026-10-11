@@ -1,0 +1,8 @@
+description: Abandoned call from a number Lookup reports as a landline -> no text-back.
+kind: flow
+channel: voice
+setup: {landline: true}
+steps:
+  - call: {}
+  - hangup: {duration_s: 4}
+expect: {outcome: abandoned, sms_sent: 0, events: {sms.textback: 1}}

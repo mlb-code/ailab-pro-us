@@ -1,0 +1,10 @@
+description: 50 calls from one number in one minute asking "are you a robot" -> at most 3 answered, 1 capped sentence + 1 owner alert, the rest rejected busy; no Claude calls.
+kind: flow
+channel: voice
+steps:
+  - burst_calls: {count: 50, within_s: 60, say: "are you a robot?"}
+expect:
+  burst: {answered_max: 3, capped: 1, rejected_min: 46}
+  alerts: [call_cap]
+  claude_calls_max: 0
+  events: {voice.call_cap: 1}

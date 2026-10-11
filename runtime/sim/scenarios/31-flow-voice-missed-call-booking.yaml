@@ -1,0 +1,26 @@
+description: Missed call forwarded to the AI line -> voice answer -> booking; confirmation SMS; call row booked; turn latency p95 < 150 ms (server, Claude mocked).
+kind: flow
+channel: voice
+steps:
+  - call: {}
+    expect: {reply_contains: ["virtual assistant", "transcribed"]}
+  - say: "My furnace stopped working, I'm in 77019"
+    advance_seconds: 20
+    expect: {reply_contains: ["Which works better"]}
+  - say: "The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019"
+    advance_seconds: 25
+    expect: {reply_contains: ["all set"], end: false}
+  - say: "Thanks"
+    advance_seconds: 10
+    expect: {end: true}
+  - hangup: {}
+    advance_seconds: 5
+expect:
+  outcome: booked
+  bookings: 1
+  sms_sent: 1
+  sms_sent_contains: ["you're booked"]
+  alerts: [booking]
+  events: {voice.latency: 1}
+  latency_p95_ms_max: 150
+  usage_voice_min: 1

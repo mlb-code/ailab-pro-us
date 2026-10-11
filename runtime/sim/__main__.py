@@ -5,7 +5,8 @@
     python -m sim validate FILE...               validate tenant JSON files, readable errors
     python -m sim call --tenant demo-hvac --say "my ac is broken"
     python -m sim sms  --tenant demo-hvac --text "can someone come tomorrow?"
-    python -m sim run [--all | NAME...] [--mode replay|mock]   run scenarios (default: replay)
+    python -m sim run [--all | NAME...] [--mode replay|mock] [--channel voice|sms] [--voice-mode stream|gather]
+                                                 run scenarios (default: replay; voice flows in both modes)
     python -m sim record --all [--source mock|live]            refresh sim/replays/ (live spends API credit)
 """
 from __future__ import annotations
@@ -60,17 +61,21 @@ def _print_turn(who: str, text: str) -> None:
 
 
 def cmd_call(args) -> int:
-    sim = harness.build()
-    tenant = sim.tenant(args.tenant)
-    call_sid, resp = sim.twilio.start_call(tenant.twilio_number, args.caller)
-    _print_turn("assistant", parse_twiml(resp.text).text)
+    sim = harness.build(VOICE_MODE=args.voice_mode)
+    call = sim.call(args.tenant, args.caller)
+    first = call.start()
+    _print_turn("assistant", first.text + f"   [{call.mode}]")
     for line in args.say:
+        if call.ended:
+            break
         _print_turn("caller", line)
-        resp = sim.twilio.say(tenant.twilio_number, args.caller, call_sid, line)
-        if resp.status_code == 404:
-            print("(voice turn handler arrives in task B3; brain conversation via `python -m sim sms`)")
-            return 0
-        _print_turn("assistant", parse_twiml(resp.text).text)
+        turn = call.say(line)
+        _print_turn("assistant", turn.text + (f"   [dial {turn.dial}]" if turn.dial else "") +
+                    (f"   ({turn.latency_ms:.0f} ms)" if turn.latency_ms else ""))
+    if not call.hung_up:
+        call.hangup()
+    for m in sim.twilio_client.outbox:
+        _print_turn("sms out", m["body"])
     return 0
 
 
@@ -90,6 +95,8 @@ def _pick(args):
     paths = scenarios.all_scenarios()
     if not args.all and args.names:
         paths = [p for p in paths if any(n in p.stem for n in args.names)]
+    if getattr(args, "channel", None):
+        paths = [p for p in paths if scenarios.load(p).get("channel", "sms") == args.channel]
     return paths
 
 
@@ -97,12 +104,15 @@ def cmd_run(args) -> int:
     from . import scenarios
     failed = 0
     paths = _pick(args)
+    vms = [args.voice_mode] if args.voice_mode else None
     for p in paths:
-        res = scenarios.run(p, mode=args.mode)
+        res = scenarios.run(p, mode=args.mode, voice_modes=vms)
         failed += not res.ok
         print(f"{'✅' if res.ok else '❌'} {res.name:34} outcome={res.outcome} claude_calls={res.claude_calls}")
         for f in res.failures:
             print(f"     - {f}")
+        for n in res.notes:
+            print(f"     · {n}")
         if args.verbose:
             for who, text in res.transcript:
                 _print_turn(who, text)
@@ -144,7 +154,8 @@ def cmd_selftest(_args) -> int:
 
     _, resp = sim.twilio.start_call(tenant.twilio_number, harness.CALLER)
     tw = parse_twiml(resp.text)
-    check(resp.status_code == 200 and tw.gather and "virtual assistant" in tw.text, "signed /voice/incoming answers with greeting")
+    check(resp.status_code == 200 and (tw.relay_url or tw.gather) and "virtual assistant" in tw.text,
+          f"signed /voice/incoming answers with greeting ({'stream' if tw.relay_url else 'gather'})")
     check("transcribed" in tw.text, "greeting discloses transcription")
     bad = sim.twilio.post("/voice/incoming", sim.twilio.call_params(tenant.twilio_number, harness.CALLER, "CA1"), signed=False)
     check(bad.status_code == 403, "unsigned webhook rejected (403)")
@@ -191,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
         if name == "run":
             r.add_argument("--mode", choices=["replay", "mock"], default="replay")
             r.add_argument("-v", "--verbose", action="store_true")
+            r.add_argument("--channel", choices=["voice", "sms"])
+            r.add_argument("--voice-mode", choices=["stream", "gather"])
         else:
             r.add_argument("--source", choices=["mock", "live"], default="mock")
             r.add_argument("--yes", action="store_true")
@@ -203,6 +216,8 @@ def main(argv: list[str] | None = None) -> int:
         c.add_argument("--tenant", default="demo-hvac")
         c.add_argument("--from", dest="caller", default=harness.CALLER)
         c.add_argument(flag, dest=flag.strip("-"), action="append", required=True, help="repeat for more turns")
+        if name == "call":
+            c.add_argument("--voice-mode", choices=["stream", "gather"], default="stream")
         c.set_defaults(fn=fn)
     args = p.parse_args(argv)
     return args.fn(args)

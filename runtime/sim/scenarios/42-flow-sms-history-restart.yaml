@@ -1,0 +1,14 @@
+description: Conversation history survives a runtime restart - offered slots and Claude's history are reloaded, the booking completes.
+kind: flow
+channel: sms
+steps:
+  - sms: "Hi, my AC is blowing warm air"
+  - sms: "77005"
+    expect: {reply_contains: ["Which works better"]}
+  - restart: true
+  - sms: "The first one works"
+    expect: {reply_contains: ["name"]}
+  - sms: "My name is Dana Miller"
+  - sms: "2100 Rice Blvd, Houston 77005"
+    expect: {reply_contains: ["all set"]}
+expect: {outcome: booked, bookings: 1}

@@ -1,0 +1,14 @@
+description: Caller hangs up during the greeting -> abandoned -> SMS text-back within the minute; their reply continues the same thread with Claude knowing about the text-back.
+kind: flow
+channel: voice
+steps:
+  - call: {}
+  - hangup: {duration_s: 6}
+    advance_seconds: 6
+  - sms: "Hi, my AC is blowing warm air"
+    advance_minutes: 3
+    expect: {reply_contains: ["ZIP"]}
+expect:
+  sms_sent: 1
+  sms_sent_contains: ["Sorry we missed your call", "Reply STOP"]
+  events: {sms.textback: 1}

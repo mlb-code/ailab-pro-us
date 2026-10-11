@@ -1,0 +1,15 @@
+description: Abandoned call at 11:10 pm -> text-back waits for 8:00 am tenant time (quiet hours 21-08), then goes out once.
+kind: flow
+channel: voice
+modes: [gather]
+now: "2026-10-12T23:10:00-05:00"
+steps:
+  - call: {}
+  - hangup: {duration_s: 5}
+  - jobs: true
+    advance_minutes: 30
+  - jobs: true
+    advance_minutes: 500
+  - jobs: true
+    advance_minutes: 10
+expect: {outcome: abandoned, sms_sent: 1, sms_sent_contains: ["Sorry we missed your call"]}

@@ -1,0 +1,12 @@
+description: Normal call turns into a gas smell -> the 911 sentence comes first, urgent owner alert, the call continues and ends as emergency.
+kind: flow
+channel: voice
+steps:
+  - call: {}
+  - say: "My AC is making a weird noise"
+    expect: {reply_contains: ["technician"]}
+  - say: "Wait, I smell gas in the kitchen"
+    expect: {reply_starts_with: "If anyone is in danger, please hang up and call 911 now.", end: false}
+  - say: "No, everyone went outside, we're fine"
+  - hangup: {}
+expect: {outcome: emergency, alerts: [urgent], bookings: 0}
