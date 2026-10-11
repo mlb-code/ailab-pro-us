@@ -21,7 +21,8 @@
       "additionalProperties": false,
       "properties": {
         "provider": {
-          "default": "google",
+          "default": "calendly",
+          "description": "Calendly is the default integration (TASKS Addendum 2); Google second",
           "enum": [
             "google",
             "calendly",

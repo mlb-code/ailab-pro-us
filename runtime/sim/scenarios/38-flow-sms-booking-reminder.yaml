@@ -1,0 +1,23 @@
+description: Text conversation -> booking a day ahead -> one reminder 24 h before the visit via the jobs runner.
+kind: flow
+channel: sms
+patch: {config: {booking: {lead_time_hours: 26}}}
+steps:
+  - sms: "Hi, my AC is blowing warm air"
+    expect: {reply_contains: ["ZIP"]}
+  - sms: "77005"
+    expect: {reply_contains: ["Which works better", "Tuesday Oct 13"]}
+  - sms: "The first one works"
+    expect: {reply_contains: ["name"]}
+  - sms: "My name is Dana Miller"
+    expect: {reply_contains: ["address"]}
+  - sms: "2100 Rice Blvd, Houston 77005"
+    expect: {reply_contains: ["all set"]}
+  - jobs: true
+    advance_minutes: 60
+  - jobs: true
+    advance_minutes: 125
+  - jobs: true
+    advance_minutes: 60
+expect: {outcome: booked, bookings: 1, sms_sent: 1, sms_sent_contains: ["reminder of your visit"], alerts: [booking],
+         events: {sms.reminder: 1}}

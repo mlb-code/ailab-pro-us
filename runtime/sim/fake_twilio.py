@@ -36,6 +36,11 @@ class Twiml:
     hangup: bool = False
     messages: list[str] = field(default_factory=list)
     redirect: str | None = None
+    dial_action: str | None = None
+    rejected: bool = False
+    relay_url: str | None = None
+    relay: dict[str, str] = field(default_factory=dict)
+    connect_action: str | None = None
 
     @property
     def text(self) -> str:
@@ -55,6 +60,16 @@ def parse_twiml(xml: str) -> Twiml:
         elif tag == "Dial":
             num = el.find("Number")
             out.dial = (num.text if num is not None else el.text or "").strip()
+            out.dial_action = el.get("action")
+        elif tag == "Reject":
+            out.rejected = True
+        elif tag == "Connect":
+            out.connect_action = el.get("action")
+        elif tag == "ConversationRelay":
+            out.relay = dict(el.attrib)
+            out.relay_url = el.get("url")
+            if el.get("welcomeGreeting"):
+                out.says.append(el.get("welcomeGreeting").strip())
         elif tag == "Hangup":
             out.hangup = True
         elif tag == "Message":
@@ -93,8 +108,30 @@ class FakeTwilio:
         return call_sid, resp
 
     def say(self, to: str, from_: str, call_sid: str, text: str, path: str = "/voice/turn"):
-        params = self.call_params(to, from_, call_sid, SpeechResult=text, Confidence="0.92")
+        extra = {"SpeechResult": text, "Confidence": "0.92"} if text else {}  # silence: no SpeechResult
+        params = self.call_params(to, from_, call_sid, **extra)
         return self.post(path, params)
+
+    def status(self, to: str, from_: str, call_sid: str, status: str = "completed", duration_s: int = 0):
+        return self.post("/voice/status", self.call_params(to, from_, call_sid, CallStatus=status,
+                                                            CallDuration=str(int(duration_s))))
+
+    def dial_result(self, to: str, from_: str, call_sid: str, dial_status: str, path: str = "/voice/dial-result"):
+        return self.post(path, self.call_params(to, from_, call_sid, DialCallStatus=dial_status))
+
+    def relay_end(self, to: str, from_: str, call_sid: str, path: str, handoff: str | None,
+                  session_status: str = "completed", error_code: str = ""):
+        extra = {"SessionStatus": session_status}
+        if handoff is not None:
+            extra["HandoffData"] = handoff
+        if error_code:
+            extra["ErrorCode"] = error_code
+        return self.post(path, self.call_params(to, from_, call_sid, **extra))
+
+    def open_relay(self, ws_url: str):
+        """Open the ConversationRelay WebSocket the way Twilio does: signed handshake, no params."""
+        headers = {"X-Twilio-Signature": self.validator.compute_signature(ws_url, {})}
+        return self.http.websocket_connect(ws_url, headers=headers)
 
     # --- sms ---------------------------------------------------------------
     def sms(self, to: str, from_: str, body: str, num_media: int = 0, message_sid: str | None = None):

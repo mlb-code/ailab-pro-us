@@ -1,0 +1,10 @@
+description: Voice minutes from Twilio's CallDuration push monthly usage past 80% of the included 400 -> one usage_80 alert; the call is still answered normally.
+kind: flow
+channel: voice
+setup: {voice_minutes_used: 315}
+steps:
+  - call: {}
+  - say: "Do you service Trane units?"
+    expect: {reply_contains: ["all major brands"]}
+  - hangup: {duration_s: 361}
+expect: {alerts: [usage_80], no_alerts: [usage_100], usage_voice_min: 322, events: {usage_threshold: 1}}

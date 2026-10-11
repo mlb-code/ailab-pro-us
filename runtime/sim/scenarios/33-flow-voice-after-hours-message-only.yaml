@@ -1,0 +1,11 @@
+description: Closed with after_hours=message_only -> no booking, a message for the team, call ends as message.
+kind: flow
+channel: voice
+now: "2026-10-11T22:30:00-05:00"
+patch: {config: {after_hours: {mode: message_only}}}
+steps:
+  - call: {}
+  - say: "My AC is blowing warm air, zip 77002"
+    expect: {reply_contains: ["passed your message"]}
+  - hangup: {}
+expect: {outcome: message, bookings: 0, alerts: [lead], sms_sent: 0}

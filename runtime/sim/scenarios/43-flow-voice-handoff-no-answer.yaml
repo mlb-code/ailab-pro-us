@@ -1,0 +1,11 @@
+description: Caller asks for a person in business hours -> <Dial> to the owner (20 s) -> no answer -> message + HUMAN NEEDED alert.
+kind: flow
+channel: voice
+steps:
+  - call: {}
+  - say: "Can I talk to a real person please"
+    expect: {dial: "+17135550111"}
+  - dial: no-answer
+    expect: {reply_contains: ["no one could pick up"], end: true}
+  - hangup: {}
+expect: {outcome: message, alerts: [human_needed]}

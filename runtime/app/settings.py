@@ -23,6 +23,7 @@ SIM_TWILIO_AUTH_TOKEN = "sim-auth-token-not-a-secret"
 SIM_CRED_KEY = "c2ltLWNyZWQta2V5LW5vdC1hLXNlY3JldC0zMmJ5dGU="  # base64 of 32 ASCII bytes
 
 BRAIN_MODES = ("mock", "replay", "record", "live")
+VOICE_MODES = ("stream", "gather")
 STORE_BACKENDS = ("json", "supabase")
 
 
@@ -64,6 +65,18 @@ class Settings:
     twilio_protected_prefixes: tuple[str, ...] = ("/voice/", "/sms/")
     global_daily_budget_usd: float = 25.0
     brand_name: str = "Receptionist"
+    # Voice: "stream" = Twilio ConversationRelay over a WebSocket (production default, < 1 s target);
+    # "gather" = turn-based <Gather>/<Say> (simulator fallback, and automatic fallback when a relay
+    # session fails). Silence timeout = voice_silence_s + estimated TTS time (words / voice_tts_wps).
+    voice_mode: str = "stream"
+    voice_silence_s: float = 7.0
+    voice_tts_wps: float = 2.5
+    # Relay socket closed without an `end` from us: wait this long for /voice/relay-end (-> continue with
+    # <Gather>) or the call status callback (-> finalize) before closing the call ourselves.
+    voice_relay_grace_s: float = 20.0
+    twilio_account_sid: str = ""
+    jobs_token: str = field(default="", repr=False)  # accepted by /jobs/tick as RUNTIME_ADMIN_TOKEN alias
+    jobs_loop_s: float = 0.0  # optional; the cron is POST /jobs/tick. > 0: also run SMS jobs in-process
 
     @property
     def is_sim(self) -> bool:
@@ -76,6 +89,8 @@ class Settings:
             raise SettingsError(f"STORE_BACKEND must be one of {STORE_BACKENDS}, got {self.store_backend!r}")
         if self.brain_mode not in BRAIN_MODES:
             raise SettingsError(f"BRAIN_MODE must be one of {BRAIN_MODES}, got {self.brain_mode!r}")
+        if self.voice_mode not in VOICE_MODES:
+            raise SettingsError(f"VOICE_MODE must be one of {VOICE_MODES}, got {self.voice_mode!r}")
         if self.store_backend == "supabase" and not (self.supabase_url and self.supabase_service_key):
             raise SettingsError("STORE_BACKEND=supabase needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY")
         return self
@@ -90,6 +105,9 @@ class Settings:
             "twilio_auth_configured": bool(self.twilio_auth_token),
             "cred_key_configured": bool(self.cred_key),
             "public_base_url": self.public_base_url or None,
+            "voice_mode": self.voice_mode,
+            "twilio_rest_configured": bool(self.twilio_account_sid),
+            "jobs_token_configured": bool(self.jobs_token),
         }
 
 
@@ -112,6 +130,13 @@ def load(env: dict[str, str] | None = None) -> Settings:
         model=env.get("CLAUDE_MODEL") or _brand_model(),
         brand_name=str(brand().get("name") or "Receptionist"),
         global_daily_budget_usd=float(env.get("GLOBAL_DAILY_BUDGET_USD", "25")),
+        voice_mode=env.get("VOICE_MODE", "stream").strip().lower(),
+        voice_silence_s=float(env.get("VOICE_SILENCE_SECONDS", "7")),
+        voice_tts_wps=float(env.get("VOICE_TTS_WPS", "2.5")),
+        voice_relay_grace_s=float(env.get("VOICE_RELAY_GRACE_SECONDS", "20")),
+        twilio_account_sid=env.get("TWILIO_ACCOUNT_SID", ""),
+        jobs_token=env.get("JOBS_TOKEN", ""),
+        jobs_loop_s=float(env.get("JOBS_LOOP_SECONDS", "0")),
     )
     if env.get("REPLAY_DIR"):
         kwargs["replay_dir"] = Path(env["REPLAY_DIR"])

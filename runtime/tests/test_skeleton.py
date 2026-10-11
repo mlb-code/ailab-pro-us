@@ -84,12 +84,23 @@ def test_lazy_app_builds_on_first_request(monkeypatch, tmp_path):
 # --- twilio signature ------------------------------------------------------------------
 
 def test_signed_voice_incoming_greets(sim):
+    """Production default = streaming (ConversationRelay); greeting + disclosure in welcomeGreeting."""
+    t = sim.tenant("demo-hvac")
+    _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
+    tw = parse_twiml(r.text)
+    assert r.status_code == 200 and tw.relay_url.startswith("ws://testserver/voice/relay?t=")
+    assert tw.connect_action == "/voice/relay-end"
+    assert "Cool Breeze HVAC" in tw.text and "virtual assistant" in tw.text and "transcribed" in tw.text
+    assert sim.store.select("events", type="voice.incoming")
+
+
+def test_signed_voice_incoming_greets_gather_mode(tmp_path):
+    sim = harness.build(tmp_path, VOICE_MODE="gather")
     t = sim.tenant("demo-hvac")
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
     tw = parse_twiml(r.text)
     assert r.status_code == 200 and tw.gather and tw.gather_action == "/voice/turn"
-    assert "Cool Breeze HVAC" in tw.text and "virtual assistant" in tw.text and "transcribed" in tw.text
-    assert sim.store.select("events", type="voice.incoming")
+    assert "Cool Breeze HVAC" in tw.text and "transcribed" in tw.text
 
 
 def test_custom_greeting(sim, demo_raw):
@@ -468,3 +479,10 @@ def test_sim_call_and_sms_cli(capsys):
     assert sim_main(["sms", "--tenant", "demo-hvac", "--text", "hello"]) == 0
     out = capsys.readouterr().out
     assert "virtual assistant" in out and "customer: hello" in out
+
+
+def test_booking_provider_defaults_to_calendly(demo_raw):
+    cfg = copy.deepcopy(demo_raw["config"])
+    del cfg["booking"]["provider"]
+    assert validate_config(cfg).booking.provider == "calendly"
+    assert json_schema()["$defs"]["Booking"]["properties"]["provider"]["default"] == "calendly"

@@ -8,6 +8,7 @@ behave well inside them.
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any, Callable
@@ -121,6 +122,7 @@ class BrainResult:
     cost_usd: float = 0.0
     claude_calls: int = 0
     error: str = ""
+    llm_ms: float = 0.0  # wall time spent inside Claude calls (latency budget: server time = total - llm_ms)
 
 
 ToolExecutor = Callable[[str, dict[str, Any]], dict[str, Any]]
@@ -137,11 +139,14 @@ def run_turn(llm: LLMClient, cfg: TenantConfig, channel: str, history: list[dict
     messages = [*history, {"role": "user", "content": user_content}]
     out = BrainResult()
     for _ in range(MAX_ITERATIONS):
+        t0 = time.perf_counter()
         try:
             resp = llm.create(system, messages, tool_defs, EFFORT[channel])
         except (LLMError, LookupError) as exc:
             out.error = f"llm: {type(exc).__name__}"
             return out
+        finally:
+            out.llm_ms += (time.perf_counter() - t0) * 1000
         out.claude_calls += 1
         out.cost_usd += resp.get("cost_usd", 0.0)
         if resp.get("stop_reason") == "refusal":

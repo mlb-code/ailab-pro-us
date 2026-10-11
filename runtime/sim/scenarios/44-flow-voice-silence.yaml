@@ -1,0 +1,11 @@
+description: Caller never speaks -> reprompt, then the call ends as spam with no text-back (SPEC 6.5 rule 8).
+kind: flow
+channel: voice
+steps:
+  - call: {}
+  - silence: true
+    expect: {reply_contains: ["didn't catch"]}
+  - silence: true
+    expect: {end: true}
+  - hangup: {}
+expect: {outcome: spam, sms_sent: 0, claude_calls_max: 0, no_alerts: [lead]}

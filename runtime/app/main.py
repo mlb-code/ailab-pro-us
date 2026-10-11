@@ -1,61 +1,81 @@
 """FastAPI entry point.
 
 `app` (module level) is what Railway runs: `uvicorn app.main:app`. Tests and the simulator
-call `create_app(settings, store)` to inject their own settings and store.
+call `create_app(settings, store, ...)` to inject settings, store, Claude client, calendar,
+Twilio REST client and clock.
 
-B1 ships the skeleton: /health, Twilio signature middleware, tenant resolution by the `To`
-number, and minimal /voice/incoming and /sms/incoming handlers. The full voice flow (B3) and
-SMS flow (B4) replace those two handlers; tenant resolution stays here.
+Routes: /health, voice (`app.voice`, `app.voice_stream`), SMS (`app.sms`).
+Every /voice/* and /sms/* HTTP webhook is Twilio-signature checked by the middleware; the relay
+WebSocket checks the signature itself (see `app.voice_stream`).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Any, Callable
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, Response
-from twilio.twiml.messaging_response import MessagingResponse
-from twilio.twiml.voice_response import VoiceResponse
+from fastapi import FastAPI
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
 
 from . import __version__
 from . import settings as settings_mod
 from . import store as store_mod
-from .tenants import TenantConfigError, TenantRecord
+from ._stubs_b56 import TenantCalendars
+from .conversation import Engine
+from .llm import LLMClient
+from .runtime_ctx import Runtime, utcnow
+from .sms import router as sms_router
+from .sms_outbound import Outbound, rest_client
 from .twilio_auth import TwilioSignatureMiddleware
+from .voice import VoiceFlow, greeting
+from .voice import router as voice_router
+from .voice_stream import router as stream_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("rt.main")
 
-TWIML = "application/xml"
-NOT_IN_SERVICE = "Sorry, this number is not in service. Goodbye."
-UNAVAILABLE = "Sorry, we can't take your call right now. Please call back later. Goodbye."
+default_greeting = greeting  # backwards-compatible name
 
 
-def default_greeting(tenant: TenantRecord) -> str:
-    cfg = tenant.config
-    return cfg.voice.greeting or (
-        f"Thanks for calling {cfg.business.name}, this is the virtual assistant. "
-        "Sorry we missed you, I can get you booked. This call may be transcribed. "
-        "What can we help with?")
-
-
-def create_app(settings: settings_mod.Settings | None = None, store: store_mod.Store | None = None) -> FastAPI:
+def create_app(settings: settings_mod.Settings | None = None, store: store_mod.Store | None = None, *,
+               llm: LLMClient | None = None, calendar: Any = None, twilio_client: Any = None,
+               clock: Callable[[], datetime] | None = None) -> FastAPI:
     settings = settings or settings_mod.load()
     store = store or store_mod.from_settings(settings)
-    app = FastAPI(title=f"{settings.brand_name} runtime", version=__version__, docs_url=None, redoc_url=None)
+    engine = Engine(store, llm or LLMClient(settings, namespace="runtime"), calendar or TenantCalendars(settings),
+                    settings)
+    outbound = Outbound(settings, store, twilio_client if twilio_client is not None else rest_client(settings))
+    rt = Runtime(settings=settings, store=store, engine=engine, outbound=outbound, clock=clock or utcnow)
+    outbound.rt = rt
+    rt.flow = VoiceFlow(rt)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        task = None
+        if settings.jobs_loop_s > 0:
+            async def loop() -> None:
+                while True:
+                    await asyncio.sleep(settings.jobs_loop_s)
+                    try:
+                        await run_in_threadpool(outbound.run_due, rt.now())
+                    except Exception:  # noqa: BLE001 - the loop must survive a bad tick
+                        log.exception("jobs tick failed")
+            task = asyncio.create_task(loop())
+        yield
+        if task:
+            task.cancel()
+        await run_in_threadpool(rt.drain, 5.0)
+
+    app = FastAPI(title=f"{settings.brand_name} runtime", version=__version__, docs_url=None, redoc_url=None,
+                  lifespan=lifespan)
     app.state.settings = settings
     app.state.store = store
-    app.state.started_at = datetime.now(timezone.utc)
+    app.state.rt = rt
+    app.state.started_at = utcnow()
     app.add_middleware(TwilioSignatureMiddleware, settings=settings)
-
-    def resolve_tenant(to_number: str) -> tuple[TenantRecord | None, str]:
-        """(tenant, problem). problem in {'', 'unknown', 'invalid_config'}."""
-        try:
-            tenant = store.tenant_by_number(to_number)
-        except TenantConfigError as exc:
-            log.error("tenant config invalid for number ending %s: %s", to_number[-4:], exc.problems[:3])
-            return None, "invalid_config"
-        return (tenant, "") if tenant else (None, "unknown")
 
     @app.get("/health")
     def health() -> JSONResponse:
@@ -67,37 +87,15 @@ def create_app(settings: settings_mod.Settings | None = None, store: store_mod.S
             "ok": ok_store,
             "version": __version__,
             "store_ok": ok_store,
-            "uptime_s": int((datetime.now(timezone.utc) - app.state.started_at).total_seconds()),
+            "uptime_s": int((utcnow() - app.state.started_at).total_seconds()),
             **settings.public(),
         }
         return JSONResponse(body, status_code=200 if ok_store else 503)
 
-    @app.post("/voice/incoming")
-    async def voice_incoming(request: Request) -> Response:
-        form = await request.form()
-        tenant, problem = resolve_tenant(str(form.get("To", "")))
-        vr = VoiceResponse()
-        if problem == "unknown":
-            vr.say(NOT_IN_SERVICE)
-            vr.hangup()
-        elif problem or not tenant.active:
-            vr.say(UNAVAILABLE)
-            vr.hangup()
-        else:
-            store.log_event("runtime", "tenant", tenant.id, "voice.incoming", {"call_sid": form.get("CallSid", "")})
-            gather = vr.gather(input="speech", action="/voice/turn", method="POST",
-                               speech_model="phone_call", speech_timeout="auto")
-            gather.say(default_greeting(tenant), voice=tenant.config.voice.tts_voice)
-        return Response(str(vr), media_type=TWIML)
-
-    @app.post("/sms/incoming")
-    async def sms_incoming(request: Request) -> Response:
-        form = await request.form()
-        tenant, problem = resolve_tenant(str(form.get("To", "")))
-        if tenant and not problem:
-            store.log_event("runtime", "tenant", tenant.id, "sms.incoming", {"message_sid": form.get("MessageSid", "")})
-        return Response(str(MessagingResponse()), media_type=TWIML)
-
+    app.include_router(voice_router)
+    app.include_router(stream_router)
+    app.include_router(sms_router)
+    app.include_router(__import__("app.notify.routes", fromlist=["router"]).router)  # B5/B6: oauth, jobs/tick, reports, zapier, health/deep
     return app
 
 
