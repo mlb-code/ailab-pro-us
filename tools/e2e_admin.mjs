@@ -281,7 +281,8 @@ async function main() {
     ok((await db(page)).outbox.filter(m => m.template === 'request_update').length >= 2, 'request_update e-mail stubs');
     // ------------------------------------------------------------ tenants, events, settings
     await openTab(page, 'tenants');
-    ok(/B7/.test(await page.$eval('#panel', p => p.innerText)), 'tenants tab placeholder (B7)');
+    await page.waitForSelector('#tuBody', { timeout: 3000 }).catch(() => {});
+    ok(await page.$('#tuBody') !== null && await page.$('#alist') !== null, 'tenants tab (B7): usage table + tenant list');
     await openTab(page, 'events');
     ok(await page.$$eval('#evList li', l => l.length) > 10, 'events log lists actions');
     ok(!/: email_requested|: admin_edit|: status_changed/.test(await page.$eval('#evList', l => l.innerText)), 'every event type shown in Hebrew (incl. email_requested)');

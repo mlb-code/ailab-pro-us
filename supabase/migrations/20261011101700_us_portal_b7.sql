@@ -35,9 +35,22 @@ drop trigger if exists requests_cancel_log on public.requests;
 create trigger requests_cancel_log before delete on public.requests
   for each row execute function private.request_cancel_log();
 
+-- a request the client paused cannot be made active (resume first); fires for everyone, admin included
+create or replace function private.requests_paused_guard() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.status = 'active' and new.paused and (tg_op = 'INSERT' or old.status is distinct from 'active') then
+    raise exception 'request_paused' using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+drop trigger if exists requests_paused_guard on public.requests;
+create trigger requests_paused_guard before insert or update on public.requests
+  for each row execute function private.requests_paused_guard();
+
 -- ================================================================ 2. onboarding checklist seeding
 -- Items per product: receptionist (RCP/BNDL) = exactly the 7 items of SPEC 6.8, in the order of the onboarding videos
--- (videos/*/script.md); the go-live request lives in the last item (data.go_live_requested_at). WEB-only: 3 items.
+-- (titles = videos/01-welcome/script.md, checked by tools/e2e_portal_b7.mjs); the go-live request lives in the last item (data.go_live_requested_at). WEB-only: 3 items.
 create or replace function private.seed_onboarding(p_client uuid) returns int
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -50,14 +63,14 @@ begin
   if prods is null then return 0; end if;
   for rec in
     select * from (values
-      ('forward_calls', 'Turn on call forwarding',  1, true,  false),
-      ('calendar',      'Connect your calendar',    2, true,  false),
-      ('hours',         'Business details & hours', 3, true,  true),
-      ('faq',           'FAQ',                      4, true,  false),
-      ('alerts',        'Who gets alerts',          5, true,  true),
-      ('tools',         'Connect other tools',      6, true,  false),
-      ('sms',           'SMS registration info',    7, true,  false),
-      ('web_content',   'Website content',          6, false, true)
+      ('forward_calls', 'Forward your missed calls', 1, true,  false),
+      ('calendar',      'Connect your calendar',     2, true,  false),
+      ('hours',         'Business hours',            3, true,  true),
+      ('faq',           'Services & FAQ',            4, true,  false),
+      ('alerts',        'Emergencies & alerts',      5, true,  true),
+      ('tools',         'Connect other tools',       6, true,  false),
+      ('sms',           'Texting registration & go-live', 7, true,  false),
+      ('web_content',   'Website content',           6, false, true)
     ) as v(key, title, sort, for_rcp, for_web)
   loop
     if (rec.for_rcp and (prods && array['RCP', 'BNDL'])) or (rec.for_web and prods = array['WEB']) then
@@ -94,6 +107,27 @@ begin
   end if;
   return new;
 end $$;
+-- Server-side go-live gate: a client may stamp go_live_requested_at only when the client is in 'testing' and every
+-- checklist item is done (the optional 'tools' item may stay open). Otherwise the request is refused, so no
+-- go_live_requested event fires and A8's once-per-client key final_payment_due:<client> is not used up early.
+create or replace function private.onboarding_go_live_gate() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if (new.data ? 'go_live_requested_at') and not (coalesce(old.data, '{}'::jsonb) ? 'go_live_requested_at')
+     and private.is_client_call() then
+    if new.status <> 'done'
+       or (select c.status from public.clients c where c.id = new.client_id) is distinct from 'testing'
+       or exists (select 1 from public.onboarding_items o
+                  where o.client_id = new.client_id and o.id <> new.id and o.key <> 'tools' and o.status <> 'done') then
+      raise exception 'go_live_not_ready' using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists onboarding_go_live_gate on public.onboarding_items;
+create trigger onboarding_go_live_gate before update on public.onboarding_items
+  for each row execute function private.onboarding_go_live_gate();
+
 drop trigger if exists onboarding_go_live_event on public.onboarding_items;
 create trigger onboarding_go_live_event after update of data on public.onboarding_items
   for each row execute function private.onboarding_go_live_event();
@@ -338,8 +372,8 @@ begin
 end $$;
 
 -- ================================================================ privileges
-revoke all on function private.request_cancel_log(), private.seed_onboarding(uuid), private.payments_seed_onboarding(),
-  private.onboarding_go_live_event(), private.calls_forwarding_test(), private.rs_num(jsonb) from public, anon, authenticated;
+revoke all on function private.request_cancel_log(), private.requests_paused_guard(), private.seed_onboarding(uuid), private.payments_seed_onboarding(),
+  private.onboarding_go_live_event(), private.onboarding_go_live_gate(), private.calls_forwarding_test(), private.rs_num(jsonb) from public, anon, authenticated;
 grant execute on function private.seed_onboarding(uuid), private.rs_num(jsonb) to service_role;
 
 revoke all on function public.start_forwarding_test(uuid) from public, anon;

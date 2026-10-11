@@ -55,6 +55,7 @@
     quote_already_accepted: 'הלקוח כבר אישר את ההצעה הזו.',
     quote_anonymized: 'ההצעה עברה אנונימיזציה ואי אפשר לשלוח אותה.',
     one_active_request: 'ללקוח הזה כבר יש בקשה פעילה. קודם מעבירים אותה לסטטוס אחר.',
+    request_paused: 'הלקוח השהה את הבקשה הזו, ולכן אי אפשר להפעיל אותה.',
     requests_one_active: 'ללקוח הזה כבר יש בקשה פעילה. קודם מעבירים אותה לסטטוס אחר.',
     pay_link_https: 'קישור התשלום חייב להתחיל ב-https://',
     pay_link_check: 'קישור התשלום חייב להתחיל ב-https://',
@@ -740,7 +741,9 @@
         .sort((a, b) => clientName(D.clients.find(c => c.id === a.client_id)).localeCompare(clientName(D.clients.find(c => c.id === b.client_id))) || order[a.status] - order[b.status] || a.position - b.position);
       $('#reqList').innerHTML = rows.length ? rows.map(r => {
         const c = D.clients.find(x => x.id === r.client_id);
-        return '<article class="req" aria-labelledby="rq-' + esc(r.id) + '"><div class="req__h"><b id="rq-' + esc(r.id) + '" dir="auto">' + esc(r.title) + '</b>' + pill('req', r.status) + '</div>' +
+        return '<article class="req" aria-labelledby="rq-' + esc(r.id) + '"><div class="req__h"><b id="rq-' + esc(r.id) + '" dir="auto">' + esc(r.title) + '</b>' + pill('req', r.status) +
+          (r.paused ? '<span class="pill pill--paused" id="rp-' + esc(r.id) + '">מושהה ע"י הלקוח</span>' : '') + '</div>' +
+          (r.paused ? '<p class="small muted">הלקוח השהה את הבקשה: אי אפשר להפעיל אותה עד שהלקוח ימשיך אותה.</p>' : '') +
           '<p class="muted small">' + esc(clientName(c)) + ' · מקום בתור ' + (r.position + 1) + ' · עודכן ' + esc(fmtDate(r.updated_at, true)) + '</p>' + (r.body ? '<p dir="auto">' + esc(r.body) + '</p>' : '') +
           '<div class="row2"><div class="field"><label for="rs-' + esc(r.id) + '">סטטוס</label><select class="select" id="rs-' + esc(r.id) + '">' + Object.entries(ST.req).map(([v, l]) => opt(v, l, r.status)).join('') + '</select></div>' +
           '<div class="field"><label for="ra-' + esc(r.id) + '">תשובה ללקוח (הלקוח רואה, באנגלית)</label><textarea class="textarea ltr" dir="ltr" lang="en" id="ra-' + esc(r.id) + '" maxlength="10000">' + esc(r.admin_reply || '') + '</textarea></div></div>' +
@@ -748,6 +751,8 @@
       }).join('') : '<p class="empty">אין בקשות בסינון הזה.</p>';
       $$('[data-rsave]').forEach(b => b.addEventListener('click', async () => {
         const id = b.dataset.rsave; b.disabled = true;
+        const rq = D.requests.find(x => x.id === id);
+        if (rq && rq.paused && $('#rs-' + id).value === 'active') { toast(ERR.request_paused); b.disabled = false; return; }
         try { await AB.adminSaveRequest(id, { status: $('#rs-' + id).value, admin_reply: $('#ra-' + id).value.trim() || null }); await reload(); renderDigest(); draw(); toast('הבקשה עודכנה.'); }
         catch (e) { toast(errText(e)); b.disabled = false; }
       }));
@@ -756,8 +761,12 @@
     draw();
   }
 
-  // ------------------------------------------------------------ Tenants (placeholder until B7)
+  // ------------------------------------------------------------ Tenants (B7: admin-tenants.js; the placeholder below is only a fallback)
   function tTenants(p) {
+    if (window.AdminTenants && window.TenantSchema) {
+      window.AdminTenants.render(p, { D, AB, PB, BRAND, ST, sel, $, $$, esc, pill, money, moneyText, ltr, opt, fmtDate, toast, errText, go, refresh, clientName, prof, focusDetail });
+      return;
+    }
     p.innerHTML = '<div class="notice" role="note"><div>עורך ה-JSON של tenant (עם ולידציה מול tenant_schema.json) והכפתור "הרץ 20 תרחישי סימולטור" מגיעים במשימה B7. בינתיים: סיכום לקריאה בלבד בכרטיס הלקוח.</div></div>' +
       (D.tenants.length ? '<ul class="plist spaced">' + D.tenants.map(t => '<li><span class="grow"><b dir="ltr">' + esc(t.slug) + '</b> · ' + esc(clientName(D.clients.find(c => c.id === t.client_id))) + '</span>' +
         pill('tenant', t.status) + '<span dir="ltr">' + esc(t.twilio_number || '') + '</span><button type="button" class="btn btn--ghost btn--sm" data-tc="' + esc(t.client_id) + '">לכרטיס הלקוח</button></li>').join('') + '</ul>' : '<p class="empty spaced">אין tenants עדיין.</p>');

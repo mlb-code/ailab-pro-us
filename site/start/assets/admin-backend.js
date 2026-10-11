@@ -14,7 +14,9 @@
      - adminRegenerateDraft calls the quote-draft Edge Function and quoteSend the quote-send Edge Function (task A6):
        quoteSend(id, {discount_code, pay_method, pay_link, manual_approved}) -> {quote_id, status, valid_until}; it re-prices,
        refuses anonymized / needs_manual_price, moves draft -> approved -> sent and emits the quote_sent e-mail event.
-     - runtime_state is service-role only: adminRuntimeState returns [] unless an admin read path is added. */
+     - runtime_state is service-role only: adminRuntimeState returns [] unless an admin read path is added.
+   B7 (Tenants tab): adminTenantUsage(month) = RPC admin_tenant_usage (security definer + is_admin(); usage/cost keys only),
+     adminSaveTenant({id?, client_id, slug, status, twilio_number, config}) = RPC admin_save_tenant (admin only, logged). */
 (function () {
   const C = window.SITE_CONFIG || {};
   const qs = new URLSearchParams(location.search);
@@ -113,7 +115,12 @@
         return (r && r.body) || '';
       },
       async adminSaveNote(entity, id, body) { return must(await sb.from('admin_notes').upsert({ entity, entity_id: id, body }).select('*').single()); },
-      async adminOutbox() { return []; }
+      async adminOutbox() { return []; },
+      async adminTenantUsage(month) { return must(await sb.rpc('admin_tenant_usage', { p_month: month || null })); },
+      async adminSaveTenant(row) {
+        return must(await sb.rpc('admin_save_tenant', { p_id: row.id || null, p_client_id: row.client_id, p_slug: row.slug, p_status: row.status || 'sandbox',
+          p_twilio_number: row.twilio_number || null, p_config: row.config }));
+      }
     };
   }
 
@@ -136,7 +143,7 @@
     'adminListQuestionnaires', 'adminListAttachments', 'downloadUrl', 'adminListQuotes', 'adminRegenerateDraft', 'adminSaveQuote',
     'quoteSend', 'adminGetQuoteReview', 'adminCreateClientFromQuote', 'adminListClients', 'adminSaveClient', 'adminListPayments', 'adminMarkPaid',
     'adminListOnboarding', 'adminListTenants', 'adminRuntimeState', 'adminListRequests', 'adminSaveRequest', 'adminListEvents',
-    'adminLogEvent', 'adminGetNote', 'adminSaveNote', 'adminOutbox'].forEach(fn => {
+    'adminLogEvent', 'adminGetNote', 'adminSaveNote', 'adminOutbox', 'adminTenantUsage', 'adminSaveTenant'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
   });
   window.AdminBackend = api;

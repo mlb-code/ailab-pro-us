@@ -4,7 +4,8 @@ Targets (byte-identical copies; never edit them by hand):
   site/assets/                      static site, questionnaire, quote page (fetch('/assets/pricebook.json'))
   supabase/functions/_shared/       Edge Functions (pricing.ts imports the JSON)
   runtime/app/                      Python runtime (receptionist)
-Also: supabase/functions/_shared/pricing.mjs -> site/assets/pricing.mjs (one pricing module for server + admin).
+Also: supabase/functions/_shared/pricing.mjs -> site/assets/pricing.mjs (one pricing module for server + admin),
+      runtime/app/tenant_schema.json -> site/assets/tenant_schema.json (tenant config validation in the portal/admin, B7).
 
 usage:
   python3 tools/sync_config.py           validate, then write copies
@@ -22,7 +23,9 @@ FILES = ['brand.json', 'pricebook.json']
 TARGETS = ['site/assets', 'supabase/functions/_shared', 'runtime/app']
 # Shared JS modules: source of truth -> byte-identical copies (same drift check). pricing.mjs = one pricing implementation
 # for the Edge Functions (Deno) and the admin (browser).
-MODULES = [('supabase/functions/_shared/pricing.mjs', ['site/assets/pricing.mjs'])]
+MODULES = [('supabase/functions/_shared/pricing.mjs', ['site/assets/pricing.mjs']),
+           # B7: the tenant config JSON schema (generated from the runtime's pydantic model) for the portal + admin editor
+           ('runtime/app/tenant_schema.json', ['site/assets/tenant_schema.json'])]
 BRAND_REQUIRED = ['name', 'domain', 'site_url', 'support_email', 'senders', 'claude', 'niches', 'disclaimers']
 
 

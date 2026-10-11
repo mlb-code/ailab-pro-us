@@ -8,7 +8,7 @@ PY ?= python3
 NODE ?= node
 PORT ?= 8787
 
-.PHONY: serve secrets qa qa-static qa-browser qa-start qa-admin install
+.PHONY: serve secrets qa qa-static qa-browser qa-start qa-admin qa-portal-b7 install
 
 install:
 	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund
@@ -47,3 +47,10 @@ qa: qa-static qa-browser qa-start qa-admin
 qa-admin:
 	$(NODE) tools/e2e_admin.mjs
 	$(NODE) tools/overflow_admin.mjs
+
+# Portal phase B (task B7): checklist / receptionist / requests / billing usage + admin Tenants tab (mock backend, own servers),
+# overflow in 3 engines, and the B7 SQL test (PGlite, offline).
+qa-portal-b7:
+	$(NODE) tools/e2e_portal_b7.mjs
+	$(NODE) tools/overflow_portal_b7.mjs
+	deno run -A --node-modules-dir=none supabase/tests/offline/portal_b7_run.ts

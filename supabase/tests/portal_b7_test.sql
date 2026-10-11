@@ -98,12 +98,17 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);
   select count(*) into n from public.requests where id = ra;
   if n <> 1 then raise exception 'FAIL B deleted A request'; end if; c := c + 1;
+  begin update public.requests set status = 'active' where id = ra; raise exception 'FAIL paused request activated';
+  exception when others then if sqlerrm <> 'request_paused' then raise; end if; end; c := c + 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
+  update public.requests set paused = false where id = ra;   -- client resumes
+  perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);
   update public.requests set status = 'active' where id = ra;
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
   delete from public.requests where id = ra;
-  update public.requests set paused = false where id = ra;
+  update public.requests set paused = true where id = ra;
   perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);
-  select count(*) into n from public.requests where id = ra and status = 'active' and paused;
+  select count(*) into n from public.requests where id = ra and status = 'active' and not paused;
   if n <> 1 then raise exception 'FAIL client changed an active request'; end if; c := c + 1;
 
   -- admin save tenant (insert + update) + event
@@ -154,11 +159,46 @@ begin
   j := public.client_tenant_usage(ta, null);
   if (j ->> 'voice_minutes')::numeric <> 212 or (j ->> 'sms_segments')::numeric <> 480 or not (j ->> 'needs_addon_approval')::boolean
      or j ? 'claude_usd' then raise exception 'FAIL client usage %', j; end if; c := c + 1;
+  -- go-live gate: refused while items are open (no event, final_payment_due:<client> not enqueued)
+  begin
+    perform public.update_onboarding_item((select id from public.onboarding_items where client_id = ca and key = 'sms'), 'done', '{"go_live_requested_at":"2026-10-11T09:00:00Z"}');
+    raise exception 'FAIL early go-live accepted';
+  exception when others then if sqlerrm <> 'go_live_not_ready' then raise; end if; end; c := c + 1;
+  select count(*) into n from public.events where entity_id = ca and type = 'go_live_requested';
+  if n <> 0 then raise exception 'FAIL early go-live logged'; end if; c := c + 1;
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+  if to_regclass('private.email_outbox') is not null then
+    execute 'select count(*) from private.email_outbox where idem_key = $1' into n using 'final_payment_due:' || ca;
+    if n <> 0 then raise exception 'FAIL final_payment_due key burned early'; end if;
+  end if; c := c + 1;
+  update public.onboarding_items set status = 'done' where client_id = ca and key <> 'tools';
+  update public.onboarding_items set status = 'todo' where client_id = ca and key = 'tools';   -- optional item may stay open
+  update public.clients set status = 'onboarding' where id = ca;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
+  begin
+    perform public.update_onboarding_item((select id from public.onboarding_items where client_id = ca and key = 'sms'), 'done', '{"go_live_requested_at":"2026-10-11T09:30:00Z"}');
+    raise exception 'FAIL go-live accepted while not testing';
+  exception when others then if sqlerrm <> 'go_live_not_ready' then raise; end if; end; c := c + 1;
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+  update public.clients set status = 'testing' where id = ca;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
   -- go-live request event (stamped on the last item, once)
   perform public.update_onboarding_item((select id from public.onboarding_items where client_id = ca and key = 'sms'), 'done', '{"go_live_requested_at":"2026-10-11T10:00:00Z"}');
   perform public.update_onboarding_item((select id from public.onboarding_items where client_id = ca and key = 'sms'), 'done', '{"go_live_requested_at":"2026-10-11T11:00:00Z"}');
   select count(*) into n from public.events where entity = 'client' and entity_id = ca and type = 'go_live_requested' and client_visible;
   if n <> 1 then raise exception 'FAIL go_live_requested event (%)', n; end if; c := c + 1;
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+  if to_regclass('private.email_outbox') is not null then
+    execute 'select count(*) from private.email_outbox where idem_key = $1' into n using 'final_payment_due:' || ca;
+    if n <> 1 then raise exception 'FAIL final_payment_due not enqueued once after a valid request (%)', n; end if;
+  end if; c := c + 1;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
 
   -- ---------------------------------------------------------------- anon: nothing
   perform set_config('role', 'anon', true);
