@@ -274,8 +274,11 @@ async function main() {
     ok(await page.$eval('#setAfter', x => x.open), 'settings panel stays open after save');
     // whitelist + ownership through the client API (same codes as the RPC)
     ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { booking: { provider: 'fake' } }).then(() => 'ok', e => e.message), tenant.id) === 'field_not_allowed: booking', 'non-whitelisted field refused (field_not_allowed)');
-    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { after_hours: { mode: 'party' } }).then(() => 'ok', e => e.message), tenant.id) === 'after_hours_bad_mode', 'bad after_hours refused');
-    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { on_call_number: '7135550111' }).then(() => 'ok', e => e.message), tenant.id) === 'on_call_number_bad', 'bad on_call_number refused');
+    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { after_hours: { mode: 'party' } }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:after_hours.mode', 'bad after_hours refused (invalid_setting:after_hours.mode)');
+    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { on_call_number: '7135550111' }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:on_call_number', 'bad on_call_number refused');
+    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { faq: [{ q: 'q', a: 'a'.repeat(601) }] }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:faq[0].a', 'FAQ answer over the schema limit refused (direct call)');
+    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { hours: { mon: ['18:00', '08:00'] } }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:hours.mon', 'reversed hours refused (direct call)');
+    ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { notify: { sms: [], email: [] } }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:notify', 'alerts without any contact refused (direct call)');
 
     // ---------------------------------------------------------------- Requests
     console.log('requests');

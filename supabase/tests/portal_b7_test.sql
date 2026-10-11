@@ -4,7 +4,7 @@ do $$
 declare
   ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); um uuid := gen_random_uuid(); uw uuid := gen_random_uuid();
   ca uuid; cb uuid; cw uuid; pa uuid; pw uuid; ta uuid; tb uuid; it uuid; ra uuid; rq uuid; ract uuid;
-  n int; ok boolean; j jsonb; s1 text; c int := 0; t public.tenants;
+  n int; ok boolean; j jsonb; s1 text; sch jsonb; faq_max int; q_max int; a_max int; sms_max int; email_max int; c int := 0; t public.tenants;
 begin
   update private.settings set admin_email = 'b7-admin@example.com' where id = 1;
   insert into auth.users (id, email) values (ua, 'b7-a@example.com'), (ub, 'b7-b@example.com'), (um, 'b7-admin@example.com'), (uw, 'b7-w@example.com');
@@ -77,12 +77,59 @@ begin
      or j #>> '{emergency,dial}' <> '+17135550111' or j ? 'on_call_number' or j ? 'x' then raise exception 'FAIL new whitelist keys %', j; end if; c := c + 1;
   j := public.update_tenant_settings(ta, '{"on_call_number":null}');
   if j #>> '{handoff,mode}' <> 'message' or jsonb_typeof(j #> '{emergency,dial}') <> 'null' then raise exception 'FAIL on_call_number null %', j; end if; c := c + 1;
-  begin perform public.update_tenant_settings(ta, '{"after_hours":{"mode":"party"}}'); raise exception 'FAIL bad after_hours';
-  exception when others then if sqlerrm <> 'after_hours_bad_mode' then raise; end if; end; c := c + 1;
-  begin perform public.update_tenant_settings(ta, '{"after_hours":{"mode":"message_only","x":1}}'); raise exception 'FAIL after_hours extra key';
-  exception when others then if sqlerrm <> 'after_hours_bad_mode' then raise; end if; end; c := c + 1;
-  begin perform public.update_tenant_settings(ta, '{"on_call_number":"7135550111"}'); raise exception 'FAIL bad on_call_number';
-  exception when others then if sqlerrm <> 'on_call_number_bad' then raise; end if; end; c := c + 1;
+  -- direct RPC calls (bypassing the UI): every value the runtime would reject is refused with invalid_setting:<path>.
+  -- Limits are read from runtime/app/tenant_schema.json (the runner puts it in the setting b7.schema).
+  sch := nullif(current_setting('b7.schema', true), '')::jsonb;
+  if sch is null then raise exception 'FAIL runner did not pass runtime/app/tenant_schema.json'; end if;
+  faq_max := (sch #>> '{properties,faq,maxItems}')::int;
+  q_max := (sch #>> '{$defs,FaqItem,properties,q,maxLength}')::int;
+  a_max := (sch #>> '{$defs,FaqItem,properties,a,maxLength}')::int;
+  sms_max := (sch #>> '{$defs,Notify,properties,sms,maxItems}')::int;
+  email_max := (sch #>> '{$defs,Notify,properties,email,maxItems}')::int;
+  -- boundaries that must pass
+  j := public.update_tenant_settings(ta, jsonb_build_object('faq', (select jsonb_agg(jsonb_build_object('q', repeat('q', q_max), 'a', repeat('a', a_max))) from generate_series(1, faq_max) g)));
+  if jsonb_array_length(j -> 'faq') <> faq_max then raise exception 'FAIL faq at the schema limits refused'; end if; c := c + 1;
+  for s1 in select jsonb_array_elements_text(sch #> '{$defs,AfterHours,properties,mode,enum}') loop
+    j := public.update_tenant_settings(ta, jsonb_build_object('after_hours', jsonb_build_object('mode', s1)));
+    if j #>> '{after_hours,mode}' <> s1 then raise exception 'FAIL after_hours %', s1; end if; c := c + 1;
+  end loop;
+  j := public.update_tenant_settings(ta, jsonb_build_object('notify', jsonb_build_object(
+         'sms', (select jsonb_agg('+1713555' || lpad(g::text, 4, '0')) from generate_series(1, sms_max) g),
+         'email', (select jsonb_agg('a' || g || '@example.com') from generate_series(1, email_max) g), 'daily_summary', '19:00')));
+  if jsonb_array_length(j #> '{notify,sms}') <> sms_max then raise exception 'FAIL notify at the schema limits refused'; end if; c := c + 1;
+  j := public.update_tenant_settings(ta, '{"notify":{"email":["only@example.com"],"daily_summary":null},"hours":{"mon":["00:00","23:59"],"sun":null}}');
+  c := c + 1;
+  -- everything the runtime rejects
+  foreach s1 in array array[
+    'faq' || '|' || (select jsonb_build_object('faq', jsonb_agg(jsonb_build_object('q', 'q', 'a', 'a'))) from generate_series(1, faq_max + 1) g)::text,
+    'faq[0].a' || '|' || jsonb_build_object('faq', jsonb_build_array(jsonb_build_object('q', 'q', 'a', repeat('a', a_max + 1))))::text,
+    'faq[0].q' || '|' || jsonb_build_object('faq', jsonb_build_array(jsonb_build_object('q', repeat('q', q_max + 1), 'a', 'a')))::text,
+    'faq[0].q|{"faq":[{"q":"","a":"x"}]}', 'faq[1].a|{"faq":[{"q":"x","a":"y"},{"q":"x"}]}', 'faq[0]|{"faq":[{"q":"x","a":"y","z":1}]}',
+    'faq|{"faq":{"q":"x"}}',
+    'hours.mon|{"hours":{"mon":["18:00","08:00"]}}', 'hours.mon|{"hours":{"mon":["08:00","08:00"]}}', 'hours.tue|{"hours":{"tue":["24:00","25:00"]}}',
+    'hours.wed|{"hours":{"wed":["8:00","17:00"]}}', 'hours.thu|{"hours":{"thu":["08:00"]}}', 'hours.xyz|{"hours":{"xyz":null}}', 'hours|{"hours":[]}',
+    'notify.sms[0]|{"notify":{"sms":["+1713555"]}}', 'notify.sms[0]|{"notify":{"sms":["+447911123456"]}}', 'notify.sms[0]|{"notify":{"sms":["7135550100"]}}',
+    'notify.sms[1]|{"notify":{"sms":["+17135550100","+1713555010"]}}', 'notify.sms[0]|{"notify":{"sms":["+11135550100"]}}',
+    'notify.sms' || '|' || jsonb_build_object('notify', jsonb_build_object('sms', (select jsonb_agg('+1713555' || lpad(g::text, 4, '0')) from generate_series(1, sms_max + 1) g)))::text,
+    'notify.email' || '|' || jsonb_build_object('notify', jsonb_build_object('email', (select jsonb_agg('a' || g || '@example.com') from generate_series(1, email_max + 1) g)))::text,
+    'notify.email[0]|{"notify":{"email":["dani at example"]}}', 'notify|{"notify":{}}', 'notify|{"notify":{"sms":[],"email":[]}}',
+    'notify|{"notify":{"daily_summary":"19:00"}}', 'notify|{"notify":{"email":["a@b.co"],"pager":["x"]}}',
+    'notify.daily_summary|{"notify":{"email":["a@b.co"],"daily_summary":"7pm"}}',
+    'after_hours.mode|{"after_hours":{"mode":"party"}}', 'after_hours|{"after_hours":{"mode":"message_only","x":1}}', 'after_hours.mode|{"after_hours":{}}',
+    'on_call_number|{"on_call_number":"7135550111"}', 'on_call_number|{"on_call_number":"+447911123456"}', 'on_call_number|{"on_call_number":"+1713555011"}',
+    'on_call_number|{"on_call_number":17135550111}', 'paused|{"paused":"yes"}'] loop
+    begin
+      perform public.update_tenant_settings(ta, split_part(s1, '|', 2)::jsonb);
+      raise exception 'FAIL accepted %', s1;
+    exception when others then
+      if sqlerrm <> 'invalid_setting:' || split_part(s1, '|', 1) then raise exception 'FAIL % -> % (want invalid_setting:%)', left(split_part(s1, '|', 2), 80), sqlerrm, split_part(s1, '|', 1); end if;
+    end;
+    c := c + 1;
+  end loop;
+  -- a refused patch changes nothing (atomic)
+  select config into j from public.tenants where id = ta;
+  begin perform public.update_tenant_settings(ta, '{"paused":true,"faq":[{"q":"x"}]}'); exception when others then null; end;
+  if (select config from public.tenants where id = ta) <> j then raise exception 'FAIL refused patch partially applied'; end if; c := c + 1;
   begin perform public.update_tenant_settings(tb, '{"after_hours":{"mode":"message_only"}}'); raise exception 'FAIL A wrote B settings';
   exception when insufficient_privilege then null; end; c := c + 1;
 

@@ -10,6 +10,9 @@ await db.exec(read("tests/offline/supabase_shim.sql"));
 for (const m of [...Deno.readDirSync(new URL("migrations/", root))].map((e) => e.name).filter((n) => n.endsWith(".sql")).sort()) {
   await db.exec(offline(read("migrations/" + m)));
 }
+// limits in the test come from the runtime's schema, not from the test itself
+const schema = Deno.readTextFileSync(new URL("../runtime/app/tenant_schema.json", root));
+await db.query("select set_config('b7.schema', $1, false)", [schema]);
 try {
   await db.exec(read("tests/portal_b7_test.sql"));
   console.log("❌ portal_b7_test.sql did not raise");

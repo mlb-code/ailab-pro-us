@@ -382,8 +382,17 @@
     const m = (e && (e.code || e.message)) || '';
     if (/field_not_allowed/.test(m)) return 'That setting can’t be changed here. Send us a Request instead.';
     if (/not_your/.test(m)) return 'You can only change your own settings.';
-    if (/after_hours|on_call/.test(m)) return 'The after-hours choice or on-call number wasn’t accepted. Please check it.';
-    if (/faq|hours|notify|paused/.test(m)) return 'Some values weren’t accepted (' + m + '). Please check them and try again.';
+    const inv = /invalid_setting:([\w.\[\]]+)/.exec(m);
+    if (inv) {
+      const p = inv[1], n = /\[(\d+)\]/.exec(p), num = n ? ' #' + (+n[1] + 1) : '';
+      const what = /^faq/.test(p) ? 'FAQ' + num + (/\.a$/.test(p) ? ' answer (max 600 characters)' : /\.q$/.test(p) ? ' question (max 300 characters)' : ' (up to 25 questions)')
+        : /^hours/.test(p) ? 'Hours for ' + (p.split('.')[1] || 'a day') + ' (opening must be before closing, HH:MM)'
+        : /^notify\.sms/.test(p) ? 'Text-alert number' + num + ' (a US mobile number, up to 5)'
+        : /^notify\.email/.test(p) ? 'Alert email' + num + ' (up to 5)'
+        : /^notify\.daily/.test(p) ? 'Daily summary time' : /^notify/.test(p) ? 'Alerts (add at least one mobile number or email)'
+        : /^after_hours/.test(p) ? 'After-hours choice' : /^on_call/.test(p) ? 'On-call number (a US phone number)' : p;
+      return what + ' wasn’t accepted. Please check it and save again.';
+    }
     if (/data_too_large/.test(m)) return 'This is too long to save. Please shorten some answers.';
     if (/go_live_not_ready/.test(m)) return 'Go-live opens once every step is done and your receptionist is ready to test.';
     if (/no_forwarding_number/.test(m)) return 'Your forwarding number isn’t ready yet. We’ll email you when it is.';
