@@ -38,6 +38,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const consoleErrors = [];
 async function newPage(browser, opts = {}) {
   const page = await browser.newPage();
+  // Always the mock backend, whatever /assets/config.js says (it points at the real project once A2 has run).
+  // backend.js honours this per-tab flag on localhost; a fresh tab has no sessionStorage, so set it before any script.
+  await page.evaluateOnNewDocument(() => { try { sessionStorage.setItem('start_force_mock', '1'); } catch (e) { /* storage blocked */ } });
   await page.setViewport({ width: opts.width || 390, height: 844, deviceScaleFactor: 1 });
   await page.emulateTimezone('America/Chicago');
   await page.setRequestInterception(true);
@@ -106,7 +109,7 @@ async function main() {
     await page.evaluate(() => window.StartMock.admin.reset());
     await page.reload({ waitUntil: 'load' });
     await page.waitForSelector('#email');
-    ok(await exists(page, '#mockBanner'), 'mock banner shown');
+    ok(await exists(page, '#mockBanner') && await page.evaluate(() => window.Backend.mode) === 'mock', 'mock backend + banner (forced per tab)');
     ok(await page.$eval('#googleBtn', b => b.disabled), 'Google button present and disabled (not configured)');
     const brand = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8'));
     ok((await text(page, '.brandmark')).trim() === brand.name, 'brand name filled from brand.json');
@@ -388,7 +391,7 @@ async function main() {
     await page.close();
     // payment endpoint configured → direct deposit button
     page = await newPage(browser, { brandPatch: { endpoints: { payment: 'https://pay.example.test/deposit' } } });
-    await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
+    await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]', { timeout: 8000 });
     const wid2 = await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'WEB', niche: 'home_services' }).then(r => r.id));
     await page.goto(BASE + '/start/q/?id=' + wid2 + '#review', { waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
     await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });

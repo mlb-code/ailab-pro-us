@@ -65,7 +65,7 @@
     "eyebrow": "Try it",
     "title": "Be the patient. See what your callers would get.",
     "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
-    "business": "Bright Smile Family Dental",
+    "business": "Fernhollow Dental",
     "business_line": "Scottsdale, AZ",
     "scenarios": [
       {
@@ -76,7 +76,7 @@
           "s": {
             "system": "Missed call from (480) 555-0136 · 12:31 PM",
             "bot": [
-              "Hi, this is Bright Smile Family Dental. Sorry we missed your call! I'm the virtual assistant and I can book you in. Are you a new or existing patient? Reply STOP to opt out."
+              "Hi, this is Fernhollow Dental. Sorry we missed your call! I'm the virtual assistant and I can book you in. Are you a new or existing patient? Reply STOP to opt out."
             ],
             "chips": [
               {
@@ -193,7 +193,7 @@
           "s": {
             "system": "Missed call from (602) 555-0171 · 7:55 AM",
             "bot": [
-              "Hi, this is Bright Smile Family Dental. Sorry we missed your call! I'm the virtual assistant. How can we help? Reply STOP to opt out."
+              "Hi, this is Fernhollow Dental. Sorry we missed your call! I'm the virtual assistant. How can we help? Reply STOP to opt out."
             ],
             "chips": [
               {
@@ -304,7 +304,7 @@
           "s": {
             "system": "Missed call from (480) 555-0198 · 5:22 PM",
             "bot": [
-              "Hi, this is Bright Smile Family Dental. Sorry we missed your call! I'm the virtual assistant. How can I help? Reply STOP to opt out."
+              "Hi, this is Fernhollow Dental. Sorry we missed your call! I'm the virtual assistant. How can I help? Reply STOP to opt out."
             ],
             "chips": [
               {

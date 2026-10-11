@@ -48,8 +48,14 @@ def validate_config():
         return [f'cannot load config: {e}']
     errs += ['pricebook: ' + e for e in validate(pb, schema)]
     errs += [f'brand: missing "{k}"' for k in BRAND_REQUIRED if not brand.get(k)]
-    if not (brand.get('claude') or {}).get('model'):
-        errs.append('brand: missing claude.model')
+    claude = brand.get('claude') or {}
+    for key in ('model', 'voice_model', 'quote_model'):
+        if not claude.get(key):
+            errs.append(f'brand: missing claude.{key}')
+    prices = claude.get('price_usd_per_mtok') or {}
+    for key in ('model', 'voice_model', 'quote_model'):
+        if claude.get(key) and len(prices.get(claude[key]) or []) != 4:
+            errs.append(f'brand: claude.price_usd_per_mtok needs [in, out, cache_read, cache_write] for claude.{key}')
     return errs
 
 

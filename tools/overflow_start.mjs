@@ -29,6 +29,8 @@ let checks = 0; const problems = [];
 async function runEngine(name, type) {
   const browser = await type.launch({ timeout: 60000 });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  // mock backend regardless of /assets/config.js (see backend.js: per-tab flag, honoured on localhost)
+  await ctx.addInitScript(() => { try { sessionStorage.setItem('start_force_mock', '1'); } catch (e) { /* storage blocked */ } });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
   const page = await ctx.newPage();
   page.setDefaultNavigationTimeout(60000); // tolerate a loaded machine

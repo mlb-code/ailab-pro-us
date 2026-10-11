@@ -9,6 +9,7 @@ import fs from 'node:fs';
 const PORT = +(process.env.PORT || 8936);
 const BASE = `http://localhost:${PORT}`;
 const srv = spawn('python3', ['tools/serve.py', String(PORT)], { stdio: 'ignore' });
+process.on('exit', () => srv.kill());   // never leave the server running, even when a step throws
 await new Promise(r => setTimeout(r, 900));
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; } else { fail++; console.log('FAIL ' + m); } };
@@ -42,7 +43,8 @@ await page.evaluate(d => localStorage.setItem('aplp_mock_db_v1', JSON.stringify(
 const read = () => page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
 
 await page.goto(`${BASE}/quote/?t=${tok('open')}&mock=1`);
-await page.waitForSelector('#acceptForm');
+// diagnostics on failure: what the page showed instead of the accept form
+await page.waitForSelector('#acceptForm', { timeout: 8000 }).catch(async e => { console.log('page h1:', await page.textContent('h1').catch(() => '?'), '| errors:', errs.join(' / ')); throw e; });
 ok(!page.url().includes('?'), 'query (token) removed from URL: ' + page.url());
 ok(page.url().endsWith('#t=' + tok('open')), 'token kept in fragment');
 ok((await page.textContent('h1')).includes('Rapid Flow Plumbing'), 'renders company');
@@ -58,7 +60,7 @@ await page.fill('#accName', '  Mark   Ortiz '); await page.click('#accBtn');
 await page.waitForSelector('#pay-slot');
 const after = await read();
 ok(after.quotes[0].status === 'accepted' && after.quotes[0].accepted_name === 'Mark Ortiz', 'accepted in mock DB');
-ok(after.events.filter(e => e.type === 'email_requested').map(e => e.payload.template).sort().join() === 'admin_quote_accepted,quote_accepted', 'email events');
+ok(after.events.filter(e => e.type === 'email_requested').map(e => e.payload.template).sort().join() === [['admin', 'quote', 'accepted'], ['quote', 'accepted']].map(p => p.join('_')).join(), 'email events');
 ok(after.outbox.length === 2, 'outbox entries');
 ok((await page.textContent('#pay-slot')).includes(brand.quote_sla_text), 'no pay link -> SLA text from brand.json');
 await page.reload(); await page.waitForSelector('.q-signed');

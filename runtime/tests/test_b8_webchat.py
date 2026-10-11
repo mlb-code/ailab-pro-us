@@ -62,7 +62,7 @@ def test_status_live_and_cors(make):
 def test_full_booking_touches_no_real_system(make):
     sim = make()
     s = start(sim).json()
-    assert "Lone Star Comfort" in s["greeting"] and s["remaining"] == 20
+    assert "Copperleaf Air & Plumbing" in s["greeting"] and s["remaining"] == 20
     tok = s["token"]
     replies = [say(sim, tok, t).json() for t in (
         "My AC is blowing warm air", "77005", "the first one works", "My name is Dana Lee",

@@ -176,6 +176,7 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0F1A26">
 <meta name="robots" content="{robots}">
+<script>document.documentElement.classList.add('js');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('motion')</script>
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{esc(canon)}">
@@ -228,6 +229,15 @@ def price_line(c, code, tag):
             f'<b class="num">{money(i["monthly_cents"])}</b>/mo<span class="tag">{esc(tag)}</span></p>')
 
 
+def mobile_bar(c, code, href, label):
+    """Sticky bottom CTA on phones (<= 760px). landing.js shows it only between the hero and the next CTA-bearing
+    section (demo, pricing, band), so it never covers another call to action."""
+    i = c.items[code]
+    return (f'<div class="mbar" data-mbar><p class="mbar__price"><b class="num">{money(i["setup_cents"])}</b> setup + '
+            f'<b class="num">{money(i["monthly_cents"])}</b>/mo</p>'
+            f'<a class="btn btn--primary btn--sm" href="{esc(href)}" data-ev="quote_start">{esc(label)}</a></div>')
+
+
 def founder_slot(c):
     """Reserved: shown only when brand.json has "show_founder_price": true (owner has not approved yet)."""
     if not c.brand.get('show_founder_price'):
@@ -235,14 +245,27 @@ def founder_slot(c):
     return f'<p class="notice">{c.h(c.shared["founder"]["text"])}</p>'
 
 
-def clock(c, data, label):
+def clock(c, data, label, demo=None):
+    """Hero signature: the owner's business line, live. A missed call becomes a text-back thread and a booked slot.
+    Every row stays in the DOM as text (no-JS, SEO, screen readers); landing.js plays it once in view and on CTA hover."""
     rows = []
     for n, r in enumerate(data['rows']):
-        cls = ' class="is-booked"' if r.get('booked') else ''
-        rows.append(f'<li{cls} style="--i:{n}"><time>{esc(r["t"])}</time><b>{c.h(r["a"])}</b><span>{c.h(r["b"])}</span></li>')
-    return f'''<figure class="clock" aria-label="{esc(label)}">
-<div class="clock__head"><span><i>&#9679;</i> Missed call</span><span>2 minutes later</span></div>
+        kind = 'call' if n == 0 else 'booked' if r.get('booked') else 'ai' if n == 1 else 'lead'
+        cls = f'k-{kind}' + (' is-booked' if r.get('booked') else '')
+        typing = '<span class="live__typing" aria-hidden="true"><i></i><i></i><i></i></span>' if kind in ('ai', 'lead') else ''
+        rows.append(f'<li class="{cls}" style="--i:{n}" data-t="{esc(r["t"])}"><time>{esc(r["t"])}</time><b>{c.h(r["a"])}</b><span>{c.h(r["b"])}</span>{typing}</li>')
+    first = data['rows'][0]['t'].split(' ')[0]
+    who = ''
+    if demo:
+        who = (f'<div class="live__who" aria-hidden="true"><span class="live__av">{esc(demo["business"][:1])}</span>'
+               f'<span><b>{esc(demo["business"])}</b><small>{esc(demo["business_line"])} · AI assistant</small></span></div>')
+    return f'''<figure class="clock live" data-live aria-label="{esc(label)}">
+<div class="live__phone">
+<div class="live__status" aria-hidden="true"><span data-live-clock>{esc(first)}</span><span class="live__sig"><i></i><i></i><i></i><i></i></span></div>
+{who}
+<div class="clock__head"><span><i>&#9679;</i> Missed call</span><span data-live-elapsed>2 minutes later</span></div>
 <ol>{''.join(rows)}</ol>
+</div>
 <figcaption>{c.h(data['caption'])}</figcaption>
 </figure>'''
 
@@ -660,7 +683,7 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
 <div class="btn-row">{buttons}</div>
 <p class="hero__fine">{c.h(hero['fine'])}</p>{also}
 </div>
-{clock(c, n['clock'], 'A missed call becomes a booking')}
+{clock(c, n['clock'], 'A missed call becomes a booking', n.get('demo'))}
 </div></section>''',
         section_missed(c, n['missed_steps']),
         section_demo(c, key, contents, '#early-access' if early else cta_href, 'Join early access' if early else cta_label),
@@ -675,7 +698,7 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
     body += [section_faq(faqs)]
     if not early:
         body.append(section_band(c, cta_href, cta_label))
-    body += ['</main>', footer(c, year), '</body>\n</html>\n']
+    body += ['</main>', '' if early else mobile_bar(c, n['offer'], cta_href, cta_label), footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
 
 
@@ -737,7 +760,7 @@ def website_page(c, w, year):
 </div></section>''',
         section_faq(faqs),
         section_band(c, href_web, 'Choose this package', '/demo/', band=w['band']),
-        '</main>', footer(c, year), '</body>\n</html>\n']
+        '</main>', mobile_bar(c, 'WEB', href_web, 'Choose this package'), footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
 
 
