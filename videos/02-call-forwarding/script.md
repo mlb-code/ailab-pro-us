@@ -29,9 +29,9 @@ status: draft, waiting for the owner's approval · narration in US English · ma
 ## Scenes
 
 ### S1 · 0:00–0:08 · Title (motion graphics)
-- **On-screen text:** "Forward your missed calls" / "Last step before go-live"
+- **On-screen text:** "Forward your missed calls" / "Step 1 of your checklist · turn it on at go-live"
 
-VO: This is the last step before you go live: sending the calls you miss to your AI line.
+VO: This is step one of your checklist: sending the calls you miss to your AI line. You'll turn it on at go-live.
 
 ### S2 · 0:08–0:30 · How it works (motion graphics)
 - **Visual:** a customer's phone → the business number → owner's phone rings (timer 20 s) → arrow to "AI line" → receptionist bubble. Second path: busy signal → AI line.

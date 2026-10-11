@@ -3,7 +3,7 @@
 target_seconds: 120
 status: draft, waiting for the owner's approval · narration in US English · max 120 wpm
 
-> **תקציר למאיר:** הסרטון הראשון שהלקוח רואה אחרי שהמקדמה סומנה כשולמה. הוא מסביר איפה הפורטל, מה זה הצ'ק-ליסט (7 סעיפים, כל אחד עם סרטון), איך מבקשים עזרה בכתב, ומה לוח הזמנים: רישום SMS (1–2 שבועות), בנייה (כ-10 ימי עסקים), מספר ניסיון, אישור go-live, ובסוף העברת שיחות. אין בו הבטחות ואין מחירים. מתאים ל-RCP ול-BNDL. ללקוח WEB בלבד יש את סרטון 09. מסך הצ'ק-ליסט עוד לא קיים (B7), ולכן סצנות 3–4 מוקלטות מהפורטל של B7 (7 סעיפים בסדר: העברת שיחות, יומן, שעות, FAQ, חירום, Zapier, SMS + go-live).
+> **תקציר למאיר:** הסרטון הראשון שהלקוח רואה אחרי שהמקדמה סומנה כשולמה. הוא מסביר איפה הפורטל, מה זה הצ'ק-ליסט (7 סעיפים, כל אחד עם סרטון), איך מבקשים עזרה בכתב, ומה לוח הזמנים: רישום SMS (1–2 שבועות), בנייה (כ-10 ימי עסקים), מספר ניסיון, אישור go-live, ואז הפעלת העברת השיחות (סעיף 1 בצ'ק-ליסט, מופעל רק ב-go-live). אין בו הבטחות ואין מחירים. מתאים ל-RCP ול-BNDL. ללקוח WEB בלבד יש את סרטון 09. מסך הצ'ק-ליסט עוד לא קיים (B7), ולכן סצנות 3–4 מוקלטות מהפורטל של B7 (7 סעיפים בסדר: העברת שיחות, יומן, שעות, FAQ, חירום, Zapier, SMS + go-live).
 
 | | |
 |---|---|
@@ -58,7 +58,7 @@ VO: Once your checklist is done, we build and test your receptionist. Then you g
 - **Visual:** stepper animates Testing → Live (still of `?mock_seed=live`, recipe R1).
 
 VO: When you're happy with it, you approve go-live and pay the second half.
-VO: The last step is call forwarding, and there's a video for that too.
+VO: Then you turn on call forwarding, as shown in step one of your checklist.
 
 ### S7 · 1:52–2:00 · End card
 - **On-screen text:** "Start with your setup checklist" · `{{brand.support_email}}` · small: "Narrated by an AI voice."
