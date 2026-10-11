@@ -175,3 +175,5 @@
 .footer__note{margin-top:10px;max-width:44ch}
 @media (max-width:640px){.footer__grid{grid-template-columns:1fr 1fr}.footer__grid>div:first-child{grid-column:1/-1}}
 .price-card .badge,.bundle .badge{align-self:flex-start;justify-self:start}
+.ea form{position:relative}
+.hp{position:absolute;inset-inline-start:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
