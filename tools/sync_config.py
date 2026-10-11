@@ -4,6 +4,7 @@ Targets (byte-identical copies; never edit them by hand):
   site/assets/                      static site, questionnaire, quote page (fetch('/assets/pricebook.json'))
   supabase/functions/_shared/       Edge Functions (pricing.ts imports the JSON)
   runtime/app/                      Python runtime (receptionist)
+Also: supabase/functions/_shared/pricing.mjs -> site/assets/pricing.mjs (one pricing module for server + admin).
 
 usage:
   python3 tools/sync_config.py           validate, then write copies
@@ -19,6 +20,9 @@ from schema_lite import validate  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES = ['brand.json', 'pricebook.json']
 TARGETS = ['site/assets', 'supabase/functions/_shared', 'runtime/app']
+# Shared JS modules: source of truth -> byte-identical copies (same drift check). pricing.mjs = one pricing implementation
+# for the Edge Functions (Deno) and the admin (browser).
+MODULES = [('supabase/functions/_shared/pricing.mjs', ['site/assets/pricing.mjs'])]
 BRAND_REQUIRED = ['name', 'domain', 'site_url', 'support_email', 'senders', 'claude', 'niches', 'disclaimers']
 
 
@@ -64,6 +68,22 @@ def main(argv):
                 print(f'DRIFT   {rel} ({"missing" if not os.path.exists(dst) else "differs from config/" + name})')
             else:
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
+                with open(dst, 'wb') as fh:
+                    fh.write(src)
+                print(f'wrote   {rel}')
+    for src_rel, dsts in MODULES:
+        src_path = os.path.join(ROOT, src_rel)
+        if not os.path.exists(src_path):
+            continue
+        src = read(src_path)
+        for rel in dsts:
+            dst = os.path.join(ROOT, rel)
+            if os.path.exists(dst) and read(dst) == src:
+                print(f'ok      {rel}')
+            elif check:
+                drift += 1
+                print(f'DRIFT   {rel} ({"missing" if not os.path.exists(dst) else "differs from " + src_rel})')
+            else:
                 with open(dst, 'wb') as fh:
                     fh.write(src)
                 print(f'wrote   {rel}')

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F1A26">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:,">
+<title>Your fixed quote</title>
+<meta name="description" content="Your written fixed-price quote: scope, price, deposit and timeline. Accept online, no call needed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/base.css">
+<link rel="stylesheet" href="/quote/assets/quote.css">
+</head>
+<body>
+<a class="skip-link" href="#app">Skip to content</a>
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="brandmark" href="/" data-brand="name">&nbsp;</a>
+    <nav class="nav__links" aria-label="Quote">
+      <button type="button" class="btn btn--ghost btn--sm q-print" id="printBtn">Print or save PDF</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap q" id="app" tabindex="-1" aria-live="polite">
+  <p class="muted q-loading">Loading your quote…</p>
+</main>
+
+<footer class="footer wrap" id="footer"></footer>
+
+<script src="/assets/config.js"></script>
+<script src="/quote/assets/quote.js"></script>
+</body>
+</html>

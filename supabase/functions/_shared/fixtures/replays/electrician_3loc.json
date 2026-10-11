@@ -1,0 +1,37 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Main line.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-LOC",
+        "qty": 1,
+        "reason": "Has more locations.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-CHAT",
+        "qty": 1,
+        "reason": "Could use web chat too.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "AI receptionists for Bright Spark Electric's three service areas (Dallas, Fort Worth and Plano), each with its own line, hours and answers.",
+    "assumptions": [
+      "Each location has its own number to forward."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [],
+    "risk_flags": []
+  }
+}

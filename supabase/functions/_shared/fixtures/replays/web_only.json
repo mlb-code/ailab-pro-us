@@ -1,0 +1,37 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "WEB",
+        "qty": 1,
+        "reason": "Needs a first website.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-LOGO",
+        "qty": 1,
+        "reason": "No logo yet.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-PAGE",
+        "qty": 1,
+        "reason": "Wants a page per service.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "A five-page website for Desert Green Landscaping plus one extra service page and a simple logo, with a lead form and click-to-call buttons.",
+    "assumptions": [
+      "You send photos of your work and three customer reviews."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Your site is ready about 7 business days after you send the content.",
+    "questions_for_client": [],
+    "risk_flags": []
+  }
+}

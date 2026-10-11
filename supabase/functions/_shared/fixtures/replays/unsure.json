@@ -1,0 +1,37 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Biggest leak is missed calls and the website works.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-CRM",
+        "qty": 1,
+        "reason": "Uses GoHighLevel.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-FREEBIE",
+        "qty": 1,
+        "reason": "x",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "Based on your answers, the AI receptionist is the right fit for Pest Pro Solutions: your website already works and missed calls are where you lose jobs. It answers missed calls, books inspections and sends each lead into GoHighLevel.",
+    "assumptions": [],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [
+      "Do you want web chat later?"
+    ],
+    "risk_flags": []
+  }
+}

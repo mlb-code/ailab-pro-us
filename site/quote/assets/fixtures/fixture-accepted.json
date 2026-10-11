@@ -1,0 +1,98 @@
+{
+  "status": "accepted",
+  "client": {
+    "name": "Mark Ortiz",
+    "company": "Rapid Flow Plumbing"
+  },
+  "created_at": "2026-10-12T15:00:00.000Z",
+  "sent_at": "2026-10-12T15:00:00.000Z",
+  "valid_until": "2026-10-26T15:00:00.000Z",
+  "scope_md": "An AI receptionist for Rapid Flow Plumbing that answers missed calls, books visits into Google Calendar and writes every new lead and booking into Jobber.",
+  "assumptions": [
+    "You give us admin access to Jobber during setup."
+  ],
+  "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+  "delivery_business_days": 10,
+  "items": [
+    {
+      "code": "RCP",
+      "name": "Missed-Call AI Receptionist",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 350000,
+      "monthly_cents": 30000
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 120000,
+      "monthly_cents": 5000
+    }
+  ],
+  "includes": [
+    {
+      "code": "RCP",
+      "name": "Missed-Call AI Receptionist",
+      "list": [
+        "1 location, 1 AI line (a US number we provision; you keep your existing number and forward unanswered calls to it)",
+        "Voice answering of missed and forwarded calls, plus an automatic text-back to callers who hang up",
+        "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
+        "Booking into 1 calendar: Google Calendar or Calendly",
+        "Up to 25 FAQ entries, business hours, after-hours mode, emergency keywords with an owner alert",
+        "Owner notifications by SMS and email for every lead, plus a daily summary email",
+        "1 outgoing Zapier webhook (lead and booking events) to connect any other tool",
+        "English. Client portal with call log, transcripts, bookings and settings",
+        "A2P 10DLC SMS registration handled by us (registration fees included)",
+        "Included usage per month: 400 voice minutes and 1,000 SMS segments; alerts at 80% and 100%; no automatic overage billing, extra usage blocks added only with your approval",
+        "Monthly: monitoring, prompt/FAQ updates, 1 active change request at a time (small changes, up to 1 hour each)"
+      ]
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "list": [
+        "Leads and bookings written directly into 1 supported system (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
+      ]
+    }
+  ],
+  "excludes": [
+    "Outbound AI calls and marketing text messages",
+    "Additional locations or AI lines (add-on ADD-LOC)",
+    "Spanish / bilingual line (add-on ADD-ES)",
+    "Website chat widget (add-on ADD-CHAT)",
+    "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; extra usage blocks only with your approval)",
+    "Call audio recording (calls are transcribed; audio is not stored)",
+    "Handling of medical records or other protected health information (no HIPAA BAA)"
+  ],
+  "not_included_extra": [],
+  "totals": {
+    "setup_subtotal_cents": 470000,
+    "rush_cents": 0,
+    "discount_cents": 0,
+    "discount_label": null,
+    "setup_cents": 470000,
+    "monthly_cents": 35000,
+    "deposit_cents": 235000,
+    "final_cents": 235000,
+    "deposit_pct": 50
+  },
+  "refund": {
+    "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+    "retainer": null,
+    "status": "pending attorney review; owner to confirm"
+  },
+  "payment": {
+    "method": "paypal_link",
+    "link": "https://www.paypal.com/invoice/p/#DEMO-ONLY"
+  },
+  "agreement_version": "1.0-draft",
+  "accepted": {
+    "name": "Mark Ortiz",
+    "at": "2026-10-12T15:00:00.000Z"
+  },
+  "call_offer_prominent": true,
+  "currency": "USD",
+  "cancel_notice_days": 30
+}

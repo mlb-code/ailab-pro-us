@@ -1,0 +1,28 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Owner answers calls himself and misses about a third; one location.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "We will set up an AI receptionist for Cool Breeze HVAC that answers the calls you miss while on a job, collects the caller's details and books service visits straight into your Google Calendar.\n\nCallers who hang up get a text back within a minute, and you get a text and email for every new lead plus a daily summary.",
+    "assumptions": [
+      "You keep your current business number and forward unanswered calls to the new AI line.",
+      "Bookings use the time windows you set in the setup checklist."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [
+      "Which time windows do you offer for service visits?"
+    ],
+    "risk_flags": []
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "status": "open",
+  "client": {
+    "name": "Rachel Green",
+    "company": "All Seasons Home Services"
+  },
+  "created_at": "2026-10-12T15:00:00.000Z",
+  "sent_at": "2026-10-12T15:00:00.000Z",
+  "valid_until": "2026-10-26T15:00:00.000Z",
+  "scope_md": "An AI receptionist and a new website for All Seasons Home Services, connected to Housecall Pro, with Spanish support on the phone line and a blog section with three starter articles.",
+  "assumptions": [],
+  "timeline_text": "Rush delivery: everything is ready about 7 business days after access and content are complete.",
+  "delivery_business_days": 7,
+  "items": [
+    {
+      "code": "BNDL",
+      "name": "Receptionist + Website bundle",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 490000,
+      "monthly_cents": 40000
+    },
+    {
+      "code": "ADD-ES",
+      "name": "Spanish (bilingual line)",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 75000,
+      "monthly_cents": 5000
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 120000,
+      "monthly_cents": 5000
+    },
+    {
+      "code": "ADD-BLOG",
+      "name": "Blog section + 3 starter articles",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 60000,
+      "monthly_cents": 0
+    },
+    {
+      "code": "ADD-RUSH",
+      "name": "Rush delivery (half the business days)",
+      "qty": 1,
+      "kind": "percent",
+      "setup_cents": 186300,
+      "monthly_cents": 0
+    }
+  ],
+  "includes": [
+    {
+      "code": "BNDL",
+      "name": "Receptionist + Website bundle",
+      "list": [
+        "Everything in the Missed-Call AI Receptionist (RCP)",
+        "Everything in the Business Website (WEB)",
+        "Your AI line number on the website",
+        "Web chat widget on the website (same AI brain) included"
+      ]
+    },
+    {
+      "code": "ADD-ES",
+      "name": "Spanish (bilingual line)",
+      "list": [
+        "Callers can speak or text in Spanish; summaries to you stay in English"
+      ]
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "list": [
+        "Leads and bookings written directly into 1 supported system (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
+      ]
+    },
+    {
+      "code": "ADD-BLOG",
+      "name": "Blog section + 3 starter articles",
+      "list": [
+        "A blog section and 3 starter articles"
+      ]
+    },
+    {
+      "code": "ADD-RUSH",
+      "name": "Rush delivery (half the business days)",
+      "list": [
+        "Delivery in half the business days"
+      ]
+    }
+  ],
+  "excludes": [
+    "Outbound AI calls and marketing text messages",
+    "Additional locations or AI lines (add-on ADD-LOC)",
+    "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; extra usage blocks only with your approval)",
+    "Call audio recording (calls are transcribed; audio is not stored)",
+    "Handling of medical records or other protected health information (no HIPAA BAA)",
+    "Pages beyond the 5 included (add-on ADD-PAGE)",
+    "Spanish version of the website (add-on ADD-WEB-ES)",
+    "Logo design (add-on ADD-LOGO)",
+    "Ongoing SEO campaigns and paid advertising",
+    "More than 1 small content edit per month"
+  ],
+  "not_included_extra": [],
+  "totals": {
+    "setup_subtotal_cents": 745000,
+    "rush_cents": 186300,
+    "discount_cents": 279400,
+    "discount_label": "Founding client (30% off setup)",
+    "setup_cents": 651900,
+    "monthly_cents": 50000,
+    "deposit_cents": 326000,
+    "final_cents": 325900,
+    "deposit_pct": 50
+  },
+  "refund": {
+    "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+    "retainer": null,
+    "status": "pending attorney review; owner to confirm"
+  },
+  "payment": {
+    "method": "wire",
+    "link": null
+  },
+  "agreement_version": "1.0-draft",
+  "accepted": null,
+  "call_offer_prominent": true,
+  "currency": "USD",
+  "cancel_notice_days": 30
+}

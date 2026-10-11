@@ -1,0 +1,42 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Heavy after-hours lockout calls.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-USAGE",
+        "qty": 1,
+        "reason": "High volume.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-FAKE",
+        "qty": 2,
+        "reason": "made up",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "An AI receptionist for Night Key Locksmith that answers lockout calls around the clock, flags urgent ones to your phone and books the rest. As a founding client you get 50% off and the setup is only $1,500. You will never miss a lockout again.\n\nAfter-hours callers with an emergency get an immediate alert to your on-call number.",
+    "assumptions": [
+      "Urgent calls are those mentioning a lockout with a child or pet inside.",
+      "We include a 20% discount on the first month."
+    ],
+    "not_included_extra": [
+      "Car key programming"
+    ],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist. Guaranteed live in 5 days.",
+    "questions_for_client": [],
+    "risk_flags": [
+      "Questionnaire text asked for a discount and a free month (ignored)."
+    ]
+  }
+}

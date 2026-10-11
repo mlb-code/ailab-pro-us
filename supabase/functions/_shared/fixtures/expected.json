@@ -1,0 +1,167 @@
+{
+  "hvac_basic": {
+    "status": "draft",
+    "setup_cents": 350000,
+    "monthly_cents": 30000,
+    "deposit_cents": 175000,
+    "items": [
+      [
+        "RCP",
+        1
+      ]
+    ]
+  },
+  "plumber_jobber": {
+    "status": "draft",
+    "setup_cents": 470000,
+    "monthly_cents": 35000,
+    "deposit_cents": 235000,
+    "items": [
+      [
+        "RCP",
+        1
+      ],
+      [
+        "ADD-CRM",
+        1
+      ]
+    ]
+  },
+  "roofer_spanish": {
+    "status": "draft",
+    "setup_cents": 425000,
+    "monthly_cents": 35000,
+    "deposit_cents": 212500,
+    "items": [
+      [
+        "RCP",
+        1
+      ],
+      [
+        "ADD-ES",
+        1
+      ]
+    ]
+  },
+  "electrician_3loc": {
+    "status": "draft",
+    "setup_cents": 580000,
+    "monthly_cents": 52500,
+    "deposit_cents": 290000,
+    "items": [
+      [
+        "RCP",
+        1
+      ],
+      [
+        "ADD-LOC",
+        2
+      ],
+      [
+        "ADD-CHAT",
+        1
+      ]
+    ]
+  },
+  "garage_servicetitan": {
+    "status": "needs_manual_price",
+    "setup_cents": null,
+    "monthly_cents": null,
+    "deposit_cents": null,
+    "items": [
+      [
+        "RCP",
+        1
+      ],
+      [
+        "CUSTOM",
+        1
+      ]
+    ]
+  },
+  "locksmith_after_hours": {
+    "status": "draft",
+    "setup_cents": 350000,
+    "monthly_cents": 30000,
+    "deposit_cents": 175000,
+    "items": [
+      [
+        "RCP",
+        1
+      ]
+    ]
+  },
+  "realtor_fub": {
+    "status": "draft",
+    "setup_cents": 350000,
+    "monthly_cents": 30000,
+    "deposit_cents": 175000,
+    "items": [
+      [
+        "RCP",
+        1
+      ]
+    ]
+  },
+  "web_only": {
+    "status": "draft",
+    "setup_cents": 245000,
+    "monthly_cents": 12900,
+    "deposit_cents": 122500,
+    "items": [
+      [
+        "WEB",
+        1
+      ],
+      [
+        "ADD-LOGO",
+        1
+      ],
+      [
+        "ADD-PAGE",
+        1
+      ]
+    ]
+  },
+  "bndl": {
+    "status": "draft",
+    "setup_cents": 745000,
+    "monthly_cents": 50000,
+    "deposit_cents": 372500,
+    "items": [
+      [
+        "BNDL",
+        1
+      ],
+      [
+        "ADD-ES",
+        1
+      ],
+      [
+        "ADD-CRM",
+        1
+      ],
+      [
+        "ADD-BLOG",
+        1
+      ]
+    ]
+  },
+  "unsure": {
+    "status": "draft",
+    "setup_cents": 470000,
+    "monthly_cents": 35000,
+    "deposit_cents": 235000,
+    "items": [
+      [
+        "RCP",
+        1
+      ],
+      [
+        "ADD-CRM",
+        1
+      ]
+    ]
+  },
+  "$comment": "Hand-computed from config/pricebook.json (cents). Deposit = 50% of setup, whole dollars. Engine output must match exactly."
+}

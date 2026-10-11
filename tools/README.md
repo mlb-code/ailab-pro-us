@@ -17,6 +17,8 @@ Puppeteer is configured never to download Chrome, see `.puppeteerrc.cjs`).
 | `cdp-eval.mjs` / `cdp-eval-m.mjs` | Load a page (desktop / 390px touch) and print the JSON result of a JS expression. |
 | `e2e_start.mjs` | Client portal E2E on the mock backend (Puppeteer, own server on `E2E_PORT`, default 8931): sign-in, branches, autosave/resume, submit lock, isolation between clients, portal tabs. |
 | `overflow_start.mjs` | Overflow + console gate for every signed-in portal screen and questionnaire step (5 paths) in Chromium/WebKit/Firefox at 375/390/414/1280 (own server, default 8932). |
+| `e2e_admin.mjs` | Owner admin (`/start/admin/`, Hebrew RTL) E2E on the mock backend (Puppeteer, default port 8941): access control, quote editing via price-book codes only, FOUNDING, manual-price gate, approve-and-send, clients/payments, retainer queue, notes never reach the client, overflow. |
+| `overflow_admin.mjs` | Overflow + console gate for every admin tab and detail in Chromium/WebKit/Firefox at 375/390/414/1280 (default port 8942). |
 | `us_setup.py` | A2: one-command Supabase setup for `ailab-us` (create in a Free org, us-east-1; migrations; remote RLS test; auth; Vault + function secrets; functions; cron; writes `site/assets/config.js`). `--dry-run` (no network), `--plan` (read-only), `--create`, `--ref`, `--org`, `--only a,b`, `--self-test`. Secrets only from `.secrets.env`. Runbook: `docs/runbooks/supabase-us-setup.he.md`. |
 | `us_setup_check.py` | Verifies the real project: RLS everywhere, no anon grants, `ping()`, cron jobs, `delete from auth.users` from a pg_cron job. |
 | `us_setup_test.py` | Offline tests for both (fake Management API): `python3 tools/us_setup.py --self-test`. |

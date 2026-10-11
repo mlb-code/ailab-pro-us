@@ -1,0 +1,35 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Misses calls.",
+        "custom_label": ""
+      },
+      {
+        "code": "CUSTOM",
+        "qty": 1,
+        "reason": "Wants jobs created in ServiceTitan.",
+        "custom_label": "ServiceTitan integration (custom scope)"
+      }
+    ],
+    "scope_md": "An AI receptionist for Up & Over Garage Doors that answers missed calls and books appointments. Creating jobs directly in ServiceTitan needs a custom integration that we scope separately.",
+    "assumptions": [],
+    "not_included_extra": [
+      "Changes to your ServiceTitan job types or pricebook."
+    ],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [
+      "Which ServiceTitan plan are you on?"
+    ],
+    "risk_flags": [
+      "ServiceTitan API access must be confirmed."
+    ]
+  }
+}

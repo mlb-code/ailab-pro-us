@@ -1,0 +1,39 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Missed calls on roofs.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-ES",
+        "qty": 1,
+        "reason": "Many Spanish-speaking callers.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-RUSH",
+        "qty": 1,
+        "reason": "Client wants to start ASAP.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "A bilingual AI receptionist for Lone Star Roofing. Callers can speak English or Spanish, and you get every summary in English. Inspections are booked into your Calendly.",
+    "assumptions": [
+      "Your Calendly account is on a paid plan so bookings can be created automatically."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [],
+    "risk_flags": [
+      "Client asked to start as soon as possible."
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema; replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Missed calls while on jobs.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-CRM",
+        "qty": 1,
+        "reason": "Uses Jobber for jobs and clients.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "An AI receptionist for Rapid Flow Plumbing that answers missed calls, books visits into Google Calendar and writes every new lead and booking into Jobber.",
+    "assumptions": [
+      "You give us admin access to Jobber during setup."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [],
+    "risk_flags": []
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "name": "bndl",
+  "profile": {
+    "full_name": "Rachel Green",
+    "company": "All Seasons Home Services"
+  },
+  "questionnaire": {
+    "offer": "BNDL",
+    "niche": "home_services",
+    "status": "submitted",
+    "answers": {
+      "offer": "BNDL",
+      "niche": "home_services",
+      "services": [
+        "hvac",
+        "plumbing"
+      ],
+      "service_area": "77002, 77005, Houston Heights",
+      "locations": "1",
+      "who_answers": "owner",
+      "calls_week": "50_150",
+      "missed_pct": "25_50",
+      "after_hours": "voicemail",
+      "urgent": "sometimes",
+      "job_value": "200_1k",
+      "tools": [
+        "housecall_pro"
+      ],
+      "spanish": "some",
+      "price_on_phone": "no",
+      "timeline": "month",
+      "decider": "me",
+      "has_website": "outdated",
+      "content_have": [
+        "logo"
+      ],
+      "web_extras": [
+        "blog"
+      ]
+    },
+    "summary": [
+      {
+        "k": "offer",
+        "q": "offer",
+        "a": "BNDL"
+      },
+      {
+        "k": "niche",
+        "q": "niche",
+        "a": "home_services"
+      },
+      {
+        "k": "services",
+        "q": "services",
+        "a": "hvac, plumbing"
+      },
+      {
+        "k": "service_area",
+        "q": "service_area",
+        "a": "77002, 77005, Houston Heights"
+      },
+      {
+        "k": "locations",
+        "q": "locations",
+        "a": "1"
+      },
+      {
+        "k": "who_answers",
+        "q": "who_answers",
+        "a": "owner"
+      },
+      {
+        "k": "calls_week",
+        "q": "calls_week",
+        "a": "50_150"
+      },
+      {
+        "k": "missed_pct",
+        "q": "missed_pct",
+        "a": "25_50"
+      },
+      {
+        "k": "after_hours",
+        "q": "after_hours",
+        "a": "voicemail"
+      },
+      {
+        "k": "urgent",
+        "q": "urgent",
+        "a": "sometimes"
+      },
+      {
+        "k": "job_value",
+        "q": "job_value",
+        "a": "200_1k"
+      },
+      {
+        "k": "tools",
+        "q": "tools",
+        "a": "housecall_pro"
+      },
+      {
+        "k": "spanish",
+        "q": "spanish",
+        "a": "some"
+      },
+      {
+        "k": "price_on_phone",
+        "q": "price_on_phone",
+        "a": "no"
+      },
+      {
+        "k": "timeline",
+        "q": "timeline",
+        "a": "month"
+      },
+      {
+        "k": "decider",
+        "q": "decider",
+        "a": "me"
+      },
+      {
+        "k": "has_website",
+        "q": "has_website",
+        "a": "outdated"
+      },
+      {
+        "k": "content_have",
+        "q": "content_have",
+        "a": "logo"
+      },
+      {
+        "k": "web_extras",
+        "q": "web_extras",
+        "a": "blog"
+      }
+    ]
+  }
+}
