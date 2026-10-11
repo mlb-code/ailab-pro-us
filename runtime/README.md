@@ -24,5 +24,9 @@ Voice/SMS routes: `/voice/incoming|turn|dial-result|status|fallback|relay-end`, 
 Latency in the simulator: the runtime records per turn (total ms, Claude ms) from receiving the final transcript to having the
 reply ready; event `voice.latency` holds server p50/p95 (= total - Claude) per call, and `FakeCall` measures client-side ms per turn.
 Target: server p95 < 150 ms (tested); end-to-end < 1 s needs Claude time, measured in live runs (B12).
+Twilio cost estimate per call: `TWILIO_VOICE_USD_PER_MIN` (default 0.0785 = inbound local minute 0.0085 + ConversationRelay
+0.07, list prices assumed Oct 2026; 0.0125 when `VOICE_MODE=gather`), billed in whole minutes; SMS `TWILIO_SMS_USD_PER_SEGMENT`.
+Invalid tenant config = safe mode (`app/voice_safe.py`): polite sentence + name/number message, SMS text-back, minimal SMS replies
+(STOP/HELP still work), event `tenant_config_invalid` + Hebrew admin alert once a day; `/health/deep` lists `tenants_invalid`.
 B5/B6 hooks used by voice/SMS: `app/_stubs_b56.py` (`get_provider`, `owner_alert`, `emit`).
 Model and brand name come from `app/brand.json` (synced from `config/brand.json`).

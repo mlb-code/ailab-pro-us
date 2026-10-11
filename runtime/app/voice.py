@@ -382,7 +382,9 @@ async def voice_incoming(request: Request) -> Response:
     tenant, problem = rt.resolve_tenant(str(form.get("To", "")))
     if problem == "unknown":
         return _xml(twiml_say_hangup(NOT_IN_SERVICE))
-    if problem or not tenant.active:
+    if problem == "invalid_config":
+        return _xml(await _safe_voice(rt, form, "incoming"))
+    if not tenant.active:
         return _xml(twiml_say_hangup(UNAVAILABLE))
     now = rt.now()
     admitted = await run_in_threadpool(rt.flow.admit, tenant, caller, now)
@@ -398,11 +400,33 @@ async def voice_incoming(request: Request) -> Response:
     return _xml(twiml_gather(greeting(tenant), tenant.config.voice.tts_voice))
 
 
+async def _safe_voice(rt: Runtime, form: Any, step: str) -> str:
+    """Tenant config does not validate: polite sentence + name/number message (app.voice_safe)."""
+    from .voice_safe import SafeMode, broken_tenant
+    bt = await run_in_threadpool(broken_tenant, rt, str(form.get("To", "")))
+    if bt is None:
+        return twiml_say_hangup(UNAVAILABLE)
+    safe, now = SafeMode(rt), rt.now()
+    call_sid, caller = str(form.get("CallSid", "")), str(form.get("From", ""))
+    if step == "message":
+        return await run_in_threadpool(safe.voice_message, bt, call_sid, caller, str(form.get("SpeechResult", "") or ""), now)
+    return await run_in_threadpool(safe.voice_incoming, bt, call_sid, caller, now)
+
+
+@router.post("/voice/safe-message")
+async def voice_safe_message(request: Request) -> Response:
+    rt = _rt(request)
+    form = await request.form()
+    return _xml(await _safe_voice(rt, form, "message"))
+
+
 @router.post("/voice/turn")
 async def voice_turn(request: Request) -> Response:
     rt = _rt(request)
     form = await request.form()
     tenant, problem = rt.resolve_tenant(str(form.get("To", "")))
+    if problem == "invalid_config":  # config broke mid-call: switch to the safe message
+        return _xml(await _safe_voice(rt, form, "incoming"))
     if problem or not tenant:
         return _xml(twiml_say_hangup(UNAVAILABLE))
     turn = await run_in_threadpool(rt.flow.turn, tenant, str(form.get("CallSid", "")), str(form.get("From", "")),
@@ -428,6 +452,16 @@ async def voice_status(request: Request, background: BackgroundTasks) -> Respons
     form = await request.form()
     tenant, problem = rt.resolve_tenant(str(form.get("To", "")))
     status = str(form.get("CallStatus", ""))
+    if problem == "invalid_config" and status in TERMINAL:
+        from .voice_safe import SafeMode, broken_tenant
+        bt = await run_in_threadpool(broken_tenant, rt, str(form.get("To", "")))
+        if bt is not None:
+            try:
+                duration = int(form.get("CallDuration") or 0)
+            except ValueError:
+                duration = 0
+            background.add_task(SafeMode(rt).voice_finished, bt, str(form.get("CallSid", "")),
+                                str(form.get("From", "")), duration, rt.now())
     if tenant and not problem and status in TERMINAL:
         now, call_sid = rt.now(), str(form.get("CallSid", ""))
         try:

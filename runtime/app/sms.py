@@ -37,6 +37,10 @@ def _empty() -> Response:
 def handle_inbound(rt: Runtime, form: dict[str, str]) -> str:
     """Process one inbound SMS; returns the reply text ("" = no reply)."""
     tenant, problem = rt.resolve_tenant(form.get("To", ""))
+    if problem == "invalid_config":  # never silent: minimal reply + log + admin alert (app.voice_safe)
+        from .voice_safe import SafeMode, broken_tenant
+        bt = broken_tenant(rt, form.get("To", ""))
+        return SafeMode(rt).sms(bt, form, rt.now()) if bt else ""
     if problem or not tenant:
         return ""
     ts = rt.store.for_tenant(tenant.id)
