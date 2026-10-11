@@ -13,7 +13,7 @@ PORT ?= 8787
 FREE = $$($(PY) tools/free_port.py)
 DENO_RUN = $(DENO) run -A --node-modules-dir=none
 
-.PHONY: install serve secrets qa qa-fast qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-deno qa-sql
+.PHONY: install serve secrets qa qa-fast qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-deno qa-sql qa-phase-a
 
 install:
 	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund
@@ -62,6 +62,12 @@ qa-portal-b7:
 	E2E_PORT=$(FREE) $(NODE) tools/overflow_portal_b7.mjs
 	$(DENO_RUN) supabase/tests/offline/portal_b7_run.ts
 
+# Phase-A gate (A10): the whole sale journey on the mock backend at 390 + 1280 (landing -> sign-in -> RCP questionnaire ->
+# admin draft/send -> quote page accept -> deposit -> checklist -> go-live), plus WEB and real-estate paths; quote page E2E.
+qa-phase-a:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_phase_a.mjs
+	PORT=$(FREE) $(NODE) tools/e2e_quote.mjs
+
 # ---------- Deno + offline Postgres ----------
 qa-deno:
 	cd supabase/functions && $(DENO) test -A --node-modules-dir=none .
@@ -71,5 +77,5 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/quote_engine_run.ts
 	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-phase-a
 	@echo "make qa: all checks passed"

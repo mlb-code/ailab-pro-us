@@ -40,7 +40,8 @@ for (const p of PAGES) {
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(base + p, { waitUntil: 'networkidle' });
   let late = [];
-  page.on('request', r => late.push(r.url()));
+  // Web fonts may be fetched lazily when a weight first appears (seen in Firefox under load); that is not a demo call.
+  page.on('request', r => { if (!/^https:\/\/fonts\.(gstatic|googleapis)\.com\//.test(r.url())) late.push(r.url()); });
 
   const data = JSON.parse(await page.locator('[data-demo-data]').textContent());
   const niches = Object.keys(data);
