@@ -14,7 +14,7 @@ from app import settings as settings_mod
 from app._stubs_b56 import TenantCalendars
 from app.main import create_app
 from app.store import JsonStore
-from app.tenants import TenantRecord, load_file
+from app.tenants import TenantConfigError, TenantRecord, load_file
 
 from .fake_calendar import FakeCalendar
 from .fake_call import FakeCall
@@ -80,12 +80,17 @@ class Sim:
     def settled(self, slug: str = "demo-hvac"):
         """call_sid -> whether the runtime has finished the call (used by FakeCall.hangup)."""
         def check(call_sid: str) -> bool:
-            c = self.rt.engine.find_convo(self.tenant(slug), "voice", call_sid)
+            try:
+                tenant = self.tenant(slug)
+            except TenantConfigError:  # safe mode: no relay session to wait for
+                return True
+            c = self.rt.engine.find_convo(tenant, "voice", call_sid)
             return c is None or bool(c.meta.get("finalized") or c.meta.get("relay_lost") or c.ended)
         return check
 
     def call(self, slug: str = "demo-hvac", caller: str = CALLER, **kw) -> FakeCall:
-        return FakeCall(self.twilio, self.tenant(slug).twilio_number, caller, clock=self.clock,
+        number = self.store.select("tenants", slug=slug)[0]["twilio_number"]  # works for an invalid config too
+        return FakeCall(self.twilio, number, caller, clock=self.clock,
                         settled=self.settled(slug), **kw)
 
     def tenant(self, slug: str) -> TenantRecord:

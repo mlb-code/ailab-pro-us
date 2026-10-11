@@ -204,6 +204,7 @@ def calendar_owner(business: str, provider: str) -> tuple[str, str, str, str]:
 
 # --- admin (Hebrew) ------------------------------------------------------------------------------
 ADMIN_KIND_HE = {"calendar_reconnect": "היומן התנתק", "admin_budget": "תקציב יומי נוצל",
+                 "tenant_config_invalid": "קונפיג לקוח לא תקין, הקו במצב חירום",
                  "zapier_dead_letter": "Zapier נכשל", "notify_failed": "שליחת התראה נכשלה"}
 
 

@@ -25,13 +25,19 @@ from ..tenants import TenantRecord
 
 log = logging.getLogger("rt.calllog")
 
-DEFAULT_VOICE_PER_MIN = 0.0085 + 0.004  # inbound local minute + speech recognition, rough
+# Twilio list prices (USD/min, Oct 2026 assumption, override with TWILIO_VOICE_USD_PER_MIN):
+# inbound local minute 0.0085 + ConversationRelay 0.07 (streaming STT/TTS, the production mode);
+# turn-based <Gather> mode uses speech recognition instead (~0.004/min billed per 15 s, rough).
+VOICE_USD_PER_MIN_STREAM = 0.0085 + 0.07
+VOICE_USD_PER_MIN_GATHER = 0.0085 + 0.004
+DEFAULT_VOICE_PER_MIN = VOICE_USD_PER_MIN_STREAM
 DEFAULT_SMS_PER_SEGMENT = 0.0083 + 0.003  # outbound segment + typical carrier fee
 
 
 def rates(env: dict[str, str] | None = None) -> dict[str, float]:
     env = dict(os.environ if env is None else env)
-    return {"voice_per_min": float(env.get("TWILIO_VOICE_USD_PER_MIN") or DEFAULT_VOICE_PER_MIN),
+    mode_default = VOICE_USD_PER_MIN_GATHER if env.get("VOICE_MODE", "").lower() == "gather" else DEFAULT_VOICE_PER_MIN
+    return {"voice_per_min": float(env.get("TWILIO_VOICE_USD_PER_MIN") or mode_default),
             "sms_per_segment": float(env.get("TWILIO_SMS_USD_PER_SEGMENT") or DEFAULT_SMS_PER_SEGMENT)}
 
 

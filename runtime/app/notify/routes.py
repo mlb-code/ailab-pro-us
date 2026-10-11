@@ -135,9 +135,23 @@ def health_deep(request: Request) -> JSONResponse:
         "admin_email": bool(svc.notifier.policy.admin_email) or s.is_sim,
     }
     optional = {p: svc.calendar.tokens.configured(p) for p in ("calendly", "google")}
+    invalid = invalid_tenants(svc.store)
+    checks["tenant_configs"] = not invalid
     ok = all(checks.values())
-    return JSONResponse({"ok": ok, "checks": checks, "calendar_oauth": optional, "mode": s.mode},
-                        status_code=200 if ok else 503)
+    return JSONResponse({"ok": ok, "checks": checks, "calendar_oauth": optional, "mode": s.mode,
+                         "tenants_invalid": invalid}, status_code=200 if ok else 503)
+
+
+def invalid_tenants(store: Store) -> list[dict[str, Any]]:
+    """Every stored tenant config validated (B12 #2): slug + the first problems of each invalid one."""
+    from ..tenants import TenantConfigError, load_record
+    out = []
+    for row in store.select("tenants"):
+        try:
+            load_record(row)
+        except TenantConfigError as exc:
+            out.append({"slug": row.get("slug"), "problems": exc.problems[:3]})
+    return out
 
 
 @router.post("/jobs/tick")

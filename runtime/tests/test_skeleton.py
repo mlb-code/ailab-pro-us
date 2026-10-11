@@ -174,7 +174,8 @@ def test_invalid_config_in_store_degrades_politely(sim, demo_raw):
     rows = sim.store.select("tenants", slug="demo-hvac")
     sim.store.update("tenants", rows[0]["id"], {"config": {**demo_raw["config"], "hours": {"mon": ["9", "5"]}}})
     _, r = sim.twilio.start_call(demo_raw["twilio_number"], harness.CALLER)
-    assert r.status_code == 200 and "can't take your call" in parse_twiml(r.text).text
+    tw = parse_twiml(r.text)  # safe mode (B12 #2): polite sentence + name/number message, never a dead line
+    assert r.status_code == 200 and "Cool Breeze HVAC" in tw.text and "your name" in tw.text and tw.gather
 
 
 def test_sms_incoming_skeleton(sim):
