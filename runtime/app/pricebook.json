@@ -447,7 +447,8 @@
     "follow_up_boss": "zapier",
     "dentrix": "custom",
     "open_dental": "custom",
-    "other": "custom"
+    "other": "custom",
+    "kvcore": "zapier"
   },
   "integration_meta": {
     "google_calendar": {
@@ -557,6 +558,13 @@
         "*"
       ],
       "note": "Free-text tool name; priced manually."
+    },
+    "kvcore": {
+      "label": "kvCORE",
+      "category": "crm",
+      "niches": [
+        "real_estate"
+      ]
     }
   }
 }
