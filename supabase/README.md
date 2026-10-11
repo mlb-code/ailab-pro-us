@@ -16,3 +16,23 @@
 
 ## `public.runtime_state` (מיגרציה `20261011100300_us_runtime_state.sql`)
 מצב קטן ועמיד של ה-runtime: מוני קצב, תקציב, שימוש חודשי. עמודות `id`, `key` (ייחודי גלובלית), `tenant_id` (nullable, נמחק יחד עם ה-tenant), `value jsonb`, `updated_at`. החוזה זהה ל-`StateStore` ב-`runtime/app/store.py`: select לפי `key`, update לפי `id`, insert, הכל דרך PostgREST. הטבלה ב-`public` רק כדי ש-PostgREST יגיע אליה; ל-anon ול-authenticated אין הרשאות ואין מדיניות, כך שרק service role ניגש אליה. נבדק ב-`tests/rls_test.sql`.
+
+## מיילים (A8) — מה `tools/us_setup.py` (A2) צריך להגדיר
+
+מיגרציה `20261011100500_us_email_events.sql`: outbox ב-`private.email_outbox` (מפתח `idem_key` ייחודי = Idempotency-Key ב-Resend), טריגרים על `events`/`payments`/`leads`, RPC לשירות בלבד (`email_claim`, `email_complete`, `email_settings`, `email_recipient`, `email_unsubscribe`, `storage_purge_claim`, `storage_purge_done`), RPC לאדמין `admin_log_event(p_entity, p_entity_id, p_type, p_payload)` (A7). Edge Function `events-dispatch` שולחת; `email-unsubscribe` מטפלת בהסרה.
+
+| # | מה | שם מדויק | ערך / הערה |
+|---|---|---|---|
+| 1 | פריסת Edge Functions | `events-dispatch` | `verify_jwt = true` (נקרא רק עם service role) |
+| 2 | | `email-unsubscribe` | **`verify_jwt = false`** (קישור ציבורי במייל) |
+| 3 | סוד Edge Function | `RESEND_API_KEY` | בלעדיו המיילים נשארים `pending` (לא נשרפים ניסיונות). `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` מוזרקים אוטומטית |
+| 4 | Vault | `ailab_us_project_url` | `https://<ref>.supabase.co` |
+| 5 | Vault | `ailab_us_service_role_key` | אותו מפתח service role (JWT) שה-Edge runtime מזריק כ-`SUPABASE_SERVICE_ROLE_KEY` |
+| 6 | אחרי 4–5, SQL אחד | `select private.install_email_jobs();` | idempotent. יוצר 5 משימות pg_cron (UTC): `ailab-us-email-dispatch` כל דקה (רק כשיש מה לשלוח), `ailab-us-email-scan` 15:00 (תזכורת הצעה + nudge), `ailab-us-monthly-invoice` 15:00 ב-1 לחודש, `ailab-us-quote-expiring` 14:30 (קורא ל-`quote-expiring`), `ailab-us-storage-purge` 03:47 (מוחק קבצים מ-`private.storage_purge_queue`) |
+| 7 | `private.settings` | `admin_email` | המייל של מאיר (ברירת מחדל קיימת). `client_emails_enabled` נשאר `false` עד שמאיר מאשר נוסחים (חוסם רק תזכורות, ראו למטה); `admin_emails_enabled = true` |
+| 8 | Resend | דומיין `brand.domain` | עד שמאומת: שגיאת domain מ-Resend → שליחה חוזרת אוטומטית מ-`senders.fallback` |
+
+**שולח:** `brand.smtp_from` אם מלא, אחרת `senders.transactional` / `senders.quotes` (הצעות) / `senders.alerts` (למאיר), אחרת `senders.fallback`. reply-to: `senders.reply_to` (ללקוח), מייל הלקוח (למאיר).
+**טרנזקציוני מול תזכורת:** `quote_reminder`, `quote_expiring`, `onboarding_nudge` = תזכורות: נשלחות רק כש-`client_emails_enabled=true`, עם קישור הסרה + `List-Unsubscribe`, ורק אם `brand.physical_address` מלא (CAN-SPAM). כל השאר טרנזקציוני ויוצא תמיד. מיילים למאיר נדחים ל-08:00 שעון `owner.timezone` אם נוצרו בין 23:00 ל-08:00.
+**לא כאן:** `auth_code` (Supabase Auth), `lead_alert` / `daily_summary` / `admin_daily` / התראות שימוש / דוח ROI חודשי (runtime, B6).
+**בדיקות:** `deno run -A --node-modules-dir=none supabase/tests/offline/email_events_run.ts` (אופליין בלבד: הבדיקה כותבת ל-stand-in של `vault`/`net`). בפרויקט אמיתי: `select * from cron.job where jobname like 'ailab-us-%'` = 7 שורות; `select status, count(*) from private.email_outbox group by 1`.
