@@ -301,7 +301,9 @@
   }
   async function wireNotes() {
     const b = $('#notesSave'); if (!b) return;
-    try { $('#notes').value = await AB.adminGetNote(b.dataset.entity, b.dataset.eid); } catch (e) { /* no note yet */ }
+    const ta = $('#notes');
+    try { const v = await AB.adminGetNote(b.dataset.entity, b.dataset.eid); if (ta.isConnected) ta.value = v; } catch (e) { /* no note yet */ }
+    if (!b.isConnected) return;
     b.addEventListener('click', async () => {
       b.disabled = true;
       try { await AB.adminSaveNote(b.dataset.entity, b.dataset.eid, $('#notes').value); toast('ההערה נשמרה.'); await reloadEvents(); }
@@ -322,7 +324,8 @@
       $('#leadList').innerHTML = rows.length ? rows.map(l => {
         const st = startedLead(l);
         const utm = l.utm && Object.keys(l.utm).length ? Object.entries(l.utm).map(([k, v]) => k + '=' + v).join(' · ') : '';
-        return '<li><span class="grow"><b>' + ltr(l.email) + '</b><br><span class="muted small">' + esc(nicheLabel(l.niche)) + ' · ' + ltr(l.source_page || '') +
+        const extra = [l.name, l.company, l.offer].filter(Boolean).map(x => '<bdi>' + esc(x) + '</bdi>').join(' · ');
+        return '<li><span class="grow"><b>' + ltr(l.email) + '</b>' + (extra ? ' · ' + extra : '') + '<br><span class="muted small">' + esc(nicheLabel(l.niche)) + ' · ' + ltr(l.source_page || '') +
           (utm ? ' · ' + ltr(utm) : '') + ' · ' + esc(fmtDate(l.created_at, true)) + '</span></span>' +
           '<span class="pill pill--' + (st ? 'done' : 'todo') + '">' + (st ? 'התחיל שאלון' : 'לא התחיל') + '</span>' +
           '<a class="btn btn--ghost btn--sm" href="mailto:' + esc(l.email) + '">מייל</a></li>';
@@ -368,20 +371,24 @@
       '<h3>תשובות</h3><ul class="sum" dir="ltr" lang="en">' + summary.map(it => '<li><div class="q">' + esc(it.q) + '</div><div class="a' + ((it.a || '').trim() ? '' : ' none') + '">' + esc((it.a || '').trim() || '—') + '</div></li>').join('') + '</ul>' +
       '<h3>קבצים</h3><div id="files"><p class="muted">טוען…</p></div>' + notesBox('questionnaire', q.id);
     focusDetail();
-    try {
-      const atts = await AB.adminListAttachments(q.id);
-      $('#files').innerHTML = atts.length ? '<ul class="plist">' + atts.map((a, i) => '<li><span class="grow" dir="ltr">' + esc(a.filename) + '</span><button type="button" class="btn btn--ghost btn--sm" data-att="' + i + '">הורדה</button></li>').join('') + '</ul>' : '<p class="muted">אין קבצים.</p>';
-      $$('[data-att]').forEach(b => b.addEventListener('click', async () => {
-        try { window.open(await AB.downloadUrl(atts[+b.dataset.att]), '_blank', 'noopener'); } catch (e) { toast(errText(e)); }
-      }));
-    } catch (e) { $('#files').innerHTML = msg(errText(e)); }
-    $('#copyMd').addEventListener('click', async () => {
+    const filesEl = $('#files', d), copyBox = $('#copyBox', d);
+    $('#copyMd', d).addEventListener('click', async () => {
       const md = '# Questionnaire: ' + company(q.user_id) + '\n\n- Offer: ' + (q.offer || '') + '\n- Niche: ' + (q.niche || '') + '\n- Submitted: ' + (q.submitted_at || '') +
         '\n- Contact: ' + [pr.full_name, pr.email, pr.phone, pr.city, pr.state, pr.timezone].filter(Boolean).join(' · ') + '\n\n## Answers\n\n' +
         summary.map(it => '**' + it.q + '**\n' + ((it.a || '').trim() || '—')).join('\n\n') + '\n';
       try { await navigator.clipboard.writeText(md); toast('הועתק. להדביק בשיחה עם Claude.'); }
-      catch (e) { $('#copyBox').innerHTML = '<div class="field"><label for="mdBox">להעתקה ידנית</label><textarea class="textarea tall ltr" dir="ltr" id="mdBox" readonly>' + esc(md) + '</textarea></div>'; $('#mdBox').select(); }
+      catch (e) { copyBox.innerHTML = '<div class="field"><label for="mdBox">להעתקה ידנית</label><textarea class="textarea tall ltr" dir="ltr" id="mdBox" readonly>' + esc(md) + '</textarea></div>'; $('#mdBox', copyBox).select(); }
     });
+    // attachments load async: the detail may have been replaced meanwhile (e.g. "צור טיוטת הצעה" jumps to the quote)
+    (async () => {
+      let atts;
+      try { atts = await AB.adminListAttachments(q.id); } catch (e) { if (filesEl.isConnected) filesEl.innerHTML = msg(errText(e)); return; }
+      if (!filesEl.isConnected) return;
+      filesEl.innerHTML = atts.length ? '<ul class="plist">' + atts.map((a, i) => '<li><span class="grow" dir="ltr">' + esc(a.filename) + '</span><button type="button" class="btn btn--ghost btn--sm" data-att="' + i + '">הורדה</button></li>').join('') + '</ul>' : '<p class="muted">אין קבצים.</p>';
+      $$('[data-att]', filesEl).forEach(b => b.addEventListener('click', async () => {
+        try { window.open(await AB.downloadUrl(atts[+b.dataset.att]), '_blank', 'noopener'); } catch (e) { toast(errText(e)); }
+      }));
+    })();
     const oq = $('#openQuote'); if (oq) oq.addEventListener('click', () => go('quotes', qt.id));
     const mk = $('#mkDraft');
     if (mk) mk.addEventListener('click', async () => {
@@ -631,7 +638,7 @@
       '</dd><dt class="grand">חודשי</dt><dd>' + money(q.monthly_cents) + '</dd></dl>' +
       '<dl class="kv spaced"><dt>אמצעי תשלום</dt><dd>' + esc(pm) + '</dd><dt>קישור תשלום</dt><dd>' + (q.pay_link ? ltr(q.pay_link) : '<span class="muted">—</span>') + '</dd>' +
       (q.accepted_at ? '<dt>אושרה ע"י</dt><dd>' + esc(q.accepted_name || '') + ' · ' + esc(fmtDate(q.accepted_at, true)) + '</dd>' : '') + '</dl>' +
-      '<div class="btnrow">' + (q.public_token && q.status !== 'void' ? '<a class="btn btn--ghost" href="/quote/?t=' + encodeURIComponent(q.public_token) + '" target="_blank" rel="noopener">דף ההצעה של הלקוח</a>' : '') +
+      '<div class="btnrow">' + (q.public_token && q.status !== 'void' ? '<a class="btn btn--ghost" href="/quote/#t=' + encodeURIComponent(q.public_token) + '" target="_blank" rel="noopener">דף ההצעה של הלקוח</a>' : '') +
       (['sent', 'viewed'].includes(q.status) ? '<button type="button" class="btn btn--ghost" id="voidBtn">בטל הצעה</button>' : '') +
       (q.status === 'accepted' ? (cl ? '<button type="button" class="btn btn--primary" id="toClient">לכרטיס הלקוח</button>' : '<button type="button" class="btn btn--primary" id="mkClient">פתח כרטיס לקוח</button>') : '') + '</div><div id="eMsg"></div>';
   }
@@ -640,10 +647,10 @@
     const box = $('#reviewBox'); if (!box) return;
     let r = null;
     try { r = await AB.adminGetQuoteReview(q.id); } catch (e) { box.innerHTML = msg(errText(e)); return; }
-    if (!r || !$('#reviewBox')) return;
+    if (!r || !box.isConnected) return;
     const list = (title, arr) => arr && arr.length ? '<h4>' + esc(title) + '</h4><ul class="sum" dir="auto">' + arr.map(x => '<li><div class="a" dir="auto">' + esc(typeof x === 'string' ? x : JSON.stringify(x)) + '</div></li>').join('') + '</ul>' : '';
     const body = list('סיבות לתמחור ידני', r.manual_reasons) + list('דגלי סיכון', r.risk_flags) + list('שאלות ללקוח', r.questions_for_client) + list('מה הוסר מהטקסט של Claude', r.removed);
-    $('#reviewBox').innerHTML = '<section class="card review" aria-labelledby="rvH"><h3 id="rvH">בדיקת הטיוטה (רק אתה רואה)</h3>' +
+    box.innerHTML = '<section class="card review" aria-labelledby="rvH"><h3 id="rvH">בדיקת הטיוטה (רק אתה רואה)</h3>' +
       (body || '<p class="muted">אין הערות מהמנוע.</p>') + (r.model ? '<p class="muted small">מודל: <span dir="ltr">' + esc(r.model) + '</span></p>' : '') + '</section>';
   }
   function wireFrozen(q) {
@@ -710,12 +717,14 @@
     const cfg = t.config || {}, b = cfg.business || {};
     const days = Object.entries(cfg.hours || {}).filter(([, v]) => Array.isArray(v)).map(([k]) => k).join(' ');
     let state = [];
+    const box = $('#tenantBox');
     try { state = await AB.adminRuntimeState(t.id); } catch (e) { state = []; }
+    if (!box || !box.isConnected) return;
     const usage = (state.find(r => /^usage:/.test(r.key)) || {}).value;
     const spend = (state.find(r => /^spend:/.test(r.key)) || {}).value;
     const inc = (PB.rules || {}).included_usage || {};
     const pctOf = (v, m) => m ? Math.round(v / m * 100) + '%' : '';
-    $('#tenantBox').innerHTML = '<dl class="kv"><dt>slug</dt><dd>' + ltr(t.slug) + '</dd><dt>סטטוס</dt><dd>' + pill('tenant', t.status) + '</dd><dt>מספר</dt><dd>' + ltr(t.twilio_number || '—') + '</dd>' +
+    box.innerHTML = '<dl class="kv"><dt>slug</dt><dd>' + ltr(t.slug) + '</dd><dt>סטטוס</dt><dd>' + pill('tenant', t.status) + '</dd><dt>מספר</dt><dd>' + ltr(t.twilio_number || '—') + '</dd>' +
       '<dt>שם העסק</dt><dd dir="ltr">' + esc(b.name || '—') + '</dd><dt>אזור זמן</dt><dd>' + ltr(b.timezone || '—') + '</dd><dt>ימי פעילות</dt><dd dir="ltr">' + esc(days || '—') + '</dd>' +
       '<dt>אחרי שעות</dt><dd dir="ltr">' + esc((cfg.after_hours || {}).mode || '—') + '</dd><dt>יומן</dt><dd dir="ltr">' + esc((cfg.booking || {}).provider || '—') + '</dd>' +
       '<dt>שאלות נפוצות</dt><dd>' + ((cfg.faq || []).length) + '</dd><dt>מחירים בטלפון</dt><dd dir="ltr">' + esc((cfg.pricing || {}).mode || '—') + '</dd>' +
@@ -822,6 +831,7 @@
     if (AB.mode === 'mock') {
       try {
         const box = await AB.adminOutbox();
+        if (!$('#outbox')) return;
         $('#outbox').innerHTML = box.slice(0, 30).map(m => '<li><time>' + esc(fmtDate(m.created_at, true)) + '</time><span><b dir="ltr">' + esc(m.template) + '</b> → ' + ltr(m.to || '') +
           (m.subject ? '<br><span dir="auto">' + esc(m.subject) + '</span>' : '') + '</span></li>').join('') || '<li class="empty">ריק.</li>';
       } catch (e) { /* mock only */ }

@@ -204,19 +204,22 @@ def test_health_deep_sim_ok_and_prod_reports_missing_config_without_values(tmp_p
     store = JsonStore(tmp_path)
     app = create_app(settings, store)
     app.include_router(router)
-    r = TestClient(app).get("/health/deep")
+    assert TestClient(app).get("/health/deep").status_code == 401
+    r = TestClient(app).get("/health/deep", headers=AUTH)
     assert r.status_code == 200 and r.json()["ok"]
     prod = settings_mod.load({"RUNTIME_MODE": "prod", "STORE_BACKEND": "json", "DATA_DIR": str(tmp_path / "p"),
                               "TWILIO_AUTH_TOKEN": "tok-value-should-not-leak", "BRAIN_MODE": "mock"})
     app2 = create_app(prod, JsonStore(tmp_path / "p"))
     app2.include_router(router)
     app2.state.b56 = build_services(prod, app2.state.store, env={})
-    r2 = TestClient(app2).get("/health/deep")
+    assert TestClient(app2).get("/health/deep", headers=AUTH).status_code == 503  # no admin token in prod
+    assert TestClient(app2).post("/jobs/tick", headers=AUTH).status_code == 503
+    app2.state.b56 = build_services(prod, app2.state.store, env={"RUNTIME_ADMIN_TOKEN": "adm-1"})
+    r2 = TestClient(app2).get("/health/deep", headers={"Authorization": "Bearer adm-1"})
     assert r2.status_code == 503
     body = r2.json()
     assert body["checks"]["twilio_auth_token"] is True and body["checks"]["cred_key"] is False
-    assert body["checks"]["admin_token"] is False and "tok-value-should-not-leak" not in r2.text
-    assert TestClient(app2).post("/jobs/tick", headers=AUTH).status_code == 503  # no admin token in prod
+    assert body["checks"]["admin_token"] is True and "tok-value-should-not-leak" not in r2.text
 
 
 def test_failed_report_send_is_retried_on_the_next_tick(tmp_path, demo_raw):

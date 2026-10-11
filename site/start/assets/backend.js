@@ -185,6 +185,7 @@
       },
       // Event stub. With Supabase the DB writes the event itself (questionnaires_log trigger -> public.events) and
       // task A8 turns 'submitted' into the q_received (client) + owner e-mails. Nothing to send from the browser.
+      // For offer WEB the same 'submitted' trigger fires; A8 must send the owner web_deposit_link_requested (not q_received).
       async notify(type, payload) { return { ok: true, via: 'db-trigger', type, payload }; }
     };
   }

@@ -208,7 +208,7 @@
   }
   function helpBox(it) {
     const sent = it.status === 'need_help' && it.data && it.data.help_message;
-    return '<div class="help">' + (sent ? S.msgHtml('We got your message and will reply in writing within 1 business day.', 'info') : '') +
+    return '<div class="help">' + (sent ? S.msgHtml('We got your message and will reply in writing ' + S.sla() + '.', 'info') : '') +
       '<details class="help__d"><summary>Need help with this step?</summary><div class="field"><label for="help_' + esc(it.key) + '">Tell us what’s unclear — no call needed.</label>' +
       '<textarea class="textarea short" id="help_' + esc(it.key) + '" maxlength="2000"></textarea></div>' +
       '<button type="button" class="btn btn--ghost btn--sm" data-help="' + esc(it.id) + '">Send to our team</button><div id="helpMsg_' + esc(it.key) + '"></div></details></div>';

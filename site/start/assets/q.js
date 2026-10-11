@@ -154,7 +154,7 @@
       body = '<section class="step" aria-labelledby="stepTitle"><h1 class="t step__title" id="stepTitle" tabindex="-1">Review your answers</h1>' +
         '<p class="sub">This is exactly what we’ll read. Fix anything before you submit — after that it’s locked.</p>' + summaryHtml(false) +
         '<div id="subMsg"></div><div class="navbtns"><button type="button" class="btn btn--ghost" id="prevBtn">← Back</button>' +
-        '<button type="button" class="btn btn--primary" id="submitBtn">Submit for my fixed quote</button></div>' +
+        '<button type="button" class="btn btn--primary" id="submitBtn">' + submitLabel() + '</button></div>' +
         '<p class="center spaced"><a class="linkbtn" href="/start/" id="exitBtn2">Save and finish later</a></p></section>';
     }
     app.innerHTML = '<div class="progress"><div class="bar" role="progressbar" aria-label="Questionnaire progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div>' +
@@ -244,8 +244,25 @@
 
   // ------------------------------------------------------------ submit
   const receptionist = () => ['RCP', 'BNDL', 'UNSURE'].indexOf(answers.offer) !== -1;
+  const isWeb = () => answers.offer === 'WEB';
+  const submitLabel = () => isWeb() ? 'Send my content and request the deposit link' : 'Submit for my fixed quote';
+  const depPct = () => PB().rules && PB().rules.deposit_pct || 50;
+  // WEB is sold without a quote step: a deposit link (or the payment endpoint from brand.json, when configured)
+  function payEndpoint() {
+    const e = S.BRAND.endpoints && S.BRAND.endpoints.payment;
+    return typeof e === 'string' && /^https:\/\//.test(e) ? e : null;
+  }
   function nextStepsHtml() {
-    const dep = PB().rules && PB().rules.deposit_pct || 50;
+    const dep = depPct();
+    if (isWeb()) {
+      const web = [
+        '<b>Content:</b> done — your answers are the brief. Add photos or a logo any time from your portal.',
+        '<b>Draft:</b> in 3 business days after we have your content (and the ' + dep + '% deposit).',
+        '<b>Review:</b> you check every page and send changes in writing.',
+        '<b>Go live:</b> we connect your domain and switch the site on after the final payment.'
+      ];
+      return '<h2 class="h-sec">What happens next</h2><ol class="next">' + web.map(x => '<li>' + x + '</li>').join('') + '</ol>';
+    }
     const items = [
       '<b>' + S.esc(S.slaCap()) + ':</b> your written fixed quote, by email and here in your portal — scope, what’s included and not, timeline and price.',
       '<b>Accept online</b> and pay a ' + dep + '% deposit. No call needed (a short video call is optional).',
@@ -259,15 +276,20 @@
     if (!answers.offer || !answers.niche) { box.innerHTML = S.msgHtml('Please choose an offer and your industry (step 1).'); return; }
     const btn = S.$('#submitBtn'); btn.disabled = true; btn.textContent = 'Submitting…';
     const ok = await save();
-    if (!ok) { btn.disabled = false; btn.textContent = 'Submit for my fixed quote'; box.innerHTML = S.msgHtml('We couldn’t save. Check your connection and try again.'); return; }
+    if (!ok) { btn.disabled = false; btn.textContent = submitLabel(); box.innerHTML = S.msgHtml('We couldn’t save. Check your connection and try again.'); return; }
     try { q = await B.submitQuestionnaire(id); }
-    catch (err) { btn.disabled = false; btn.textContent = 'Submit for my fixed quote'; box.innerHTML = S.msgHtml(S.errText(err)); return; }
+    catch (err) { btn.disabled = false; btn.textContent = submitLabel(); box.innerHTML = S.msgHtml(S.errText(err)); return; }
     S.ls.del(BK);
-    try { await B.notify('q_submitted', { entity: 'questionnaire', id, offer: answers.offer, niche: answers.niche }); } catch (e) { /* event stub never blocks */ }
+    const evt = isWeb() ? 'web_deposit_link_requested' : 'q_submitted';
+    try { await B.notify(evt, { entity: 'questionnaire', id, offer: answers.offer, niche: answers.niche, extras: answers.web_extras || [] }); } catch (e) { /* event stub never blocks */ }
     S.trackFunnel(['quote', 'submit'], { offer: answers.offer, niche: answers.niche });
     history.replaceState(null, '', '/start/q/?id=' + encodeURIComponent(id));
-    app.innerHTML = '<span class="eyebrow">Submitted</span><h1 class="t" id="doneTitle" tabindex="-1">Thanks — we have everything we need.</h1>' +
-      '<p class="lead" id="doneLead">You’ll get a written fixed quote ' + S.esc(S.sla()) + '. We’ll email it to <b>' + S.esc(session.user.email) + '</b>.</p>' +
+    const pay = isWeb() && payEndpoint();
+    const lead = isWeb()
+      ? '<p class="lead" id="doneLead">Your deposit link is on its way — we email it ' + S.esc(S.sla()) + ' to <b>' + S.esc(session.user.email) + '</b>. Draft in 3 business days after we have your content.</p>' +
+        (pay ? '<div class="btn-row spaced-b"><a class="btn btn--primary" id="payDeposit" href="' + S.esc(pay + (pay.indexOf('?') === -1 ? '?' : '&') + 'offer=WEB&ref=' + encodeURIComponent(id)) + '">Pay the ' + depPct() + '% deposit</a></div>' : '')
+      : '<p class="lead" id="doneLead">You’ll get a written fixed quote ' + S.esc(S.sla()) + '. We’ll email it to <b>' + S.esc(session.user.email) + '</b>.</p>';
+    app.innerHTML = '<span class="eyebrow">Submitted</span><h1 class="t" id="doneTitle" tabindex="-1">Thanks — we have everything we need.</h1>' + lead +
       (answers.niche === 'dental' ? '<div class="notice" role="note">Dental is in early access: we’ll first confirm it’s a fit for your practice.</div>' : '') +
       nextStepsHtml() + '<div class="btn-row spaced"><a class="btn btn--primary" href="/start/">Go to your portal</a></div>';
     window.scrollTo(0, 0); S.$('#doneTitle').focus({ preventScroll: true });
