@@ -24,6 +24,7 @@ qa-static: secrets
 	$(PY) tools/check_hardcoded.py
 	@if [ -f tools/sync_config.py ]; then $(PY) tools/sync_config.py --check; fi
 	@if [ -f tools/pricebook_test.py ]; then $(PY) tools/pricebook_test.py; fi
+	@if [ -f tools/us_setup.py ]; then $(PY) tools/us_setup.py --self-test; fi
 
 # Browser checks start their own server on PORT if nothing is listening there yet.
 qa-browser:
