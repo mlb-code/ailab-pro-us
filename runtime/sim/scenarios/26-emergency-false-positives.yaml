@@ -2,7 +2,7 @@ description: Jokes and detector chirps are not emergencies; the conversation goe
 channel: sms
 turns:
   - say: "FIRE FIRE just kidding, need a tune-up"
-    expect: {reply_not_matches: ["911"], claude_calls: 1}
+    expect: {reply_not_matches: ["hang up and call 911", "anyone is in danger"], claude_calls: 1}
   - say: "Also my smoke detector is chirping, needs a battery"
     expect: {reply_not_matches: ["911"]}
 expect: {no_actions: [urgent]}

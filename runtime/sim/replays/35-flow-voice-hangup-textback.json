@@ -1,5 +1,5 @@
 {
- "d65849c466c9e6d38dc29464": {
+ "e3d3b789e7ecc25031d49c7c": {
   "request": {
    "last_message": {
     "content": [
@@ -19,14 +19,16 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "text": "I'm sorry your AC is blowing warm air. I can get a technician out to you. What's the ZIP code where you need service?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 756,
-    "output_tokens": 30
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 199,
+    "output_tokens": 42
    }
   }
  }

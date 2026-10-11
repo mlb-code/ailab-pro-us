@@ -1,36 +1,5 @@
 {
- "024206b61e2639514520aad6": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: No, everyone went outside, we're fine",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 856,
-    "output_tokens": 30
-   }
-  }
- },
- "0f7476daf5e2a4a70765fa33": {
+ "5b4bdd8b94870d33267d6e3e": {
   "request": {
    "last_message": {
     "content": [
@@ -50,14 +19,92 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "text": "I'm sorry to hear that, let's get a technician out to check it. What's the ZIP code where the AC is?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 733,
-    "output_tokens": 30
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 138,
+    "output_tokens": 38
+   }
+  }
+ },
+ "67c376352720156e8ba63f35": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No, everyone went outside, we're fine",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "signature": "CAQS1wcKEAgSGAI4AUIIdGhpbmtpbmcSDIriNFEdy3iZSdPPMBoMHRFHRyC/JGcGN+rjIjBxTCm6fz6uOVD9YZ5ZBEYmBeWc9LUc6mlDqyz8md1Bo8ize8aInLt83ozhe1PG6SMq9AYHxzh6hv3kjqL8+606hESc12JhJd78IHWWTHLJy+Uu4tTEk5UHsDii8s61SqMGDy9BgB78qqEearXULa6UdgewcnfyRbqVcHHDYWEhUkoZqtC2v/axlp6o1okxHJdh0tUjF0ReAtldxXPbBQoJGTDXEtMRw39Bfwkw1q5aNR1QzSHAvTli+VJGBcxhwdrca4vvHe31yRe8SKk+5smwjRdpHQuUyh/ghyVznfmZ0NsgjptcfVL95nl95D7TL1VlWLPV2br7JECiacQ1IGDiz1CU9ScUsHNHj2zOSVT4oOZdhvsVYBeShtbxIE0+elhdgEOviMwDHttKFPy0HeMZTYNN9G06Q8ckPRnFXqgzpYOKAeq0lSPHUaQwRicrNucfXXUcdFi47M7+wTWe5VZxJ2QHCbJvxL3fJP78H60Ip0a+QthxN4umYJgkO5UN3ODN2kQrIEzqqNHMdRh+mX/aM8/pnlQ3xtuhJmsAttLkcMqNUgqGhTzzcBGVykwPxXeP6ZjQDhrLsZsm5GQzsPHsjrtVwO/9FRizQVlH8VAt/MiKEGi5e5pd4ms1AXJRGavJU61BHXJGYLQC4vRzCRSolV6HRKpZVSrK5ND6si7UgCmiKIVscyKcqxKTyfgCBskQSr8J9dVpanYZxykhvbgcYKEGNJx8Fb/2vNFm/ykdyJZduncJwx0c8KF5p514K8aK2OW8i9OB2oP6Ag/WbuYR0TV5EXjTXpiM0mTiCEZ3dXCbPfsizELZqgwqqnjrdzBCBvpUJMnJl7kk6Kwc2VJl55Hhvl1mECbWldMBNsj59Ss2uEaQOgU0QoymcaKXcq3LF/8Me/Ogn4srDCDMTPD/YmFsmvoEBi/AuYt8WwT3q/SivVshTA2sborQ60QD33uOo4YS46H5VTI72UkmvZix+EvokLpXNQAnMJfadmsFufrcR4/XyW19K1psArTIaB4Y0DqjywsPSoLSfqOxtioNOV0fLrRz1PBZ/Nw9shfwvE7zs98TT7sdttja8Npfnrh6+wjxgyCbrDRmUqWXjCsnIt06Abjo9mNw3L4bW5jMquXPRuBGsGbornKJUInN8kmSJJEENowD/ZkLRNV+aN2scMT3T6rzd5lAbF1m8deYK293ouMKettUDAnCLuhC/B9GZF+JTNEcnvk2Pvmt18ClakcViuamjRgB",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "text": "Glad everyone is safe outside, and if you smell smoke or burning or see any danger, please call 911. What's the ZIP code where the AC is, so I can get a technician out?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 263,
+    "output_tokens": 194
+   }
+  }
+ },
+ "e6f74324aeaa74a4f8de2913": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No, everyone went outside, we're fine",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "signature": "CAQS3AcKEAgSGAI4AUIIdGhpbmtpbmcSDO0A4T4MhFHh68ZYzhoMDBLl57UvW6k6ycJUIjATrYhs5n7oJ5deGzEbTFWkxALBCr0IYG7evNhD2Jc1vB38CLZBkmotbiSx+UwIaGsq+QaQBxrVUeLLUD5yLORQhJ5hS3A+8M6Y4AYn+aE5ZGvWY5fPoG2CQ3HpAIzm/bQTfBqucoosvnV0MpuKb+SNswmvzMCad+02J72bBr1xa+Kl9pdCyNAClGAsDy9v0qFmIHKNzc6/unLWTf+L2sW+yyy/XsQfRdh5tsLyjwJgmvCf1SKyxNsbI+HvLBnGMJfG3QlsenwlDobOo+dqRiUDDNL1j4zu3S358ioPhynkK1Miah1ckBbugseMT/dBfg+HPXcLfXLUIPH1pOPsJXCuo2+pXhkLfdi0ZBq/by7ns3qKkHGZ2z84GCyQO0hlvz/VA/YlD8wk8HTG+x+5Pp14YrpxI3SQtIDmgTaExVIDG0BesGk97oLAVPdGmf6f5Io1uEU14RrclLIjEPaYAdbj9lMbc87MtY81YEUMnn+xO6gPS6fYDZQV3Win4JzIVDFarP9eyPMWRSgPoJQzSYHRhmGNQfF0/tjfliD+YLBMm2O8LbQ3MSa7wd3giX2NwNv8nw2O2LYrUTwLkoBQ0UL2fFUz1gsQR00PYf3ksf/EyxqviXccZODvKtOd4ZDFxOv6UzXgtenLNtHuV9RdR8ujqH9kBJUnsXKgUJXsU7k2g7QQbr1RBHK+2iU8YqeNwuodzH9JHL734dOCPluoY0Py9GlHdIquK0wnR77zd2JZv1dWDTjPwUhAQNnAIw8T7tm035cgV3PVKwsWNevABDpc76JJLpNHjmi2Cq+4OCNd/jAN48F8k7xu+gMmPa63qS2zPw+DRloqHuMmmdxwfTdaOHFAQcg8pekyJbvwG474vemR5w2Fca+J7dDuo4RdPEwQgVGQrw/iNXO4SfoYKMkoqc7MclCCLozhHKIrPyW7U5pOglgEOwNhD4TfFndACpICtlxq/nWSD/mJOweZOLON7eqcuFtiZiUWkE1g1icOrB10TxuQaPzRY78Qek+7ThSLPYmjZIwpPkGgrypOHGhDzQJwkeFhfQiHelrAlauRJdFL3DjtL6OHUNEexf5si2oN1BFO1/7TQpKA1+AyvDqwwZXTjxA443lmUrs430GcCn3qDF6luNBuwzIAC5bIopMigC0vy43ur07DVFaOmHesGB/V9iZXEp0ASTu53FHv7kSTEmnSkW0VOu+VOvEawjDAihi0mHGs+f7g5UhBMugAvyGPQ5/gmQja3/LRGAE=",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "text": "I'm glad everyone is outside and safe, and please call 911 if anything seems dangerous. What's the ZIP code where the AC is?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 265,
+    "output_tokens": 188
    }
   }
  }

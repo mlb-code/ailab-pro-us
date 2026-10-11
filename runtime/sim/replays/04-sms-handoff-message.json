@@ -1,11 +1,11 @@
 {
- "c5adf087e29fb2e22ef4a869": {
+ "2eec4a4aefcd8714ca636074": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"action\": \"message\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
+      "tool_use_id": "toolu_01AoFqNXSktLQgXjiZ2ckHUP",
       "type": "tool_result"
      }
     ],
@@ -16,18 +16,25 @@
   "response": {
    "content": [
     {
-     "text": "I've let the team know you'd like to talk to someone, and they'll call you back soon.",
+     "signature": "CAQSxgUKEAgSGAI4AUIIdGhpbmtpbmcSDMXGEKKUU663ZOleqhoMGLYEEJPYAnUUWAv0IjBj03XmMjUbrNVfCGj+M3WRrRok1tu5fCyxcYWtmMiV0NktvY1+5jfa0WNj6sIfcf8q4wRAla7vSMsWB8TMbOz41QmcLoIvJLb7eF994rETsAg9Lo/b4QAFCx0czPQT6z/vxPTXM90FGRlfXQ+bQqz6aO62iVV3gzKFwQqnNXcuU9s4uLxEWhZx1TOyWPbNiL5UxZPtV+oMDsPOZLTWlps2AmFAZTk8WJW39YO0fjChJol3kGJJp7LdvchMsZL5IE2kXhjKXmtxg/h6EXvq7ehxD2v9AETCP5UpgGSIhYRJyi8ML4fCq5TcVjDfQ0O2DXC2Anf1vSbA/sNuD+d2ct6Wbzgf/N8OZ9mtGGMpO1j/ttR/MGygWP65yhNJzDhEcd8MqGDNZhUKt6govZvBv+/+/USSHUasUdb32MpZz/ta0BLOXay+8OGUvoQ2XXnfwZHGSeVfrEEe/IMo9WsCjIWDut8MATxarl75oJ6lFfRITcxmhHIQCZ0EbM7mvCrC0s6k/oSvx4l9Jdw3eEC3SgrC2ACRA+xddGLMRNIPPiVIYVnTuHcF1Ht7Ns4ah42nwZ4Fci3Q2sYD3IJqhLEOtmKFATugraF3LNEvnG/uZDfJb2qaz7oACug14KOTFSMz9r0UQou2TuxUuCeapN6GaDATHV+ksPbexWnh/R7eE9WtqpS/+Dftacloyn1nB9nRYmHjmkjcfrMEn591n78y9fMqpgiGbLLL8XDZsZhr0mmU6wy5/8OWSiBEfrYW+Tzw0cIVRpwtbwrLTnbtlBMkenJ5/ATCxR4VivJ74bln+xJunQ4tnxINfa2ztgAc2KuFFflnW7kf9L7DoKfodgg27xev+kyb2Uv08ymfsE1pMCDIrF7zLzaCAhgB",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "text": "I've let the team know you'd like to speak with the manager, and someone will reach out to you soon. Is there anything you'd like me to pass along to them?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 795,
-    "output_tokens": 28
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 215,
+    "output_tokens": 84
    }
   }
  },
- "f090c28592a5a2ebb6837c99": {
+ "ecd736d720f6581e7ca93a2d": {
   "request": {
    "last_message": {
     "content": [
@@ -47,9 +54,12 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_001",
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01AoFqNXSktLQgXjiZ2ckHUP",
      "input": {
-      "reason": "Customer asked for a person"
+      "reason": "Customer asked to speak with the manager."
      },
      "name": "handoff",
      "type": "tool_use"
@@ -57,8 +67,10 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 721,
-    "output_tokens": 29
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 137,
+    "output_tokens": 60
    }
   }
  }

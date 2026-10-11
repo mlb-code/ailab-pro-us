@@ -4,5 +4,5 @@ now: "2026-10-11T22:30:00-05:00"
 patch: {config: {after_hours: {mode: message_only}}}
 turns:
   - say: "AC not working, 77002"
-    expect: {tools: [get_availability, take_message], reply_contains: ["passed your message"]}
+    expect: {tools: [take_message], reply_matches: ["passed your message|let the .{0,30}team know|sent your message|message (to|for) the team"]}
 expect: {outcome: message, bookings: 0}

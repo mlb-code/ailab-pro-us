@@ -1,11 +1,11 @@
 {
- "b1ad53b9605af381b1f19c61": {
+ "79aadc94cb30083a59d37e15": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01S1vEhkmGV4wbiH4wusaWBB",
       "type": "tool_result"
      }
     ],
@@ -16,18 +16,61 @@
   "response": {
    "content": [
     {
-     "text": "Let me connect you with someone from the team now.",
+     "text": "I'm transferring you to someone on our team now, so please stay on the line.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 808,
-    "output_tokens": 20
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 311,
+    "output_tokens": 25
    }
   }
  },
- "d3da8859043e8c7e1ac44236": {
+ "a138f43f6ffc4b2fe24ee989": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"dial\", \"ok\": true}",
+      "tool_use_id": "toolu_01EnpVw1ZvU9jMzBJCryCSFe",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sure, I'm connecting you with someone on our team now. Please hold for a moment.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01S1vEhkmGV4wbiH4wusaWBB",
+     "input": {
+      "outcome": "handoff"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 217,
+    "output_tokens": 82
+   }
+  }
+ },
+ "c788dff1b4895208e33c865a": {
   "request": {
    "last_message": {
     "content": [
@@ -47,9 +90,12 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_001",
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01EnpVw1ZvU9jMzBJCryCSFe",
      "input": {
-      "reason": "Customer asked for a person"
+      "reason": "Customer asked to speak with a real person."
      },
      "name": "handoff",
      "type": "tool_use"
@@ -57,8 +103,10 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 734,
-    "output_tokens": 29
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 138,
+    "output_tokens": 60
    }
   }
  }

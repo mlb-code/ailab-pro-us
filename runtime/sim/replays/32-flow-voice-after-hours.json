@@ -1,98 +1,5 @@
 {
- "15b71b596ae3ea8071b7525a": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"slot_id\": \"2026-10-12T08:00-12:00\"}, {\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can get a technician out Monday Oct 12, 8 AM to 12 PM or Monday Oct 12, 12 PM to 4 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 888,
-    "output_tokens": 34
-   }
-  }
- },
- "7f8b0cf2656f800332b2175f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Sunday Oct 11, 10:30 PM. The business is closed now: offer the next available slots. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My AC is blowing warm air, zip 77002",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_001",
-     "input": {
-      "date_from": null,
-      "job_type": "AC repair",
-      "zip": "77002"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 743,
-    "output_tokens": 36
-   }
-  }
- },
- "9cde2aa4e9d61fd89075041f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're all set for Monday Oct 12, 8 AM to 12 PM. You'll get a text confirming it.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1135,
-    "output_tokens": 27
-   }
-  }
- },
- "f5ea0b4d1bdbdf0e8cfef5b7": {
+ "122dad23bf79b05a4e2ee3ca": {
   "request": {
    "last_message": {
     "content": [
@@ -112,12 +19,15 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_005",
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_015DfSroUauwXhBmnwxmUFQk",
      "input": {
-      "address": "900 Main St Houston 77002",
+      "address": "900 Main St, Houston, TX 77002",
       "job_type": "AC repair",
       "name": "Ann Lee",
-      "notes": "My AC is blowing warm air, zip 77002",
+      "notes": "AC blowing warm air.",
       "phone": null,
       "slot_id": "2026-10-12T08:00-12:00",
       "urgency": "normal"
@@ -128,8 +38,292 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1014,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 587,
+    "output_tokens": 227
+   }
+  }
+ },
+ "1ce24819d58b87cfcfb9e039": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"slot_id\": \"2026-10-12T08:00-12:00\"}, {\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}]}",
+      "tool_use_id": "toolu_01JtzuxaUYyBKvDq3sGxpCpz",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I'm sorry your AC is blowing warm air. I can book a technician for Monday October 12 from 8 AM to 12 PM, or Monday from 12 PM to 4 PM. Which one works better for you?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 423,
     "output_tokens": 71
+   }
+  }
+ },
+ "1d809cd3bb1fec90c750356d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01XEU7Ht9oTFkMEaAMzqfJPC",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set, Ann. A technician will come to 900 Main Street on Monday, October 12, between 8 AM and noon to fix your AC.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 915,
+    "output_tokens": 49
+   }
+  }
+ },
+ "26c959f9c5c8e4436c2b8c93": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"slot_id\": \"2026-10-12T08:00-12:00\"}, {\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}]}",
+      "tool_use_id": "toolu_01EJMQKubygcw1vJoCFAEPLu",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I'm sorry your AC is blowing warm air, and we can get a technician out to check it. I have Monday, October 12 from 8 AM to 12 PM, or Monday from 12 PM to 4 PM. Which one works better for you?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 423,
+    "output_tokens": 79
+   }
+  }
+ },
+ "69d831ec61136571d5e3c4bd": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Sunday Oct 11, 10:30 PM. The business is closed now: offer the next available slots. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The morning one, my name is Ann Lee, 900 Main St Houston 77002",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_013K2GhdF7qC5QUczsvHGdBt",
+     "input": {
+      "address": "900 Main St, Houston, TX 77002",
+      "job_type": "AC repair",
+      "name": "Ann Lee",
+      "notes": "AC blowing warm air.",
+      "phone": null,
+      "slot_id": "2026-10-12T08:00-12:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 595,
+    "output_tokens": 227
+   }
+  }
+ },
+ "7e65cdbaaf811f83c5e18c28": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01FChEQo6BW7whUUyt1MTR7J",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set, Ann. A technician will come to 900 Main Street on Monday, October 12, between 8 AM and noon to look at your AC.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 923,
+    "output_tokens": 49
+   }
+  }
+ },
+ "a36254ec3396098ad4a02455": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_013K2GhdF7qC5QUczsvHGdBt",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01FChEQo6BW7whUUyt1MTR7J",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 859,
+    "output_tokens": 52
+   }
+  }
+ },
+ "c1b6bcbda10d099c4296894d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Sunday Oct 11, 10:30 PM. The business is closed now: offer the next available slots. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My AC is blowing warm air, zip 77002",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01EJMQKubygcw1vJoCFAEPLu",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77002"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 154,
+    "output_tokens": 99
+   }
+  }
+ },
+ "d85489a7bafee206fc973236": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_015DfSroUauwXhBmnwxmUFQk",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01XEU7Ht9oTFkMEaAMzqfJPC",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 851,
+    "output_tokens": 52
    }
   }
  }

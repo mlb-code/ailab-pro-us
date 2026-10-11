@@ -1,5 +1,5 @@
 {
- "7af576bad3fcf4ec2c4842d7": {
+ "7f29ca85afb0214736fc22e3": {
   "request": {
    "last_message": {
     "content": [
@@ -19,14 +19,16 @@
   "response": {
    "content": [
     {
-     "text": "Our service call is $89. Want me to get you on the schedule?",
+     "text": "A service call is $89. What's going on with your system? I can help you book a visit.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 711,
-    "output_tokens": 22
+    "cache_creation_input_tokens": 2031,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 137,
+    "output_tokens": 26
    }
   }
  }

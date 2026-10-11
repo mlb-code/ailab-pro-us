@@ -1,52 +1,11 @@
 {
- "1d761384800ad6ba1bc1c83e": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:04 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: 2100 Rice Blvd, Houston 77005",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_011",
-     "input": {
-      "address": "2100 Rice Blvd, Houston 77005",
-      "job_type": "AC repair",
-      "name": "Dana Miller",
-      "notes": "Hi, my AC is blowing warm air",
-      "phone": null,
-      "slot_id": "2026-10-12T12:00-16:00",
-      "urgency": "normal"
-     },
-     "name": "book_slot",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1258,
-    "output_tokens": 71
-   }
-  }
- },
- "2c5abead22c6516beedbae42": {
+ "47aad4051b2a49d8f48c6dc5": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_003",
+      "tool_use_id": "toolu_01RhRdeo6rPU3PmMKHP3ZVSR",
       "type": "tool_result"
      }
     ],
@@ -57,18 +16,20 @@
   "response": {
    "content": [
     {
-     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "text": "We have two openings: today, Monday Oct 12, 12 PM to 4 PM, or Tuesday Oct 13, 8 AM to 12 PM. Which works better for you?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 964,
-    "output_tokens": 34
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 529,
+    "output_tokens": 62
    }
   }
  },
- "431b5698df48c83d257a24f1": {
+ "6e12de703b6a2f42b0ef9510": {
   "request": {
    "last_message": {
     "content": [
@@ -88,55 +49,26 @@
   "response": {
    "content": [
     {
-     "text": "Thanks, Dana. What's the street address for the visit?",
+     "text": "Thanks, Dana. What's the street address where you need service?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1163,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 760,
     "output_tokens": 21
    }
   }
  },
- "6a01dbc646e371514bed5c30": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:02 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: The first one works",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Great. What name should I put the booking under?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1070,
-    "output_tokens": 19
-   }
-  }
- },
- "6c74236f828acdbbf13252c4": {
+ "6e8ce6c4a78840587000eff9": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_015",
+      "tool_use_id": "toolu_015FfJtePotf9ibakJCx1scZ",
       "type": "tool_result"
      }
     ],
@@ -147,55 +79,20 @@
   "response": {
    "content": [
     {
-     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
+     "text": "You're all set, Dana. A technician will come to 2100 Rice Blvd today, Monday Oct 12, between 12 PM and 4 PM to look at your AC.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1541,
-    "output_tokens": 21
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 1184,
+    "output_tokens": 58
    }
   }
  },
- "7af062fd7903cd267302ba10": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:01 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: 77005",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-opus-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_003",
-     "input": {
-      "date_from": null,
-      "job_type": "AC repair",
-      "zip": "77005"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 819,
-    "output_tokens": 36
-   }
-  }
- },
- "d0f1987e2ecaaf9f3b032de3": {
+ "b6599890b19c7141d9429db8": {
   "request": {
    "last_message": {
     "content": [
@@ -215,18 +112,25 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "signature": "CAQS0QQKEAgSGAI4AUIIdGhpbmtpbmcSDATN5BZ+xzx0Fq7qDBoMf/Q4W8mnMBPL/WZHIjD+IIS0IuTrr7MtvmwmMJaKd7Qm9tX2egYj/Bhmw2emGyBGLjBiz4zg5FdTT4yECVMq7gMyOoQDtRo/XOOEEj7nExfCHs6szQUzZqGKuV1Yfmtb2uijA2lmEcnNdqbTp53ToiJUncBw7ukHBO6KqlwBAYIz5HiMl9kbJ+qX2p3X+12E/2Ju0s6eUBPxcAoAv1BX6Bpz4RGB1DE36V2wesxZcFjSCAyFD7cxEuJ3kJImmqbPFxuFz/VEoCLYQEoT5YooV8FTTf/hAisHPoVEdKrSt6163sklfPiKLFchw+xCkPBkc7DVMh0lgeGGXdDaKllVwTNe1aWuzys8SXRUkngniY4GJ92E3jYowgJfcwlCb/qeqNBsapO0og7kdD9Cd2CuEGTGXk4FY7U7x7t0s+et5eXXB+i58+eIh7yQ+mZIKqQMg7nQ18U8b3ZDXmXYQpkj78DyTzK/TKza4h3m9IdRr+Z1f+1VoZWMhvDkJcoYJZW2h9NsRDNapAFbDLPwdLOcRKY1FMHfFnHRVxo0p+py2EUiWJh2hY5ZSPNEiVI8wVhbe7u8S3wLd76DE19Mo2lbhm8nSNK0G/NGg90z/HmXBhkg0ZNFXW3sJkN444K2W82+yhrI1DI7v34DeoNiutYzzNQrl/ggtRwOVCo7ytij9q2BK42qfRQoJ5s8vnxTmT0kJvjTS58VajNjJRTPFv8UXgu3Rc5o9N95T3OoboNqCBgB",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "text": "Sorry to hear your AC is blowing warm air. I can help get a technician out to you. What's the ZIP code where you need service?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 720,
-    "output_tokens": 30
+    "cache_creation_input_tokens": 2042,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 142,
+    "output_tokens": 57
    }
   }
  },
- "ea1a8d6048675479dc954cdf": {
+ "b785bf94b87bb3fb387faab3": {
   "request": {
    "last_message": {
     "content": [
@@ -246,28 +150,26 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_015",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
+     "text": "You're welcome, Dana! Thanks for choosing Cool Breeze HVAC.",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
+   "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1476,
-    "output_tokens": 26
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 1302,
+    "output_tokens": 32
    }
   }
  },
- "f4a3c854ba49c416857b4969": {
+ "c5b010f3af4498bb2837c63c": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_011",
+      "tool_use_id": "toolu_01SBodzFMZ4tCJF1E6BcXsT1",
       "type": "tool_result"
      }
     ],
@@ -278,14 +180,144 @@
   "response": {
    "content": [
     {
-     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM. You'll get a text confirming it.",
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_015FfJtePotf9ibakJCx1scZ",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 1120,
+    "output_tokens": 52
+   }
+  }
+ },
+ "d6c43ce716512d4fd92c4e2a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The first one works",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Great, I'll hold today, Monday Oct 12, 12 PM to 4 PM for you. What's your name and the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1379,
-    "output_tokens": 27
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 651,
+    "output_tokens": 44
+   }
+  }
+ },
+ "d9937f22d3f3d156bdbf0dde": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:04 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 2100 Rice Blvd, Houston 77005",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01SBodzFMZ4tCJF1E6BcXsT1",
+     "input": {
+      "address": "2100 Rice Blvd, Houston 77005",
+      "job_type": "AC repair",
+      "name": "Dana Miller",
+      "notes": "AC blowing warm air",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 855,
+    "output_tokens": 228
+   }
+  }
+ },
+ "de94baa94d0c3b351e129dd2": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 77005",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01RhRdeo6rPU3PmMKHP3ZVSR",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77005"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2042,
+    "input_tokens": 258,
+    "output_tokens": 99
    }
   }
  }

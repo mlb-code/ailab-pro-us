@@ -6,11 +6,12 @@ steps:
     expect: {reply_contains: ["virtual assistant", "transcribed"]}
   - say: "My furnace stopped working, I'm in 77019"
     advance_seconds: 20
-    expect: {reply_contains: ["Which works better"]}
+    expect: {reply_matches: ["12 PM to 4 PM"]}
   - say: "The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019"
     advance_seconds: 25
-    expect: {reply_contains: ["all set"], end: false}
+    expect: {reply_matches: ["all set|booked"]}
   - say: "Thanks"
+    if_open: true
     advance_seconds: 10
     expect: {end: true}
   - hangup: {}

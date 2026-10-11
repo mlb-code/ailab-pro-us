@@ -1,0 +1,57 @@
+{
+  "fixture": "hvac_basic",
+  "status": "draft",
+  "setup_cents": 350000,
+  "monthly_cents": 30000,
+  "deposit_cents": 175000,
+  "items": [
+    {
+      "code": "RCP",
+      "qty": 1,
+      "name": "Missed-Call AI Receptionist",
+      "kind": "fixed",
+      "setup_cents": 350000,
+      "monthly_cents": 30000,
+      "unit_setup_cents": 350000,
+      "unit_monthly_cents": 30000,
+      "source": "answers"
+    }
+  ],
+  "scope_md": "We'll set up a Missed-Call AI Receptionist for your HVAC business. You keep your current business number and forward unanswered calls to a new US AI line we provision. When you're on a job and can't pick up, the AI answers, and callers who hang up get an automatic text-back so the conversation can continue.\n\nThe receptionist collects the caller's name, callback number, service address or ZIP, the type of HVAC job, how urgent it is and their preferred time. It is set up for your service area (77002, 77005 and Houston Heights) and can book appointments directly into your Google Calendar. Because you prefer not to quote prices over the phone, the AI will not give pricing and will take the details for you to follow up instead.\n\nAfter hours, the line runs in after-hours mode instead of sending callers to voicemail. Emergency keywords, such as no cooling, no heat or a gas smell, trigger an immediate alert to you. You'll get an SMS and email for every lead, plus a daily summary email. We'll load up to 25 FAQ entries along with your business hours.\n\nYou'll have a client portal with your call log, transcripts, bookings and settings. We handle the A2P 10DLC SMS registration. Each month we monitor the line, update prompts and FAQs as needed, and handle small change requests one at a time. A Zapier webhook is also available if you want to connect another tool later.",
+  "review": {
+    "quote_id": "dafa2263-7818-4908-b4b4-2cf255c24e26",
+    "manual_reasons": [],
+    "risk_flags": [
+      "Usage check: with 50 to 150 calls a week and a quarter to half of them missed, forwarded calls could reach roughly 50 to 300 a month. Longer HVAC calls could approach the included 400 voice minutes, so set expectations about the usage alerts and optional extra blocks.",
+      "The Houston service area may have Spanish-speaking callers even though the client answered no to Spanish; consider mentioning ADD-ES.",
+      "Emergency handling for HVAC (heat waves, gas smells) needs clear owner alert rules; confirm the client understands that the AI alerts them but does not dispatch anyone.",
+      "Confirm the carrier supports conditional forwarding before kickoff to avoid delays."
+    ],
+    "questions_for_client": [
+      "Which situations count as emergencies for you (for example no AC in summer heat, no heat, gas smell, water leaks), and should after-hours emergencies be booked, or only sent to you as an alert?",
+      "Should the AI book directly into Google Calendar, or only request a time for you to confirm? Which appointment lengths and buffer times should it use?",
+      "Do you offer a diagnostic or service-call fee that the AI may mention, or should all pricing questions be deferred to you?",
+      "Do you serve any ZIP codes or neighborhoods beyond 77002, 77005 and Houston Heights, and how should the AI handle callers outside that area?",
+      "Who is your phone carrier, and do you know whether it supports conditional (no-answer) call forwarding?",
+      "Do you get Spanish-speaking callers at all? Spanish support is available as an add-on if needed."
+    ],
+    "hints": {
+      "core": "RCP",
+      "add": [],
+      "custom": [],
+      "notes": [],
+      "item_reasons": [
+        {
+          "code": "RCP",
+          "label": null,
+          "source": "answers",
+          "reason": "Requested core offer. A single-location HVAC business where the owner answers calls, a meaningful share of calls go unanswered, after-hours calls currently go to voicemail, and Google Calendar is used for scheduling."
+        }
+      ]
+    },
+    "removed": [],
+    "model": "claude-opus-5-5"
+  },
+  "tokens": 4926,
+  "cost_usd": 0.0452
+}

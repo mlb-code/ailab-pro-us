@@ -1,11 +1,11 @@
 {
- "b1ad53b9605af381b1f19c61": {
+ "99a0592779662d390e81e5fb": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
+      "tool_use_id": "toolu_01JNLozM1VszPPVzRtWsfh5Q",
       "type": "tool_result"
      }
     ],
@@ -16,18 +16,72 @@
   "response": {
    "content": [
     {
-     "text": "Let me connect you with someone from the team now.",
+     "text": "I'm connecting you with someone on the Cool Breeze HVAC team now. Please stay on the line.",
      "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01L7BTmwBTriMvfGdJ4ttgXG",
+     "input": {
+      "outcome": "handoff"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
+   "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 808,
-    "output_tokens": 20
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 217,
+    "output_tokens": 88
    }
   }
  },
- "d3da8859043e8c7e1ac44236": {
+ "a61780394001898814f8bac3": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"dial\", \"ok\": true}",
+      "tool_use_id": "toolu_01BCMeoYcuMBeyVSL7E1wdfu",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I'm connecting you with someone on our team now, so please hold for just a moment.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01Rrg8JfJZbnbmeQ3zzrBCNg",
+     "input": {
+      "outcome": "handoff"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 217,
+    "output_tokens": 79
+   }
+  }
+ },
+ "c788dff1b4895208e33c865a": {
   "request": {
    "last_message": {
     "content": [
@@ -47,9 +101,12 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_001",
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01BCMeoYcuMBeyVSL7E1wdfu",
      "input": {
-      "reason": "Customer asked for a person"
+      "reason": "Customer asked to speak with a real person."
      },
      "name": "handoff",
      "type": "tool_use"
@@ -57,8 +114,70 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 734,
-    "output_tokens": 29
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 138,
+    "output_tokens": 60
+   }
+  }
+ },
+ "e0fc75ce141dadf5b3b950f1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01L7BTmwBTriMvfGdJ4ttgXG",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I've connected you to someone on the Cool Breeze HVAC team. Please stay on the line while they pick up.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 317,
+    "output_tokens": 38
+   }
+  }
+ },
+ "ec52b209e6d6493b4be57849": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01Rrg8JfJZbnbmeQ3zzrBCNg",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I'm putting you through to someone on our team now.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 308,
+    "output_tokens": 17
    }
   }
  }
