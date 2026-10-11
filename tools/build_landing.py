@@ -89,7 +89,7 @@ class Ctx:
             if k not in self.tokens:
                 raise SystemExit(f'build_landing: unknown token {{{k}}} in content')
             return self.tokens[k]
-        return re.sub(r'\{([a-z_]+(?::[A-Z0-9-]+(?:\.[a-z]+)?)?)\}', sub, s)
+        return re.sub(r'\{([a-z][a-z0-9_]*(?::[A-Z0-9-]+(?:\.[a-z]+)?)?)\}', sub, s)
 
     def h(self, s):
         """Token-fill + HTML-escape + **bold**."""
@@ -823,6 +823,11 @@ def main(argv):
     if '--check' in argv:
         bad = 0
         for rel, text in pages.items():
+            visible = re.sub(r'<(script|style)\b.*?</\1>', '', text, flags=re.S)  # demo JSON keeps its own {vars}; CSS braces
+            raw = sorted(set(re.findall(r'\{[a-z][a-z0-9_]*(?::[A-Z0-9.-]+)?\}', visible)))
+            if raw:
+                bad += 1
+                print(f'RAW TOKENS  site/{rel}: {" ".join(raw)}')
             p = os.path.join(SITE, rel)
             cur = open(p, encoding='utf-8').read() if os.path.exists(p) else None
             if cur != text:

@@ -45,7 +45,7 @@
     "title": "Choose, answer, approve. No calls.",
     "steps": [
       {
-        "num": "1 click",
+        "num": "{web_step1_num}",
         "title": "{web_step1_title}",
         "text": "{web_step1}"
       },
@@ -158,6 +158,10 @@
     "web_nocall": {
       "link": "No. There's no quote step: choose the package on this page, fill in the 10-minute questionnaire, and we email your deposit link {quote_sla}. If you'd rather talk first, you can book an optional 15-minute video call.",
       "online": "No. There's no quote step: choose the package on this page, pay the deposit online, and fill in the content questionnaire. If you'd rather talk first, you can book an optional 15-minute video call."
+    },
+    "web_step1_num": {
+      "link": "10 min",
+      "online": "1 click"
     }
   }
 }
