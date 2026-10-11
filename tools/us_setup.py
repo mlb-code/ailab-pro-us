@@ -12,10 +12,11 @@ What it does (every step is safe to re-run):
              Resend SMTP when RESEND_API_KEY is set
   google     Google sign-in when GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET are set
   storage    verify buckets client-files + videos-public (created by the storage migration)
-  vault      Vault secrets resend_api_key / anthropic_api_key (for pg_net triggers)
+  vault      Vault: ailab_us_project_url + ailab_us_service_role_key (read from the API, never printed; A8 pg_net),
+             resend_api_key / anthropic_api_key when present
   secrets    Edge Function secrets (ANTHROPIC_API_KEY, RESEND_API_KEY, ZAPIER_SIGNING_SECRET)
   functions  deploy supabase/functions/<slug>/index.ts (Supabase CLI if installed, else Management API)
-  cron       verify the pg_cron jobs (re-runs the retention migration if one is missing)
+  cron       select private.install_email_jobs() (A8), then verify every pg_cron job named in the migrations
   config     write site/assets/config.js (window.SITE_CONFIG: URL + publishable/anon key, BACKEND 'supabase')
   ping       call public.ping() through the REST API with the public key
 then prints a Hebrew checklist of what is still manual.
@@ -61,11 +62,11 @@ NAME = "ailab-us"
 REGION = "us-east-1"
 FREE_ACTIVE_LIMIT = 2
 BUCKETS = ("client-files", "videos-public")
-CRON_JOBS = ("ailab-us-retention", "ailab-us-expire-quotes")
+CRON_JOBS_BASE = ("ailab-us-retention", "ailab-us-expire-quotes")
 RETENTION_MIGRATION = "20261011100200_us_retention.sql"
 SUPABASE_JS_DEFAULT = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"
-# Public endpoints (no Supabase JWT): the quote page and the lead form call them anonymously.
-NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead"}
+# Public endpoints (no Supabase JWT): quote page, lead form, the unsubscribe link in e-mails (A8).
+NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe"}
 STEPS = ["migrate", "test", "settings", "auth", "google", "storage", "vault", "secrets",
          "functions", "cron", "config", "ping"]
 SLEEP = time.sleep          # patched by the tests
@@ -498,22 +499,42 @@ VAULT_KEYS = (("RESEND_API_KEY", "resend_api_key", "Resend key (pg_net e-mail tr
 FUNCTION_SECRET_KEYS = ("ANTHROPIC_API_KEY", "RESEND_API_KEY", "ZAPIER_SIGNING_SECRET")
 
 
+def vault_put(ctx, name, val, desc):
+    ctx.api.sql(ctx.ref, f"""do $v$ declare sid uuid; begin
+  select id into sid from vault.secrets where name = {sql_lit(name)};
+  if sid is null then perform vault.create_secret({sql_lit(val)}, {sql_lit(name)}, {sql_lit(desc)});
+  else perform vault.update_secret(sid, {sql_lit(val)}); end if; end $v$;""")
+
+
+def service_role_key(ctx):
+    """Legacy service_role JWT (what the Edge runtime injects as SUPABASE_SERVICE_ROLE_KEY). Never printed."""
+    keys = ctx.api.req("GET", f"/projects/{ctx.ref}/api-keys?reveal=true") or []
+    key = next((k.get("api_key") for k in keys if k.get("name") == "service_role" and k.get("api_key")), None)
+    if not key or not re.fullmatch(r"[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+", key):
+        raise SetupError("❌ לא נמצא מפתח service_role (JWT) לפרויקט. בדשבורד: Settings → API Keys → Legacy API keys "
+                         "צריך להיות פעיל. להעביר לקלוד.")
+    ctx.api.redact.values.append(key)
+    return key
+
+
 def step_vault(ctx):
-    done = []
+    for env, _, _ in VAULT_KEYS:          # validate every pasted key before any SQL is sent
+        if ctx.sec.get(env):
+            check_key(ctx.sec[env], env)
+    # A8 (pg_net → Edge Functions): project URL + service role key, always.
+    vault_put(ctx, "ailab_us_project_url", f"https://{ctx.ref}.supabase.co", "ailab-us project URL (A8 cron/pg_net)")
+    vault_put(ctx, "ailab_us_service_role_key", service_role_key(ctx), "service role JWT for pg_net -> Edge Functions (A8)")
+    done = ["ailab_us_project_url", "ailab_us_service_role_key"]
     for env, name, desc in VAULT_KEYS:
         val = ctx.sec.get(env)
         if not val:
             continue
         check_key(val, env)
-        ctx.api.sql(ctx.ref, f"""do $v$ declare sid uuid; begin
-  select id into sid from vault.secrets where name = {sql_lit(name)};
-  if sid is null then perform vault.create_secret({sql_lit(val)}, {sql_lit(name)}, {sql_lit(desc)});
-  else perform vault.update_secret(sid, {sql_lit(val)}); end if; end $v$;""")
+        vault_put(ctx, name, val, desc)
         done.append(name)
-    if done:
-        ctx.ok("Vault: " + ", ".join(done))
-    else:
-        ctx.warn("Vault: אין מפתחות Resend/Claude ב-.secrets.env עדיין, דילגתי.")
+    ctx.ok("Vault: " + ", ".join(done))
+    if len(done) == 2:
+        ctx.warn("Vault: אין עדיין מפתחות Resend/Claude ב-.secrets.env, נשמרו רק כתובת הפרויקט ומפתח השירות.")
 
 
 def step_secrets(ctx):
@@ -606,21 +627,39 @@ def step_functions(ctx):
 
 
 # ------------------------------------------------------------------ step: cron
+def cron_job_names():
+    """Every pg_cron job the migrations schedule (incl. A8's private.install_email_jobs()), read from the SQL files."""
+    names = list(CRON_JOBS_BASE)
+    for f in migration_files():
+        for n in re.findall(r"cron\.schedule\(\s*'(ailab-us-[a-z0-9-]+)'", read_text(os.path.join(MIG_DIR, f))):
+            if n not in names:
+                names.append(n)
+    return tuple(names)
+
+
+def has_email_jobs():
+    return any("install_email_jobs" in read_text(os.path.join(MIG_DIR, f)) for f in migration_files())
+
+
 def cron_jobs(ctx):
     rows = ctx.api.sql(ctx.ref, "select jobname, schedule, active from cron.job order by jobname;") or []
     return {r.get("jobname"): r for r in rows}
 
 
 def step_cron(ctx):
+    if has_email_jobs():
+        # A8: needs Vault ailab_us_project_url + ailab_us_service_role_key (step vault); idempotent
+        ctx.api.sql(ctx.ref, "select private.install_email_jobs();")
+    want = cron_job_names()
     jobs = cron_jobs(ctx)
-    if not all(j in jobs for j in CRON_JOBS):
+    if not all(j in jobs for j in CRON_JOBS_BASE):
         say("  משימת cron חסרה, מריץ שוב את מיגרציית השמירה…")
         ctx.api.sql(ctx.ref, read_text(os.path.join(MIG_DIR, RETENTION_MIGRATION)))
         jobs = cron_jobs(ctx)
-    missing = [j for j in CRON_JOBS if j not in jobs]
+    missing = [j for j in want if j not in jobs]
     if missing:
         raise SetupError("❌ משימות cron חסרות: " + ", ".join(missing))
-    ctx.ok("cron: " + ", ".join(f"{j} ({jobs[j].get('schedule')})" for j in CRON_JOBS))
+    ctx.ok(f"cron ({len(want)} משימות): " + ", ".join(f"{j} ({jobs[j].get('schedule')})" for j in want))
 
 
 # ------------------------------------------------------------------ step: config.js
@@ -748,11 +787,13 @@ def dry_run(args, sec, brand):
                    else "בלי SMTP (אין מפתח Resend)"),
         "google": "Google: " + ("יופעל" if sec.get("GOOGLE_OAUTH_CLIENT_ID") else "ידולג (אין פרטים)"),
         "storage": "אחסון: " + ", ".join(BUCKETS),
-        "vault": "Vault: " + (", ".join(n for e, n, _ in VAULT_KEYS if sec.get(e)) or "ידולג (אין מפתחות)"),
+        "vault": "Vault: ailab_us_project_url, ailab_us_service_role_key (מה-API, לא מודפס)"
+                 + "".join(", " + n for e, n, _ in VAULT_KEYS if sec.get(e)),
         "secrets": "סודות Edge Functions: " + (", ".join(k for k in FUNCTION_SECRET_KEYS if sec.get(k)) or "ידולג"),
         "functions": "Edge Functions: " + (", ".join(function_slugs()) or "אין עדיין, ידולג")
                      + (" (CLI)" if shutil.which("supabase") else " (Management API)"),
-        "cron": "cron: " + ", ".join(CRON_JOBS),
+        "cron": ("select private.install_email_jobs(); ואז " if has_email_jobs() else "")
+                + f"בדיקת {len(cron_job_names())} משימות: " + ", ".join(cron_job_names()),
         "config": f"כתיבת {os.path.relpath(CONFIG_JS, ROOT)} עם BACKEND 'supabase'",
         "ping": "בדיקת public.ping() עם המפתח הציבורי",
     }
