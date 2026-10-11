@@ -73,7 +73,7 @@
 |---|---|
 | `❌ חסר SUPABASE_ACCESS_TOKEN` | הטוקן לא נשמר. חוזרים לשלב 3 ובודקים שאין רווח אחרי ה-`=`. |
 | `❌ הטוקן צריך להתחיל ב-sbp_` | הודבק מפתח אחר. יוצרים טוקן חדש בשלב 2. |
-| `❌ אין מקום פנוי` | בארגון כבר יש 2 פרויקטים פעילים. הסקריפט לא מוחק ולא משהה כלום. כותבים לקלוד. |
+| `❌ אין מקום פנוי` | בחשבון כבר יש 2 פרויקטים פעילים, בכל הארגונים יחד (המגבלה של Free היא למשתמש, לא לארגון). הסקריפט מציג את שמותיהם, ולא מוחק ולא משהה כלום. כותבים לקלוד. |
 | `❌ ... בתוכנית 'pro' (בתשלום)` | הארגון בתשלום. יוצרים ארגון Free חדש (שלב 1, סעיף 5) ומריצים עם `--org`. |
 | `❌ הפרויקט לא עלה תוך 15 דקות` | מריצים שוב את אותה פקודה. הסקריפט ממשיך מאיפה שעצר ולא יוצר פרויקט שני. |
 | כל ❌ אחר | מעתיקים לקלוד את השורה עם ה-❌ (אין בה סודות, הסקריפט מסתיר אותם). |
@@ -89,7 +89,8 @@
 | Google (כניסה עם Google) | `GOOGLE_OAUTH_CLIENT_ID=` + `GOOGLE_OAUTH_CLIENT_SECRET=` | `python3 tools/us_setup.py --only google,config` |
 
 ב-Google Cloud צריך להוסיף ל-OAuth client את ה-Authorized redirect URI שהסקריפט מדפיס (`https://<ref>.supabase.co/auth/v1/callback`).
-ב-Resend הדומיין של השולח חייב להיות Verified. עד שהוא מאומת, אפשר להוסיף לפקודה `--smtp-from "AI Lab Pro <hello@דומיין-מאומת>"`.
+**מאיזה כתובת יוצאים מיילי הכניסה:** עד שהדומיין החדש מאומת ב-Resend, המיילים יוצאים מהכתובת ב-ai-lab.co.il שכבר מאומתת (השדה `senders.fallback` ב-`config/brand.json`). לכן מפתח ה-Resend צריך להיות מהחשבון שבו ai-lab.co.il מאומת.
+**מתי מחליפים:** כשב-resend.com → **Domains** הדומיין החדש מסומן **Verified**, אומרים לקלוד "הדומיין מאומת ב-Resend". הוא ימלא את `smtp_from` ב-`config/brand.json` (למשל `hello@` בדומיין החדש) ויריץ `python3 tools/us_setup.py --only auth`. הצלחה = מייל קוד כניסה חדש מגיע מהכתובת בדומיין החדש.
 
 ## פרויקט Free נרדם אחרי 7 ימים בלי פעילות
 - ב-Free, פרויקט בלי בקשות 7 ימים עובר להשהיה, והאתר מפסיק לעבוד עד שלוחצים Restore.
@@ -98,6 +99,7 @@
   - Name `US_SUPABASE_URL`, Secret: הכתובת `https://<ref>.supabase.co` (הסקריפט מדפיס אותה)
   - Name `US_SUPABASE_KEY`, Secret: המפתח הציבורי מ-`site/assets/config.js` (השורה `SUPABASE_ANON_KEY`)
   (או פשוט לבקש מקלוד להריץ `gh secret set`.)
+- **שים לב:** GitHub מכבה לבד workflows מתוזמנים בריפו ציבורי שלא היה בו שום commit במשך 60 יום, ושולח על כך מייל ("scheduled workflows disabled"). כשמגיע מייל כזה: ב-GitHub של הריפו → **Actions** → בצד שמאל **supabase-keepalive** → כפתור **Enable workflow**. הצלחה = אחרי **Run workflow** מופיע וי ירוק.
 - אם בכל זאת נרדם: supabase.com/dashboard → ailab-us → **Restore project**, מחכים 2–3 דקות.
 
 ## אחרי שהכל עובד

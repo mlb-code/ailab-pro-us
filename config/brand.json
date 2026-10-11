@@ -11,8 +11,10 @@
     "transactional": "AI Lab Pro <hello@ailabpro.co>",
     "quotes": "AI Lab Pro <quotes@ailabpro.co>",
     "alerts": "AI Lab Pro Alerts <alerts@ailabpro.co>",
-    "reply_to": "support@ailabpro.co"
+    "reply_to": "support@ailabpro.co",
+    "fallback": "AI Lab Pro <pro@ai-lab.co.il>"
   },
+  "smtp_from": "",
   "owner": {
     "admin_email": "",
     "admin_lang": "he",

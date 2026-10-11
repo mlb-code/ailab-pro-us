@@ -1,0 +1,33 @@
+# Keeps the Supabase Free project (ailab-us) from pausing after 7 idle days: calls public.ping() once a day.
+# Needs two repository secrets (public values, kept as secrets so this file stays generic):
+#   US_SUPABASE_URL = https://<ref>.supabase.co
+#   US_SUPABASE_KEY = the publishable (sb_publishable_...) or legacy anon key from site/assets/config.js
+# Until both exist (the project is created by tools/us_setup.py) the job skips silently and stays green.
+name: supabase-keepalive
+on:
+  schedule:
+    - cron: "23 6 * * *"   # daily 06:23 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          URL: ${{ secrets.US_SUPABASE_URL }}
+          KEY: ${{ secrets.US_SUPABASE_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "project not set up yet, skipping"; exit 0; fi
+          # publishable keys go only in the apikey header; a legacy anon JWT (three dot-separated parts) also as Bearer
+          auth=""; case "$KEY" in *.*.*) auth="Authorization: Bearer $KEY";; esac
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/out -w "%{http_code}" -X POST "$URL/rest/v1/rpc/ping" \
+              -H "apikey: $KEY" ${auth:+-H "$auth"} -H "Content-Type: application/json" -d '{}')
+            echo "attempt $i: HTTP $code $(cat /tmp/out)"
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "::error::Supabase ping failed. The project may be paused: open supabase.com/dashboard, open ailab-us and press Restore."
+          exit 1
