@@ -6,7 +6,7 @@ Checks (Hebrew ✅/❌ lines, exit 1 on any ❌):
   1. RLS is enabled on every table in schema public
   2. anon has no table grants in public/private and can execute no function except public.ping()
   3. public.ping() answers 'ok' through the REST API with the public (publishable/anon) key
-  4. pg_cron jobs ailab-us-retention + ailab-us-expire-quotes exist and are active
+  4. every pg_cron job named in the migrations (retention, quote expiry, A8 e-mail jobs) exists and is active
   5. `delete from auth.users` succeeds when run by a pg_cron job (TASKS Addendum 2, A2)
 
 Check 5 — what it does and what is expected:
@@ -75,11 +75,12 @@ def check_ping(ctx):
 
 def check_cron(ctx):
     jobs = U.cron_jobs(ctx)
-    missing = [j for j in U.CRON_JOBS if j not in jobs or not jobs[j].get("active", True)]
+    names = U.cron_job_names()
+    missing = [j for j in names if j not in jobs or not jobs[j].get("active", True)]
     if missing:
         ctx.fail("משימות cron חסרות או כבויות: " + ", ".join(missing))
     else:
-        ctx.ok("cron: " + ", ".join(U.CRON_JOBS) + " פעילות")
+        ctx.ok(f"cron: {len(names)} משימות פעילות ({', '.join(names)})")
 
 
 def check_delete_from_cron(ctx, wait_s):
