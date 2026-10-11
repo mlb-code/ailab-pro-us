@@ -27,10 +27,11 @@ const WIDTHS = [375, 390, 414, 1280];
 let checks = 0; const problems = [];
 
 async function runEngine(name, type) {
-  const browser = await type.launch();
+  const browser = await type.launch({ timeout: 60000 });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
   const page = await ctx.newPage();
+  page.setDefaultNavigationTimeout(60000); // tolerate a loaded machine
   page.on('dialog', d => d.accept());
   const errs = [];
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });

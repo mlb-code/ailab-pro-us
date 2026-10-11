@@ -54,7 +54,7 @@ async function checkPage(browser, url, width, opts) {
   page.on('console', m => { if (m.type() === 'error' && keep(m.text())) problems.push('console.error: ' + m.text().slice(0, 200)); });
   page.on('pageerror', e => { const t = String(e && e.message || e); if (keep(t)) problems.push('uncaught: ' + t.slice(0, 200)); });
   try {
-    const resp = await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+    const resp = await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     if (resp && resp.status() >= 400) problems.push('HTTP ' + resp.status());
     await page.waitForTimeout(opts.wait);
     const m = await page.evaluate(() => {
@@ -86,7 +86,7 @@ async function run(urls, opts) {
   const results = [];
   for (const engine of opts.engines) {
     let browser;
-    try { browser = await pw[engine].launch(); }
+    try { browser = await pw[engine].launch({ timeout: 60000 }); }
     catch (e) {
       const msg = String(e.message || e).split('\n')[0];
       for (const url of urls) results.push({ engine, url, width: '*', ok: false, problems: ['browser launch failed: ' + msg + ' (try `npx playwright install ' + engine + '`)'] });

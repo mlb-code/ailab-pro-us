@@ -24,15 +24,17 @@ function paths(scn) {
   return out;
 }
 
-const browser = await engine.launch();
+const browser = await engine.launch({ timeout: 60000 });
+const STEP_MS = 10000; // per wait; generous so a loaded machine doesn't fail paths
 const fullyTested = new Set(); // each niche's full path tree is walked once; other pages get 1 path per scenario
-let total = 0, failed = 0;
+let total = 0, failed = 0, retries = 0;
 const fail = (msg) => { failed++; console.log('FAIL ' + msg); };
 
 for (const p of PAGES) {
   const ctx = await browser.newContext({ viewport: { width: 375, height: 800 }, reducedMotion: 'reduce' });
   await ctx.addInitScript(() => { window.DEMO_SPEED = 0; });
   const page = await ctx.newPage();
+  page.setDefaultNavigationTimeout(60000);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -51,14 +53,22 @@ for (const p of PAGES) {
       for (const path of todo) {
         total++;
         const label = `${p} ${niche}/${scn.key}: ${path.join(' > ')}`;
-        try {
+        const runPath = async () => {
           await page.click(`.demo__pick[data-scenario="${scn.key}"]`);
           for (const say of path) {
             const chip = page.locator('.chip-reply', { hasText: say }).first();
-            await chip.waitFor({ timeout: 3000 });
-            await chip.click();
+            await chip.waitFor({ timeout: STEP_MS });
+            await chip.click({ timeout: STEP_MS });
           }
-          await page.locator('[data-booked]').waitFor({ timeout: 3000 });
+          await page.locator('[data-booked]').waitFor({ timeout: STEP_MS });
+        };
+        try {
+          try { await runPath(); }
+          catch (e) {
+            if (e.name !== 'TimeoutError') throw e;
+            retries++; console.log('retry ' + label + ' (timeout)');
+            await runPath(); // one automatic retry, timeouts only
+          }
           const note = await page.locator('[data-demo-chat] .bubble--system').last().textContent();
           if (!/This is a demo/.test(note)) fail(label + ' (no demo note)');
           const leftover = await page.locator('[data-booked]').textContent();
@@ -76,5 +86,5 @@ for (const p of PAGES) {
   await ctx.close();
 }
 await browser.close();
-console.log(`demo_test [${engineName}]: ${total} paths, ${failed} failure(s)`);
+console.log(`demo_test [${engineName}]: ${total} paths, ${failed} failure(s), ${retries} timeout retr${retries === 1 ? 'y' : 'ies'}`);
 process.exit(failed ? 1 : 0);

@@ -1,17 +1,23 @@
 # AI Lab Pro (US) — dev + QA entry points. Run from the repo root.
+#   make install   npm dev deps (Playwright + Puppeteer, no browser download)
 #   make serve     static site on http://localhost:8787 (site/ + /__fixture__/)
-#   make secrets   secrets scan of the whole repo (fails on any finding)
-#   make qa        every automated check that exists so far (A10 extends this)
-#   make qa-start  client portal E2E + per-step overflow (mock backend)
-#   make qa-admin  owner admin E2E + per-tab overflow (mock backend)
+#   make qa-fast   static checks only (no browsers): secrets, hard-coded values, config sync, price book,
+#                  us_setup self-test, generated pages/fixtures up to date, SQL lint, video VO length. CI runs this.
+#   make qa        EVERYTHING: qa-fast + browsers (3 engines) + Deno tests + offline Postgres (PGlite) suites.
+#                  Every browser suite gets its own server on a free port (no port clashes). Prefer serial `make qa`:
+#                  under heavy CPU load `-j` causes Playwright launch/click timeouts.
 PY ?= python3
 NODE ?= node
+DENO ?= deno
 PORT ?= 8787
+FREE = $$($(PY) tools/free_port.py)
+DENO_RUN = $(DENO) run -A --node-modules-dir=none
 
-.PHONY: serve secrets qa qa-static qa-browser qa-start qa-admin qa-portal-b7 install
+.PHONY: install serve secrets qa qa-fast qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-deno qa-sql
 
 install:
 	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund
+	@echo "Browsers: Playwright 1.63 browsers must be in the cache; if not, run: npx playwright install chromium webkit firefox"
 
 serve:
 	PORT=$(PORT) sh tools/serve.sh
@@ -20,37 +26,50 @@ secrets:
 	$(PY) tools/check_secrets.py --self-test >/dev/null
 	$(PY) tools/check_secrets.py .
 
-qa-static: secrets
+# ---------- static (no browser) ----------
+qa-fast: secrets
 	$(PY) tools/check_hardcoded.py --self-test >/dev/null
 	$(PY) tools/check_hardcoded.py
-	@if [ -f tools/sync_config.py ]; then $(PY) tools/sync_config.py --check; fi
-	@if [ -f tools/pricebook_test.py ]; then $(PY) tools/pricebook_test.py; fi
-	@if [ -f tools/us_setup.py ]; then $(PY) tools/us_setup.py --self-test; fi
+	$(PY) tools/sync_config.py --check
+	$(PY) tools/pricebook_test.py
+	$(PY) tools/us_setup.py --self-test
+	$(PY) tools/build_landing.py --check
+	$(DENO_RUN) tools/build_quote_fixtures.ts --check
+	$(PY) tools/sql_lint.py supabase/migrations
+	$(PY) videos/vo_length.py
 
-# Browser checks start their own server on PORT if nothing is listening there yet.
+# ---------- browsers ----------
+# overflow gate self-test + landing pages, legal, quote fixtures, demo website, styleguide (3 engines x 4 widths)
 qa-browser:
 	$(NODE) tools/overflow.mjs --self-test
-	@if [ -f site/_styleguide/index.html ]; then \
-	  started=; if ! curl -s -o /dev/null http://localhost:$(PORT)/; then SERVE_QUIET=1 PORT=$(PORT) sh tools/serve.sh >/dev/null 2>&1 & started=$$!; sleep 1; fi; \
-	  $(NODE) tools/overflow.mjs http://localhost:$(PORT)/_styleguide/; rc=$$?; \
-	  [ -n "$$started" ] && kill $$started; exit $$rc; fi
+	sh tools/with_server.sh 'node tools/overflow.mjs $$(sed "s#^http://localhost:8787#$$BASE#" tools/urls-landing.txt) $$(sed "s#^/#$$BASE/#" tools/urls-extra.txt)'
 
-# Client portal (/start/): E2E on the mock backend (Puppeteer) + every screen/step overflow in 3 engines. Own servers.
+# scripted chat demo: every path in every engine
+qa-demo:
+	sh tools/with_server.sh 'for e in chromium webkit firefox; do node tools/demo_test.mjs "$$BASE" --engine $$e || exit 1; done'
+
 qa-start:
-	$(NODE) tools/e2e_start.mjs
-	$(NODE) tools/overflow_start.mjs
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_start.mjs
+	E2E_PORT=$(FREE) $(NODE) tools/overflow_start.mjs
 
-qa: qa-static qa-browser qa-start qa-admin
-	@echo "make qa: all checks passed"
-
-# Owner admin (/start/admin/, Hebrew RTL): E2E on the mock backend (Puppeteer) + overflow per tab/detail in 3 engines. Own servers.
 qa-admin:
-	$(NODE) tools/e2e_admin.mjs
-	$(NODE) tools/overflow_admin.mjs
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_admin.mjs
+	E2E_PORT=$(FREE) $(NODE) tools/overflow_admin.mjs
 
-# Portal phase B (task B7): checklist / receptionist / requests / billing usage + admin Tenants tab (mock backend, own servers),
-# overflow in 3 engines, and the B7 SQL test (PGlite, offline).
+# Portal phase B (B7): E2E + overflow on the mock backend, and the B7 SQL test (PGlite, offline).
 qa-portal-b7:
-	$(NODE) tools/e2e_portal_b7.mjs
-	$(NODE) tools/overflow_portal_b7.mjs
-	deno run -A --node-modules-dir=none supabase/tests/offline/portal_b7_run.ts
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_portal_b7.mjs
+	E2E_PORT=$(FREE) $(NODE) tools/overflow_portal_b7.mjs
+	$(DENO_RUN) supabase/tests/offline/portal_b7_run.ts
+
+# ---------- Deno + offline Postgres ----------
+qa-deno:
+	cd supabase/functions && $(DENO) test -A --node-modules-dir=none .
+
+qa-sql:
+	$(DENO_RUN) supabase/tests/offline/run.ts
+	$(DENO_RUN) supabase/tests/offline/quote_engine_run.ts
+	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
+
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7
+	@echo "make qa: all checks passed"
