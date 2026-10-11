@@ -31,11 +31,14 @@ export interface Pricebook {
     rush_pct: number;
     manual_price_setup_over_cents: number;
     quote_valid_days: number;
-    discounts: Record<string, { setup_pct: number; monthly_pct: number; max_clients?: number; applied_by: string }>;
+    discounts: Record<string, { setup_pct: number; monthly_pct: number; max_clients?: number; applied_by: string; label?: string }>;
     monthly_discounts_allowed: boolean;
     [k: string]: unknown;
   };
-  refund_rules: { deposit: { text: string }; retainer: { text: string; codes: string[] }; status?: string };
+  refund_rules: {
+    deposit: { text: string; label?: string }; retainer: { text: string; codes: string[] }; status?: string;
+    rcp_guarantee_days: number; rcp_guarantee: { codes: string[]; label: string; text: string; legal: string };
+  };
   items: PricebookItem[];
   integrations: Record<string, string>;
   integration_meta: Record<string, { label: string; category: string; niches: string[]; note?: string }>;

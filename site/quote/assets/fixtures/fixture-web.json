@@ -85,6 +85,7 @@
     "deposit_pct": 50
   },
   "refund": {
+    "guarantee": null,
     "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
     "retainer": null,
     "status": "pending attorney review; owner to confirm"

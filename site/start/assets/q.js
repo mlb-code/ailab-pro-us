@@ -69,7 +69,7 @@
     return Q.optsOf(f, answers, PB()).map(o => {
       const p = S.priceOf(o.v);
       let price = p ? S.money(p.setup) + ' setup + ' + S.money(p.monthly) + '/mo' : 'We’ll suggest the right fit';
-      if (p && founder && disc) price += '<br><span class="founder">Founding-client price: ' + S.money(Math.round(p.setup * (100 - disc.setup_pct) / 100)) + ' setup (first ' + disc.max_clients + ' clients)</span>';
+      if (p && founder && disc) price += '<br><span class="founder">' + S.esc(disc.label || 'FOUNDING') + ': ' + S.money(Math.round(p.setup * (100 - disc.setup_pct) / 100)) + ' setup (first ' + disc.max_clients + ' clients)</span>';
       return choice('radio', f.k, o.v, '<b>' + S.esc(o.l) + '</b><span>' + price + '</span>', answers[f.k] === o.v);
     }).join('');
   }

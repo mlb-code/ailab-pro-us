@@ -16,6 +16,8 @@ Rules
   * A line containing "hardcoded-ok" is skipped (use sparingly; the reviewer reads every one).
   * Comment-only lines (starting with #, //, /*, *, --, <!--) are skipped: the rule targets rendered strings.
   * Exact copies of config/*.json made by tools/sync_config.py are skipped.
+  * Text inside <span data-cfg="pricebook:..."> / "brand:..."> is skipped: tools/build_landing.py stamps it from config
+    and its --check fails on drift.
 Exit 1 on any ERROR. Missing config files: prints a notice and checks nothing (exit 0).
 """
 import json
@@ -36,6 +38,7 @@ COMMENT_RX = re.compile(r'^\s*(#|//|/\*|\*|--|<!--)')
 # brand.json keys whose string values are "brand strings". Anything under these keys counts.
 BRAND_KEYS = ('name', 'domain', 'site_url', 'support_email', 'senders', 'legal_entity', 'analytics',
               'calendly_url', 'claude', 'physical_address')
+CFG_SPAN_RX = re.compile(r'(<span data-cfg="(?:pricebook|brand):[A-Za-z0-9_.]+">).*?(</span>)')
 MONEY_RX = re.compile(r'\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{2}))?')
 
 
@@ -125,6 +128,7 @@ def check_text(text, ext, brand_vals, prices, amounts):
     for n, line in enumerate(text.splitlines(), 1):
         if PRAGMA in line or COMMENT_RX.match(line):
             continue
+        line = CFG_SPAN_RX.sub(r'\1\2', line)
         if not prose:
             for v in brand_vals:
                 if v in line:
@@ -203,6 +207,8 @@ def self_test():
         ('effort low; $5 budget', '.py', None),
         ('# Acme Widget Co runtime, $3,500 example', '.py', None),
         ('/* Acme Widget Co styles */', '.css', None),
+        ('days are <span data-cfg="brand:business_days_text">Acme Widget Co</span>.', '.html', None),
+        ('<span data-cfg="brand:x">ok</span> Acme Widget Co', '.html', 'ERROR'),
     ]
     bad = 0
     for text, ext, expect in cases:

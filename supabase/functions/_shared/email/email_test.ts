@@ -2,7 +2,7 @@
 // RTL for Meir, CAN-SPAM footer on reminders), sender selection, and the dispatcher against an in-memory outbox with a
 // mocked Resend (idempotency, retry/backoff, gating, quiet hours, never twice), the quote-draft task, storage purge,
 // and both HTTP handlers. Global fetch is replaced by a thrower: any real network call fails the test.
-import { BRAND } from "../config.ts";
+import { BRAND, PRICEBOOK } from "../config.ts";
 import { usd } from "../quote_email.ts";
 import { assert, eq } from "../test_util.ts";
 import { makeHandler as dispatchHandler } from "../../events-dispatch/index.ts";
@@ -28,6 +28,20 @@ const brandWith = (patch: Record<string, unknown>) => ({ ...structuredClone(B), 
 const HEBREW = /[֐-׿]/;
 
 // ------------------------------------------------------------------ templates
+Deno.test("went_live: satisfaction guarantee (from pricebook) for RCP/BNDL only, with its end date", async () => {
+  const s = await samples();
+  const G = PRICEBOOK.refund_rules.rcp_guarantee;
+  const base = s.went_live.ctx.client!;
+  const render = (products: string[], go_live_at: string | null) =>
+    TEMPLATES.went_live.render({ ...s.went_live.ctx, client: { ...base, products, go_live_at } }, { brand: B, now: NOON_IL }).text;
+  for (const p of G.codes) assert(render([p], "2026-10-12T15:00:00Z").includes(G.text), `guarantee for ${p}`);
+  const until = new Date(Date.parse("2026-10-12T15:00:00Z") + PRICEBOOK.refund_rules.rcp_guarantee_days * 864e5);
+  const fmt = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" }).format(until);
+  assert(render(["RCP"], "2026-10-12T15:00:00Z").includes(`runs until ${fmt}`), "guarantee end date");
+  assert(render(["RCP"], null).includes(G.text) && !render(["RCP"], null).includes("runs until"), "no date without go_live_at");
+  assert(!render(["WEB"], "2026-10-12T15:00:00Z").includes(G.label), "WEB has no guarantee (deposit rule only)");
+});
+
 Deno.test("SPEC §5: every event is either rendered here or documented as sent elsewhere", () => {
   const spec = ["auth_code", "lead_capture", "q_received", "admin_new_quote", "quote_sent", "quote_reminder", T_ADMIN_ACCEPTED,
     "deposit_received", "onboarding_nudge", "need_help", "ready_to_test", "final_payment_due", "went_live", "lead_alert",

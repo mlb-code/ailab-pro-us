@@ -124,6 +124,7 @@ Deno.test("view: whitelisted JSON, sets viewed once, includes/excludes from pric
   eq(v.includes.find((i) => i.code === "RCP")!.list, PB.items.find((i) => i.code === "RCP")!.includes);
   assert(!v.excludes.some((e) => e.includes("ADD-CRM")), "exclusion for a purchased add-on removed");
   eq(v.refund.deposit, PB.refund_rules.deposit.text);
+  eq(v.refund.guarantee, PB.refund_rules.rcp_guarantee.text, "RCP quote carries the satisfaction guarantee");
   eq([v.totals.setup_cents, v.totals.deposit_cents, v.totals.final_cents], [470000, 235000, 235000]);
   eq(v.call_offer_prominent, true, "above the async ceiling -> call offer prominent");
   const s = JSON.stringify(v);

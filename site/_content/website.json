@@ -122,7 +122,7 @@
       "v": "The price on this page is the final price. Add-ons are listed with their prices. No hourly billing."
     },
     {
-      "k": "7-day refund",
+      "k": "{refund_label}",
       "v": "{refund}"
     }
   ],

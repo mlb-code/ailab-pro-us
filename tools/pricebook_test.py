@@ -135,6 +135,21 @@ def main():
     check(RR['retainer']['refund_pct'] == num(r'Retainers: (\d+)% refund', md), 'refund: retainer % of first payment')
     check(RR['retainer']['window_days'] == num(r'first payment if cancelled within (\d+) days', md), 'refund: retainer window days')
     check(set(RR['retainer']['codes']) == {c for c in items if c.startswith('RET-')}, 'refund: retainer codes = RET-*')
+    # satisfaction guarantee (owner decision 2026-10-11): RCP + BNDL only; every client text carries the same day count
+    G, gd = RR['rcp_guarantee'], RR['rcp_guarantee_days']
+    check(gd == num(r'not satisfied within (\d+) days after go-live', md), f'guarantee: {gd} days after go-live (MD rule 7)')
+    check(G['codes'] == ['RCP', 'BNDL'] and 'on `RCP` and `BNDL`' in md, 'guarantee: codes RCP + BNDL only')
+    check('WEB' not in G['codes'] and '`WEB` keeps only the 7-day deposit rule' in md, 'guarantee: WEB keeps the deposit rule only')
+    check(G['refunds'] == 'setup_fee' and G['monthly_fees_refunded'] is False and 'Monthly fees for the period used are not refunded' in md,
+          'guarantee: setup fee refunded, monthly fees not')
+    for k in ('label', 'text', 'legal'):
+        nums = {int(x) for x in re.findall(r'(\d+)[- ]day', G[k])}
+        check(nums == {gd}, f'guarantee: {k} text uses {gd} days only ({sorted(nums)})')
+    check('go-live' in G['text'] and 'go-live' in G['legal'], 'guarantee: window counted from go-live in client text')
+    D = RR['deposit']
+    check({int(x) for x in re.findall(r'(\d+)[- ]day', D['text'] + ' ' + D.get('label', ''))} == {D['window_days']}, 'refund: deposit text/label use window_days')
+    check(R['discounts']['FOUNDING'].get('label') == 'Founding-client price' and '"Founding-client price"' in md, 'FOUNDING label = "Founding-client price"')
+    check(bool(brand.get('quote_sla_text')) and 'Sunday–Thursday' in (brand.get('business_days_text') or ''), 'brand: quote_sla_text + business_days_text (Sunday–Thursday)')
     check(R['cancel_notice_days'] == num(r'(\d+) days notice', md), 'cancel notice days')
     check(R['included_usage']['voice_minutes'] == num(r'(\d+) voice minutes \+', md), 'included voice minutes')
     check(R['included_usage']['sms_segments'] == num(r'voice minutes \+ ([\d,]+) SMS', md), 'included SMS segments')

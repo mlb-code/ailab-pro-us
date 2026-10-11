@@ -109,6 +109,10 @@
                 "enum": [
                   "admin"
                 ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
               }
             }
           }
@@ -156,7 +160,9 @@
       "type": "object",
       "required": [
         "deposit",
-        "retainer"
+        "retainer",
+        "rcp_guarantee_days",
+        "rcp_guarantee"
       ],
       "properties": {
         "status": {
@@ -182,6 +188,10 @@
             "text": {
               "type": "string",
               "minLength": 1
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
             }
           }
         },
@@ -203,6 +213,67 @@
               "minimum": 1
             },
             "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "rcp_guarantee_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rcp_guarantee": {
+          "type": "object",
+          "required": [
+            "codes",
+            "window_from",
+            "refunds",
+            "monthly_fees_refunded",
+            "label",
+            "text",
+            "legal"
+          ],
+          "properties": {
+            "codes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "enum": [
+                  "RCP",
+                  "BNDL"
+                ]
+              }
+            },
+            "window_from": {
+              "enum": [
+                "go_live"
+              ]
+            },
+            "refunds": {
+              "enum": [
+                "setup_fee"
+              ]
+            },
+            "monthly_fees_refunded": {
+              "const": false
+            },
+            "service_after_refund": {
+              "enum": [
+                "switched_off"
+              ]
+            },
+            "not_for": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "legal": {
               "type": "string",
               "minLength": 1
             }

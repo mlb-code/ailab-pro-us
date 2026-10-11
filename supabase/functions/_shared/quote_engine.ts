@@ -261,7 +261,7 @@ export interface PublicQuote {
   not_included_extra: string[];
   totals: { setup_subtotal_cents: number; rush_cents: number; discount_cents: number; discount_label: string | null;
     setup_cents: number; monthly_cents: number; deposit_cents: number; final_cents: number; deposit_pct: number };
-  refund: { deposit: string; retainer: string | null; status: string | null };
+  refund: { guarantee: string | null; deposit: string; retainer: string | null; status: string | null };
   payment: { method: string | null; link: string | null };
   agreement_version: string;
   accepted: { name: string; at: string } | null;

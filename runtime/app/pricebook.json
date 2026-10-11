@@ -21,7 +21,8 @@
         "setup_pct": 30,
         "monthly_pct": 0,
         "max_clients": 3,
-        "applied_by": "admin"
+        "applied_by": "admin",
+        "label": "Founding-client price"
       }
     },
     "monthly_discounts_allowed": false,
@@ -49,7 +50,8 @@
       "window_from": "payment",
       "on_request": true,
       "condition": "client has not completed the access checklist",
-      "text": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed."
+      "text": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+      "label": "7-day refund"
     },
     "retainer": {
       "refund_pct": 75,
@@ -61,6 +63,21 @@
         "RET-STUDIO"
       ],
       "text": "Retainers: 75% refund of the first payment if cancelled within 7 days."
+    },
+    "rcp_guarantee_days": 30,
+    "rcp_guarantee": {
+      "codes": [
+        "RCP",
+        "BNDL"
+      ],
+      "window_from": "go_live",
+      "refunds": "setup_fee",
+      "monthly_fees_refunded": false,
+      "service_after_refund": "switched_off",
+      "not_for": "WEB keeps only the 7-day deposit rule: content work starts immediately",
+      "label": "30-day satisfaction guarantee",
+      "text": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee and switch the line off. Monthly fees for the period used are not refunded.",
+      "legal": "If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid and switch the AI line off. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the Receptionist + Website bundle, not to the website on its own."
     }
   },
   "items": [
