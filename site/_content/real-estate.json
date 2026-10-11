@@ -1,0 +1,507 @@
+{
+  "$comment": "Real estate landing (/real-estate/). Tokens: see _shared.json.",
+  "key": "real_estate",
+  "slug": "real-estate",
+  "offer": "RCP",
+  "seo": {
+    "title": "Never Miss a Buyer or Seller Call: AI Lead Response for Agents | {brand}",
+    "description": "Instant text-back, lead screening and booking into your calendar, synced to Follow Up Boss via Zapier. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
+    "og_title": "Never miss a buyer or seller call.",
+    "og_kicker": "AI lead response for real estate",
+    "service_type": "AI lead response and qualification for real estate agents",
+    "audience": "Real estate agents, teams and small brokerages"
+  },
+  "hero": {
+    "eyebrow": "AI lead response · agents · teams · brokerages",
+    "title": "Never miss a buyer or seller call.",
+    "lead": "Instant text-back, lead screening (buying or selling, area, timeline, pre-approval) and booking into your calendar, synced to Follow Up Boss via Zapier. Even when you're at a showing.",
+    "fine": "No sales calls. Fixed quote in writing {quote_sla}."
+  },
+  "clock": {
+    "caption": "One missed call during an open house. Illustration.",
+    "rows": [
+      {
+        "t": "2:14 PM",
+        "a": "Missed call",
+        "b": "You're walking buyers through a kitchen."
+      },
+      {
+        "t": "2:14 PM",
+        "a": "Answered instantly",
+        "b": "\"Jenna's at a showing. I can help right now.\""
+      },
+      {
+        "t": "2:15 PM",
+        "a": "Lead qualified",
+        "b": "Buyer · pre-approved · not working with an agent"
+      },
+      {
+        "t": "2:16 PM",
+        "a": "Booked",
+        "b": "Showing · Sat 10:00 AM · you get a text",
+        "booked": true
+      }
+    ]
+  },
+  "missed_steps": [
+    {
+      "icon": "phone",
+      "title": "It answers",
+      "text": "Calls you can't take forward to your AI line. It answers with your name or your team's name. Hang-ups get a text back within a minute, so sign calls don't go cold."
+    },
+    {
+      "icon": "chat",
+      "title": "It qualifies",
+      "text": "Buying or selling, which property or area, timeline, pre-approval, already working with an agent. Your questions, your order."
+    },
+    {
+      "icon": "calendar",
+      "title": "It books, you get a text",
+      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by text and email. Leads can flow into Follow Up Boss through Zapier."
+    }
+  ],
+  "demo": {
+    "eyebrow": "Try it",
+    "title": "Be the caller. See what your leads would get.",
+    "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
+    "business": "Jenna Harper · Maple & Main Realty",
+    "business_line": "Austin, TX",
+    "scenarios": [
+      {
+        "key": "listing",
+        "label": "Asking about a listing",
+        "start": "s",
+        "nodes": {
+          "s": {
+            "system": "Missed call from (512) 555-0182 · 2:14 PM",
+            "bot": [
+              "Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry Jenna missed you, she's at a showing. I'm the virtual assistant and I can help right now. What are you calling about? Reply STOP to opt out."
+            ],
+            "chips": [
+              {
+                "say": "Is 1420 Oak Ridge Dr still available?",
+                "next": "agent"
+              },
+              {
+                "say": "Can I see 1420 Oak Ridge this weekend?",
+                "next": "agent"
+              }
+            ]
+          },
+          "agent": {
+            "bot": [
+              "1420 Oak Ridge Dr is still listed as active. Are you already working with a buyer's agent?"
+            ],
+            "chips": [
+              {
+                "say": "No, not yet",
+                "next": "loan"
+              },
+              {
+                "say": "No, I'm looking for one",
+                "next": "loan"
+              }
+            ]
+          },
+          "loan": {
+            "bot": [
+              "Thanks. Are you pre-approved for a mortgage, or paying cash?"
+            ],
+            "chips": [
+              {
+                "say": "Pre-approved",
+                "set": {
+                  "fin": "pre-approved"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "Not yet",
+                "set": {
+                  "fin": "needs lender"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "Cash",
+                "set": {
+                  "fin": "cash buyer"
+                },
+                "next": "slot"
+              }
+            ]
+          },
+          "slot": {
+            "bot": [
+              "Jenna can show it Sat 10:00 AM or Sat 1:30 PM. Which works?"
+            ],
+            "chips": [
+              {
+                "say": "Sat 10:00 AM",
+                "set": {
+                  "slot": "Sat 10:00 AM"
+                },
+                "next": "name"
+              },
+              {
+                "say": "Sat 1:30 PM",
+                "set": {
+                  "slot": "Sat 1:30 PM"
+                },
+                "next": "name"
+              }
+            ]
+          },
+          "name": {
+            "bot": [
+              "Great. What's your full name?"
+            ],
+            "chips": [
+              {
+                "say": "Marcus Reed",
+                "set": {
+                  "name": "Marcus"
+                },
+                "next": "done"
+              },
+              {
+                "say": "Emily Novak",
+                "set": {
+                  "name": "Emily"
+                },
+                "next": "done"
+              }
+            ]
+          },
+          "done": {
+            "bot": [
+              "You're set, {name}. Showing at 1420 Oak Ridge Dr, {slot}. Jenna will text you to confirm. Reply STOP to opt out."
+            ],
+            "booked": {
+              "title": "Showing · 1420 Oak Ridge Dr",
+              "when": "{slot}",
+              "detail": "Buyer · {fin} · Jenna alerted"
+            }
+          }
+        }
+      },
+      {
+        "key": "seller",
+        "label": "What's my home worth?",
+        "start": "s",
+        "nodes": {
+          "s": {
+            "system": "Missed call from (737) 555-0124 · 6:48 PM",
+            "bot": [
+              "Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry we missed you! I'm the virtual assistant. How can I help? Reply STOP to opt out."
+            ],
+            "chips": [
+              {
+                "say": "I'm thinking about selling",
+                "next": "area"
+              },
+              {
+                "say": "What's my house worth?",
+                "next": "area"
+              }
+            ]
+          },
+          "area": {
+            "bot": [
+              "Jenna can walk you through a home value review. Which neighborhood is the home in?"
+            ],
+            "chips": [
+              {
+                "say": "Mueller",
+                "set": {
+                  "area": "Mueller"
+                },
+                "next": "when"
+              },
+              {
+                "say": "Round Rock",
+                "set": {
+                  "area": "Round Rock"
+                },
+                "next": "when"
+              }
+            ]
+          },
+          "when": {
+            "bot": [
+              "Got it. When are you hoping to sell?"
+            ],
+            "chips": [
+              {
+                "say": "In the next 3 months",
+                "set": {
+                  "t": "next 3 months"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "Later this year",
+                "set": {
+                  "t": "later this year"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "Just curious for now",
+                "set": {
+                  "t": "just exploring"
+                },
+                "next": "slot"
+              }
+            ]
+          },
+          "slot": {
+            "bot": [
+              "Jenna has a 20-minute call open Thu 4:00 PM or Fri 11:00 AM. Which is better?"
+            ],
+            "chips": [
+              {
+                "say": "Thu 4:00 PM",
+                "set": {
+                  "slot": "Thu 4:00 PM"
+                },
+                "next": "name"
+              },
+              {
+                "say": "Fri 11:00 AM",
+                "set": {
+                  "slot": "Fri 11:00 AM"
+                },
+                "next": "name"
+              }
+            ]
+          },
+          "name": {
+            "bot": [
+              "And your name?"
+            ],
+            "chips": [
+              {
+                "say": "Linda Torres",
+                "set": {
+                  "name": "Linda"
+                },
+                "next": "done"
+              },
+              {
+                "say": "Greg Walsh",
+                "set": {
+                  "name": "Greg"
+                },
+                "next": "done"
+              }
+            ]
+          },
+          "done": {
+            "bot": [
+              "Thanks, {name}. Home value call booked for {slot}. Jenna will call you from her cell."
+            ],
+            "booked": {
+              "title": "Seller consult · {area}",
+              "when": "{slot}",
+              "detail": "Timeline: {t} · Jenna alerted"
+            }
+          }
+        }
+      },
+      {
+        "key": "buyer",
+        "label": "Starting a home search",
+        "start": "s",
+        "nodes": {
+          "s": {
+            "system": "Missed call from (512) 555-0157 · 9:05 PM",
+            "bot": [
+              "Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry we missed you! I'm the virtual assistant. What can I help with? Reply STOP to opt out."
+            ],
+            "chips": [
+              {
+                "say": "We're starting to look for a house",
+                "next": "area"
+              },
+              {
+                "say": "We're relocating to Austin",
+                "next": "area"
+              }
+            ]
+          },
+          "area": {
+            "bot": [
+              "Exciting! Which areas are you looking at?"
+            ],
+            "chips": [
+              {
+                "say": "East Austin",
+                "set": {
+                  "area": "East Austin"
+                },
+                "next": "budget"
+              },
+              {
+                "say": "Cedar Park",
+                "set": {
+                  "area": "Cedar Park"
+                },
+                "next": "budget"
+              },
+              {
+                "say": "Not sure yet",
+                "set": {
+                  "area": "open to areas"
+                },
+                "next": "budget"
+              }
+            ]
+          },
+          "budget": {
+            "bot": [
+              "And a rough price range?"
+            ],
+            "chips": [
+              {
+                "say": "Under 450k",
+                "set": {
+                  "b": "under 450k"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "450k to 700k",
+                "set": {
+                  "b": "450k to 700k"
+                },
+                "next": "slot"
+              }
+            ]
+          },
+          "slot": {
+            "bot": [
+              "Jenna would love to talk. She has Wed 6:00 PM or Thu 12:30 PM for a 30-minute buyer call."
+            ],
+            "chips": [
+              {
+                "say": "Wed 6:00 PM",
+                "set": {
+                  "slot": "Wed 6:00 PM"
+                },
+                "next": "name"
+              },
+              {
+                "say": "Thu 12:30 PM",
+                "set": {
+                  "slot": "Thu 12:30 PM"
+                },
+                "next": "name"
+              }
+            ]
+          },
+          "name": {
+            "bot": [
+              "Perfect. Who should Jenna ask for?"
+            ],
+            "chips": [
+              {
+                "say": "Chris and Dana Kim",
+                "set": {
+                  "name": "Chris"
+                },
+                "next": "done"
+              },
+              {
+                "say": "Alex Rivera",
+                "set": {
+                  "name": "Alex"
+                },
+                "next": "done"
+              }
+            ]
+          },
+          "done": {
+            "bot": [
+              "Booked, {name}. Buyer call {slot}. Jenna will send a short prep list by text."
+            ],
+            "booked": {
+              "title": "Buyer consult",
+              "when": "{slot}",
+              "detail": "{area} · {b} · Jenna alerted"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "included": {
+    "eyebrow": "What's included",
+    "title": "One price. Every lead gets screened and booked.",
+    "tools_title": "Works with your tools"
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "The price is on the page.",
+    "note": "Team with several lines? Each extra line is a fixed-price add-on, listed below."
+  },
+  "faq": [
+    {
+      "ref": "keep_number"
+    },
+    {
+      "ref": "cost"
+    },
+    {
+      "ref": "ai_disclosure"
+    },
+    {
+      "q": "Does it work with Follow Up Boss?",
+      "a": "Yes, through the Zapier webhook that's included: every new lead and booking can create a person and a task in Follow Up Boss. Google Calendar or Calendly booking is included too."
+    },
+    {
+      "q": "Can it answer questions about my listings?",
+      "a": "It answers from the facts you give it (address, status, open house times, your FAQ). It won't guess about price changes, offers or property condition. It hands those to you."
+    },
+    {
+      "ref": "no_call"
+    },
+    {
+      "ref": "timeline"
+    },
+    {
+      "ref": "cancel"
+    }
+  ],
+  "service_name": "AI Lead Response & Qualification",
+  "product_name": "Missed-Call AI Lead Assistant",
+  "page_tokens": {
+    "assistant": "lead assistant",
+    "tagline": "AI lead response and websites for real estate agents and local businesses"
+  },
+  "tools": [
+    "google_calendar",
+    "calendly",
+    "follow_up_boss",
+    "kvcore",
+    "zapier"
+  ],
+  "addons_hide": [
+    "ADD-CRM",
+    "ADD-REV"
+  ],
+  "included_items": [
+    "1 AI line for you or your team (a US number we provision; you keep your number and forward unanswered calls to it)",
+    "Answers missed and forwarded calls, plus an instant text-back to callers who hang up",
+    "Lead screening: buying or selling, property or area, timeline, pre-approval, already working with an agent",
+    "Booking showings, listing consults and buyer calls into Google Calendar or Calendly",
+    "Up to 25 FAQ entries (listings, open houses, your process), business hours and after-hours mode",
+    "Lead alerts by SMS and email for every new lead, plus a daily summary email",
+    "Leads synced to Follow Up Boss or kvCORE through 1 included Zapier webhook",
+    "English. Client portal with call log, transcripts, bookings and settings",
+    "A2P 10DLC SMS registration handled by us (registration fees included)",
+    "{usage_text}",
+    "Monthly: monitoring, prompt and FAQ updates, 1 active change request at a time (small changes, up to 1 hour each)"
+  ],
+  "bundle_name": "Lead Assistant + Website bundle"
+}

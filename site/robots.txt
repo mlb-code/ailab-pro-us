@@ -1,0 +1,9 @@
+# generated-by: tools/build_landing.py (edit site/_content/*.json or config/*.json, then rebuild)
+User-agent: *
+Allow: /
+Disallow: /_content/
+Disallow: /_styleguide/
+Disallow: /start/
+Disallow: /quote/
+
+Sitemap: https://ailabpro.co/sitemap.xml

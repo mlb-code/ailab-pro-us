@@ -31,14 +31,15 @@
       "voice_minutes": 400,
       "sms_segments": 1000
     },
-    "overage_markup_pct": 20,
+    "overage_markup_pct": 0,
     "custom_triggers": {
       "max_auto_locations": 3,
       "max_auto_voice_minutes_per_month": 3000,
       "hipaa_baa_requested": "custom",
       "ehr_or_practice_management": "custom"
     },
-    "upwork_same_prices": true
+    "upwork_same_prices": true,
+    "overage_policy": "no_auto_billing_alert_80_100_addon_with_approval"
   },
   "refund_rules": {
     "status": "pending attorney review; owner to confirm",
@@ -84,7 +85,7 @@
         "1 outgoing Zapier webhook (lead and booking events) to connect any other tool",
         "English. Client portal with call log, transcripts, bookings and settings",
         "A2P 10DLC SMS registration handled by us (registration fees included)",
-        "Included usage per month: 400 voice minutes and 1,000 SMS segments; overage billed at cost + 20%, reported monthly",
+        "Included usage per month: 400 voice minutes and 1,000 SMS segments; alerts at 80% and 100%; no automatic overage billing, extra usage blocks added only with your approval",
         "Monthly: monitoring, prompt/FAQ updates, 1 active change request at a time (small changes, up to 1 hour each)"
       ],
       "excludes": [
@@ -447,7 +448,8 @@
     "follow_up_boss": "zapier",
     "dentrix": "custom",
     "open_dental": "custom",
-    "other": "custom"
+    "other": "custom",
+    "kvcore": "zapier"
   },
   "integration_meta": {
     "google_calendar": {
@@ -557,6 +559,13 @@
         "*"
       ],
       "note": "Free-text tool name; priced manually."
+    },
+    "kvcore": {
+      "label": "kvCORE",
+      "category": "crm",
+      "niches": [
+        "real_estate"
+      ]
     }
   }
 }

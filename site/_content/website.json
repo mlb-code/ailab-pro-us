@@ -1,0 +1,133 @@
+{
+  "$comment": "Website product page (/website/). Sold directly: Choose package -> /start/?offer=WEB. Tokens: see _shared.json.",
+  "key": "website",
+  "slug": "website",
+  "offer": "WEB",
+  "seo": {
+    "title": "Small Business Website, Fixed Price, Live in {days:WEB} Business Days After We Have Your Content | {brand}",
+    "description": "A fast 5-page website for local service businesses: click-to-call, lead form, local SEO basics. {price:WEB.setup} setup + {price:WEB.monthly}/mo hosting and edits. No sales calls.",
+    "og_title": "A 5-page website. Live in {days:WEB} business days after we have your content.",
+    "og_kicker": "Websites for local businesses",
+    "service_type": "Website design and hosting for local service businesses",
+    "audience": "Local service businesses in the United States"
+  },
+  "hero": {
+    "eyebrow": "Websites for local service businesses",
+    "title": "A website that makes the phone ring.",
+    "lead": "Five fast pages built around one job: getting a customer to call, text or fill in the form. Written from your questionnaire, approved by you, live {days:WEB} business days after your content is in.",
+    "fine": "Choose the package, pay the deposit, answer the content questionnaire. No quote step, no sales calls."
+  },
+  "pages": [
+    {
+      "name": "Home",
+      "line": "Who you are, where you work, one big call button."
+    },
+    {
+      "name": "Services",
+      "line": "Each service in plain words, with a call or text button."
+    },
+    {
+      "name": "About",
+      "line": "Your story, license and insurance, your team."
+    },
+    {
+      "name": "Reviews & FAQ",
+      "line": "Real reviews and the questions customers ask most."
+    },
+    {
+      "name": "Contact",
+      "line": "Lead form to your email and a Google Sheet. Map and hours."
+    }
+  ],
+  "steps_title": "Five pages. Each one has a job.",
+  "how": {
+    "eyebrow": "How it works",
+    "title": "Choose, answer, approve. No calls.",
+    "steps": [
+      {
+        "num": "1 click",
+        "title": "Choose the package",
+        "text": "Accept the terms and pay the 50% deposit online."
+      },
+      {
+        "num": "15 min",
+        "title": "Content questionnaire",
+        "text": "Services, service area, photos, reviews, colors. Upload your logo if you have one."
+      },
+      {
+        "num": "{days:WEB} days",
+        "title": "Draft, then your approval",
+        "text": "We write and build it. You review it on a private link and ask for changes."
+      },
+      {
+        "num": "Live",
+        "title": "Launch",
+        "text": "We connect your domain, Search Console and Google Business Profile link. Then 1 small edit every month."
+      }
+    ]
+  },
+  "bundle": {
+    "title": "Want missed calls answered too?",
+    "text": "The bundle adds the Missed-Call AI Receptionist, puts your AI line on the site, and includes a website chat widget. You save {bundle_save_setup} on setup and {bundle_save_monthly} a month."
+  },
+  "faq": [
+    {
+      "q": "What does it cost?",
+      "a": "{price:WEB.setup} setup and {price:WEB.monthly} a month. The deposit is {price:WEB.deposit}; the rest is due before launch. The monthly fee covers hosting, SSL, an uptime check and 1 small content edit per month."
+    },
+    {
+      "q": "Who writes the text?",
+      "a": "We draft it with AI from your questionnaire answers, then you approve every page. Nothing goes live without your OK."
+    },
+    {
+      "q": "Do I own the domain?",
+      "a": "Yes. If you already have a domain, we connect it. If not, you register one in your own name and we show you how."
+    },
+    {
+      "q": "Can I bring my own photos?",
+      "a": "Yes, and we recommend it. Real photos of your team and trucks work better than stock. We use stock photos only where you have none."
+    },
+    {
+      "q": "Will it show up on Google?",
+      "a": "We set up the basics: titles and descriptions, LocalBusiness schema, a sitemap, Google Search Console and a link to your Google Business Profile. Rankings depend on many things; we don't promise positions."
+    },
+    {
+      "q": "What if I need more pages or Spanish?",
+      "a": "Extra pages are {price:ADD-PAGE.setup} each. A full Spanish version is {price:ADD-WEB-ES.setup} + {price:ADD-WEB-ES.monthly}/mo. Choosing an add-on adds a short written quote step."
+    },
+    {
+      "q": "Do I have to get on a call with you?",
+      "a": "No. There's no quote step: choose the package on this page, pay the deposit, and fill in the content questionnaire. If you'd rather talk first, you can book an optional 15-minute video call."
+    },
+    {
+      "q": "Can I cancel?",
+      "a": "The monthly plan cancels with {cancel_days} days notice. {refund}"
+    }
+  ],
+  "proof_rows": [
+    {
+      "k": "Built with Claude",
+      "v": "Your copy is drafted with Claude, Anthropic's AI model, then approved by you. We are an independent studio, not affiliated with or endorsed by Anthropic."
+    },
+    {
+      "k": "Real clients",
+      "v": "{worked_with}."
+    },
+    {
+      "k": "No quote step",
+      "v": "Pay the deposit, fill in the content questionnaire, see a draft in 3 business days."
+    },
+    {
+      "k": "Fixed price",
+      "v": "The price on this page is the final price. Add-ons are listed with their prices. No hourly billing."
+    },
+    {
+      "k": "7-day refund",
+      "v": "{refund}"
+    }
+  ],
+  "band": {
+    "title": "Choose your package.",
+    "text": "Pay the deposit, fill in the content questionnaire, see a draft in 3 business days."
+  }
+}
