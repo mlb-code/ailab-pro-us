@@ -1,0 +1,169 @@
+{
+  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit}, {refund}, {days:CODE}, {usage_voice}, {usage_sms}, {overage_pct}, {cancel_days}, {bundle_save_setup}, {bundle_save_monthly}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here.",
+  "worked_with_fallback": "Worked with Samsung and Haier in {country} (through their local distributor)",
+  "nav": [
+    {
+      "label": "Home services",
+      "href": "/"
+    },
+    {
+      "label": "Real estate",
+      "href": "/real-estate/"
+    },
+    {
+      "label": "Website",
+      "href": "/website/"
+    },
+    {
+      "label": "Demo",
+      "href": "/demo/"
+    }
+  ],
+  "how": {
+    "eyebrow": "How it works",
+    "title": "From first click to live. No phone calls.",
+    "lead": "Everything happens in writing, on your schedule. You can stop at any step.",
+    "steps": [
+      {
+        "num": "6 min",
+        "title": "Questionnaire",
+        "text": "Tell us how calls work today, your hours, your service area and your tools. It saves as you go."
+      },
+      {
+        "num": "{quote_sla_short}",
+        "title": "Fixed quote in writing",
+        "text": "A fixed price, a clear scope, what is and isn't included. {quote_sla_cap}. Accept it online."
+      },
+      {
+        "num": "7 steps",
+        "title": "Setup checklist with videos",
+        "text": "Connect your calendar, choose who gets alerts, add your FAQ. Each step has a short video."
+      },
+      {
+        "num": "{days:RCP} days",
+        "title": "Live",
+        "text": "We build and test it, you try it yourself, then you turn on call forwarding. {days:RCP} business days after your access checklist is done."
+      }
+    ],
+    "video_call": "Prefer a quick 15-min video call? It's optional, never required."
+  },
+  "proof": {
+    "eyebrow": "Why owners trust it",
+    "title": "Small studio. Fixed prices. Everything in writing.",
+    "rows": [
+      {
+        "k": "Built with Claude",
+        "v": "Your {assistant} runs on Claude, Anthropic's AI model. We are an independent studio, not affiliated with or endorsed by Anthropic."
+      },
+      {
+        "k": "Real clients",
+        "v": "{worked_with}."
+      },
+      {
+        "k": "Fixed price",
+        "v": "The price on this page is the price on your quote. Add-ons are listed with their prices. No hourly billing."
+      },
+      {
+        "k": "Quote in writing",
+        "v": "{quote_sla_cap} of your questionnaire. Valid for 14 days. No sales calls, ever."
+      },
+      {
+        "k": "7-day refund",
+        "v": "{refund}"
+      }
+    ]
+  },
+  "faq": {
+    "keep_number": {
+      "q": "Do I keep my business number?",
+      "a": "Yes. You set call forwarding on no-answer or busy to the AI line we set up. Calls you pick up never reach it. Our checklist shows how for Verizon, AT&T, T-Mobile, Comcast Business, RingCentral and Google Voice."
+    },
+    "cost": {
+      "q": "What does it cost, exactly?",
+      "a": "{price:RCP.setup} setup and {price:RCP.monthly} a month. You pay a {price:RCP.deposit} deposit to start and the rest before go-live. The monthly fee starts on your go-live date. {usage_text}"
+    },
+    "ai_disclosure": {
+      "q": "Will callers know it's AI?",
+      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be transcribed. We keep transcripts, not audio."
+    },
+    "no_call": {
+      "q": "Do I have to get on a call with you?",
+      "a": "No. You fill in a questionnaire, get a written quote, and finish a setup checklist with short videos. If you want a 15-minute video call anyway, you can book one. It's optional."
+    },
+    "timeline": {
+      "q": "How long until it's live?",
+      "a": "{days:RCP} business days after you finish the access checklist (calendar, alerts, SMS registration details). Rush delivery is available as an add-on."
+    },
+    "cancel": {
+      "q": "Can I cancel?",
+      "a": "Monthly service cancels with {cancel_days} days notice. {refund}"
+    },
+    "who": {
+      "q": "Who is behind this?",
+      "a": "A small studio that builds AI tools for local businesses, working remotely from {country}. {worked_with}. Built with Claude; not affiliated with Anthropic."
+    },
+    "spanish": {
+      "q": "Can it speak Spanish?",
+      "a": "Yes, as an add-on: {price:ADD-ES.setup} setup + {price:ADD-ES.monthly}/mo. Callers can talk or text in Spanish; your summaries stay in English."
+    },
+    "builtin_ai": {
+      "q": "Why not the AI assistant built into Jobber or Housecall Pro?",
+      "a": "Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, works with any calendar or CRM, hands off to a person when needed, and comes with someone who maintains it."
+    }
+  },
+  "cta_band": {
+    "title": "Get your fixed quote. No call needed.",
+    "text": "A 6-minute questionnaire. A written quote {quote_sla}."
+  },
+  "missed": {
+    "eyebrow": "What happens to a missed call",
+    "title": "The caller doesn't wait. Your {assistant} doesn't either."
+  },
+  "usage_text_fallback": "{usage_voice} minutes + {usage_sms} texts included every month. We alert you at 80%. No surprise charges: extra usage is added only if you approve it.",
+  "sms_note": "Text-back starts after US carrier registration (A2P 10DLC), typically 1–2 weeks. Voice answering starts right away.",
+  "founder": {
+    "text": "Founding client price: {price:RCP.founding} setup + {price:RCP.monthly}/mo for the first {founding_max} clients, in exchange for a short case study."
+  },
+  "after_pay": {
+    "eyebrow": "What happens after you pay",
+    "title": "Five steps, with dates.",
+    "lead": "Day 0 is the day your deposit arrives. Business days.",
+    "steps": [
+      {
+        "num": "Day 0",
+        "title": "Welcome + checklist",
+        "text": "You get a welcome email and your setup checklist in the portal. Each item has a short video."
+      },
+      {
+        "num": "Days 1–3",
+        "title": "You connect things",
+        "text": "Calendar, who gets alerts, hours, FAQ, and your business details for SMS registration. About an hour in total."
+      },
+      {
+        "num": "Day 1",
+        "title": "We register your texting",
+        "text": "We file the US carrier registration (A2P 10DLC) for you. It usually takes 1–2 weeks; fees included."
+      },
+      {
+        "num": "By day {days:RCP}",
+        "title": "Built and tested",
+        "text": "We set it up and run it through test conversations. You get a test number and call it yourself."
+      },
+      {
+        "num": "Go-live",
+        "title": "You approve, it goes live",
+        "text": "You approve go-live, pay the second half, and turn on call forwarding with our step-by-step video."
+      }
+    ]
+  },
+  "transcript": {
+    "title": "Read a full sample conversation",
+    "caller": "Caller",
+    "assistant": "Assistant"
+  },
+  "video_call_box": {
+    "title": "Prefer to talk first?",
+    "text": "It's optional.",
+    "link": "Book a 15-minute video call"
+  }
+}

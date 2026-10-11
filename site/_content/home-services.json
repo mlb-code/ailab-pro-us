@@ -1,0 +1,442 @@
+{
+  "$comment": "Home services landing (/ and /home-services/). Tokens: see _shared.json. Demo: each scenario is a tree; every path must end in a node with 'booked'. Chips may 'set' variables used as {name} in later text.",
+  "key": "home_services",
+  "slug": "home-services",
+  "offer": "RCP",
+  "seo": {
+    "title": "AI Receptionist for HVAC & Plumbing Companies | {brand}",
+    "description": "Missed calls answered, texted back and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls.",
+    "og_title": "Every missed call, answered and booked.",
+    "og_kicker": "AI receptionist for HVAC & plumbing",
+    "service_type": "AI phone receptionist for home service businesses",
+    "audience": "HVAC and plumbing companies; also electrical, roofing and garage door"
+  },
+  "hero": {
+    "eyebrow": "AI receptionist for HVAC & plumbing companies",
+    "title": "Every missed call, answered and booked.",
+    "lead": "You're on a roof or under a sink. The phone rings. Your AI receptionist answers, texts back anyone who hangs up, and books the job into your calendar.",
+    "fine": "No sales calls. Fixed quote in writing {quote_sla}.",
+    "also": "Also for electrical, roofing and garage door companies."
+  },
+  "clock": {
+    "caption": "One missed call, minute by minute. Illustration.",
+    "rows": [
+      {
+        "t": "7:42 PM",
+        "a": "Missed call",
+        "b": "You're finishing a job across town."
+      },
+      {
+        "t": "7:42 PM",
+        "a": "Answered by your AI receptionist",
+        "b": "\"Sorry we missed you. I can get you booked.\""
+      },
+      {
+        "t": "7:43 PM",
+        "a": "Job details collected",
+        "b": "AC blowing warm air · ZIP 77005 · urgent"
+      },
+      {
+        "t": "7:44 PM",
+        "a": "Booked",
+        "b": "Tuesday 8 AM–12 PM · AC repair · you get a text",
+        "booked": true
+      }
+    ]
+  },
+  "missed_steps": [
+    {
+      "icon": "phone",
+      "title": "It answers",
+      "text": "Unanswered calls forward to your AI line. It greets callers by your business name and asks what's going on. Hang-ups get a text back within a minute."
+    },
+    {
+      "icon": "chat",
+      "title": "It asks the right questions",
+      "text": "Name, callback number, address or ZIP, job type, urgency. Emergencies like a gas smell get a 911 instruction first and an urgent alert to you."
+    },
+    {
+      "icon": "calendar",
+      "title": "It books, you get a text",
+      "text": "Only real openings from your calendar, inside your service area and time windows. You get the lead by text and email, plus a daily summary."
+    }
+  ],
+  "demo": {
+    "eyebrow": "Try it",
+    "title": "Be the customer. See what your callers would get.",
+    "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
+    "business": "Lone Star Comfort",
+    "business_line": "Heating, Air & Plumbing · Houston",
+    "scenarios": [
+      {
+        "key": "ac",
+        "label": "AC blowing warm air",
+        "start": "s",
+        "nodes": {
+          "s": {
+            "system": "Missed call from (832) 555-0147 · 7:42 PM",
+            "bot": [
+              "Hi, this is Lone Star Comfort. Sorry we missed your call! I'm the virtual assistant and I can get you booked. What's going on? Reply STOP to opt out."
+            ],
+            "chips": [
+              {
+                "say": "My AC is blowing warm air",
+                "next": "zip"
+              },
+              {
+                "say": "AC won't turn on at all",
+                "next": "thermo"
+              }
+            ]
+          },
+          "thermo": {
+            "bot": [
+              "Got it. Quick check so the tech comes prepared: is the thermostat screen on?"
+            ],
+            "chips": [
+              {
+                "say": "Screen is blank",
+                "next": "zip"
+              },
+              {
+                "say": "Screen is on",
+                "next": "zip"
+              }
+            ]
+          },
+          "zip": {
+            "bot": [
+              "Sorry about that, especially in this heat. What's the ZIP code for the service address?"
+            ],
+            "chips": [
+              {
+                "say": "77005",
+                "set": {
+                  "zip": "77005"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "77019",
+                "set": {
+                  "zip": "77019"
+                },
+                "next": "slot"
+              }
+            ]
+          },
+          "slot": {
+            "bot": [
+              "You're in our service area. I have two windows tomorrow: Tuesday 8 AM–12 PM or Tuesday 12–4 PM. Which works?"
+            ],
+            "chips": [
+              {
+                "say": "Tuesday 8 AM–12 PM",
+                "set": {
+                  "slot": "Tuesday 8 AM–12 PM"
+                },
+                "next": "name"
+              },
+              {
+                "say": "Tuesday 12–4 PM",
+                "set": {
+                  "slot": "Tuesday 12–4 PM"
+                },
+                "next": "name"
+              }
+            ]
+          },
+          "name": {
+            "bot": [
+              "{slot} it is. What name should I put this under?"
+            ],
+            "chips": [
+              {
+                "say": "Mike Alvarez",
+                "set": {
+                  "name": "Mike"
+                },
+                "next": "done"
+              },
+              {
+                "say": "Sarah Chen",
+                "set": {
+                  "name": "Sarah"
+                },
+                "next": "done"
+              }
+            ]
+          },
+          "done": {
+            "bot": [
+              "Thanks, {name}. You're booked for AC repair, {slot}, ZIP {zip}. The technician will text before arriving. Reply STOP to opt out."
+            ],
+            "booked": {
+              "title": "AC repair",
+              "when": "{slot}",
+              "detail": "ZIP {zip} · owner alerted by text + email"
+            }
+          }
+        }
+      },
+      {
+        "key": "leak",
+        "label": "Water heater leaking",
+        "start": "s",
+        "nodes": {
+          "s": {
+            "system": "Missed call from (713) 555-0119 · 6:15 AM",
+            "bot": [
+              "Hi, this is Lone Star Comfort. Sorry we missed your call! I'm the virtual assistant. How can we help? Reply STOP to opt out."
+            ],
+            "chips": [
+              {
+                "say": "Water heater is leaking",
+                "next": "how"
+              },
+              {
+                "say": "There's water all over the garage floor",
+                "next": "how"
+              }
+            ]
+          },
+          "how": {
+            "bot": [
+              "I'll flag this as urgent and alert our on-call tech now. Is the water still running?"
+            ],
+            "chips": [
+              {
+                "say": "Yes, still dripping",
+                "next": "zip"
+              },
+              {
+                "say": "It slowed down",
+                "next": "zip"
+              }
+            ]
+          },
+          "zip": {
+            "bot": [
+              "Thanks. What's the ZIP code?"
+            ],
+            "chips": [
+              {
+                "say": "77024",
+                "set": {
+                  "zip": "77024"
+                },
+                "next": "slot"
+              },
+              {
+                "say": "77079",
+                "set": {
+                  "zip": "77079"
+                },
+                "next": "slot"
+              }
+            ]
+          },
+          "slot": {
+            "bot": [
+              "The earliest opening is today 8–10 AM. There's also today 10–12. Which one?"
+            ],
+            "chips": [
+              {
+                "say": "Today 8–10 AM",
+                "set": {
+                  "slot": "Today 8–10 AM"
+                },
+                "next": "name"
+              },
+              {
+                "say": "Today 10 AM–12 PM",
+                "set": {
+                  "slot": "Today 10 AM–12 PM"
+                },
+                "next": "name"
+              }
+            ]
+          },
+          "name": {
+            "bot": [
+              "Got it. Your name, please?"
+            ],
+            "chips": [
+              {
+                "say": "Dave Morris",
+                "set": {
+                  "name": "Dave"
+                },
+                "next": "done"
+              },
+              {
+                "say": "Lena Ortiz",
+                "set": {
+                  "name": "Lena"
+                },
+                "next": "done"
+              }
+            ]
+          },
+          "done": {
+            "bot": [
+              "You're booked, {name}: water heater leak, {slot}, ZIP {zip}. Our tech has the details and will text when on the way."
+            ],
+            "booked": {
+              "title": "Water heater leak · URGENT",
+              "when": "{slot}",
+              "detail": "ZIP {zip} · on-call tech alerted"
+            }
+          }
+        }
+      },
+      {
+        "key": "estimate",
+        "label": "New AC system estimate",
+        "start": "s",
+        "nodes": {
+          "s": {
+            "system": "Missed call from (281) 555-0163 · 12:08 PM",
+            "bot": [
+              "Hi, this is Lone Star Comfort. Sorry we missed your call! I'm the virtual assistant. What can we help with? Reply STOP to opt out."
+            ],
+            "chips": [
+              {
+                "say": "I need a quote for a new AC",
+                "next": "age"
+              },
+              {
+                "say": "Thinking about replacing my old unit",
+                "next": "age"
+              }
+            ]
+          },
+          "age": {
+            "bot": [
+              "Happy to set up an in-home estimate. Roughly how old is the current system?"
+            ],
+            "chips": [
+              {
+                "say": "Over 15 years",
+                "next": "home"
+              },
+              {
+                "say": "About 10 years",
+                "next": "home"
+              },
+              {
+                "say": "Not sure",
+                "next": "home"
+              }
+            ]
+          },
+          "home": {
+            "bot": [
+              "Thanks. Is it a single-story or two-story home?"
+            ],
+            "chips": [
+              {
+                "say": "Single-story",
+                "next": "slot"
+              },
+              {
+                "say": "Two-story",
+                "next": "slot"
+              }
+            ]
+          },
+          "slot": {
+            "bot": [
+              "Estimates take about 45 minutes. I can do Thu 9:00 AM or Fri 2:00 PM."
+            ],
+            "chips": [
+              {
+                "say": "Thu 9:00 AM",
+                "set": {
+                  "slot": "Thu 9:00 AM"
+                },
+                "next": "name"
+              },
+              {
+                "say": "Fri 2:00 PM",
+                "set": {
+                  "slot": "Fri 2:00 PM"
+                },
+                "next": "name"
+              }
+            ]
+          },
+          "name": {
+            "bot": [
+              "Great. What name should I book it under?"
+            ],
+            "chips": [
+              {
+                "say": "Priya Patel",
+                "set": {
+                  "name": "Priya"
+                },
+                "next": "done"
+              },
+              {
+                "say": "Tom Becker",
+                "set": {
+                  "name": "Tom"
+                },
+                "next": "done"
+              }
+            ]
+          },
+          "done": {
+            "bot": [
+              "All set, {name}. New system estimate on {slot}. Our comfort advisor will bring options and exact prices."
+            ],
+            "booked": {
+              "title": "New AC estimate",
+              "when": "{slot}",
+              "detail": "45 min in-home visit · owner alerted"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "included": {
+    "eyebrow": "What's included",
+    "title": "One price. Everything a missed call needs.",
+    "tools_title": "Works with your tools"
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "The price is on the page.",
+    "note": "Adding a second location, Spanish, or a direct Jobber connection? Each add-on has a fixed price, listed below."
+  },
+  "faq": [
+    {
+      "ref": "keep_number"
+    },
+    {
+      "ref": "cost"
+    },
+    {
+      "ref": "ai_disclosure"
+    },
+    {
+      "q": "What about emergencies?",
+      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT text right away, and it can ring your cell."
+    },
+    {
+      "ref": "builtin_ai"
+    },
+    {
+      "q": "Does it work with Jobber, Housecall Pro or ServiceTitan?",
+      "a": "Booking into Google Calendar or Calendly is included, and so is 1 Zapier webhook for any other tool. A direct Jobber, Housecall Pro, GoHighLevel or HubSpot connection is a {price:ADD-CRM.setup} add-on ({price:ADD-CRM.monthly}/mo). ServiceTitan gets a custom quote."
+    },
+    {
+      "ref": "no_call"
+    },
+    {
+      "ref": "cancel"
+    }
+  ]
+}
