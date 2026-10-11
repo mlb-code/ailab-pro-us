@@ -8,6 +8,7 @@ Fails (exit 1) when:
   * a public table has no `create policy ... on public.X`
   * a table in schema private has RLS off (defence in depth)
   * a policy uses `using (true)` / `with check (true)`
+  * any SQL deletes from storage.* directly (Supabase forbids it; use the purge queue)
   * a migration is missing `set check_function_bodies = off` while defining functions
   * a `create table` / `create index` / `create policy` / `create trigger` is not idempotent
     (missing `if not exists`, or no preceding `drop ... if exists`)
@@ -43,6 +44,8 @@ def main(path: str) -> int:
                 name, table = m.group(1), m.group(2)
                 if not re.search(rf"drop\s+{kind}\s+if\s+exists\s+{name}\s+on\s+{re.escape(table)}\b", sql[: m.start()]):
                     errors.append(f"{f.name}: `create {kind} {name}` has no preceding `drop {kind} if exists`")
+        if re.search(r"delete\s+from\s+storage\.", sql):
+            errors.append(f"{f.name}: direct `delete from storage.*` (Supabase blocks it; queue in private.storage_purge_queue)")
         if re.search(r"(using|with\s+check)\s*\(\s*true\s*\)", sql):
             errors.append(f"{f.name}: policy with `(true)` condition")
 

@@ -81,3 +81,20 @@ grant usage on schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+
+-- Supabase blocks direct DELETE on storage tables (files must go through the Storage API).
+-- Emulated so offline runs fail exactly like the real project would.
+create or replace function storage.protect_delete() returns trigger language plpgsql as $$
+begin
+  if coalesce(current_setting('storage.allow_delete_query', true), 'false') <> 'true' then
+    raise exception 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+      using errcode = '42501';
+  end if;
+  return null;
+end $$;
+drop trigger if exists protect_objects_delete on storage.objects;
+create trigger protect_objects_delete before delete on storage.objects
+  for each statement execute function storage.protect_delete();
+drop trigger if exists protect_buckets_delete on storage.buckets;
+create trigger protect_buckets_delete before delete on storage.buckets
+  for each statement execute function storage.protect_delete();
