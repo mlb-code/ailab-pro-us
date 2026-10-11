@@ -1,0 +1,15 @@
+{
+  "name": "ailab-pro-us",
+  "private": true,
+  "version": "0.0.0",
+  "description": "AI Lab Pro (US): sales + delivery platform. Node is used only for QA tooling.",
+  "type": "module",
+  "scripts": {
+    "overflow": "node tools/overflow.mjs",
+    "overflow:self-test": "node tools/overflow.mjs --self-test"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "puppeteer": "25.13.0"
+  }
+}

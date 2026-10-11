@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Style guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+  /* styleguide-only helpers */
+  .sg-swatches{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+  .sg-swatch{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
+  .sg-swatch i{display:block;height:64px}
+  .sg-swatch div{padding:10px 12px;font-size:.8rem;color:var(--fg-2)}
+  .sg-swatch code{font-family:var(--mono);color:var(--fg)}
+  .sg-pairs{list-style:none;display:grid;gap:8px;font-size:.88rem}
+  .sg-pairs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:10px 12px;border-radius:var(--radius-sm)}
+  .sg-two{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));align-items:start}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="brandmark" href="../" data-brand="name">Brand<small>US</small></a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="#color">Color</a><a href="#type">Type</a><a href="#components">Components</a>
+      <a class="btn btn--primary btn--sm" href="#forms">Get a fixed quote</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap section__head">
+      <span class="eyebrow">Design system · v1</span>
+      <h1>Style guide</h1>
+      <p class="lead">Tokens and components from <code class="mono">/assets/base.css</code>. Brand and prices on this page are read from <code class="mono">/assets/brand.json</code> and <code class="mono">/assets/pricebook.json</code>, never typed in.</p>
+    </div>
+  </section>
+
+  <section class="section" id="color">
+    <div class="wrap">
+      <div class="section__head"><span class="eyebrow">01 · Color</span><h2>Navy, cream, one amber accent</h2></div>
+      <div class="sg-swatches" id="swatches"></div>
+      <h3 style="margin:32px 0 12px">Contrast (WCAG AA ≥ 4.5 for text)</h3>
+      <ul class="sg-pairs" id="pairs"></ul>
+    </div>
+  </section>
+
+  <section class="section" id="type">
+    <div class="wrap stack" style="--stack:18px">
+      <span class="eyebrow">02 · Type</span>
+      <h1>Never miss another job call</h1>
+      <h2>What happens to a missed call</h2>
+      <h3>Booked into your calendar</h3>
+      <p class="lead">Lead paragraph in Noto Sans Light. Concrete, plain American English.</p>
+      <p>Body copy in Noto Sans. <b>Bold for the one fact that matters.</b> Secondary text uses <span class="muted">muted cream</span>, which still passes AA.</p>
+      <p class="mono small">Space Mono for labels, codes and numbers · RCP · 10 business days</p>
+    </div>
+  </section>
+
+  <section class="section" id="components">
+    <div class="wrap stack" style="--stack:28px">
+      <span class="eyebrow">03 · Buttons, badges, notices</span>
+      <div class="row btn-row">
+        <a class="btn btn--primary" href="#forms">Get a fixed quote</a>
+        <a class="btn" href="#chat">Try the demo</a>
+        <button class="btn btn--ghost" type="button">Ghost</button>
+        <button class="btn btn--sm" type="button">Small</button>
+        <button class="btn btn--primary" type="button" disabled>Disabled</button>
+      </div>
+      <div class="row">
+        <span class="badge">Draft</span><span class="badge badge--acc">Most popular</span><span class="badge badge--ok">Paid</span>
+      </div>
+      <div class="notice">Draft — pending attorney review. This text is not final.</div>
+      <div class="notice notice--ok">Saved. Your answers are stored automatically.</div>
+      <div class="notice notice--err">That code didn't work. Check the 6 digits and try again.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section__head"><span class="eyebrow">04 · Cards + price card</span><h2>Pricing, straight from the price book</h2></div>
+      <div class="sg-two">
+        <div class="grid" style="grid-template-columns:1fr">
+          <div class="card"><h3>Questionnaire</h3><p>About 7 minutes. Saved as you go.</p></div>
+          <a class="card card--link" href="#forms"><h3>Fixed quote in writing</h3><p>Every line item and what's not included.</p></a>
+        </div>
+        <article class="price-card price-card--featured" id="price-card" aria-live="polite">
+          <span class="badge badge--acc">Loading price book…</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="chat">
+    <div class="wrap sg-two">
+      <div class="stack">
+        <span class="eyebrow">05 · Chat bubbles</span>
+        <h2>SMS-style demo</h2>
+        <p>Incoming (customer) on the left, the AI line on the right, system lines dashed, typing dots while waiting.</p>
+      </div>
+      <div class="chat" role="log" aria-label="Demo conversation">
+        <span class="chat__label" data-brand="disclaimers.demo">Demo</span>
+        <div class="bubble bubble--system">Missed call · 7:42 PM</div>
+        <div class="bubble bubble--out">Hi, sorry we missed your call! This is the after-hours line. What can we help with?</div>
+        <div class="bubble bubble--in">AC stopped blowing cold air. Can someone come tomorrow?</div>
+        <div class="bubble bubble--out">Yes. What's the service address ZIP?</div>
+        <div class="bubble bubble--in">78704</div>
+        <div class="bubble bubble--typing bubble--out" aria-label="typing"><i></i><i></i><i></i></div>
+        <div class="chat__choices"><button class="btn btn--sm btn--ghost" type="button">8–10 AM</button><button class="btn btn--sm btn--ghost" type="button">1–3 PM</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="forms">
+    <div class="wrap sg-two">
+      <form class="card" onsubmit="return false" novalidate>
+        <span class="eyebrow">06 · Form fields</span>
+        <h3 style="margin:10px 0 18px">Your business</h3>
+        <div class="field"><label for="f-name">Business name</label><input class="input" id="f-name" placeholder="Lone Star Comfort HVAC" autocomplete="organization"></div>
+        <div class="field"><label for="f-tz">Time zone</label><select class="select" id="f-tz"><option>America/Chicago (Central)</option><option>America/New_York (Eastern)</option><option>America/Denver (Mountain)</option><option>America/Los_Angeles (Pacific)</option></select><span class="hint">Detected from your browser. Change it if it's wrong.</span></div>
+        <div class="field field--error"><label for="f-phone">Business phone</label><input class="input" id="f-phone" inputmode="tel" value="512-55"><span class="error">Enter a 10-digit US number.</span></div>
+        <div class="field"><label for="f-more">Anything else?</label><textarea class="textarea" id="f-more" placeholder="Optional"></textarea></div>
+        <fieldset class="field" style="border:0"><legend class="label" style="margin-bottom:8px">What do you need?</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="offer" checked><span><b>AI receptionist</b><span>Answers missed calls, books jobs</span></span></label>
+            <label class="choice"><input type="radio" name="offer"><span><b>Website</b><span>5 pages, mobile-first</span></span></label>
+            <label class="choice"><input type="radio" name="offer"><span><b>Not sure</b><span>Recommend for me</span></span></label>
+          </div>
+        </fieldset>
+        <label class="check"><input type="checkbox"> I agree to the Service Agreement</label>
+        <button class="btn btn--primary btn--block" type="submit" style="margin-top:18px">Continue</button>
+      </form>
+      <div class="stack" style="--stack:24px">
+        <span class="eyebrow">07 · Stepper</span>
+        <ol class="stepper" aria-label="Project status">
+          <li class="is-done"><span>Questionnaire</span></li>
+          <li class="is-done"><span>Quote</span></li>
+          <li class="is-current" aria-current="step"><span>Deposit</span></li>
+          <li><span>Setup checklist</span></li>
+          <li><span>Testing</span></li>
+          <li><span>Live</span></li>
+        </ol>
+        <span class="eyebrow">08 · Table</span>
+        <div class="table-wrap">
+          <table class="table" id="quote-table">
+            <thead><tr><th>Code</th><th>Item</th><th class="num">Setup</th><th class="num">Monthly</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <span class="eyebrow">09 · FAQ</span>
+        <div class="faq">
+          <details open><summary>Do I need to get on a call?</summary><div>No. Everything happens in writing: questionnaire, quote, checklist with short videos.</div></details>
+          <details><summary>Do I keep my phone number?</summary><div>Yes. You forward unanswered calls to the AI line.</div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--amber">
+    <div class="wrap stack">
+      <span class="eyebrow">10 · Amber section</span>
+      <h2>One CTA block per page, in amber</h2>
+      <p>Tokens flip inside <code class="mono">.section--amber</code> so every component stays readable.</p>
+      <div class="row btn-row"><a class="btn btn--primary" href="#forms">Get a fixed quote</a><a class="btn" href="#chat">Try the demo</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="brandmark" data-brand="name">Brand</span>
+    <div class="footer__legal"><span data-brand="disclaimers.footer">Not affiliated with Anthropic.</span><a href="#main">Back to top</a></div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var get = function (o, path) { return path.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); };
+  var usd = function (cents) { return '$' + (cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 }); };
+  var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  // color tokens + contrast
+  var css = getComputedStyle(document.documentElement);
+  var tokens = ['--navy', '--navy-2', '--navy-3', '--cream', '--amber', '--amber-2', '--ok', '--err'];
+  var sw = document.getElementById('swatches');
+  tokens.forEach(function (t) {
+    var v = css.getPropertyValue(t).trim(), box = el('div', 'sg-swatch'), i = el('i'), d = el('div'), c = el('code', null, t);
+    i.style.background = v; d.appendChild(c); d.appendChild(document.createTextNode(' ' + v)); box.appendChild(i); box.appendChild(d); sw.appendChild(box);
+  });
+  function rgb(str) { var m = str.match(/[\d.]+/g).map(Number); return m; }
+  function hex(h) { h = h.replace('#', ''); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
+  function blend(fg, bg) { var a = fg.length > 3 ? fg[3] : 1; return [0, 1, 2].map(function (i) { return fg[i] * a + bg[i] * (1 - a); }); }
+  function lum(c) { var l = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  var pairs = [
+    ['cream on navy', '#EFE7D8', '#0F1A26'], ['fg-2 on navy', 'rgba(239,231,216,.70)', '#0F1A26'],
+    ['fg-3 on navy', 'rgba(239,231,216,.58)', '#0F1A26'], ['fg-3 on surface', 'rgba(239,231,216,.58)', '#17253A'],
+    ['amber on navy', '#E8A64A', '#0F1A26'], ['navy on amber', '#0F1A26', '#E8A64A'],
+    ['amber-section fg-3', 'rgba(15,26,38,.72)', '#E8A64A'], ['error on navy', '#F28B7A', '#0F1A26']
+  ];
+  var ul = document.getElementById('pairs');
+  pairs.forEach(function (p) {
+    var bg = hex(p[2]), fg = p[1].charAt(0) === '#' ? hex(p[1]) : rgb(p[1]);
+    var r = ratio(blend(fg, bg), bg), li = el('li');
+    li.style.background = p[2]; li.style.color = p[1];
+    li.appendChild(el('span', null, p[0])); li.appendChild(el('span', 'mono', r.toFixed(2) + ':1 ' + (r >= 4.5 ? 'AA' : 'FAIL')));
+    li.dataset.ratio = r.toFixed(2); ul.appendChild(li);
+  });
+
+  function load(url) { return fetch(url, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
+  Promise.all([load('../assets/brand.json'), load('../assets/pricebook.json')]).then(function (res) {
+    var brand = res[0], pb = res[1];
+    document.title = 'Style guide · ' + brand.name;
+    document.querySelectorAll('[data-brand]').forEach(function (n) {
+      var v = get(brand, n.getAttribute('data-brand'));
+      if (typeof v === 'string' && v) { if (n.firstChild && n.firstChild.nodeType === 3) n.firstChild.nodeValue = v; else n.textContent = v; }
+    });
+    var items = {}; pb.items.forEach(function (it) { items[it.code] = it; });
+    var rcp = items.RCP, card = document.getElementById('price-card');
+    card.textContent = '';
+    card.appendChild(el('span', 'badge badge--acc', 'Core offer · ' + rcp.code));
+    card.appendChild(el('div', 'price-card__name', rcp.name));
+    var amt = el('div', 'price-card__amount');
+    amt.appendChild(el('b', null, usd(rcp.setup_cents))); amt.appendChild(el('span', null, 'setup + ' + usd(rcp.monthly_cents) + '/mo from go-live'));
+    card.appendChild(amt);
+    var inc = el('ul', 'price-card__list'); rcp.includes.slice(0, 5).forEach(function (t) { inc.appendChild(el('li', null, t)); }); card.appendChild(inc);
+    card.appendChild(el('span', 'eyebrow', 'Not included'));
+    var exc = el('ul', 'price-card__list price-card__list--no'); rcp.excludes.slice(0, 3).forEach(function (t) { exc.appendChild(el('li', null, t)); }); card.appendChild(exc);
+    card.appendChild(el('p', 'price-card__fine', pb.rules.deposit_pct + '% deposit, ' + (100 - pb.rules.deposit_pct) + '% before go-live. Quote valid ' + pb.rules.quote_valid_days + ' days.'));
+    var a = el('a', 'btn btn--primary btn--block', 'Get a fixed quote'); a.href = '#forms'; card.appendChild(a);
+
+    var tb = document.querySelector('#quote-table tbody'), setup = 0, monthly = 0;
+    [['RCP', 1], ['ADD-ES', 1], ['ADD-LOC', 1]].forEach(function (row) {
+      var it = items[row[0]], tr = el('tr');
+      setup += it.setup_cents * row[1]; monthly += it.monthly_cents * row[1];
+      tr.appendChild(el('td', 'mono', it.code)); tr.appendChild(el('td', null, it.name));
+      tr.appendChild(el('td', 'num', usd(it.setup_cents))); tr.appendChild(el('td', 'num', usd(it.monthly_cents)));
+      tb.appendChild(tr);
+    });
+    var tf = el('tfoot'), tr = el('tr');
+    tr.appendChild(el('td')); tr.appendChild(el('td', null, 'Total')); tr.appendChild(el('td', 'num', usd(setup))); tr.appendChild(el('td', 'num', usd(monthly)));
+    tf.appendChild(tr); tb.parentNode.appendChild(tf);
+    document.documentElement.dataset.ready = '1';
+  }).catch(function (e) {
+    var card = document.getElementById('price-card'); card.textContent = '';
+    card.appendChild(el('div', 'notice notice--err', 'Could not load config (' + e.message + '). Serve the site over http: make serve'));
+  });
+})();
+</script>
+</body>
+</html>
