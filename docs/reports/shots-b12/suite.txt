@@ -1,0 +1,10 @@
+# B12 runtime suite (2026-10-11, mock/replay only)
+pytest run 1: 516 passed in 21.00s
+pytest run 2: 516 passed in 20.58s
+pytest run 3: 516 passed in 20.81s
+guard gate: 218 passed, app/guard.py 100% branch
+sim selftest: 11/11 checks passed
+sim run --all (replay): 44/44 scenarios passed (replay)
+sim run --all --mode mock: 44/44 scenarios passed (mock)
+check_hardcoded runtime: check_hardcoded: 98 files, 0 error(s), 0 warning(s)
+check_secrets .: secrets scan: 441 files scanned, 0 finding(s)

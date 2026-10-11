@@ -1,0 +1,21 @@
+# own acceptance pytest (mock, fakes, MockTransport for Zapier; stable 5/5 runs)
+test_full_chain_call_booking_sms_alert_zapier_summary[stream] PASSED
+test_full_chain_call_booking_sms_alert_zapier_summary[gather] PASSED
+test_relay_lost_falls_back_and_books PASSED
+test_usage_alerts_and_addon_flag USAGE_KINDS ['lead', 'usage_80', 'lead', 'usage_100']
+PASSED
+test_tenant_isolation_store_calendar_notify PASSED
+test_webchat_is_isolated_from_real_tenants PASSED
+test_zapier_503_fast_webhook_background_retry_once PASSED
+test_dst_booking_chicago[calendly] PASSED
+test_dst_booking_chicago[google] PASSED
+test_default_provider_is_calendly_and_hub_routes_by_provider PASSED
+test_webchat_limits_and_budget PASSED
+test_jobs_tick_idempotent_and_auth PASSED
+test_health_and_deep PASSED
+test_stop_after_booking_kills_reminder PASSED
+test_rpc_whitelist_vs_runtime_schema_faq_answer_700 PASSED
+LATENCY {"voice_stream": {"n": 27, "p50": 13.9, "p95": 48.6}, "voice_gather": {"n": 27, "p50": 16.6, "p95": 47.7}, "sms": {"n": 40, "p50": 11.0, "p95": 16.8}}
+INVALID {"voice": "Sorry, we can't take your call right now. Please call back later. Goodbye.", "sms_status": 200, "sms": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response />", "alerts": [], "events": []}
+PASSED
+============================== 16 passed in 4.08s ==============================

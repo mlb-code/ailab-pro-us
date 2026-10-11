@@ -1,0 +1,42 @@
+# 32 own scenarios (mock brain; voice flows run in stream+gather)
+PASS a01-sms-booked outcome=booked claude=7 
+PASS a02-voice-handoff outcome=handoff claude=2 
+PASS a03-sms-handoff-message outcome=message claude=2 
+PASS a04-voice-emergency-co outcome=emergency claude=0 
+PASS a05-voice-silence-spam outcome=spam claude=0 
+PASS a06-sms-stop-variants outcome=None claude=0 
+PASS a07-out-of-area outcome=message claude=3 
+PASS a08-after-hours-next-day outcome=None claude=2 
+PASS a09-after-hours-message-only outcome=message claude=3 
+PASS a10-pricing-none outcome=None claude=1 
+PASS a11-pricing-listed outcome=None claude=1 
+PASS a12-injection outcome=None claude=1 
+PASS a13-budget-global outcome=message claude=0 
+PASS a14-rate-limit outcome=message claude=8 
+PASS a15-mms-long outcome=None claude=0 
+PASS a16-robot outcome=None claude=0 
+PASS a17-spanish outcome=message claude=0 
+PASS a18-faq outcome=None claude=1 
+PASS a19-duplicate outcome=message claude=5 
+PASS a20-paused outcome=None claude=0 
+PASS a21-blocklist outcome=spam claude=0 
+PASS a22-help-start outcome=None claude=0 
+PASS f01-full-missed-call outcome=booked claude=6 [stream] turn latency p95 11.4 ms over 3 turns | [gather] turn latency p95 13.8 ms over 3 turns
+PASS f02-after-hours-take-message outcome=message claude=5 
+PASS f03-emergency-mid-call outcome=emergency claude=2 
+PASS f04-hangup-textback outcome=abandoned claude=0 
+PASS f05-stop-then-nothing outcome=None claude=0 
+PASS f06-quiet-hours outcome=abandoned claude=0 
+PASS f07-usage-100 outcome=message claude=1 
+PASS f08-call-cap outcome=None claude=3 [stream] burst {'answered': 3, 'capped': 1, 'rejected': 16} | [gather] burst {'answered': 3, 'capped': 1, 'rejected': 16}
+PASS f09-restart-mid-convo outcome=booked claude=6 
+PASS f10-handoff-no-answer outcome=message claude=2 
+32/32 passed
+
+# negative control (expectations deliberately wrong -> must FAIL)
+FAIL n1 outcome=booked claude=6 [stream] turn latency p95 11.2 ms over 3 turns | [gather] turn latency p95 12.7 ms over 3 turns
+     [stream] bookings 1 != 2
+     [gather] bookings 1 != 2
+FAIL n2 outcome=None claude=0 
+     outbound SMS 0 != 1: []
+0/2 passed
