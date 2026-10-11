@@ -20,6 +20,9 @@ export function toPublicView(q, profile, now, pb, defaultAgreementVersion) {
   // exclusions from the price book; drop the ones the quote already buys (e.g. "add-on ADD-ES" when ADD-ES is a line)
   const excludes = ((coreIt && coreIt.excludes) || []).filter((e) => !codes.some((c) => e.includes(`add-on ${c})`)));
   const retainer = codes.some((c) => pb.refund_rules.retainer.codes.includes(c)) ? pb.refund_rules.retainer.text : null;
+  // satisfaction guarantee (refund_rules.rcp_guarantee): only for its core codes (RCP, BNDL); WEB keeps the deposit rule only
+  const g = pb.refund_rules.rcp_guarantee;
+  const guarantee = g && codes.some((c) => g.codes.includes(c)) ? g.text : null;
   const disc = q.discount_code ? pb.rules.discounts[q.discount_code] : null;
   const rcp = itemOf(pb, "RCP");
   const asyncCeiling = (rcp && rcp.setup_cents) || 0;
@@ -36,12 +39,12 @@ export function toPublicView(q, profile, now, pb, defaultAgreementVersion) {
     includes, excludes, not_included_extra: q.not_included_extra || [],
     totals: {
       setup_subtotal_cents: r.setup_subtotal_cents, rush_cents: r.rush_cents, discount_cents: r.discount_cents,
-      discount_label: disc ? `Founding client (${disc.setup_pct}% off setup)` : null,
+      discount_label: disc ? `${disc.label || q.discount_code} (${disc.setup_pct}% off setup)` : null,
       // stored totals are the contract; pricing is recomputed only for the breakdown
       setup_cents: setup, monthly_cents: q.monthly_cents == null ? r.monthly_cents : q.monthly_cents,
       deposit_cents: deposit, final_cents: setup - deposit, deposit_pct: pb.rules.deposit_pct,
     },
-    refund: { deposit: pb.refund_rules.deposit.text, retainer, status: pb.refund_rules.status || null },
+    refund: { guarantee, deposit: pb.refund_rules.deposit.text, retainer, status: pb.refund_rules.status || null },
     payment: { method: q.pay_method || null, link: q.pay_link || null },
     agreement_version: q.agreement_version || defaultAgreementVersion,
     accepted: q.status === "accepted" && q.accepted_at ? { name: q.accepted_name || "", at: q.accepted_at } : null,

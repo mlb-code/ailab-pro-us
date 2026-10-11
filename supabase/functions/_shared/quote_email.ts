@@ -88,6 +88,7 @@ export function renderQuoteEmail(v: PublicQuote, token: string, brand: Brand = B
         <td class="btn-td" bgcolor="${C.amber}" style="background:${C.amber};border-radius:999px">
           <a class="btn-a" href="${esc(url)}" style="display:inline-block;padding:14px 26px;font:bold 16px/1 Arial,Helvetica,sans-serif;color:${C.navy};text-decoration:none">Review &amp; accept your quote</a>
         </td></tr></table>
+      ${v.refund.guarantee ? `<p class="m" style="margin:0 0 8px;font:bold 13px/1.5 Arial,Helvetica,sans-serif;color:${C.ink}">${esc(v.refund.guarantee)}</p>` : ""}
       <p class="m" style="margin:0 0 8px;font:13px/1.5 Arial,Helvetica,sans-serif;color:${C.ink2}">${esc(valid)} ${esc(v.refund.deposit)}</p>
       <p class="m" style="margin:0;font:13px/1.5 Arial,Helvetica,sans-serif;color:${C.ink2}">Questions? Just reply to this email${brand.calendly_url ? ` or <a href="${esc(brand.calendly_url)}" style="color:${C.ink}">book a 15-minute video call</a>` : ""}.</p>
     </td></tr>
@@ -103,7 +104,7 @@ export function renderQuoteEmail(v: PublicQuote, token: string, brand: Brand = B
     ...(t.discount_cents ? [`- ${t.discount_label ?? "Discount"}: -${usd(t.discount_cents)}`] : []),
     "", `Setup total: ${usd(t.setup_cents)}`, `Deposit to start (${t.deposit_pct}%): ${usd(t.deposit_cents)}`,
     `Before go-live: ${usd(t.final_cents)}`, `Monthly from go-live: ${usd(t.monthly_cents)}/mo`, "",
-    `Review and accept: ${url}`, valid, v.refund.deposit, "", [brand.name, brand.physical_address].filter(Boolean).join(" - "),
+    `Review and accept: ${url}`, valid, ...(v.refund.guarantee ? [v.refund.guarantee] : []), v.refund.deposit, "", [brand.name, brand.physical_address].filter(Boolean).join(" - "),
   ].join("\n");
   return { subject, html, text };
 }

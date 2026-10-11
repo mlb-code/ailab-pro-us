@@ -1,5 +1,5 @@
 // Quote email: subject per SPEC §5, totals present, brand from config, no template leftovers, ≤ 600 px, escaped input.
-import { BRAND } from "./config.ts";
+import { BRAND, PRICEBOOK } from "./config.ts";
 import { replayModel } from "./claude.ts";
 import { draftQuote, sendQuote, viewQuote } from "./quote_engine.ts";
 import { renderQuoteEmail, usd } from "./quote_email.ts";
@@ -15,9 +15,13 @@ Deno.test("quote_sent email renders html + text from the public view", async () 
   const v = await viewQuote(q.public_token, store);
   const m = renderQuoteEmail(v, q.public_token);
   eq(m.subject, `Your fixed quote from ${BRAND.name}: ${usd(q.setup_cents)} + ${usd(q.monthly_cents)}/mo`);
-  for (const s of [usd(q.setup_cents), usd(q.deposit_cents), usd(q.monthly_cents) + "/mo", "Founding client"]) {
+  for (const s of [usd(q.setup_cents), usd(q.deposit_cents), usd(q.monthly_cents) + "/mo", PRICEBOOK.rules.discounts.FOUNDING.label!]) {
     assert(m.html.includes(s) && m.text.includes(s.replace("&minus;", "")), "missing " + s);
   }
+  // BNDL carries the satisfaction guarantee (refund_rules.rcp_guarantee), and the deposit rule after it
+  eq(v.refund.guarantee, PRICEBOOK.refund_rules.rcp_guarantee.text);
+  assert(m.text.includes(PRICEBOOK.refund_rules.rcp_guarantee.text) && m.text.includes(PRICEBOOK.refund_rules.deposit.text), "guarantee + deposit rule in text");
+  assert(m.html.includes(`${PRICEBOOK.refund_rules.rcp_guarantee_days}-day satisfaction guarantee`), "guarantee in html");
   assert(m.html.includes(`/quote/#t=${q.public_token}`) && m.text.includes(q.public_token));
   assert(!/\{\{|\}\}|undefined|null|NaN/.test(m.html + m.text), "no template leftovers");
   assert(m.html.includes("All &lt;Seasons&gt; &amp; Co") && !m.html.includes("<Seasons>"), "escaped");

@@ -189,7 +189,7 @@
       ? '<div class="notice q-call q-noprint" style="margin-bottom:24px"><span>Bigger project, so a short call can help. ' + call + ' It’s optional — you can accept online anytime.</span></div>'
       : '<p class="q-call">' + call + '</p>') : '';
     const days = q.delivery_business_days ? '<p><b>' + esc(q.delivery_business_days) + ' business days</b> to deliver, counted from when your setup checklist is complete.</p>' : '';
-    const refund = '<p>' + esc(q.refund.deposit) + '</p>' + (q.refund.retainer ? '<p>' + esc(q.refund.retainer) + '</p>' : '');
+    const refund = (q.refund.guarantee ? '<p><b>' + esc(q.refund.guarantee) + '</b></p>' : '') + '<p>' + esc(q.refund.deposit) + '</p>' + (q.refund.retainer ? '<p>' + esc(q.refund.retainer) + '</p>' : '');
     $('#app').innerHTML =
       '<div class="q-head"><span class="eyebrow">Fixed quote' + (q.client.company ? ' · ' + esc(q.client.company) : '') + '</span>' +
       '<h1>' + (q.client.company ? 'Your quote, ' + esc(q.client.company) : 'Your fixed quote') + '</h1>' +

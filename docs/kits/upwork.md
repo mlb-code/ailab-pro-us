@@ -5,6 +5,7 @@ Client-facing text is US English. Notes for the owner are marked **Note**.
 
 **Price source:** `docs/PRICEBOOK.md` v1 / `config/pricebook.json`. Every dollar amount below was copied from there. If the price book changes, update this file before you paste anything.
 **Brand values** (name, domain, Calendly link) come from `config/brand.json`. Below they appear as `{{brand.name}}`, `{{brand.domain}}`, `{{brand.calendly_url}}`. Replace them when you paste.
+**Config text** is pasted word for word from config, never retyped: `{{brand.quote_sla_text}}` (quote turnaround, now "within 1 business day") and `{{refund_rules.rcp_guarantee.text}}` (the satisfaction guarantee on the receptionist and the bundle, from `config/pricebook.json`). The website on its own has no satisfaction guarantee (only the deposit rule).
 
 Niches in this kit: **home services** (HVAC, plumbing, electrical, roofing, garage doors, locksmiths) and **real estate**. Dental: early access only (see Upwork rules, item 9). No other niches.
 
@@ -40,11 +41,13 @@ Fixed prices. You see the price before you start:
 
 How we work (no meetings needed):
 1. You answer a short online questionnaire (about 6 minutes).
-2. You get a written fixed quote within one business day.
+2. You get a written fixed quote {{brand.quote_sla_text}}.
 3. You pay a 50% deposit (on Upwork, as the first milestone).
 4. You follow a setup checklist. Every step has a short video.
 5. I build and test. You test it yourself before go-live.
 6. Handoff by video. You pay the second 50% before go-live.
+
+AI Receptionist and the bundle: {{refund_rules.rcp_guarantee.text}}
 
 Prefer to talk? An optional 15-minute video call is always available.
 
@@ -113,6 +116,8 @@ What's included (Starter):
 
 Monthly service plan: $300/month (Standard: $350/month, Advanced: $400/month). It starts on the go-live date and covers the phone line, usage above, monitoring, and small updates. Billed as a separate monthly contract. Cancel anytime with 30 days' notice.
 
+{{refund_rules.rcp_guarantee.text}}
+
 Not included: outbound calling, marketing texts, ServiceTitan or other custom systems (ask me for a custom quote), more than 1 location (add-on).
 
 How it works:
@@ -178,7 +183,9 @@ I build a Missed-Call AI Receptionist for {trade} businesses. It answers when yo
 
 Fixed price: $3,500 setup + $300/month (starts at go-live, cancel with 30 days' notice). With a {Jobber / Housecall Pro} integration: $4,700 + $350/month.
 
-How we work: after we start the contract, you fill out a 6-minute questionnaire. I send a written scope within one business day. First milestone = 50%. Setup checklist with short videos. You test it yourself before the final 50%.
+How we work: after we start the contract, you fill out a 6-minute questionnaire. I send a written scope {{brand.quote_sla_text}}. First milestone = 50%. Setup checklist with short videos. You test it yourself before the final 50%.
+
+{{refund_rules.rcp_guarantee.text}}
 
 No meetings needed. An optional 15-minute video call is available if you prefer.
 
@@ -200,7 +207,9 @@ It can send each lead to {Follow Up Boss / your CRM} through a Zapier webhook (i
 
 Fixed price: $3,500 setup + $300/month. With a native HubSpot or GoHighLevel integration: $4,700 + $350/month.
 
-Process: short questionnaire after we start the contract → written fixed scope within one business day → 50% first milestone → setup checklist with videos → you test it before the final 50%.
+Process: short questionnaire after we start the contract → written fixed scope {{brand.quote_sla_text}} → 50% first milestone → setup checklist with videos → you test it before the final 50%.
+
+{{refund_rules.rcp_guarantee.text}}
 
 Do you want leads booked directly into your calendar, or only qualified and sent to you?
 
@@ -227,7 +236,7 @@ My plan:
 
 I am a senior solo builder. I work with Samsung and Haier in Israel (through their Israeli distributor) and with other Israeli corporate clients. You work directly with me.
 
-Process: questionnaire → written fixed quote within one business day → 50% first milestone → build → video handoff. An optional 15-minute call is available.
+Process: questionnaire → written fixed quote {{brand.quote_sla_text}} → 50% first milestone → build → video handoff. An optional 15-minute call is available.
 
 Response time: within one business day, Sunday–Thursday (Israel time).
 
@@ -280,7 +289,7 @@ Every Thursday: 5 extra minutes. Which proposals got replies? Adjust the first l
 3. Deposit = **first milestone (50% of setup)**. Second milestone (50%) before go-live. The monthly plan = a separate monthly fixed-price contract, started at go-live.
 4. Prices on Upwork = price book prices. The Upwork fee is ours to absorb. Never raise the price to cover it.
 5. The 30% `FOUNDING` discount (first 3 clients) is applied only by Meir, on setup only.
-6. Do not promise results ("guaranteed", "double your leads", "% more jobs"). Use "what's included".
+6. Do not promise results ("guaranteed", "double your leads", "% more jobs"). Use "what's included". The one exception is the satisfaction guarantee: paste `{{refund_rules.rcp_guarantee.text}}` exactly, only for the receptionist and the bundle, never for the website alone, and never reword it into a results promise. On Upwork the refund goes back through Upwork (the setup milestones).
 7. Do not claim compliance ("HIPAA compliant", "TCPA compliant"). You can say what the product does (STOP is honored, no audio recording, text-back only after a caller's own call).
 8. Honest location: profile says Israel. Response time: within one business day, Sunday–Thursday (Israel time).
 9. **Dental:** early access only. Do not bid on jobs that need patient records, EHR access (Dentrix, Open Dental) or a HIPAA BAA. If a dental office invites you, reply that dental is in early access and the AI collects only name, phone and a general reason for the call.

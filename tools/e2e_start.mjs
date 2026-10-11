@@ -165,7 +165,10 @@ async function main() {
     const rcp = pb.items.find(i => i.code === 'RCP');
     const usd = c => '$' + (c / 100).toLocaleString('en-US');
     ok(await waitText(page, usd(rcp.setup_cents) + ' setup + ' + usd(rcp.monthly_cents) + '/mo'), 'offer card price from pricebook.json');
-    ok(!(await waitText(page, 'Founding-client price', 300)), 'founder price hidden by default');
+    // the founder price follows brand.json show_founder_price (owner turned it on 2026-10-11); label from the price book
+    const flagOn = !!JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8')).show_founder_price;
+    const fLabel = pb.rules.discounts.FOUNDING.label;
+    ok(flagOn === !!(await waitText(page, fLabel, flagOn ? 3000 : 300)), 'founder price ' + (flagOn ? 'shown (flag on)' : 'hidden (flag off)'));
     await clickNext(page);
     ok(await waitText(page, 'Please choose what you’d like a quote for'), 'project step requires an offer');
     await pick(page, 'input[name=offer][value=RCP]');
@@ -403,7 +406,7 @@ async function main() {
     const draftId = await page.evaluate(() => window.Backend.createQuestionnaire({}).then(r => r.id));
     await page.goto(BASE + '/start/q/?id=' + draftId, { waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
     const disc = pb.rules.discounts.FOUNDING.setup_pct;
-    ok(await waitText(page, 'Founding-client price: ' + usd(Math.round(rcp.setup_cents * (100 - disc) / 100))), 'founder price shown when flag is on');
+    ok(await waitText(page, pb.rules.discounts.FOUNDING.label + ': ' + usd(Math.round(rcp.setup_cents * (100 - disc) / 100))), 'founder price shown when flag is on');
     await page.close();
   } finally {
     await browser.close();

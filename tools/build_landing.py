@@ -10,6 +10,9 @@ usage:
   python3 tools/build_landing.py --og       force re-render of the OG images (needs `npm install`)
   python3 tools/build_landing.py --list     print the URLs of every generated page (used by tools/urls-landing.txt)
 
+Legal pages (site/legal/*/index.html) are hand-written; their <span data-cfg="pricebook:path"> / "brand:path" values are
+re-stamped from config on every build and verified by --check.
+
 Content tokens ({brand}, {price:RCP.setup}, ...) are documented in site/_content/_shared.json. An unknown token
 fails the build. Law firms are out of scope (owner decision 2026-10-11): there is no law page.
 """
@@ -70,6 +73,20 @@ class Ctx:
                 self.tokens[f'price:{code}.deposit'] = money(deposit_cents(i['setup_cents'], rules))
                 if fnd.get('setup_pct'):
                     self.tokens[f'price:{code}.founding'] = money(round(i['setup_cents'] * (100 - fnd['setup_pct']) / 100 / 100) * 100)
+        g = rr.get('rcp_guarantee', {})
+        glabel, gtext = g.get('label', ''), g.get('text', '')
+        if gtext and not gtext.startswith(glabel + ': '):
+            raise SystemExit('build_landing: refund_rules.rcp_guarantee.text must start with "<label>: "')
+        gbody = gtext[len(glabel) + 2:] if gtext else ''
+        self.tokens.update({
+            'refund_label': rr.get('deposit', {}).get('label', ''),
+            'guarantee': gtext,
+            'guarantee_label': glabel,
+            'guarantee_body': gbody[:1].upper() + gbody[1:],
+            'guarantee_days': str(rr.get('rcp_guarantee_days', '')),
+            'founding_label': fnd.get('label', ''),
+            'business_days': self.brand.get('business_days_text', ''),
+        })
         self.tokens['worked_with'] = self.t((self.brand.get('proof') or {}).get('worked_with') or self.shared['worked_with_fallback']).rstrip('.')
         sla = self.brand.get('quote_sla_text') or 'within 1 business day'
         self.tokens['quote_sla'] = sla
@@ -500,8 +517,16 @@ def price_card(c, code, cta_href, cta_label, *, featured=True, early=False, n=No
 <ul class="split"><li><span>Deposit to start</span><b>{money(dep)}</b></li><li><span>Before go-live</span><b>{money(i['setup_cents'] - dep)}</b></li><li><span>Delivery</span><b>{days} business days</b></li></ul>
 <ul class="price-card__list">{lis}</ul>
 {btn}
-<p class="price-card__fine">{esc(c.pb.get('refund_rules', {}).get('deposit', {}).get('text', ''))}</p>
+{refund_fine(c, code)}
 </div>'''
+
+
+def refund_fine(c, code):
+    """Price-card fine print from refund_rules: the satisfaction guarantee for its codes (RCP, BNDL), then the deposit rule."""
+    rr = c.pb.get('refund_rules', {})
+    g = rr.get('rcp_guarantee', {})
+    lines = ([g['text']] if code in g.get('codes', []) and g.get('text') else []) + [rr.get('deposit', {}).get('text', '')]
+    return ''.join(f'<p class="price-card__fine">{esc(s)}</p>' for s in lines if s)
 
 
 def section_pricing(c, pr, code, cta_href, cta_label, *, early=False, bundle_link=True, n=None):
@@ -787,6 +812,35 @@ await b.close();
         print(r.stdout.strip())
 
 
+# ---------------------------------------------------------------- legal pages (hand-written, values stamped from config)
+LEGAL_PAGES = ['legal/terms/index.html', 'legal/service-agreement/index.html', 'legal/privacy/index.html']
+CFG_RX = re.compile(r'(<span data-cfg="(pricebook|brand):([A-Za-z0-9_.]+)">)(.*?)(</span>)', re.S)
+
+
+def cfg_value(c, src, path):
+    v = c.pb if src == 'pricebook' else c.brand
+    for k in path.split('.'):
+        if not isinstance(v, dict) or k not in v:
+            raise SystemExit(f'build_landing: legal data-cfg "{src}:{path}" not found in config')
+        v = v[k]
+    if isinstance(v, bool) or not isinstance(v, (str, int)) or v == '':
+        raise SystemExit(f'build_landing: legal data-cfg "{src}:{path}" is not a non-empty string/number')
+    return str(v)
+
+
+def stamp_legal(c):
+    """site/legal/* are written by hand; every <span data-cfg="pricebook:a.b">…</span> is re-filled from config here
+    (refund windows, the satisfaction guarantee, quote SLA, business days), so the text never drifts from the price book."""
+    out = {}
+    for rel in LEGAL_PAGES:
+        p = os.path.join(SITE, rel)
+        if not os.path.exists(p):
+            continue
+        cur = open(p, encoding='utf-8').read()
+        out[rel] = CFG_RX.sub(lambda m: m.group(1) + esc(cfg_value(c, m.group(2), m.group(3))) + m.group(5), cur)
+    return out
+
+
 # ---------------------------------------------------------------- main
 def build(c):
     contents = {k: load(os.path.join(CONTENT, f)) for k, f in NICHE_FILES.items()}
@@ -820,8 +874,13 @@ def main(argv):
             if rel.endswith('.html'):
                 print(base.rstrip('/') + '/' + rel.replace('index.html', ''))
         return 0
+    legal = stamp_legal(c)
     if '--check' in argv:
         bad = 0
+        for rel, text in legal.items():
+            if open(os.path.join(SITE, rel), encoding='utf-8').read() != text:
+                bad += 1
+                print(f'DIFF  site/{rel} (data-cfg values out of date)')
         for rel, text in pages.items():
             visible = re.sub(r'<(script|style)\b.*?</\1>', '', text, flags=re.S)  # demo JSON keeps its own {vars}; CSS braces
             raw = sorted(set(re.findall(r'\{[a-z][a-z0-9_]*(?::[A-Z0-9.-]+)?\}', visible)))
@@ -833,8 +892,14 @@ def main(argv):
             if cur != text:
                 bad += 1
                 print(f'DIFF  site/{rel}' + (' (missing)' if cur is None else ''))
-        print(f'build_landing --check: {len(pages)} files, {bad} differ')
+        print(f'build_landing --check: {len(pages) + len(legal)} files, {bad} differ')
         return 1 if bad else 0
+    for rel, text in legal.items():
+        p = os.path.join(SITE, rel)
+        if open(p, encoding='utf-8').read() != text:
+            with open(p, 'w', encoding='utf-8') as fh:
+                fh.write(text)
+            print(f'stamped site/{rel}')
     for rel, text in pages.items():
         p = os.path.join(SITE, rel)
         os.makedirs(os.path.dirname(p), exist_ok=True)

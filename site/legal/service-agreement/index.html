@@ -41,7 +41,7 @@
 <li>Handoff is by video and written notes. An optional 15-minute video call is available on request.</li>
 </ol>
 <p>Delays caused by missing access, late answers or third-party approvals (for example SMS carrier registration, which can take up to several weeks) extend the timeline. Voice answering can go live before SMS registration is approved.</p>
-<p>We reply to messages within one business day, Sunday–Thursday (Israel time).</p> <!-- hardcoded-ok: country of the business, a fact not a brand string -->
+<p>We reply to messages within one business day. Written quotes are sent <span data-cfg="brand:quote_sla_text">within 1 business day</span> of a completed questionnaire. Business days are <span data-cfg="brand:business_days_text">Sunday–Thursday, Israel time</span>.</p>
 
 <h2>4. Fees and payment</h2>
 <ul>
@@ -55,10 +55,12 @@
 
 <h2>5. Refunds</h2>
 <ul>
-<li><strong>Setup deposit:</strong> fully refunded on request within 7 days of payment, as long as you have not completed the setup (access) checklist. After you complete the checklist, the deposit is non-refundable.</li>
-<li><strong>Final setup payment:</strong> non-refundable once the service is live.</li>
-<li><strong>Retainer plans</strong> (Care, Growth, Studio): if you cancel within 7 days of your first retainer payment, we refund 75% of that first payment. After that, retainer fees are non-refundable.</li>
-<li><strong>Monthly service fees:</strong> no refunds for partial months.</li>
+<li><strong><span data-cfg="pricebook:refund_rules.rcp_guarantee.label">30-day satisfaction guarantee</span></strong> (AI Receptionist and the Receptionist + Website bundle): <span data-cfg="pricebook:refund_rules.rcp_guarantee.legal">If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid and switch the AI line off. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the Receptionist + Website bundle, not to the website on its own.</span> The guarantee period starts on the go-live date recorded in your portal.</li>
+<li><strong>Setup deposit:</strong> fully refunded on request within <span data-cfg="pricebook:refund_rules.deposit.window_days">7</span> days of payment, as long as you have not completed the setup (access) checklist. After you complete the checklist, the deposit is non-refundable, except under the satisfaction guarantee above.</li>
+<li><strong>Website (on its own):</strong> the deposit rule above is the only setup refund, because content work starts right away.</li>
+<li><strong>Final setup payment:</strong> non-refundable once the service is live, except under the satisfaction guarantee above.</li>
+<li><strong>Retainer plans</strong> (Care, Growth, Studio): if you cancel within <span data-cfg="pricebook:refund_rules.retainer.window_days">7</span> days of your first retainer payment, we refund <span data-cfg="pricebook:refund_rules.retainer.refund_pct">75</span>% of that first payment. After that, retainer fees are non-refundable.</li>
+<li><strong>Monthly service fees:</strong> no refunds for partial months or for months already used.</li>
 <li>Payments made on Upwork are refunded through Upwork.</li>
 </ul>
 

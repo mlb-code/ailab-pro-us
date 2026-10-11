@@ -61,6 +61,15 @@ const admin = (b: EmailBrand, route: string) => `${siteUrl(b)}/start/admin/#${ro
 const itemName = (code: string) => PRICEBOOK.items.find((i) => i.code === code)?.name ?? code;
 const depositPct = () => Number((PRICEBOOK.rules as Record<string, unknown>).deposit_pct ?? 50);
 const isReceptionist = (ctx: EmailCtx) => (ctx.client?.products ?? ["RCP"]).some((p) => p === "RCP" || p === "BNDL");
+/** satisfaction guarantee (pricebook refund_rules.rcp_guarantee): [text, "Month D, YYYY" end date] for RCP/BNDL clients, else null */
+function guaranteeOf(ctx: EmailCtx): { text: string; until: string } | null {
+  const rr = PRICEBOOK.refund_rules;
+  const g = rr.rcp_guarantee;
+  if (!g || !(ctx.client?.products ?? []).some((p) => g.codes.includes(p))) return null;
+  const start = ctx.client?.go_live_at ? new Date(ctx.client.go_live_at) : null;
+  const until = start && !isNaN(+start) ? fmtDate(new Date(+start + rr.rcp_guarantee_days * 86_400_000).toISOString()) : "";
+  return { text: g.text, until };
+}
 
 export function fmtDate(iso: string | null | undefined, tz = "America/New_York", lang: "en" | "he" = "en"): string {
   if (!iso) return "";
@@ -386,6 +395,10 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   }),
 
   went_live: client("transactional", true, (ctx, { brand }) => {
+    const guaranteeBlocks = (c: EmailCtx): Block[] => {
+      const g = guaranteeOf(c);
+      return g ? [{ small: g.until ? `${g.text} Your guarantee runs until ${g.until}.` : g.text }] : [];
+    };
     const rcp = isReceptionist(ctx);
     const num = fmtPhone(ctx.tenant_number);
     return {
@@ -401,6 +414,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         { facts: [[rcp ? "Receptionist number" : "", num],
           ["Monthly", ctx.client?.monthly_cents ? `${usd(ctx.client.monthly_cents)}/mo` : ""]].filter(([k]) => k) as Array<[string, string]> },
         ...(rcp ? [{ small: "You can pause the AI any time from your portal." } as Block] : []),
+        ...guaranteeBlocks(ctx),
       ],
       cta: { label: "Open my portal", url: portal(brand, rcp ? "receptionist" : "") },
     };

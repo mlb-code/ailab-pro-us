@@ -1,5 +1,5 @@
 {
-  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit}, {refund}, {days:CODE}, {usage_voice}, {usage_sms}, {overage_pct}, {cancel_days}, {bundle_save_setup}, {bundle_save_monthly}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here.",
+  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit}, {refund}, {days:CODE}, {usage_voice}, {usage_sms}, {overage_pct}, {cancel_days}, {bundle_save_setup}, {bundle_save_monthly}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {business_days}, {refund_label}, {guarantee}, {guarantee_label}, {guarantee_body}, {guarantee_days}, {founding_label}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here.",
   "worked_with_fallback": "Worked with Samsung and Haier in {country} (through their local distributor)",
   "nav": [
     {
@@ -65,11 +65,11 @@
       },
       {
         "k": "Quote in writing",
-        "v": "{quote_sla_cap} of your questionnaire. Valid for 14 days. No sales calls, ever."
+        "v": "{quote_sla_cap} of your questionnaire. Business days are {business_days}. Valid for 14 days. No sales calls, ever."
       },
       {
-        "k": "7-day refund",
-        "v": "{refund}"
+        "k": "{guarantee_label}",
+        "v": "{guarantee_body} {refund}"
       }
     ]
   },
@@ -88,15 +88,15 @@
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",
-      "a": "No. You fill in a questionnaire, get a written quote, and finish a setup checklist with short videos. If you want a 15-minute video call anyway, you can book one. It's optional."
+      "a": "No. You fill in a questionnaire, get a written quote {quote_sla} (business days are {business_days}), and finish a setup checklist with short videos. If you want a 15-minute video call anyway, you can book one. It's optional."
     },
     "timeline": {
       "q": "How long until it's live?",
       "a": "{days:RCP} business days after you finish the access checklist (calendar, alerts, SMS registration details). Rush delivery is available as an add-on."
     },
     "cancel": {
-      "q": "Can I cancel?",
-      "a": "Monthly service cancels with {cancel_days} days notice. {refund}"
+      "q": "Can I cancel? What if I'm not happy?",
+      "a": "{guarantee} {refund} Monthly service cancels with {cancel_days} days notice."
     },
     "who": {
       "q": "Who is behind this?",
@@ -122,7 +122,7 @@
   "usage_text_fallback": "{usage_voice} minutes + {usage_sms} texts included every month. We alert you at 80%. No surprise charges: extra usage is added only if you approve it.",
   "sms_note": "Text-back starts after US carrier registration (A2P 10DLC), typically 1–2 weeks. Voice answering starts right away.",
   "founder": {
-    "text": "Founding client price: {price:RCP.founding} setup + {price:RCP.monthly}/mo for the first {founding_max} clients, in exchange for a short case study."
+    "text": "{founding_label}: {price:RCP.founding} setup + {price:RCP.monthly}/mo for the first {founding_max} clients, in exchange for a short case study."
   },
   "after_pay": {
     "eyebrow": "What happens after you pay",

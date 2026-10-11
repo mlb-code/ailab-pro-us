@@ -46,7 +46,13 @@ A one-person Israeli sole proprietorship (osek murshe) sells fixed-price AI serv
 16. If a dental office uses the receptionist and the AI collects only name, phone and a general reason for the call, are we likely a HIPAA business associate anyway? What wording keeps us out of scope, or should we not offer dental at all until we can sign BAAs?
 
 ### E. Commercial terms
-17. Refund policy as drafted: the setup deposit is fully refunded on request within 7 days of payment, as long as the client has not completed the access checklist; after that it is non-refundable. Retainers: 75% refund of the first payment if cancelled within 7 days. Monthly fees: no partial-month refunds. Any consumer-style rules that could apply to B2B buyers here (e.g. auto-renewal laws for monthly plans in California/New York)?
+17. Refund policy as drafted (numbers and client wording come from `config/pricebook.json` → `refund_rules`):
+    - **Satisfaction guarantee** (AI Receptionist and the Receptionist + Website bundle): "If you're not satisfied within 30 days after go-live, we refund the setup fee and switch the line off. Monthly fees for the period used are not refunded."
+    - **Website alone:** only the deposit rule below, because content work starts immediately.
+    - **Setup deposit:** fully refunded on request within 7 days of payment, as long as the client has not completed the access checklist; after that it is non-refundable, except under the guarantee.
+    - **Retainers:** 75% refund of the first payment if cancelled within 7 days. **Monthly fees:** no partial-month refunds.
+    - **Business days** for every response time (written quote "within 1 business day", replies) are Sunday–Thursday, Israel time.
+    Questions: (a) Is "not satisfied" (no objective test) safe for us as written, or should we require a written request and a chance to fix the issue first? (b) For the bundle, should the refund cover the whole bundle setup fee or only the receptionist part, and what happens to the website? (c) Does the word "guarantee" create any warranty or consumer-law exposure for B2B buyers (e.g. FTC rules on "satisfaction guaranteed" claims, state auto-renewal laws for monthly plans in California/New York)? (d) Is defining business days as Sunday–Thursday (Israel time) clear enough for US clients?
 18. Liability cap = fees paid in the prior 12 months, excluding the client's payment and indemnity obligations. Is this enforceable and standard for a small vendor?
 19. IP: client owns deliverables after full payment; we keep templates, shared code, platform and prompts, with a license to the client. Any gap, especially for the hosted receptionist when the plan ends?
 20. Service level "99% best effort, no credits": acceptable wording?
