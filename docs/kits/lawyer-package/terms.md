@@ -10,7 +10,7 @@ Version 1.0-draft · Effective date: [EFFECTIVE DATE] · Last updated: October 1
 
 ## 1. Who we are
 
-"We", "us" and "our" mean Lavi Entrepreneurship & Management (Meir Lavi) (Israeli sole proprietorship (Osek Murshe)), doing business as AI Lab Pro, with its address at 29 Yigal Alon St., Herzliya, Israel. We provide our services remotely from Israel. Contact: support@ailabpro.co.
+"We", "us" and "our" mean Lavi Entrepreneurship & Management (Meir Lavi), Israeli sole proprietorship (Osek Murshe), doing business as AI Lab Pro, with its address at 29 Yigal Alon St., Herzliya, Israel. We provide our services remotely from Israel. Contact: support@ailabpro.co.
 
 "You" means the business, and the person acting for it, that uses our website, portal or services.
 

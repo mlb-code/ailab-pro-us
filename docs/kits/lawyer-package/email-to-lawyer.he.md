@@ -49,9 +49,9 @@ Attached:
 
 The PDFs show the documents as they appear on the site. The `.md` files are plain text for red-lining.
 
-Two items are not yet in the drafts:
-- A case-study / marketing-consent clause. It is tied to a 30% "Founding-client price" for the first 3 clients.
-- An inconsistency to fix: Service Agreement §4 bills overage at cost + 20%, but our price book says overage is added only with the client's approval.
+Two items were added to the drafts recently. Please review them in particular:
+- A case-study / marketing-consent clause (Service Agreement §11). It is tied to a 30% "Founding-client price" for the first 3 clients.
+- Overage (Service Agreement §4): no automatic billing; we alert at 80% and 100%, and an extra usage block is added only with the client's written approval.
 
 What I need back:
 - Red-lined documents, or a list of changes by section number.

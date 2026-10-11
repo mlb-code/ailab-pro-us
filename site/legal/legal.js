@@ -11,7 +11,10 @@
     .then(function (brand) {
       if (!brand) return;
       document.querySelectorAll('[data-brand]').forEach(function (el) {
-        var v = get(brand, el.getAttribute('data-brand'));
+        var key = el.getAttribute('data-brand');
+        var v = get(brand, key);
+        // agreement_version lives at the top level of brand.json; accept the old nested path too.
+        if (v === undefined && key === 'legal_entity.agreement_version') v = brand.agreement_version;
         if (typeof v === 'string' && v) el.textContent = v;
       });
       document.querySelectorAll('a[data-brand-href]').forEach(function (el) {

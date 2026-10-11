@@ -11,16 +11,16 @@
 <link rel="stylesheet" href="../legal.css">
 </head>
 <body>
-<div class="draft-banner" role="note">DRAFT — to be reviewed by a licensed attorney before first use. Version <span data-brand="legal_entity.agreement_version">1.0-draft</span>. Not yet in effect.</div> <!-- hardcoded-ok: version shown before JS loads -->
+<div class="draft-banner" role="note">DRAFT — to be reviewed by a licensed attorney before first use. Version <span data-brand="agreement_version">1.0-draft</span>. Not yet in effect.</div> <!-- hardcoded-ok: version shown before JS loads -->
 <main>
 <nav class="legal-nav" aria-label="Legal documents"><a href="../terms/">Terms of Service</a><a href="../privacy/">Privacy Policy</a><a href="../service-agreement/">Service Agreement</a></nav>
 <h1>Service Agreement</h1>
-<p class="meta">Version <span class="mono" data-brand="legal_entity.agreement_version">1.0-draft</span> · Effective date: [EFFECTIVE DATE] · Last updated: October 11, 2026</p> <!-- hardcoded-ok: version shown before JS loads -->
+<p class="meta">Version <span class="mono" data-brand="agreement_version">1.0-draft</span> · Effective date: [EFFECTIVE DATE] · Last updated: October 11, 2026</p> <!-- hardcoded-ok: version shown before JS loads -->
 
 <div class="box"><strong>Plain-English summary.</strong> Your Quote says what we build and what it costs. You pay 50% to start and 50% before go-live. Monthly fees start at go-live; cancel with 30 days' notice. When you have paid in full, the work made for you is yours. You are responsible for how your business uses calls and texts. We build with Claude; we are not affiliated with Anthropic.</div>
 
 <h2>1. Parties and how you accept</h2>
-<p>This Agreement is between <span data-brand="legal_entity.name">[LEGAL ENTITY NAME]</span> (<span data-brand="legal_entity.form">[LEGAL FORM]</span>), doing business as <span data-brand="name">[BRAND NAME]</span> ("we", "us"), and the business named in the Quote ("you", "Client").</p>
+<p>This Agreement is between <span data-brand="legal_entity.name">[LEGAL ENTITY NAME]</span>, <span data-brand="legal_entity.form">[LEGAL FORM]</span>, doing business as <span data-brand="name">[BRAND NAME]</span> ("we", "us"), and the business named in the Quote ("you", "Client").</p>
 <p>You accept this Agreement when you type your full name, check the agreement box and click "Accept" on your Quote page, or when you accept an Upwork contract that refers to the Quote. Your typed name is your electronic signature. We record the date, IP address, browser, and the version of this Agreement you accepted.</p>
 <p>Order of documents if they conflict: (1) the Quote, (2) this Agreement, (3) the <a href="../terms/">Terms of Service</a>. For work contracted through Upwork, Upwork's terms control payment, escrow and Upwork dispute handling.</p>
 
@@ -48,7 +48,7 @@
 <li>All prices are fixed, in US dollars, as shown in the Quote. A Quote is valid for 14 days.</li>
 <li><strong>Setup fee:</strong> 50% deposit before work starts; 50% before go-live. We do not offer net-30 terms.</li>
 <li><strong>Monthly fee:</strong> starts on the go-live date, billed monthly in advance.</li>
-<li><strong>Usage:</strong> the Quote lists the usage included each month (for example voice minutes and SMS segments). Usage above that is billed at our cost plus 20%, shown in the monthly report.</li>
+<li><strong>Usage:</strong> the Quote lists the usage included each month (for the AI Receptionist: <span data-cfg="pricebook:rules.included_usage.voice_minutes">400</span> voice minutes and <span data-cfg="pricebook:rules.included_usage.sms_segments">1000</span> SMS segments). We never bill extra usage automatically. We alert you when you reach 80% and 100% of the included usage. An extra usage block is added only with your written approval, at the price in the price book.</li>
 <li><strong>Taxes:</strong> prices do not include taxes. We do not expect US sales tax, as the service is performed outside the US. On request we provide IRS Form W-8BEN.</li>
 <li><strong>Late payment:</strong> if a payment is more than 10 days late, we may pause the service after written notice. We do not delete your data during a pause.</li>
 </ul>
@@ -110,6 +110,8 @@
 <li>Before full payment, all deliverables remain ours.</li>
 <li>We may show non-confidential parts of the work (for example a screenshot with demo data) in our portfolio, unless you tell us not to.</li>
 </ul>
+<h3>Founding-client price and case study</h3>
+<p>This applies only if your Quote shows the <span data-cfg="pricebook:rules.discounts.FOUNDING.label">Founding-client price</span> (<span data-cfg="pricebook:rules.discounts.FOUNDING.setup_pct">30</span>% off the setup fee, offered to our first <span data-cfg="pricebook:rules.discounts.FOUNDING.max_clients">3</span> clients). In return for that price, you agree that we may publish a short case study about your project. It may include your business name and logo, a short quote from you, and aggregated numbers (for example how many calls the AI answered). It will never include your callers' names, phone numbers or messages. <strong>We will send you every case study, post or quote before it is published, and nothing is published without your written approval</strong>, which you will not unreasonably withhold. You may ask us to remove a published case study at any time after 12 months. [ATTORNEY: confirm this consent and the effect on the price if the client later refuses.]</p>
 
 <h2>12. Data and confidentiality</h2>
 <ul>
@@ -136,7 +138,7 @@
 <p>We are an independent contractor, not your employee or agent. We are responsible for our own taxes. We may use AI tools and service providers to do the work; we remain responsible for the result.</p>
 
 <h2>18. Governing law and disputes</h2>
-<p>This Agreement is governed by the laws of <strong><span data-brand="legal_entity.governing_law">[GOVERNING LAW — proposed: the State of New York]</span></strong>, without regard to conflict-of-law rules. Before any claim, the parties will try to resolve the dispute in writing for 30 days. If not resolved, it will be settled by binding arbitration conducted online by <strong>[ARBITRATION PROVIDER]</strong>, in English, by a single arbitrator. [ATTORNEY: confirm venue, provider and class-action waiver.]</p>
+<p>This Agreement is governed by the laws of <strong><span data-brand="legal_entity.governing_law">[GOVERNING LAW — proposed: the State of New York]</span></strong>, without regard to conflict-of-law rules. Before any claim, the parties will try to resolve the dispute in writing for 30 days. If not resolved, it will be settled by binding arbitration conducted online by <strong>[ARBITRATION PROVIDER]</strong>, in English, by a single arbitrator. Either party may bring an individual claim in small-claims court instead. [ATTORNEY: confirm venue, provider and class-action waiver.]</p>
 
 <h2>19. Not affiliated with Anthropic</h2>
 <p>We build with Claude, an AI model by Anthropic, PBC. We are not affiliated with, endorsed by or sponsored by Anthropic.</p>

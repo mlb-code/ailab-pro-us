@@ -21,12 +21,12 @@
 5. **שם, כתובת ומייל:** `config/brand.json` → `legal_entity.name`, `legal_entity.form`, `physical_address`, `support_email`. הם כבר מולאו, וצריך רק לוודא שעורך הדין אישר.
 6. **גרסה ותאריך תוקף:**
    - `config/brand.json` → `agreement_version`: `"1.0-draft"` → `"1.0"`. דף ההצעה שומר את הערך הזה בכל אישור לקוח (`quote-accept`).
-   - **באג קיים:** ב-HTML כתוב `data-brand="legal_entity.agreement_version"`, אבל המפתח נמצא ברמה העליונה (`agreement_version`). לכן הגרסה בדפים לא מתעדכנת. צריך לתקן את התכונה ל-`data-brand="agreement_version"` בשלושת הדפים, ולהחליף ידנית את `1.0-draft` שמופיע 9 פעמים ב-`site/legal` (כולל ה-`<meta description>`).
+   - (תוקן) התכונה היא עכשיו `data-brand="agreement_version"`, והגרסה מתעדכנת מהקונפיג. נשאר להחליף ידנית את ברירת המחדל `1.0-draft` שמופיעה ב-`site/legal` (כולל ה-`<meta description>`).
    - מחליפים את `[EFFECTIVE DATE]` ואת "Last updated" בשלושת הדפים.
 7. **החלטות שמוסיפות טקסט חדש** (לפי `decisions-for-meir.he.md`):
-   - סעיף case study ומחיר מייסדים: SA §11, ואולי גם תיבת הסכמה בדף ההצעה.
-   - תיקון חיוב החריגה: SA §4. "cost plus 20%" מוחלף בנוסח של ADD-USAGE באישור.
-   - יישור חריג small-claims: SA §18.
+   - סעיף case study ומחיר מייסדים: טיוטה כבר נמצאת ב-SA §11. מעדכנים לפי עורך הדין, ושוקלים תיבת הסכמה בדף ההצעה.
+   - חיוב החריגה ב-SA §4 (תוקן): אין חיוב אוטומטי, התראה ב-80% וב-100%, ותוספת רק באישור.
+   - חריג small-claims (תוקן): נמצא עכשיו גם ב-SA §18.
    - DPA, אם עורך הדין דורש: עמוד חדש תחת `site/legal/`, שמתווסף ל-`LEGAL_PAGES` ב-`tools/build_landing.py`.
 8. **דנטל:** אם התשובה היא "לא", משנים ב-`config/brand.json` → `niches[key=dental].status`, ומעדכנים את `site/_content/dental.json`.
 9. **הכרזה על המסמכים כסופיים:** `config/brand.json` → `"legal_final": true`. בלי השלב הזה הבאנר נשאר.
@@ -38,5 +38,5 @@
     ```
     הצלחה: `qa-fast` עובר בלי שגיאות, ו-`build_landing --check` מדווח "0 differ".
 11. **בדיקה בדפדפן:** `make qa-browser` (overflow בדפי legal). פותחים את שלושת הדפים ומוודאים שהבאנר נעלם והגרסה מוצגת כ-1.0.
-12. **טקסט בצבע כמעט בלתי קריא בדפי המשפט (באג קיים, לתקן גם בלי קשר לעורך הדין):** `legal.css` מגדיר את `--bg` כלבן, אבל `base.css` צובע את `h1–h4`, `p` ו-`strong` בצבע קרם (`--fg`/`--fg-2`). התוצאה: כותרות ופסקאות כמעט לא נראות על רקע לבן. התיקון ב-`site/legal/legal.css`: `h1,h2,h3,h4,p,strong,em{color:var(--ink)}` (ובמצב כהה לוודא ש-`--bg` כהה). קובצי ה-PDF בחבילה הופקו עם התיקון הזה בהזרקה זמנית, כך שהם קריאים.
+12. **קריאות דפי המשפט (תוקן):** `legal.css` קובע עכשיו צבעי טקסט, כותרות וקישורים מפורשים, בניגודיות AA במצב בהיר ובמצב כהה. קובצי ה-PDF הופקו מחדש מהדפים עצמם.
 13. **עדכון מסמכים נלווים:** סעיף 4 ב-`docs/kits/lawyer-brief.md` מסמנים כהושלם. ב-`docs/kits/upwork.md` מעדכנים את ה-placeholders של ההחזרים, אם הנוסח השתנה. רושמים ב-`docs/reports/` דוח קצר: מה שונה, ואיזו גרסה נכנסה לתוקף.

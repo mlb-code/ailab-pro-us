@@ -10,7 +10,7 @@ Version 1.0-draft · Effective date: [EFFECTIVE DATE] · Last updated: October 1
 
 ## 1. Parties and how you accept
 
-This Agreement is between Lavi Entrepreneurship & Management (Meir Lavi) (Israeli sole proprietorship (Osek Murshe)), doing business as AI Lab Pro ("we", "us"), and the business named in the Quote ("you", "Client").
+This Agreement is between Lavi Entrepreneurship & Management (Meir Lavi), Israeli sole proprietorship (Osek Murshe), doing business as AI Lab Pro ("we", "us"), and the business named in the Quote ("you", "Client").
 
 You accept this Agreement when you type your full name, check the agreement box and click "Accept" on your Quote page, or when you accept an Upwork contract that refers to the Quote. Your typed name is your electronic signature. We record the date, IP address, browser, and the version of this Agreement you accepted.
 
@@ -40,7 +40,7 @@ We reply to messages within one business day. Written quotes are sent within 1 b
 - All prices are fixed, in US dollars, as shown in the Quote. A Quote is valid for 14 days.
 - **Setup fee:** 50% deposit before work starts; 50% before go-live. We do not offer net-30 terms.
 - **Monthly fee:** starts on the go-live date, billed monthly in advance.
-- **Usage:** the Quote lists the usage included each month (for example voice minutes and SMS segments). Usage above that is billed at our cost plus 20%, shown in the monthly report.
+- **Usage:** the Quote lists the usage included each month (for the AI Receptionist: 400 voice minutes and 1000 SMS segments). We never bill extra usage automatically. We alert you when you reach 80% and 100% of the included usage. An extra usage block is added only with your written approval, at the price in the price book.
 - **Taxes:** prices do not include taxes. We do not expect US sales tax, as the service is performed outside the US. On request we provide IRS Form W-8BEN.
 - **Late payment:** if a payment is more than 10 days late, we may pause the service after written notice. We do not delete your data during a pause.
 
@@ -101,6 +101,10 @@ We aim for 99% monthly availability of the AI receptionist, on a best-effort bas
 - Before full payment, all deliverables remain ours.
 - We may show non-confidential parts of the work (for example a screenshot with demo data) in our portfolio, unless you tell us not to.
 
+### Founding-client price and case study
+
+This applies only if your Quote shows the Founding-client price (30% off the setup fee, offered to our first 3 clients). In return for that price, you agree that we may publish a short case study about your project. It may include your business name and logo, a short quote from you, and aggregated numbers (for example how many calls the AI answered). It will never include your callers' names, phone numbers or messages. **We will send you every case study, post or quote before it is published, and nothing is published without your written approval**, which you will not unreasonably withhold. You may ask us to remove a published case study at any time after 12 months. [ATTORNEY: confirm this consent and the effect on the price if the client later refuses.]
+
 ## 12. Data and confidentiality
 
 - We process your callers' information on your behalf, only to provide the service, as described in our Privacy Policy. We do not sell it and do not use it for our own marketing.
@@ -131,7 +135,7 @@ We are an independent contractor, not your employee or agent. We are responsible
 
 ## 18. Governing law and disputes
 
-This Agreement is governed by the laws of **[GOVERNING LAW — proposed: the State of New York]**, without regard to conflict-of-law rules. Before any claim, the parties will try to resolve the dispute in writing for 30 days. If not resolved, it will be settled by binding arbitration conducted online by **[ARBITRATION PROVIDER]**, in English, by a single arbitrator. [ATTORNEY: confirm venue, provider and class-action waiver.]
+This Agreement is governed by the laws of **[GOVERNING LAW — proposed: the State of New York]**, without regard to conflict-of-law rules. Before any claim, the parties will try to resolve the dispute in writing for 30 days. If not resolved, it will be settled by binding arbitration conducted online by **[ARBITRATION PROVIDER]**, in English, by a single arbitrator. Either party may bring an individual claim in small-claims court instead. [ATTORNEY: confirm venue, provider and class-action waiver.]
 
 ## 19. Not affiliated with Anthropic
 

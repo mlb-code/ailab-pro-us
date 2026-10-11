@@ -1,4 +1,4 @@
-/* Legal pages (A9). Works alone; base.css from A3 may override tokens. LTR, English. */
+/* Legal pages (A9). Loaded after base.css: light reading theme with explicit text colors (AA), dark mode below. LTR, English. */
 :root{--navy:#0F1A26;--amber:#E8A64A;--ink:#1d2733;--muted:#5b6673;--bg:#ffffff;--line:#e3e6ea;--banner-bg:#fff4e0;--banner-ink:#6b3e00}
 @media (prefers-color-scheme:dark){:root{--ink:#e7ebf0;--muted:#a8b2bd;--bg:#0F1A26;--line:#2a3747;--banner-bg:#3a2a10;--banner-ink:#ffd9a0}}
 html{overflow-x:clip}
@@ -19,3 +19,15 @@ code,.mono{font-family:"Space Mono",ui-monospace,Menlo,monospace;font-size:.9em}
 ol,ul{padding-left:1.4em}
 li{margin:.25em 0}
 p,li,td{overflow-wrap:anywhere}
+
+/* Explicit colors: base.css paints headings/paragraphs cream for its navy theme; override for the light legal page. */
+:root{--link:#0b4f8a;--fg:var(--ink);--fg-2:var(--ink);--fg-3:var(--muted)}
+@media (prefers-color-scheme:dark){:root{--link:#f2bc63}}
+body,main,p,li,td,th,dd,dt,strong,b,em,.box{color:var(--ink)}
+h1,h2,h3,h4{color:var(--ink)}
+.meta{color:var(--muted)}
+a,a:visited{color:var(--link);text-decoration-color:currentColor}
+a:hover{text-decoration-thickness:2px}
+.draft-banner,.draft-banner *{color:var(--banner-ink)}
+main p,main ul,main ol,main table{margin:0 0 .9em}
+main p{max-width:none}
