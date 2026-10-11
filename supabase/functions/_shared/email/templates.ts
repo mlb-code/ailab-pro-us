@@ -20,7 +20,7 @@ export interface EmailCtx {
   offer?: string | null;
   niche?: string | null;
   review?: { risk_flags?: string[]; manual_reasons?: string[]; questions?: string[] } | null;
-  questionnaire?: { id: string; offer: string | null; niche: string | null; status: string };
+  questionnaire?: { id: string; offer: string | null; niche: string | null; status: string; summary?: Array<{ q: string; a: string }> | null };
   has_quote?: boolean;
   client?: { id: string; status: string; products: string[]; monthly_cents: number | null; business_name: string | null; go_live_at: string | null; next_bill_on: string | null };
   tenant_number?: string | null;
@@ -135,6 +135,60 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       { small: "Remembered something? Just reply to this email." },
     ],
     cta: { label: "Open your portal", url: portal(brand) },
+  })),
+
+  // WEB is sold without a quote step (SPEC §1): Meir sends the deposit link by hand; the client gets a short confirmation.
+  web_deposit_ack: client("transactional", true, (ctx, { brand }) => ({
+    subject: "Your deposit link is on its way",
+    preheader: `We'll email your secure deposit link ${brand.quote_sla_text}.`,
+    heading: "Your deposit link is on its way",
+    blocks: [
+      { p: `${hi(ctx)} thanks for choosing your website package${company(ctx) ? ` for **${company(ctx)}**` : ""}.` },
+      { p: `We'll email your secure deposit link ${brand.quote_sla_text}. Once the deposit is in, your content checklist opens in your portal.` },
+      { small: "Questions? Just reply to this email." },
+    ],
+    cta: { label: "Open your portal", url: portal(brand) },
+  })),
+
+  web_deposit_link_requested: toMeir((ctx, { brand }) => {
+    const qn = ctx.questionnaire;
+    const answers = (qn?.summary ?? []).filter((x) => x && String(x.a ?? "").trim()).slice(0, 12)
+      .map((x) => `${x.q}: ${String(x.a).slice(0, 200)}`);
+    return {
+      subject: `אתר (WEB): ${biz(ctx)} מחכה לקישור מקדמה`,
+      preheader: "לקוח בחר חבילת אתר. צריך לשלוח לו קישור תשלום למקדמה.",
+      heading: "לקוח בחר חבילת אתר",
+      blocks: [
+        { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
+          ["טלפון", ctx.profile?.phone ?? ""], ["עיר", [ctx.profile?.city, ctx.profile?.state].filter(Boolean).join(", ")],
+          ["נישה", qn?.niche ?? ""]] },
+        ...(answers.length ? [{ title: "מהשאלון", list: answers } as Block] : []),
+        { small: `הלקוח קיבל מייל שהקישור יגיע ${brand.quote_sla_text}.` },
+      ],
+      cta: { label: "פתח את השאלון באדמין", url: admin(brand, `questionnaires/${qn?.id ?? ""}`) },
+    };
+  }),
+
+  request_cancelled: client("transactional", true, (ctx, { brand }) => ({
+    subject: `Request "${ctx.request?.title ?? ""}" was cancelled`,
+    preheader: "It's removed from your queue. Nothing else changes.",
+    heading: "Request cancelled",
+    blocks: [
+      { p: `${hi(ctx)} your request **${ctx.request?.title ?? ""}** was cancelled and removed from your queue, as you asked.` },
+      { small: "Cancelled by mistake? Open it again from your portal." },
+    ],
+    cta: { label: "Open my requests", url: portal(brand, "requests") },
+  })),
+
+  admin_request_cancelled: toMeir((ctx, { brand }) => ({
+    subject: `${biz(ctx)} ביטל בקשה: ${ctx.request?.title ?? ""}`,
+    preheader: "הבקשה הוסרה מהתור. אין צורך בפעולה.",
+    heading: "בקשה בוטלה",
+    blocks: [
+      { facts: [["עסק", biz(ctx)], ["בקשה", ctx.request?.title ?? ""], ["מייל", ctx.profile?.email ?? ""]] },
+      { small: "הלקוח ביטל בקשה שחיכתה בתור. אין צורך בפעולה." },
+    ],
+    cta: { label: "תור ריטיינר באדמין", url: admin(brand, "requests") },
   })),
 
   admin_new_quote: toMeir((ctx, { brand }) => {

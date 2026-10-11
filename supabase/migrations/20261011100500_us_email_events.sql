@@ -61,7 +61,8 @@ create or replace function private.email_templates() returns text[]
 language sql immutable set search_path = '' as $$
   select array['lead_capture', 'q_received', 'admin_new_quote', 'quote_sent', 'quote_reminder', 'quote_expiring',
                'quote' || '_accepted', 'admin_quote' || '_accepted', 'deposit_received', 'onboarding_nudge', 'need_help',
-               'ready_to_test', 'final_payment_due', 'went_live', 'request_update', 'monthly_invoice', 'task:draft_quote']
+               'ready_to_test', 'final_payment_due', 'went_live', 'request_update', 'monthly_invoice', 'task:draft_quote',
+               'web_deposit_link_requested', 'web_deposit_ack', 'request_cancelled', 'admin_request_cancelled']
 $$;
 
 -- Insert one outbox row; a second call with the same key is a no-op (returns false).
@@ -77,7 +78,7 @@ begin
   insert into private.email_outbox (idem_key, template, audience, entity, entity_id, user_id, payload, next_attempt_at, created_at)
   values (left(p_key, 200), p_template,
           case when p_template like 'task:%' then 'system'
-               when p_template like 'admin\_%' or p_template = 'need_help' then 'admin' else 'client' end,
+               when p_template like 'admin\_%' or p_template in ('need_help', 'web_deposit_link_requested') then 'admin' else 'client' end,
           coalesce(p_entity, ''), p_entity_id, p_user, coalesce(p_payload, '{}'::jsonb), coalesce(p_not_before, now()),
           coalesce(p_not_before, now()))
   on conflict (idem_key) do nothing;
@@ -116,6 +117,12 @@ begin
       coalesce(t, 'unknown') || ':' || coalesce(new.entity_id::text, 'ev' || new.id::text)
         || case when t = 'admin_new_quote' then ':' || new.id::text else '' end,
       new.entity, new.entity_id, new.user_id, new.payload - 'template');
+  elsif new.entity = 'questionnaire' and new.type in ('status_changed', 'created') and st = 'submitted'
+        and (select q.offer from public.questionnaires q where q.id = new.entity_id) = 'WEB' then
+    -- WEB is sold without a quote step (SPEC §1): Meir sends the deposit link; the client gets a short confirmation
+    perform private.enqueue_email_safe('web_deposit_link_requested', 'web_deposit_link_requested:' || new.entity_id, 'questionnaire',
+      new.entity_id, new.user_id);
+    perform private.enqueue_email_safe('web_deposit_ack', 'web_deposit_ack:' || new.entity_id, 'questionnaire', new.entity_id, new.user_id);
   elsif new.entity = 'questionnaire' and new.type in ('status_changed', 'created') and st = 'submitted' then
     perform private.enqueue_email_safe('q_received', 'q_received:' || new.entity_id, 'questionnaire', new.entity_id, new.user_id);
     perform private.enqueue_email_safe('task:draft_quote', 'task:draft_quote:' || new.entity_id, 'questionnaire', new.entity_id, new.user_id);
@@ -129,6 +136,12 @@ begin
   elsif new.entity = 'client' and new.type = 'go_live_requested' then
     -- B7: client pressed "Approve go-live" (go_live checklist item done). Same key as the payments path: once per client.
     perform private.enqueue_email_safe('final_payment_due', 'final_payment_due:' || new.entity_id, 'client', new.entity_id, new.user_id);
+  elsif new.entity = 'request' and new.type = 'request_cancelled' then
+    -- B7: client cancelled (deleted) a queued request; the row is gone, so the title travels in the payload
+    perform private.enqueue_email_safe('request_cancelled', 'request_cancelled:' || new.entity_id, 'request', new.entity_id, new.user_id,
+      jsonb_build_object('title', left(new.payload ->> 'title', 200)));
+    perform private.enqueue_email_safe('admin_request_cancelled', 'admin_request_cancelled:' || new.entity_id, 'request', new.entity_id,
+      new.user_id, jsonb_build_object('title', left(new.payload ->> 'title', 200)));
   elsif new.type = 'need_help' then
     -- at most one alert per checklist item per UTC day
     perform private.enqueue_email_safe('need_help',
@@ -254,12 +267,13 @@ begin
       'review', (select jsonb_build_object('risk_flags', r.risk_flags, 'manual_reasons', r.manual_reasons,
                                            'questions', r.questions_for_client)
                    from public.quote_reviews r where r.quote_id = q.id));
-  elsif o.template in ('q_received', 'task:draft_quote') then
+  elsif o.template in ('q_received', 'task:draft_quote', 'web_deposit_link_requested', 'web_deposit_ack') then
     select * into qn from public.questionnaires where id = o.entity_id;
     if not found then return jsonb_build_object('skip', 'questionnaire_missing'); end if;
     uid := coalesce(qn.user_id, uid);
     ctx := ctx || jsonb_build_object(
-      'questionnaire', jsonb_build_object('id', qn.id, 'offer', qn.offer, 'niche', qn.niche, 'status', qn.status),
+      'questionnaire', jsonb_build_object('id', qn.id, 'offer', qn.offer, 'niche', qn.niche, 'status', qn.status,
+        'summary', case when o.template = 'web_deposit_link_requested' then qn.summary end),
       'has_quote', exists (select 1 from public.quotes x where x.questionnaire_id = qn.id and x.status <> 'void'));
   elsif o.template in ('deposit_received', 'onboarding_nudge', 'ready_to_test', 'went_live', 'monthly_invoice', 'final_payment_due') then
     select * into cl from public.clients where id = o.entity_id;
@@ -276,6 +290,9 @@ begin
         ctx := ctx || jsonb_build_object('final_cents', q.setup_cents - q.deposit_cents);
       end if;
     end if;
+  elsif o.template in ('request_cancelled', 'admin_request_cancelled') then
+    ctx := ctx || jsonb_build_object('request', jsonb_build_object('id', o.entity_id, 'title', coalesce(o.payload ->> 'title', ''),
+                                                                   'status', 'cancelled', 'admin_reply', null));
   elsif o.template = 'request_update' then
     select * into rq from public.requests where id = o.entity_id;
     if not found then return jsonb_build_object('skip', 'request_missing'); end if;

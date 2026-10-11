@@ -59,6 +59,17 @@ Deno.test("subjects match SPEC §5 (with live data)", async () => {
   eq(subj("monthly_invoice"), `Your ${B.name} monthly invoice`);
   assert(/^Your fixed quote expires on \w+ \d{1,2}, \d{4}$/.test(subj("quote_expiring")), subj("quote_expiring"));
   eq(subj(T_ACCEPTED), "Quote accepted — next step: the deposit");
+  eq(subj("web_deposit_ack"), "Your deposit link is on its way");
+  eq(subj("web_deposit_link_requested"), "אתר (WEB): Cool Breeze HVAC מחכה לקישור מקדמה");
+  eq(subj("request_cancelled"), 'Request "Change the greeting" was cancelled');
+  eq(subj("admin_request_cancelled"), "Cool Breeze HVAC ביטל בקשה: Change the greeting");
+  eq([TEMPLATES.web_deposit_link_requested.audience, TEMPLATES.admin_request_cancelled.audience, TEMPLATES.web_deposit_ack.audience,
+    TEMPLATES.request_cancelled.audience], ["admin", "admin", "client", "client"]);
+  const ack = TEMPLATES.web_deposit_ack.render(s.web_deposit_ack.ctx, { brand: B, now: NOON_IL });
+  assert(ack.text.includes(B.quote_sla_text), "deposit ack uses quote_sla_text");
+  const wl = TEMPLATES.web_deposit_link_requested.render(s.web_deposit_link_requested.ctx, { brand: B, now: NOON_IL });
+  assert(wl.html.includes(`${SITE}/start/admin/#questionnaires/`) && wl.html.includes("dani@example.com") && !wl.html.includes("Spanish:"),
+    "admin WEB mail: client details, admin link, empty answers dropped");
 });
 
 Deno.test("every template: html+text, no leftovers, ≤ 600 px, dark-mode, language/direction, footer rules, links", async () => {

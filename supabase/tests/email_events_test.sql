@@ -194,6 +194,24 @@ begin
   if private.enqueue_monthly_invoices(now()) <> 0 then raise exception 'FAIL invoice in the go-live month'; end if;
   checks := checks + 4;
 
+  -- 7b. WEB questionnaire: no quote step -> owner gets web_deposit_link_requested, client web_deposit_ack (no q_received / draft)
+  insert into public.questionnaires (user_id, offer, niche) values (ua, 'WEB', 'home_services') returning id into qb;
+  update public.questionnaires set status = 'submitted' where id = qb;
+  select string_agg(template || '/' || audience, ',' order by template) into t from private.email_outbox where entity_id = qb;
+  if t <> 'web_deposit_ack/client,web_deposit_link_requested/admin' then raise exception 'FAIL WEB submit routing (got %)', t; end if;
+  -- request cancelled by the client (B7 logs request_cancelled, row deleted) -> client confirmation + owner notice, once
+  insert into public.events (actor, entity, entity_id, user_id, type, payload, client_visible) values
+    ('client:' || ua, 'request', rq, ua, 'request_cancelled', '{"title":"Filter size question"}', true),
+    ('client:' || ua, 'request', rq, ua, 'request_cancelled', '{"title":"Filter size question"}', true);
+  select string_agg(template || '/' || audience, ',' order by template) into t from private.email_outbox where template like '%request_cancelled';
+  if t <> 'admin_request_cancelled/admin,request_cancelled/client' then raise exception 'FAIL request_cancelled routing (got %)', t; end if;
+  select private.email_context(id) into v from private.email_outbox where template = 'request_cancelled';
+  if v -> 'request' ->> 'title' <> 'Filter size question' or v ->> 'to' <> 'Dani@Example.com' then raise exception 'FAIL request_cancelled ctx %', v; end if;
+  select private.email_context(id) into v from private.email_outbox where template = 'web_deposit_link_requested';
+  if v ->> 'to' is distinct from (select admin_email from private.settings where id = 1) or v -> 'questionnaire' ->> 'offer' <> 'WEB' then
+    raise exception 'FAIL WEB admin ctx'; end if;
+  checks := checks + 4;
+
   -- 8. unsubscribe tokens
   v := public.email_recipient('Dani@Example.com');
   if (v ->> 'unsubscribed')::boolean or length(v ->> 'token') < 32 then raise exception 'FAIL recipient token'; end if;
