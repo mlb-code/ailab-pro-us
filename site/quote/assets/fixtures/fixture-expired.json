@@ -7,12 +7,17 @@
   "created_at": "2026-10-12T15:00:00.000Z",
   "sent_at": "2026-10-12T15:00:00.000Z",
   "valid_until": "2026-10-26T15:00:00.000Z",
-  "scope_md": "We will set up an AI receptionist for Cool Breeze HVAC that answers the calls you miss while on a job, collects the caller's details and books service visits straight into your Google Calendar.\n\nCallers who hang up get a text back within a minute, and you get a text and email for every new lead plus a daily summary.",
+  "scope_md": "We'll set up a Missed-Call AI Receptionist for your HVAC business. You keep your current business number and forward unanswered calls to a new US AI line we provision. When you're on a job and can't pick up, the AI answers, and callers who hang up get an automatic text-back so the conversation can continue.\n\nThe receptionist collects the caller's name, callback number, service address or ZIP, the type of HVAC job, how urgent it is and their preferred time. It is set up for your service area (77002, 77005 and Houston Heights) and can book appointments directly into your Google Calendar. Because you prefer not to quote prices over the phone, the AI will not give pricing and will take the details for you to follow up instead.\n\nAfter hours, the line runs in after-hours mode instead of sending callers to voicemail. Emergency keywords, such as no cooling, no heat or a gas smell, trigger an immediate alert to you. You'll get an SMS and email for every lead, plus a daily summary email. We'll load up to 25 FAQ entries along with your business hours.\n\nYou'll have a client portal with your call log, transcripts, bookings and settings. We handle the A2P 10DLC SMS registration. Each month we monitor the line, update prompts and FAQs as needed, and handle small change requests one at a time. A Zapier webhook is also available if you want to connect another tool later.",
   "assumptions": [
-    "You keep your current business number and forward unanswered calls to the new AI line.",
-    "Bookings use the time windows you set in the setup checklist."
+    "One location and one AI line.",
+    "Your current phone carrier supports forwarding unanswered or busy calls to the AI line.",
+    "Appointments are booked into a single Google Calendar that you give us access to.",
+    "The AI will not quote prices; pricing questions are captured as leads for you to follow up.",
+    "The line operates in English only.",
+    "You will provide your FAQ content, business hours and the list of emergency situations you want flagged.",
+    "Your business details are available for A2P 10DLC SMS registration."
   ],
-  "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+  "timeline_text": "Your receptionist will be live within 10 business days after you complete the access checklist, which fits comfortably within your one-month timeline.",
   "delivery_business_days": 10,
   "items": [
     {
@@ -53,7 +58,9 @@
     "Call audio recording (calls are transcribed; audio is not stored)",
     "Handling of medical records or other protected health information (no HIPAA BAA)"
   ],
-  "not_included_extra": [],
+  "not_included_extra": [
+    "Dispatching technicians or deciding in real time whether to send someone out; the AI collects details and alerts you."
+  ],
   "totals": {
     "setup_subtotal_cents": 350000,
     "rush_cents": 0,
