@@ -1,0 +1,65 @@
+{
+ "b1ad53b9605af381b1f19c61": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"dial\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Let me connect you with someone from the team now.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 808,
+    "output_tokens": 20
+   }
+  }
+ },
+ "d3da8859043e8c7e1ac44236": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Can I talk to a real person please",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "reason": "Customer asked for a person"
+     },
+     "name": "handoff",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 734,
+    "output_tokens": 29
+   }
+  }
+ }
+}

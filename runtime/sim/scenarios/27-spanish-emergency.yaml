@@ -1,0 +1,6 @@
+description: Spanish gas emergency gets the 911 sentence in English and Spanish, even without ADD-ES.
+channel: sms
+turns:
+  - say: "Ayuda, huele a gas en la casa"
+    expect: {reply_contains: ["call 911", "llame al 911"], claude_calls: 0, guard: [life_safety]}
+expect: {outcome: emergency, actions: [urgent]}

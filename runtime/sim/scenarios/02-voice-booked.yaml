@@ -1,0 +1,8 @@
+description: Happy path on a call, caller gives everything quickly; replies stay <= 2 sentences.
+channel: voice
+turns:
+  - say: "My furnace stopped working, I'm in 77019"
+    expect: {reply_contains: ["Which works better"], tools: [get_availability]}
+  - say: "The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019"
+    expect: {reply_contains: ["all set"], tools: [book_slot]}
+expect: {outcome: booked, bookings: 1, actions: [booking]}

@@ -1,0 +1,9 @@
+description: Tenant spent its daily budget -> message-only, zero Claude calls, admin alert once.
+channel: sms
+setup: {tenant_spend_usd: 3.01}
+turns:
+  - say: "My AC is broken"
+    expect: {reply_contains: ["passed your message"], claude_calls: 0, guard: ["budget:tenant"]}
+  - say: "Hello?"
+    expect: {claude_calls: 0}
+expect: {outcome: message, claude_calls_total: 0, actions: [admin_budget, lead]}

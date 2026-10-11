@@ -1,0 +1,407 @@
+"""Conversation engine: guard -> brain -> tool executor -> reply check, for one channel turn.
+
+Channel-agnostic: the voice flow (B3) and SMS flow (B4) wrap `Engine.handle()` in TwiML and
+persist `Convo.transcript` / outcome into `calls` / `sms_messages`. Owner alerts are returned
+as `actions` for the notifier (B6) to deliver; nothing here sends anything.
+
+Rate-limit state, spend and monthly usage are persisted through `StateStore` (table
+`runtime_state`; in-memory fallback only in sim). Conversation histories stay in memory per
+worker until B3/B4 persist transcripts. All row access goes through `store.for_tenant()`.
+"""
+from __future__ import annotations
+
+import hashlib
+import logging
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Any
+from zoneinfo import ZoneInfo
+
+from . import guard
+from .brain import run_turn
+from .llm import LLMClient
+from .settings import Settings
+from .store import StateStore, Store, TenantStore
+from .tenants import TenantRecord
+from .usage import UsageMeter
+
+log = logging.getLogger("rt.conversation")
+
+FALLBACK_TEXT = ("Sorry, I'm having trouble on my end. I've passed your message to the team "
+                 "and someone will get back to you soon.")
+PAUSED_TEXT = "Thanks for reaching out. Our team will get back to you soon."
+REPROMPT_TEXT = "Sorry, I didn't catch that. What can we help you with?"
+SILENT_END_TEXT = "Sorry, I can't hear you. Someone from our team will call you back. Goodbye."
+CONFIRMED_DANGER_TEXT = guard.CONFIRMED_DANGER_TEXT
+URGENT_DIAL_TEXT = "This sounds urgent. I'm connecting you with our on-call technician now."
+OUTCOME_RANK = {"booked": 6, "emergency": 5, "handoff": 4, "message": 3, "spam": 2, "abandoned": 1}
+
+
+@dataclass
+class Convo:
+    tenant_id: str
+    channel: str
+    contact: str
+    convo_id: str
+    messages: list[dict[str, Any]] = field(default_factory=list)
+    transcript: list[dict[str, str]] = field(default_factory=list)
+    offered: dict[str, dict] = field(default_factory=dict)
+    outcome: str | None = None
+    booking: dict | None = None
+    message: dict | None = None
+    urgency: str = "normal"
+    silent_in_a_row: int = 0
+    ever_spoke: bool = False
+    ended: bool = False
+    awaiting_safety: bool = False
+    alerted: set[str] = field(default_factory=set)
+    cost_usd: float = 0.0
+    claude_calls: int = 0
+
+    def set_outcome(self, outcome: str) -> None:
+        if OUTCOME_RANK.get(outcome, 0) > OUTCOME_RANK.get(self.outcome or "", 0):
+            self.outcome = outcome
+
+
+@dataclass
+class TurnResult:
+    reply: str
+    end: bool = False
+    outcome: str | None = None
+    actions: list[dict[str, Any]] = field(default_factory=list)
+    guard: list[str] = field(default_factory=list)
+    claude_calls: int = 0
+    cost_usd: float = 0.0
+    tool_calls: list[dict[str, Any]] = field(default_factory=list)
+
+
+class Engine:
+    def __init__(self, store: Store, llm: LLMClient, calendar: Any, settings: Settings,
+                 state: StateStore | None = None):
+        self.store = store
+        self.llm = llm
+        self.calendar = calendar
+        self.settings = settings
+        self.state = state or StateStore(store, memory_fallback=settings.is_sim)
+        self.usage = UsageMeter(self.state)
+        self.convos: dict[tuple[str, str, str], Convo] = {}
+
+    # --- persisted state (runtime_state) ----------------------------------------------------
+    @staticmethod
+    def _who(contact: str) -> str:
+        return hashlib.sha256(contact.encode()).hexdigest()[:16]
+
+    def _limit_key(self, tenant: TenantRecord, contact: str) -> str:
+        return f"limit:{tenant.id}:{self._who(contact)}"
+
+    def limit_state(self, tenant: TenantRecord, contact: str) -> guard.LimitState:
+        raw = self.state.get(self._limit_key(tenant, contact))
+        if not raw:
+            return guard.LimitState()
+        ts = lambda v: datetime.fromisoformat(v) if v else None  # noqa: E731
+        return guard.LimitState(reply_times=tuple(datetime.fromisoformat(t) for t in raw["reply_times"]),
+                                day=raw["day"], episodes=raw["episodes"], last_over_at=ts(raw["last_over_at"]),
+                                muted_until=ts(raw["muted_until"]))
+
+    def save_limit_state(self, tenant: TenantRecord, contact: str, st: guard.LimitState) -> None:
+        iso = lambda v: v.isoformat() if v else None  # noqa: E731
+        self.state.put(self._limit_key(tenant, contact), {
+            "reply_times": [t.isoformat() for t in st.reply_times], "day": st.day, "episodes": st.episodes,
+            "last_over_at": iso(st.last_over_at), "muted_until": iso(st.muted_until)}, tenant.id)
+
+    def tenant_spend(self, tenant: TenantRecord, day: str) -> float:
+        return float(self.state.get(f"spend:{tenant.id}:{day}", 0) or 0)
+
+    def global_spend(self, day: str) -> float:
+        return float(self.state.get(f"spend:global:{day}", 0) or 0)
+
+    def add_spend(self, tenant: TenantRecord, day: str, usd: float) -> None:
+        if usd:
+            self.state.incr(f"spend:{tenant.id}:{day}", usd, tenant.id)
+            self.state.incr(f"spend:global:{day}", usd)
+
+    # ------------------------------------------------------------------------------------------
+    def convo(self, tenant: TenantRecord, channel: str, contact: str, convo_id: str) -> Convo:
+        key = (tenant.id, channel, convo_id)
+        if key not in self.convos:
+            self.convos[key] = Convo(tenant.id, channel, contact, convo_id)
+        return self.convos[key]
+
+    @staticmethod
+    def local_day(tenant: TenantRecord, now: datetime) -> str:
+        return now.astimezone(ZoneInfo(tenant.config.business.timezone)).date().isoformat()
+
+    def _alert(self, c: Convo, actions: list, kind: str, summary: str) -> None:
+        if kind in c.alerted:
+            return
+        c.alerted.add(kind)
+        actions.append({"type": "alert", "kind": kind, "summary": summary, "urgency": c.urgency,
+                        "contact": c.contact, "channel": c.channel, "convo_id": c.convo_id})
+
+    def _usage(self, tenant: TenantRecord, ts: TenantStore, kind: str, amount: float, now: datetime,
+               actions: list) -> None:
+        for a in self.usage.record(tenant, kind, amount, now):
+            actions.append(a)
+            ts.log_event("usage_threshold", {k: a[k] for k in ("kind", "usage_kind", "used", "included")})
+
+    # ------------------------------------------------------------------------------------------
+    def handle(self, tenant: TenantRecord, channel: str, contact: str, text: str, convo_id: str,
+               now: datetime, num_media: int = 0) -> TurnResult:
+        cfg = tenant.config
+        ts = self.store.for_tenant(tenant.id)
+        c = self.convo(tenant, channel, contact, convo_id)
+        actions: list[dict[str, Any]] = []
+        notes: list[str] = []
+        text = text or ""
+        day = self.local_day(tenant, now)
+        sms = channel == "sms"
+        if sms:
+            self._usage(tenant, ts, "sms", guard.sms_segments(text) or (1 if num_media else 0), now, actions)
+
+        def done(reply: str, end: bool = False, outcome: str | None = None, counted: bool = True,
+                 **kw: Any) -> TurnResult:
+            if outcome:
+                c.set_outcome(outcome)
+            c.ended = c.ended or end
+            if reply:
+                c.transcript.append({"who": "assistant", "text": reply})
+                if counted and (sms or kw.get("claude_calls")):
+                    self.save_limit_state(tenant, contact, guard.record_reply(self.limit_state(tenant, contact), now, day))
+                if sms:
+                    self._usage(tenant, ts, "sms", guard.sms_segments(reply), now, actions)
+            if notes:
+                ts.log_event("guard", {"convo_id": convo_id, "channel": channel, "rules": notes})
+            return TurnResult(reply=reply, end=c.ended, outcome=c.outcome, actions=actions, guard=notes, **kw)
+
+        def gate() -> TurnResult | None:
+            """Per-number cap on replies (every reply on SMS; Claude replies on voice)."""
+            st = self.limit_state(tenant, contact)
+            reason = guard.rate_reason(st, now, cfg.guard.max_replies_10min, cfg.guard.max_replies_day, day)
+            if not reason:
+                return None
+            decision, st = guard.register_over_limit(st, now, day)
+            self.save_limit_state(tenant, contact, st)
+            notes.append(f"rate:{reason}:{decision}")
+            if decision == "first":
+                self._alert(c, actions, "rate_limit", "Number went over the reply limit")
+                return done(guard.LIMIT_TEXT, outcome="message", counted=False)
+            if decision == "mute":
+                actions.append({"type": "alert", "kind": "muted", "summary": "Number muted for 24 hours",
+                                "contact": contact, "channel": channel, "convo_id": convo_id})
+            return done("")
+
+        # 8: blocklist -> no reply at all
+        if guard.is_blocked(contact, cfg):
+            notes.append("blocklist")
+            return done("", end=True, outcome="spam")
+
+        kw = guard.sms_keyword(text) if sms else None
+        if kw == "stop":  # the only reply that is never rate limited
+            notes.append("stop")
+            was_out = ts.is_opted_out(contact)
+            ts.opt_out(contact)
+            return done("" if was_out else guard.stop_confirmation(cfg.business.name), end=True, counted=False)
+        if kw == "start":
+            notes.append("start")
+            ts.opt_in(contact)
+        elif sms and ts.is_opted_out(contact):
+            notes.append("opted_out")
+            return done("", end=True)
+
+        if sms and (blocked := gate()):
+            return blocked
+        if kw == "start":
+            return done(guard.start_confirmation(cfg.business.name))
+        if not tenant.active:
+            notes.append("tenant_paused")
+            return done(PAUSED_TEXT, end=True)
+
+        if sms:
+            if kw == "help":
+                notes.append("help")
+                return done(guard.help_text(cfg.business.name, cfg.business.main_phone))
+            fixed, reason = guard.inbound_fixed_reply(text, num_media)
+            if fixed:
+                notes.append(reason)
+                return done(fixed)
+        elif not text.strip():
+            c.silent_in_a_row += 1
+            policy = guard.silence_policy(c.silent_in_a_row, c.ever_spoke)
+            notes.append(f"silence:{policy}")
+            if policy == "reprompt":
+                return done(REPROMPT_TEXT)
+            if policy == "end_spam":
+                return done("", end=True, outcome="spam")
+            self._alert(c, actions, "lead", "Caller went silent before finishing")
+            return done(SILENT_END_TEXT, end=True, outcome="message")
+        else:
+            c.silent_in_a_row = 0
+
+        c.ever_spoke = True
+        c.transcript.append({"who": "customer", "text": text})
+
+        # emergencies: 911 first, then the conversation continues unless danger is confirmed
+        if c.awaiting_safety:
+            c.awaiting_safety = False
+            if guard.confirms_danger(text):
+                notes.append("danger_confirmed")
+                return done(CONFIRMED_DANGER_TEXT, end=True, outcome="emergency")
+        emergency = guard.detect_emergency(text, cfg)
+        if emergency == "life_safety":
+            c.urgency = "urgent"
+            c.awaiting_safety = True
+            notes.append("life_safety")
+            self._alert(c, actions, "urgent", "Possible life-safety emergency reported")
+            return done(guard.life_safety_reply(text), outcome="emergency")
+        if emergency == "urgent":
+            c.urgency = "urgent"
+            notes.append("urgent")
+            c.set_outcome("emergency")
+            self._alert(c, actions, "urgent", "Urgent issue reported")
+            if channel == "voice" and cfg.emergency.dial:
+                actions.append({"type": "dial", "number": cfg.emergency.dial, "reason": "urgent"})
+                return done(URGENT_DIAL_TEXT, end=True)
+
+        # 10: honest about being an AI, no Claude needed
+        if guard.is_robot_question(text):
+            notes.append("robot_question")
+            return done(guard.robot_answer(cfg.business.name))
+
+        # 9: language
+        lang = guard.language_fixed_reply(text, cfg)
+        if lang:
+            notes.append("language")
+            self._alert(c, actions, "lead", "Customer wrote in Spanish; please call back")
+            return done(lang, outcome="message")
+
+        # 5: per-number limit before any Claude call (voice too)
+        if not sms and (blocked := gate()):
+            return blocked
+
+        # 6: budgets -> message-only mode, zero Claude calls
+        breason = guard.budget_reason(self.tenant_spend(tenant, day), cfg.guard.daily_budget_usd,
+                                      self.global_spend(day), self.settings.global_daily_budget_usd)
+        if breason:
+            notes.append(f"budget:{breason}")
+            self._alert(c, actions, "lead", "Message-only mode (budget reached)")
+            flag = f"admin_budget:{breason}:{tenant.id if breason == 'tenant' else 'global'}:{day}"
+            if not self.state.get(flag):
+                self.state.put(flag, True, tenant.id if breason == "tenant" else None)
+                actions.append({"type": "alert", "kind": "admin_budget", "summary": f"{breason} daily budget reached",
+                                "tenant": tenant.slug})
+            return done(guard.BUDGET_TEXT, outcome="message")
+
+        # Claude
+        policy = guard.after_hours_policy(cfg, now)
+        result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c),
+                          lambda name, args: self._execute(tenant, ts, c, channel, now, policy, actions, name, args))
+        c.claude_calls += result.claude_calls
+        c.cost_usd += result.cost_usd
+        self.add_spend(tenant, day, result.cost_usd)
+        extra = dict(claude_calls=result.claude_calls, cost_usd=result.cost_usd, tool_calls=result.tool_calls)
+
+        if result.error:
+            notes.append(f"fallback:{result.error}")
+            if not c.message and not c.booking:
+                c.message = {"summary": "Assistant error; customer needs a callback", "urgency": c.urgency}
+            self._alert(c, actions, "lead", "Assistant could not finish; please call back")
+            return done(FALLBACK_TEXT, outcome="message", **extra)
+
+        c.messages = result.messages
+        checked = guard.check_reply(result.text, cfg, channel, booked=c.booking is not None)
+        notes.extend(f"reply:{v}" for v in checked.violations)
+        if "unbacked_action" in checked.violations:
+            self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
+            c.set_outcome("message")
+        dialing = any(a["type"] == "dial" for a in actions)
+        return done(checked.text, end=c.ended or dialing, **extra)
+
+    # ------------------------------------------------------------------------------------------
+    @staticmethod
+    def _user_content(tenant: TenantRecord, channel: str, text: str, now: datetime, policy: str, c: Convo) -> list:
+        local = now.astimezone(ZoneInfo(tenant.config.business.timezone))
+        hours = {
+            "open": "The business is open now.",
+            "book_next_day": "The business is closed now: offer the next available slots.",
+            "message_only": "The business is closed now: do not book; take a message.",
+            "emergency_dial": "The business is closed now: take a message; urgent issues are escalated automatically.",
+        }[policy]
+        urgent = " The customer reported an urgent issue; the owner was alerted." if c.urgency == "urgent" else ""
+        ctx = (f"[context] Channel: {channel}. Local time: {local:%A %b} {local.day}, {local:%I:%M %p}. "
+               f"{hours}{urgent} The customer's phone number is already known.")
+        return [{"type": "text", "text": ctx}, {"type": "text", "text": "Customer: " + guard.as_data(text)}]
+
+    def _execute(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
+                 actions: list, name: str, args: dict[str, Any]) -> dict[str, Any]:
+        cfg = tenant.config
+        if name == "get_availability":
+            if args.get("job_type") not in cfg.booking.job_types:
+                return {"ok": False, "reason": "unknown_job_type", "job_types": list(cfg.booking.job_types)}
+            if not guard.zip_in_area(str(args.get("zip") or ""), cfg):
+                return {"ok": False, "reason": "out_of_area"}
+            if policy in ("message_only", "emergency_dial"):
+                return {"ok": False, "reason": "after_hours_message_only"}
+            try:
+                date_from = date.fromisoformat(args["date_from"]) if args.get("date_from") else None
+            except ValueError:
+                date_from = None
+            slots = self.calendar.availability(tenant.id, cfg, now, date_from=date_from, limit=3)
+            for s in slots:
+                c.offered[s["slot_id"]] = s
+            return {"ok": True, "slots": [{"slot_id": s["slot_id"], "label": s["label"]} for s in slots]}
+
+        if name == "book_slot":
+            slot_id = str(args.get("slot_id") or "")
+            if slot_id not in c.offered:
+                return {"ok": False, "reason": "unknown_slot"}
+            if c.booking:
+                return {"ok": False, "reason": "already_booked"}
+            address = str(args.get("address") or "")
+            zip_code = guard.find_zip(address)
+            if zip_code and not guard.zip_in_area(zip_code, cfg):
+                return {"ok": False, "reason": "out_of_area"}
+            alt_phone = args.get("phone")
+            details = {"name": str(args.get("name") or "")[:80], "phone": c.contact, "address": address[:200],
+                       "job_type": args.get("job_type") if args.get("job_type") in cfg.booking.job_types
+                       else cfg.booking.job_types[0],
+                       "urgency": "urgent" if c.urgency == "urgent" else args.get("urgency", "normal"),
+                       "notes": str(args.get("notes") or "")[:300],
+                       **({"alt_phone": str(alt_phone)[:20]} if alt_phone else {})}
+            res = self.calendar.book(tenant.id, cfg, now, slot_id, details)
+            if not res.get("ok"):
+                return {"ok": False, "reason": res.get("reason", "booking_failed")}
+            c.booking = {**details, "slot_id": slot_id, "start": res["start"], "end": res["end"]}
+            ts.insert("bookings", {
+                "call_id": None, "customer_name": details["name"], "contact_e164": c.contact,
+                "address": details["address"], "job_type": details["job_type"], "urgency": details["urgency"],
+                "start_at": res["start"], "end_at": res["end"], "provider_event_id": res["event_id"],
+                "status": "booked"})
+            c.set_outcome("booked")
+            self._alert(c, actions, "booking", f"New booking: {details['job_type']} {res['label']}")
+            return {"ok": True, "label": res["label"]}
+
+        if name == "take_message":
+            urgency = "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal"
+            c.message = {"summary": str(args.get("summary") or "")[:300], "urgency": urgency,
+                         "name": args.get("name")}
+            c.set_outcome("message")
+            self._alert(c, actions, "lead", c.message["summary"])
+            out = {"ok": True}
+            if c.offered == {} and "outside" in c.message["summary"].lower():
+                out["reason"] = "out_of_area"
+            return out
+
+        if name == "handoff":
+            if channel == "voice" and cfg.handoff.mode == "dial" and cfg.handoff.number and guard.on_call(cfg, now):
+                actions.append({"type": "dial", "number": cfg.handoff.number, "reason": "handoff"})
+                c.set_outcome("handoff")
+                return {"ok": True, "action": "dial"}
+            c.set_outcome("message")
+            self._alert(c, actions, "human_needed", f"HUMAN NEEDED: {str(args.get('reason') or '')[:200]}")
+            return {"ok": True, "action": "message"}
+
+        if name == "end_conversation":
+            c.ended = True
+            return {"ok": True}
+
+        return {"ok": False, "reason": "unknown_tool"}

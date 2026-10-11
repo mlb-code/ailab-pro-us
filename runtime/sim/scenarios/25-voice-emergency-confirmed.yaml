@@ -1,0 +1,8 @@
+description: Caller confirms real danger after the 911 sentence -> repeat 911 and end the call.
+channel: voice
+turns:
+  - say: "My house is on fire"
+    expect: {reply_contains: ["call 911"], end: false}
+  - say: "Yes, please hurry"
+    expect: {reply_contains: ["call 911"], end: true, guard: [danger_confirmed], claude_calls: 0}
+expect: {outcome: emergency, claude_calls_total: 0, actions: [urgent]}

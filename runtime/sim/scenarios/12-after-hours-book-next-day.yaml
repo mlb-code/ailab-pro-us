@@ -1,0 +1,7 @@
+description: Sunday night (closed) with after_hours=book_next_day -> offers Monday slots.
+channel: sms
+now: "2026-10-11T22:30:00-05:00"
+turns:
+  - say: "AC not working, 77002"
+    expect: {reply_contains: ["Monday Oct 12"], tools: [get_availability]}
+expect: {bookings: 0}

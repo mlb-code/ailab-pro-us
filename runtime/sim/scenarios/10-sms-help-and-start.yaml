@@ -1,0 +1,9 @@
+description: HELP returns business info; START re-subscribes a number that opted out.
+channel: sms
+setup: {opted_out: true}
+turns:
+  - say: "START"
+    expect: {reply_contains: ["resubscribed"], claude_calls: 0}
+  - say: "help"
+    expect: {reply_contains: ["Reply STOP"], claude_calls: 0}
+expect: {opted_out: false, claude_calls_total: 0}

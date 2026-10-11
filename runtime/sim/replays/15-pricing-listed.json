@@ -1,0 +1,33 @@
+{
+ "7af576bad3fcf4ec2c4842d7": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: What's the price for a service call?",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-opus-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Our service call is $89. Want me to get you on the schedule?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 711,
+    "output_tokens": 22
+   }
+  }
+ }
+}

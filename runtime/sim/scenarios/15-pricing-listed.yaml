@@ -1,0 +1,7 @@
+description: pricing.mode=listed -> the listed amount may be said, nothing else.
+channel: sms
+patch: {config: {pricing: {mode: listed, items: [{name: "Service call", price_usd: 89}]}}}
+turns:
+  - say: "What's the price for a service call?"
+    expect: {reply_contains: ["$89"]}
+expect: {reply_never_matches: ["\\$(?!89\\b)\\d"]}

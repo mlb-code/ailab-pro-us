@@ -1,0 +1,10 @@
+description: STOP is handled before Claude; after it, nothing is sent at all.
+channel: sms
+turns:
+  - say: "STOP"
+    expect: {reply_contains: ["unsubscribed"], claude_calls: 0}
+  - say: "Actually my AC is broken"
+    expect: {reply_empty: true, guard: [opted_out]}
+  - say: "stop"
+    expect: {reply_empty: true}
+expect: {opted_out: true, claude_calls_total: 0}

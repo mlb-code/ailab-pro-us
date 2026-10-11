@@ -1,0 +1,82 @@
+{
+  "$comment": "Single source of truth for brand, domain, senders, analytics IDs and the Claude model. Public values only: never put a key or token here. Empty strings are placeholders the owner fills in. Synced to site/assets, supabase/functions/_shared and runtime/app by tools/sync_config.py.",
+  "version": "1.0",
+  "name": "AI Lab Pro",
+  "short_name": "AI Lab Pro",
+  "tagline": "AI receptionists and websites for local service businesses",
+  "domain": "ailabpro.co",
+  "site_url": "https://ailabpro.co",
+  "support_email": "support@ailabpro.co",
+  "senders": {
+    "transactional": "AI Lab Pro <hello@ailabpro.co>",
+    "quotes": "AI Lab Pro <quotes@ailabpro.co>",
+    "alerts": "AI Lab Pro Alerts <alerts@ailabpro.co>",
+    "reply_to": "support@ailabpro.co"
+  },
+  "owner": {
+    "admin_email": "",
+    "admin_lang": "he",
+    "timezone": "Asia/Jerusalem"
+  },
+  "legal_entity": {
+    "name": "",
+    "form": "Israeli sole proprietorship (Osek Murshe)",
+    "country": "Israel",
+    "governing_law": ""
+  },
+  "legal_final": false,
+  "agreement_version": "1.0-draft",
+  "physical_address": "",
+  "calendly_url": "",
+  "analytics": {
+    "ga4_id": "",
+    "clarity_id": "",
+    "events": [
+      "demo_start",
+      "quote_start",
+      "quote_submit",
+      "quote_accept"
+    ]
+  },
+  "claude": {
+    "model": "claude-opus-5-5",
+    "effort": {
+      "voice": "low",
+      "sms": "low",
+      "quote": "medium"
+    }
+  },
+  "disclaimers": {
+    "footer": "Built with Claude. Not affiliated with Anthropic.",
+    "demo": "Demo — no real booking is made"
+  },
+  "niches": [
+    {
+      "key": "home_services",
+      "label": "Home services",
+      "path": "/home-services/",
+      "status": "live",
+      "index": true,
+      "cta": "quote"
+    },
+    {
+      "key": "real_estate",
+      "label": "Real estate",
+      "path": "/real-estate/",
+      "status": "live",
+      "index": true,
+      "cta": "quote"
+    },
+    {
+      "key": "dental",
+      "label": "Dental practices",
+      "path": "/dental/",
+      "status": "early_access",
+      "index": false,
+      "cta": "early_access"
+    }
+  ],
+  "fonts": {
+    "google_css": "https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap"
+  }
+}
