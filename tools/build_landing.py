@@ -554,6 +554,7 @@ def section_early(c, e, niche):
 <div class="field"><label for="ea-email">Work email</label><input class="input" id="ea-email" name="email" type="email" autocomplete="email" required></div>
 <div class="field"><label for="ea-company">Practice name</label><input class="input" id="ea-company" name="company" autocomplete="organization"></div>
 <div class="field"><label for="ea-city">City and state</label><input class="input" id="ea-city" name="city" autocomplete="address-level2"></div>
+<div class="hp" aria-hidden="true"><label for="ea-website">Website</label><input id="ea-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
 <button class="btn btn--primary" type="submit">{esc(e['button'])}</button>
 <p class="ea__msg" data-lead-msg role="status"></p>
 </form>
