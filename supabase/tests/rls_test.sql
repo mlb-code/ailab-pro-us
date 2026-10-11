@@ -1,6 +1,7 @@
 -- RLS / guard / RPC / retention test for the ailab-us schema.
 -- The block ALWAYS ends with an error on purpose, so everything it created is ROLLED BACK
--- (no test users or rows left behind).
+-- (no test users or rows left behind) — on a real project too: a DO block is one atomic statement, and any
+-- error (the final marker or a FAIL / platform error) aborts it. It never deletes from storage.* (Supabase forbids it).
 --   SUCCESS = error text starts with: RLS_TESTS_PASSED   (followed by the number of checks)
 --   FAILURE = error text starts with: FAIL              (names the check that broke)
 -- Run: Supabase SQL editor (paste all), Management API / tools/us_setup.py --only test,
@@ -305,9 +306,12 @@ begin
   update public.requests set title = 'B was here' where id = ra2;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FAIL B edited A request'; end if; c := c + 1;
-  delete from storage.objects where bucket_id = 'client-files' and name like ua::text || '/%';
-  get diagnostics n = row_count;
-  if n <> 0 then raise exception 'FAIL B deleted A files'; end if; c := c + 1;
+  -- Files are deleted only through the Storage API (Supabase blocks DELETE on storage.objects in SQL via
+  -- storage.protect_delete). The API applies the client_files_delete policy, so evaluate that policy for B on A's files:
+  select count(*) into n from storage.objects o
+   where o.bucket_id = 'client-files' and o.name like ua::text || '/%'
+     and (private.client_path_is_editable(o.name) or private.is_admin());
+  if n <> 0 then raise exception 'FAIL B may delete A files (delete policy true on % objects)', n; end if; c := c + 1;
   delete from public.attachments where owner_id = ua;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FAIL B deleted A attachment rows'; end if; c := c + 1;

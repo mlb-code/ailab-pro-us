@@ -81,6 +81,12 @@ const law = await q<{ v: string }>(`select e.enumlabel v from pg_enum e join pg_
 const niches = law.map((r) => r.v).join(",");
 niches === "home_services,real_estate,dental" ? ok(`niche enum = ${niches}`) : bad("niche enum", niches);
 
+// tests must never delete from storage.* (real Supabase: storage.protect_delete raises)
+/delete\s+from\s+storage\./i.test(read("tests/rls_test.sql").replace(/--[^\n]*/g, ""))
+  ? bad("rls_test.sql deletes from storage.* directly") : ok("rls_test.sql has no direct storage delete");
+const del = await q<{ ok: boolean }>(`select exists (select 1 from pg_trigger where tgname = 'protect_objects_delete') ok`);
+del[0].ok ? ok("storage.protect_delete emulated") : bad("storage.protect_delete not emulated");
+
 // ---- RLS / guard test (ends with an exception on purpose; everything rolls back)
 try {
   await db.exec(read("tests/rls_test.sql"));

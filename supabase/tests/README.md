@@ -3,7 +3,7 @@
 | File | What it is |
 |---|---|
 | `rls_test.sql` | One `DO` block: creates 4 users (client A, client B, admin, cancelled client C), fixtures in every table, then checks RLS, guard triggers, RPC whitelists, storage policies, anon access and the retention/expiry jobs (159 checks). It **always ends with an error** so everything rolls back. Success = message starts with `RLS_TESTS_PASSED`; failure = `FAIL <which check>`. |
-| `offline/supabase_shim.sql` | OFFLINE ONLY. Minimal stand-in for Supabase internals (roles `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`, `storage.buckets/objects`, `storage.foldername()`, `cron.schedule()`, Supabase's default grants). Never apply to a real project. |
+| `offline/supabase_shim.sql` | OFFLINE ONLY. Minimal stand-in for Supabase internals (roles `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`, `storage.buckets/objects`, `storage.foldername()`, `cron.schedule()`, Supabase's default grants, and the `storage.protect_delete` trigger that blocks direct DELETE on storage tables). Never apply to a real project. |
 | `offline/run.ts` | Runs everything in real Postgres 18 compiled to WASM (PGlite), in-process. No Docker, no Supabase project. |
 
 ## Retention (what `private.run_retention()` does, daily 03:17 UTC via pg_cron)
@@ -33,6 +33,8 @@ python3 tools/sql_lint.py supabase/migrations                                # s
 2. catalog checks: RLS on every `public` table, ≥ 1 policy each, no `(true)` policies, anon has no table grants and can execute only `public.ping()`, `private.*` not granted to API roles, buckets, cron jobs, niche enum (`home_services, real_estate, dental`; no law);
 3. runs `rls_test.sql` and verifies the rollback left nothing behind;
 4. **mutation self-test**: breaks one protection at a time (10 mutations: unsent quotes visible, profile guard dropped, anon lead read, storage path check, request guard, one-active index, RLS off on calls, credentials readable by clients, retention that only flags the client, tenant whitelist bypass) and asserts `rls_test.sql` catches each.
+
+Never `delete from storage.*` in tests or functions (real Supabase raises; files go through `private.storage_purge_queue` + Storage API). The rollback is guaranteed on a real project too: the whole test is one `DO` statement.
 
 Offline differences from a real project: `create extension pg_cron|pg_net` lines are skipped (the shim provides `cron.schedule`); Postgres 18 (PGlite) vs 17 (Supabase); storage/auth are simplified tables, so Storage API behaviour (MIME/size limits, upsert) is not exercised.
 
