@@ -4,7 +4,8 @@ Targets (byte-identical copies; never edit them by hand):
   site/assets/                      static site, questionnaire, quote page (fetch('/assets/pricebook.json'))
   supabase/functions/_shared/       Edge Functions (pricing.ts imports the JSON)
   runtime/app/                      Python runtime (receptionist)
-Also: supabase/functions/_shared/pricing.mjs -> site/assets/pricing.mjs (one pricing module for server + admin),
+Also writes site/CNAME = brand.json "domain" (GitHub Pages custom domain).
+Also: supabase/functions/_shared/{pricing,quote_view}.mjs -> site/assets/ (one pricing + public-view module for server, admin, quote mock),
       runtime/app/tenant_schema.json -> site/assets/tenant_schema.json (tenant config validation in the portal/admin, B7).
 
 usage:
@@ -24,6 +25,8 @@ TARGETS = ['site/assets', 'supabase/functions/_shared', 'runtime/app']
 # Shared JS modules: source of truth -> byte-identical copies (same drift check). pricing.mjs = one pricing implementation
 # for the Edge Functions (Deno) and the admin (browser).
 MODULES = [('supabase/functions/_shared/pricing.mjs', ['site/assets/pricing.mjs']),
+           # A6: public quote view + accept rules, used by the quote page's mock mode (imports ./pricing.mjs)
+           ('supabase/functions/_shared/quote_view.mjs', ['site/assets/quote_view.mjs']),
            # B7: the tenant config JSON schema (generated from the runtime's pydantic model) for the portal + admin editor
            ('runtime/app/tenant_schema.json', ['site/assets/tenant_schema.json'])]
 BRAND_REQUIRED = ['name', 'domain', 'site_url', 'support_email', 'senders', 'claude', 'niches', 'disclaimers']
@@ -90,6 +93,18 @@ def main(argv):
                 with open(dst, 'wb') as fh:
                     fh.write(src)
                 print(f'wrote   {rel}')
+    # GitHub Pages custom domain, derived from brand.json
+    cname = (json.loads(read(os.path.join(ROOT, 'config', 'brand.json')))['domain'].strip() + '\n').encode()
+    dst = os.path.join(ROOT, 'site', 'CNAME')
+    if os.path.exists(dst) and read(dst) == cname:
+        print('ok      site/CNAME')
+    elif check:
+        drift += 1
+        print('DRIFT   site/CNAME (missing or not brand.domain)')
+    else:
+        with open(dst, 'wb') as fh:
+            fh.write(cname)
+        print('wrote   site/CNAME')
     if check:
         print(f'sync_config --check: {"no drift" if not drift else f"{drift} file(s) drifted; run python3 tools/sync_config.py"}')
     return 1 if drift else 0

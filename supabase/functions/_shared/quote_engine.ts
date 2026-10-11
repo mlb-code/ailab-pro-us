@@ -6,10 +6,11 @@ import { customLabel, quoteHints, type Hints } from "./hints.ts";
 import { allowedCodes, outputSchema, SYSTEM_PROMPT, userPrompt } from "./quote_prompt.ts";
 import { cleanList, cleanText, violation } from "./sanitize.ts";
 import {
-  APPROVAL_ONLY, CUSTOM_CODE, deliveryDays, inputsFromStored, itemOf, type LineInput, type Pricebook, priceQuote,
+  APPROVAL_ONLY, CUSTOM_CODE, inputsFromStored, itemOf, type LineInput, type Pricebook, priceQuote,
   sendBlockers, storedItems,
 } from "./pricing.ts";
 import { DbError, type QuoteRow, type Store } from "./store.ts";
+import * as QV from "./quote_view.mjs";
 
 export class QuoteError extends Error {
   constructor(public code: string, public status = 400) { super(code); }
@@ -246,8 +247,7 @@ export async function sendQuote(input: SendInput, store: Store, pb: Pricebook = 
 }
 
 // ================================================================== public view
-export const TOKEN_RX = /^[A-Za-z0-9]{32,128}$/;
-const VISIBLE = ["sent", "viewed", "accepted", "expired"];
+export const TOKEN_RX: RegExp = QV.TOKEN_RX;
 
 export interface PublicQuote {
   status: "open" | "accepted" | "expired";
@@ -271,51 +271,17 @@ export interface PublicQuote {
 }
 
 /** Whitelisted public JSON for the quote page and email. Never includes internal reasons, ids, IP/UA or Claude raw output. */
+// logic lives in quote_view.mjs (shared with the quote page's mock mode)
 export function toPublicView(q: QuoteRow, profile: { full_name: string | null; company: string | null } | null, now: Date,
   pb: Pricebook = PRICEBOOK): PublicQuote {
-  const r = priceQuote(pb, inputsFromStored(q.items, pb), { discount_code: q.discount_code, manual_approved: true });
-  const expired = q.status === "expired" || (q.status !== "accepted" && !!q.valid_until && new Date(q.valid_until) < now);
-  const codes = q.items.map((i) => String(i.code));
-  const includes = codes.map((c) => itemOf(pb, c)).filter((it) => it && it.includes.length)
-    .map((it) => ({ code: it!.code, name: it!.name, list: it!.includes }));
-  const coreIt = r.core ? itemOf(pb, r.core) : undefined;
-  // exclusions from the price book; drop the ones the quote already buys (e.g. "add-on ADD-ES" when ADD-ES is a line)
-  const excludes = (coreIt?.excludes ?? []).filter((e) => !codes.some((c) => e.includes(`add-on ${c})`)));
-  const retainer = codes.some((c) => pb.refund_rules.retainer.codes.includes(c)) ? pb.refund_rules.retainer.text : null;
-  const disc = q.discount_code ? pb.rules.discounts[q.discount_code] : null;
-  const asyncCeiling = itemOf(pb, "RCP")?.setup_cents ?? 0;
-  return {
-    status: q.status === "accepted" ? "accepted" : expired ? "expired" : "open",
-    client: { name: profile?.full_name ?? "", company: profile?.company ?? "" },
-    created_at: q.created_at, sent_at: q.sent_at, valid_until: q.valid_until,
-    scope_md: q.scope_md ?? "", assumptions: q.assumptions ?? [], timeline_text: q.timeline_text ?? "",
-    delivery_business_days: deliveryDays(pb, r),
-    items: q.items.map((i) => ({ code: String(i.code), name: String(i.name), qty: Number(i.qty ?? 1), kind: String(i.kind),
-      setup_cents: (i.setup_cents as number | null) ?? null, monthly_cents: (i.monthly_cents as number | null) ?? null })),
-    includes, excludes, not_included_extra: q.not_included_extra ?? [],
-    totals: {
-      setup_subtotal_cents: r.setup_subtotal_cents, rush_cents: r.rush_cents, discount_cents: r.discount_cents,
-      discount_label: disc ? `Founding client (${disc.setup_pct}% off setup)` : null,
-      // stored totals are the contract; pricing is recomputed only for the breakdown
-      setup_cents: q.setup_cents ?? r.setup_cents, monthly_cents: q.monthly_cents ?? r.monthly_cents,
-      deposit_cents: q.deposit_cents ?? r.deposit_cents, final_cents: (q.setup_cents ?? r.setup_cents) - (q.deposit_cents ?? r.deposit_cents),
-      deposit_pct: pb.rules.deposit_pct,
-    },
-    refund: { deposit: pb.refund_rules.deposit.text, retainer, status: pb.refund_rules.status ?? null },
-    payment: { method: q.pay_method, link: q.pay_link },
-    agreement_version: q.agreement_version ?? BRAND.agreement_version,
-    accepted: q.status === "accepted" && q.accepted_at ? { name: q.accepted_name ?? "", at: q.accepted_at } : null,
-    call_offer_prominent: (q.setup_cents ?? r.setup_cents) > asyncCeiling,
-    currency: pb.currency,
-    cancel_notice_days: Number(pb.rules.cancel_notice_days ?? 30),
-  };
+  return QV.toPublicView(q, profile, now, pb, BRAND.agreement_version) as PublicQuote;
 }
 
 async function loadPublic(store: Store, token: string): Promise<QuoteRow> {
   if (!TOKEN_RX.test(token)) throw new QuoteError("not_found", 404);
   const q = await store.quoteByToken(token);
   // one answer for every refusal so a token prober learns nothing (missing / unsent / void / anonymised)
-  if (!q || q.anonymized || !VISIBLE.includes(q.status)) throw new QuoteError("not_found", 404);
+  if (!q || !QV.isPublic(q)) throw new QuoteError("not_found", 404);
   return q;
 }
 
@@ -335,17 +301,11 @@ export interface AcceptInput { token: string; name: string; agree: boolean; agre
 
 export async function acceptQuote(input: AcceptInput, store: Store, now: Date = new Date()): Promise<PublicQuote> {
   const q = await loadPublic(store, input.token);
-  const name = String(input.name ?? "").replace(/\s+/g, " ").trim();
-  if (q.status === "accepted") {
-    // idempotent double-click; a different signer is not allowed to overwrite
-    if (q.accepted_name === name) return toPublicView(q, q.user_id ? await store.getProfile(q.user_id) : null, now);
-    throw new QuoteError("quote_already_accepted", 409);
-  }
-  if (q.status === "expired" || (q.valid_until && new Date(q.valid_until) < now)) throw new QuoteError("quote_expired", 410);
-  if (input.agree !== true) throw new QuoteError("agreement_required");
-  if (name.length < 2 || name.length > 200 || !/\p{L}/u.test(name)) throw new QuoteError("name_required");
+  const name = QV.normName(input.name);
+  const chk = QV.acceptCheck(q, input, now, BRAND.agreement_version) as { ok?: string; code?: string; status?: number } | null;
+  if (chk?.ok === "idempotent") return toPublicView(q, q.user_id ? await store.getProfile(q.user_id) : null, now);
+  if (chk?.code) throw new QuoteError(chk.code, chk.status);
   const version = q.agreement_version ?? BRAND.agreement_version;
-  if (input.agreement_version !== version) throw new QuoteError("agreement_version_mismatch", 409);
   // binds the signature to this exact agreement version AND these exact terms
   const agreementHash = await sha256Hex(canonical({ agreement_version: version, quote_id: q.id, items: q.items, setup_cents: q.setup_cents,
     monthly_cents: q.monthly_cents, deposit_cents: q.deposit_cents, discount_code: q.discount_code, valid_until: q.valid_until }));

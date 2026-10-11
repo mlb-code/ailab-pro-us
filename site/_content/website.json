@@ -15,7 +15,7 @@
     "eyebrow": "Websites for local service businesses",
     "title": "A website that makes the phone ring.",
     "lead": "Five fast pages built around one job: getting a customer to call, text or fill in the form. Written from your questionnaire, approved by you, live {days:WEB} business days after your content is in.",
-    "fine": "Choose the package, pay the deposit, answer the content questionnaire. No quote step, no sales calls."
+    "fine": "{web_flow} No sales calls."
   },
   "pages": [
     {
@@ -46,13 +46,13 @@
     "steps": [
       {
         "num": "1 click",
-        "title": "Choose the package",
-        "text": "Accept the terms and pay the 50% deposit online."
+        "title": "{web_step1_title}",
+        "text": "{web_step1}"
       },
       {
-        "num": "15 min",
-        "title": "Content questionnaire",
-        "text": "Services, service area, photos, reviews, colors. Upload your logo if you have one."
+        "num": "{web_step2_num}",
+        "title": "{web_step2_title}",
+        "text": "{web_step2}"
       },
       {
         "num": "{days:WEB} days",
@@ -97,7 +97,7 @@
     },
     {
       "q": "Do I have to get on a call with you?",
-      "a": "No. There's no quote step: choose the package on this page, pay the deposit, and fill in the content questionnaire. If you'd rather talk first, you can book an optional 15-minute video call."
+      "a": "{web_nocall}"
     },
     {
       "q": "Can I cancel?",
@@ -115,7 +115,7 @@
     },
     {
       "k": "No quote step",
-      "v": "Pay the deposit, fill in the content questionnaire, see a draft in 3 business days."
+      "v": "{web_flow}"
     },
     {
       "k": "Fixed price",
@@ -128,6 +128,36 @@
   ],
   "band": {
     "title": "Choose your package.",
-    "text": "Pay the deposit, fill in the content questionnaire, see a draft in 3 business days."
+    "text": "{web_flow}"
+  },
+  "variants": {
+    "web_flow": {
+      "link": "No quote step. Fill a 10-minute questionnaire, we email your deposit link {quote_sla}, and the draft is ready 3 business days after we have your content.",
+      "online": "No quote step. Pay the deposit online, fill a 10-minute questionnaire, and the draft is ready 3 business days after we have your content."
+    },
+    "web_step1": {
+      "link": "Pick the package and fill a 10-minute content questionnaire. We email your 50% deposit link {quote_sla}.",
+      "online": "Accept the terms and pay the 50% deposit online."
+    },
+    "web_step1_title": {
+      "link": "Choose and answer",
+      "online": "Choose the package"
+    },
+    "web_step2": {
+      "link": "Once the deposit is in: services, service area, photos, reviews, colors. Upload your logo if you have one.",
+      "online": "Services, service area, photos, reviews, colors. Upload your logo if you have one."
+    },
+    "web_step2_title": {
+      "link": "Deposit link by email",
+      "online": "Content questionnaire"
+    },
+    "web_step2_num": {
+      "link": "{quote_sla_short}",
+      "online": "10 min"
+    },
+    "web_nocall": {
+      "link": "No. There's no quote step: choose the package on this page, fill in the 10-minute questionnaire, and we email your deposit link {quote_sla}. If you'd rather talk first, you can book an optional 15-minute video call.",
+      "online": "No. There's no quote step: choose the package on this page, pay the deposit online, and fill in the content questionnaire. If you'd rather talk first, you can book an optional 15-minute video call."
+    }
   }
 }

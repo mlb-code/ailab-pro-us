@@ -1,0 +1,14 @@
+/_styleguide/
+/legal/terms/
+/legal/privacy/
+/legal/service-agreement/
+/quote/?t=fixture
+/quote/?t=fixture-bundle
+/quote/?t=fixture-web
+/quote/?t=fixture-accepted
+/quote/?t=fixture-expired
+/demo-site/home-services/
+/demo-site/home-services/services/
+/demo-site/home-services/about/
+/demo-site/home-services/reviews/
+/demo-site/home-services/contact/

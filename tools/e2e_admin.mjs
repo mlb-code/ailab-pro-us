@@ -202,7 +202,7 @@ async function main() {
     // frozen
     await nav(page, '/start/admin/#quotes/' + q1); await page.waitForSelector('#detail .lines');
     ok(await page.$('#addCode') === null && await page.$('#sendBtn') === null, 'sent quote is read-only in the UI');
-    ok(await page.$('a[href^="/quote/?t="]') !== null, 'link to the client quote page');
+    ok(await page.$('a[href^="/quote/#t="]') !== null, 'link to the client quote page');
     const frozen = await page.evaluate(id => window.StartMock.create(window.SITE_CONFIG).adminSaveQuote(id, { setup_cents: 1 }).then(() => 'ok', e => e.message), q1);
     ok(frozen === 'quote_frozen_after_send', 'amounts frozen after send (API)');
     // manual price
@@ -292,6 +292,24 @@ async function main() {
     ok(st.includes('כללי החזרים') && st.includes(pb.refund_rules.deposit.refund_pct + '% החזר') && st.includes('אין חיוב אוטומטי על חריגה'), 'settings: refund rules + overage policy from config');
     ok(await page.$$eval('#panel input, #panel select, #panel textarea', x => x.length) === 0, 'settings has no editable controls');
     ok((await page.$$eval('#outbox li', l => l.length)) > 0, 'mock mailbox shows the e-mail stubs');
+    // "צור טיוטת הצעה" from a questionnaire jumps to the quote with no console error (390 and 1280)
+    for (const w of [390, 1280]) {
+      const qid = await page.evaluate(() => { const d = window.StartMock.admin.db(); const q = d.questionnaires.find(x => x.status === 'draft');
+        if (!q) return null; q.status = 'submitted'; q.submitted_at = new Date().toISOString(); localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); return q.id; });
+      if (!qid) { ok(false, 'no draft questionnaire left for the make-draft test'); break; }
+      await page.setViewport({ width: w, height: 900, deviceScaleFactor: 1 });
+      await nav(page, '/start/admin/#questionnaires/' + qid); await page.waitForSelector('#mkDraft');
+      const before = consoleErrors.length;
+      await page.click('#mkDraft');
+      await page.waitForFunction(() => location.hash.startsWith('#quotes/'), { timeout: 5000 }).catch(() => {});
+      await sleep(600);
+      ok(await page.evaluate(() => location.hash.startsWith('#quotes/')) && !!(await page.$('#totals')), 'make draft → quote editor open at ' + w);
+      ok(consoleErrors.length === before, 'no console errors on the quote screen after make-draft at ' + w + ' (' + consoleErrors.slice(before).join(' | ') + ')');
+      // a second draft questionnaire for the next width
+      await page.evaluate(() => { const d = window.StartMock.admin.db(); const src = d.questionnaires[0];
+        d.questionnaires.push(Object.assign({}, src, { id: crypto.randomUUID(), status: 'draft', submitted_at: null, offer: 'WEB' })); localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); });
+    }
+    await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
     // digest: collapsed on phones, open on desktop
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 }); await nav(page, '/start/admin/#leads'); await page.waitForSelector('#digestDet');
     ok(await page.$eval('#digestDet', d => !d.open), 'digest collapsed at 390');
