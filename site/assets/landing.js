@@ -35,12 +35,14 @@
         email: email,
         company: form.elements.company.value.trim(),
         city: form.elements.city.value.trim(),
+        website: form.elements.website ? form.elements.website.value : '',
         niche: form.getAttribute('data-niche'),
         source_page: location.pathname,
         utm: Object.fromEntries(new URLSearchParams(location.search))
       };
       var endpoint = form.getAttribute('data-endpoint');
       var button = form.querySelector('button[type=submit]');
+      if (data.website) { say(form.getAttribute('data-ok')); form.reset(); return; } // honeypot: bots get a fake success
       if (!endpoint) {
         var to = form.getAttribute('data-mailto');
         var body = 'Please add me to early access.\n\nEmail: ' + data.email + '\nPractice: ' + data.company + '\nCity/state: ' + data.city;
