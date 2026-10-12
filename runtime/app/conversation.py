@@ -274,12 +274,15 @@ class Engine:
             kw = None  # "yes" / "start" from a subscribed number is just a normal message
         if kw == "stop":  # the only reply that is never rate limited
             notes.append("stop")
-            was_out = ts.is_opted_out(contact)
-            ts.opt_out(contact)
-            return done("" if was_out else guard.stop_confirmation(cfg.business.name), end=True, counted=False)
+            new = ts.opt_out(contact, "sms", text)
+            if c.meta.get("sms_consent") == "asked":
+                c.meta["sms_consent"] = "no"
+            # exactly one confirmation (47 C.F.R. 64.1200(a)(12)); a repeat STOP gets nothing
+            return done(guard.stop_confirmation(cfg.business.name, cfg.business.main_phone) if new else "", end=True,
+                        counted=False)
         if kw == "start":
             notes.append("start")
-            ts.opt_in(contact)
+            ts.opt_in(contact, "sms", text)
         elif sms and ts.is_opted_out(contact):
             notes.append("opted_out")
             return done("", end=True)
@@ -338,6 +341,12 @@ class Engine:
                 actions.append({"type": "dial", "number": cfg.emergency.dial, "reason": "urgent"})
                 return done(URGENT_DIAL_TEXT, end=True)
 
+        # consent rules (SA §8): recording objection, the texting-consent answer, "don't text me" on a call
+        consent = self._consent_rules(tenant, ts, c, channel, text, actions, notes)
+        if consent is not None:
+            reply, end, outcome = consent
+            return done(reply, end=end, outcome=outcome)
+
         # 10: honest about being an AI, no Claude needed
         if guard.is_robot_question(text):
             notes.append("robot_question")
@@ -395,7 +404,65 @@ class Engine:
             self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
             c.set_outcome("message")
         dialing = any(a["type"] == "dial" for a in actions)
-        return done(checked.text, end=c.ended or dialing, **extra)
+        reply = checked.text
+        if self._should_ask_consent(ts, c):  # by text the reply is the confirmation; ask only about the reminder
+            notes.append("sms_consent:asked")
+            c.meta["sms_consent"] = "asked"
+            q = guard.SMS_CONSENT_Q_SMS
+            if len(reply) + 1 + len(q) > guard.SMS_REPLY_MAX:
+                reply = reply[:guard.SMS_REPLY_MAX - len(q) - 2].rstrip() + "…"
+            reply = f"{reply} {q}"
+        return done(reply, end=c.ended or dialing, **extra)
+
+    # --- consent (SA §8) ---------------------------------------------------------------------------
+    @staticmethod
+    def _should_ask_consent(ts: TenantStore, c: Convo) -> bool:
+        """A booking was made and the caller was not asked yet (and has not opted out)."""
+        return bool(c.booking) and "sms_consent" not in c.meta and not ts.is_opted_out(c.contact)
+
+    def _withhold_transcript(self, c: Convo) -> None:
+        """Caller objected to recording/transcription: keep only the greeting (proof of the notice) and a marker.
+        Claude's history goes too, so nothing the caller said is kept anywhere in the conversation state."""
+        greeting = [t for t in c.transcript[:1] if t.get("who") == "assistant"]
+        c.transcript = greeting + [{"who": "system", "text": "Transcript withheld: the caller objected to recording."}]
+        c.messages = []
+        c.meta["transcript_withheld"] = True
+
+    def _consent_rules(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, text: str,
+                       actions: list, notes: list[str]) -> tuple[str, bool, str | None] | None:
+        """(reply, end, outcome) for a turn the consent rules answer without Claude, else None."""
+        voice = channel == "voice"
+        call_sid = c.convo_id if voice else None
+        if voice and guard.objects_to_recording(text):
+            notes.append("recording_objection")
+            self._withhold_transcript(c)
+            if not c.message and not c.booking:
+                c.message = {"summary": "Caller objected to recording; call them back", "urgency": c.urgency, "name": None}
+            self._alert(c, actions, "lead", "Caller asked not to be recorded; please call them back")
+            return guard.RECORDING_OBJECTION_TEXT, True, "message"
+        if c.meta.get("sms_consent") == "asked":
+            ans = guard.consent_answer(text)
+            c.meta["sms_consent"] = ans or "unclear"
+            ts.record_consent(c.contact, channel, "booking_texts", ans or "unclear", text, call_sid,
+                              guard.CONSENT_PROMPT_VERSION)
+            notes.append(f"sms_consent:{ans or 'unclear'}")
+            if ans and voice and guard.wants_no_texts(text):
+                ts.opt_out(c.contact, "voice", text, call_sid)
+            bye = voice and bool(c.meta.pop("end_after_consent", False))
+            if ans == "yes":
+                return (guard.consent_yes_voice(bye) if voice else guard.CONSENT_YES_SMS), bye, None
+            if ans == "no":
+                if not voice:
+                    return guard.CONSENT_NO_SMS, False, None
+                return guard.consent_no_voice((c.booking or {}).get("label"), bye), bye, None
+            # unclear: no texts; the turn goes on as a normal turn
+        if voice and guard.wants_no_texts(text):
+            ts.opt_out(c.contact, "voice", text, call_sid)
+            notes.append("voice_opt_out")
+            if c.meta.get("sms_consent") in (None, "asked"):
+                c.meta["sms_consent"] = "no"
+            return guard.VOICE_NO_TEXT_TEXT, False, None
+        return None
 
     def _voice_claude(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
                       actions: list, notes: list[str], text: str, day: str, done: Any, on_sentence: Any,
@@ -471,6 +538,14 @@ class Engine:
                 self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
                 c.set_outcome("message")
         dialing = any(a["type"] == "dial" for a in actions)
+        if not dialing and self._should_ask_consent(ts, c):
+            # SA §8 item 3b: no confirmation or reminder text without a yes; the question follows the confirmation,
+            # and the call stays open for the answer (even if Claude already called end_conversation).
+            notes.append("sms_consent:asked")
+            c.meta["sms_consent"] = "asked"
+            c.meta["end_after_consent"] = c.ended  # Claude had closed the call: close it after the answer
+            c.ended = False
+            speaker.say(guard.SMS_CONSENT_Q_VOICE)
         return finish(end=c.ended or dialing)
 
     def _out_of_area_lead(self, c: Convo, actions: list, notes: list[str], text: str, cfg: Any) -> None:

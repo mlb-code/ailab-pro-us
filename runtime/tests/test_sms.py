@@ -35,13 +35,18 @@ def events(sim, type_):
     return [e for e in sim.store.select("events") if e["type"] == type_]
 
 
-def book_by_text(sim, clock, demo_raw, lead_time=26):
+def book_by_text(sim, clock, demo_raw, lead_time=26, consent="Yes"):
+    """Book by text; the confirmation reply asks about a reminder text (SA §8 item 3b) and `consent` answers it."""
     demo_raw["config"]["booking"]["lead_time_hours"] = lead_time
     sim.store.upsert_tenant(demo_raw)
     for line in BOOKING_STEPS:
         clock.advance(minutes=1)
         reply = text(sim, line)
-    assert "all set" in reply
+    assert "all set" in reply and guard.SMS_CONSENT_Q_SMS in reply
+    if consent:
+        clock.advance(minutes=1)
+        answer = text(sim, consent)
+        assert answer in (guard.CONSENT_YES_SMS, guard.CONSENT_NO_SMS)
     return sim.tenant("demo-hvac")
 
 
@@ -290,7 +295,9 @@ def test_tick_uses_runtime_clock_for_quiet_hours(tmp_path):
     call.start()
     call.hangup(3)
     assert sim.tick().json()["sms_jobs"] == 0 and sim.twilio_client.outbox == []
-    clock.advance(minutes=9 * 60 + 5)  # 08:05 next morning
+    clock.advance(minutes=9 * 60 + 5)  # 08:05 next morning: a queued text-back waits for 09:00
+    assert sim.tick().json()["sms_jobs"] == 0 and sim.twilio_client.outbox == []
+    clock.advance(minutes=60)          # 09:05
     assert sim.tick().json()["sms_jobs"] == 1 and len(sim.twilio_client.outbox) == 1
 
 
@@ -304,16 +311,17 @@ def test_jobs_loop_runs_in_lifespan(tmp_path):
         assert c.get("/health").status_code == 200
 
 
-def test_call_booking_confirmation_goes_out_in_quiet_hours_but_reminder_waits(tmp_path):
-    """Owner decision: the confirmation answers the caller's own call (not marketing) -> sent at 22:30;
-    reminders and other proactive texts respect quiet hours."""
+def test_call_booking_texts_need_consent_and_the_window(tmp_path):
+    """Legal v1.1 replaces the 2026-10-11 decision: the booking confirmation after a call needs the caller's yes and
+    follows the 09-20 window (Sunday 12-20); full coverage in tests/test_legal_v11.py."""
     night = datetime(2026, 10, 11, 22, 30, tzinfo=TZ)
     sim, _ = build(tmp_path, now=night, VOICE_MODE="gather")
     call = sim.call()
     call.start()
     call.say("My AC is blowing warm air, zip 77002")
-    assert "all set" in call.say("The morning one, my name is Ann Lee, 900 Main St Houston 77002").text
+    turn = call.say("The morning one, my name is Ann Lee, 900 Main St Houston 77002")
+    assert "all set" in turn.text and guard.SMS_CONSENT_Q_VOICE in turn.text
     call.hangup()
-    assert [m["body"][:30] for m in sim.twilio_client.outbox] == ["Cool Breeze HVAC: you're booke"]
+    assert sim.twilio_client.outbox == []
     t = sim.tenant("demo-hvac")
     assert sim.rt.outbound.send(t, harness.CALLER, "x", "reminder", night) == {"sent": False, "reason": "quiet_hours"}

@@ -82,3 +82,4 @@ Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan,
    - Business days for every SLA (`brand.quote_sla_text`) are Sunday–Thursday, Israel time (`brand.business_days_text`).
    - Client-facing copy reads all of this from `config/pricebook.json` → `refund_rules` (`deposit.text`, `rcp_guarantee_days`, `rcp_guarantee.text` / `.legal` / `.label`); never type the numbers by hand.
 8. The `FOUNDING` discount is labelled "Founding-client price" in client copy (`rules.discounts.FOUNDING.label`).
+9. Liability cap (decision 2026-10-12, legal v1.1; `rules.liability_cap_months`, `rules.liability_cap_floor_usd`): our total liability is the greater of the fees paid in the 6 months before the event or $500. Refunds owed under the refund policy (rule 7, including the 30-day satisfaction guarantee) are outside the cap and stay payable. The legal pages stamp both numbers from config (Terms §15, Service Agreement §15).

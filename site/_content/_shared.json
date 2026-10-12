@@ -84,7 +84,7 @@
     },
     "ai_disclosure": {
       "q": "Will callers know it's AI?",
-      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be transcribed. We keep transcripts, not audio."
+      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Before it texts a booking confirmation or reminder, it asks the caller and logs the answer. If a caller objects to recording, it stops and keeps no transcript. We keep transcripts, not audio."
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",

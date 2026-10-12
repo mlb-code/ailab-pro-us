@@ -1,0 +1,15 @@
+description: Legal v1.1 (47 C.F.R. §64.1200(a)(10)) - a sentence that asks not to be texted is an opt-out, like STOP - one confirmation, then nothing (no Claude reply, no text-back after a missed call); REVOKE is a keyword too. Logged in the consent log.
+kind: flow
+channel: sms
+steps:
+  - sms: "Please stop texting me"
+    expect: {reply_contains: ["unsubscribed", "Reply START"]}
+  - sms: "REVOKE"
+    expect: {reply_empty: true}
+  - sms: "My AC is broken"
+    expect: {reply_empty: true}
+  - call: {}
+  - hangup: {duration_s: 5}
+  - jobs: true
+    advance_minutes: 5
+expect: {opted_out: true, sms_sent: 0, claude_calls_max: 0, consent: {opt_out: "revoked"}}

@@ -85,7 +85,10 @@ def test_custom_greeting_gets_disclosure(tmp_path, demo_raw):
     sim, _ = build(tmp_path, "gather")
     sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(demo_raw["twilio_number"], harness.CALLER)
-    assert parse_twiml(r.text).text == "Hello from Cool Breeze. This call may be transcribed."
+    assert parse_twiml(r.text).text == ("Hello from Cool Breeze. This call may be recorded and transcribed by us and our "
+                                        "service providers, and we may text you about it.")
+    # gather mode: the greeting is a <Say> BEFORE <Gather> (no barge-in over the notice)
+    assert r.text.index("<Say") < r.text.index("<Gather")
 
 
 def test_incoming_retry_makes_one_call_row(tmp_path):

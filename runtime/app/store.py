@@ -14,6 +14,10 @@ handling code must use `store.for_tenant(tenant_id)` (a `TenantStore`), which ad
 filter to every select/update/delete and stamps it on every insert. The raw table methods are
 for tenant lookup by number, admin/setup code and tests.
 
+Consent log (`sms_consent`, SA §8 item 7, kept 5 years by `private.run_retention`): one row per texting-consent
+answer, opt-out, opt-in and missed-call text, written through `TenantStore.record_consent()` / `opt_out()` /
+`opt_in()`. It keeps the number (E.164, as `opt_outs` does), never a transcript: only a short evidence snippet.
+
 Runtime state (rate limits, spend, usage counters) lives in table `runtime_state`
 (key, tenant_id, value jsonb, updated_at) through `StateStore`; A1 must add that table.
 """
@@ -36,7 +40,11 @@ from .tenants import TenantRecord, load_record
 for _name in ("httpx", "httpx2", "httpcore"):
     logging.getLogger(_name).setLevel(logging.WARNING)
 
-TABLES = ("tenants", "calls", "sms_messages", "bookings", "opt_outs", "events", "tenant_credentials", "runtime_state")
+TABLES = ("tenants", "calls", "sms_messages", "bookings", "opt_outs", "events", "tenant_credentials", "runtime_state",
+          "sms_consent")
+CONSENT_TYPES = ("text_back", "booking_texts", "opt_out", "opt_in")
+CONSENT_DECISIONS = ("yes", "no", "unclear", "no_answer", "notice", "revoked")
+CONSENT_CHANNELS = ("voice", "sms", "carrier", "manual")
 # Column that ties each table to a tenant (used by TenantStore).
 TENANT_COLUMN = {"tenants": "id", "events": "entity_id"}
 
@@ -312,12 +320,31 @@ class TenantStore:
     def is_opted_out(self, contact_e164: str) -> bool:
         return bool(self.select("opt_outs", contact_e164=contact_e164))
 
-    def opt_out(self, contact_e164: str) -> None:
-        if not self.is_opted_out(contact_e164):
-            self.insert("opt_outs", {"contact_e164": contact_e164, "opted_out_at": utcnow_iso()})
+    def opt_out(self, contact_e164: str, channel: str = "sms", evidence: str = "", call_sid: str | None = None) -> bool:
+        """Opt the number out of every automated message; logs the revocation in the consent log. True if new."""
+        if self.is_opted_out(contact_e164):
+            return False
+        self.insert("opt_outs", {"contact_e164": contact_e164, "opted_out_at": utcnow_iso()})
+        self.record_consent(contact_e164, channel, "opt_out", "revoked", evidence, call_sid)
+        return True
 
-    def opt_in(self, contact_e164: str) -> None:
-        self.delete("opt_outs", contact_e164=contact_e164)
+    def opt_in(self, contact_e164: str, channel: str = "sms", evidence: str = "") -> None:
+        if self.delete("opt_outs", contact_e164=contact_e164):
+            self.record_consent(contact_e164, channel, "opt_in", "yes", evidence)
+
+    def record_consent(self, contact_e164: str, channel: str, consent_type: str, decision: str, evidence: str = "",
+                       call_sid: str | None = None, prompt_version: str | None = None) -> dict[str, Any]:
+        """One consent-log row (5-year retention). `evidence` = the caller's words (a short snippet) or the notice
+        that applied; never a whole transcript."""
+        if consent_type not in CONSENT_TYPES or decision not in CONSENT_DECISIONS or channel not in CONSENT_CHANNELS:
+            raise StoreError(f"bad consent record {consent_type}/{decision}/{channel}")
+        return self.insert("sms_consent", {"contact_e164": contact_e164, "channel": channel, "consent_type": consent_type,
+                                           "decision": decision, "evidence": (evidence or "")[:300] or None,
+                                           "call_sid": call_sid, "prompt_version": prompt_version,
+                                           "created_at": utcnow_iso()})
+
+    def consent(self, contact_e164: str, consent_type: str) -> list[dict[str, Any]]:
+        return self.select("sms_consent", contact_e164=contact_e164, consent_type=consent_type)
 
     def log_event(self, type_: str, payload: dict[str, Any] | None = None, actor: str = "runtime") -> dict[str, Any]:
         return self.insert("events", {"actor": actor, "entity": "tenant", "type": type_, "payload": payload or {}})

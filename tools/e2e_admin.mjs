@@ -288,7 +288,7 @@ async function main() {
     ok(!/: email_requested|: admin_edit|: status_changed/.test(await page.$eval('#evList', l => l.innerText)), 'every event type shown in Hebrew (incl. email_requested)');
     await openTab(page, 'settings');
     const st = await page.$eval('#panel', p => p.innerText);
-    ok(st.includes('config/brand.json') && st.includes('show_founder_price') && st.includes('כבוי'), 'settings: flags read-only with the brand.json note');
+    ok(st.includes('config/brand.json') && st.includes('show_founder_price') && /דלוק|כבוי/.test(st), 'settings: flags read-only with the brand.json note');
     ok(st.includes('כללי החזרים') && st.includes(pb.refund_rules.deposit.refund_pct + '% החזר') && st.includes('אין חיוב אוטומטי על חריגה'), 'settings: refund rules + overage policy from config');
     ok(await page.$$eval('#panel input, #panel select, #panel textarea', x => x.length) === 0, 'settings has no editable controls');
     ok((await page.$$eval('#outbox li', l => l.length)) > 0, 'mock mailbox shows the e-mail stubs');

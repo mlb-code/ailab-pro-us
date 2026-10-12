@@ -28,6 +28,8 @@
     "monthly_discounts_allowed": false,
     "monthly_billing": "monthly in advance from the go-live date",
     "cancel_notice_days": 30,
+    "liability_cap_months": 6,
+    "liability_cap_floor_usd": 500,
     "included_usage": {
       "voice_minutes": 400,
       "sms_segments": 1000

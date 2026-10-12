@@ -200,3 +200,41 @@ def test_zip(cfg, demo_raw):
     assert guard.zip_in_area("77005", cfg) and not guard.zip_in_area("90210", cfg) and not guard.zip_in_area(None, cfg)
     anywhere = patched(demo_raw, business={"service_area_zips": []})
     assert guard.zip_in_area(None, anywhere)
+
+
+# --- legal v1.1: consent rules (SA §8) --------------------------------------------------------------
+
+def test_consent_texts():
+    assert guard.consent_no_voice("Mon 9 AM") == "No problem, I won't text you. Your visit is Mon 9 AM. Anything else I can help with?"
+    assert guard.consent_no_voice(None, bye=True) == "No problem, I won't text you. Thanks for calling. Goodbye."
+    assert guard.consent_yes_voice() == guard.CONSENT_YES_VOICE and guard.consent_yes_voice(True).endswith("Goodbye.")
+    assert guard.stop_confirmation("Acme") == "Acme: you're unsubscribed and won't get more texts from us. Reply START to resubscribe."
+    assert "call +17135550100" in guard.stop_confirmation("Acme", "+17135550100")
+
+
+@pytest.mark.parametrize("text,kw", [("REVOKE", "stop"), ("opt out", "stop"), ("Stop please", "stop"),
+                                     ("please stop texting me", "stop"), ("stop the leak in the kitchen now", None),
+                                     ("I need to cancel my appointment", None), ("", None), (None, None)])
+def test_sms_keyword_sentences(text, kw):
+    assert guard.sms_keyword(text) == kw
+
+
+@pytest.mark.parametrize("text,ans", [("Yes please", "yes"), ("sure", "yes"), ("you can text me", "yes"),
+                                      ("No thanks", "no"), ("please don't", "no"), ("yes but don't text me", "no"),
+                                      ("what time again?", None), ("", None), (None, None)])
+def test_consent_answer(text, ans):
+    assert guard.consent_answer(text) == ans
+
+
+def test_objection_and_windows(cfg):
+    assert guard.objects_to_recording("please don't record this") and not guard.objects_to_recording(None)
+    assert guard.window_zones("America/Chicago", "") == ["America/Chicago"]
+    assert guard.window_zones("America/Chicago", "+17135550100") == ["America/Chicago"]          # same zone once
+    assert guard.window_zones("America/Chicago", "+12135550100") == ["America/Chicago", "America/Los_Angeles"]
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    sun_8 = datetime(2026, 10, 11, 8, 0, tzinfo=ZoneInfo("America/Chicago"))
+    assert guard.next_window(["America/Chicago"], sun_8, "scheduled").hour == 12
+    assert guard.next_window(["America/Chicago"], sun_8.replace(hour=13), "scheduled") == sun_8.replace(hour=13)
+    assert guard.next_window(["America/Chicago"], sun_8.replace(hour=7, minute=45), "textback") == sun_8
+    assert not guard.quiet_hours(cfg, sun_8.replace(hour=13))

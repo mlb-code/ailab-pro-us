@@ -1028,7 +1028,8 @@ await b.close();
 
 # ---------------------------------------------------------------- legal pages (hand-written, values stamped from config)
 LEGAL_PAGES = ['legal/terms/index.html', 'legal/service-agreement/index.html', 'legal/privacy/index.html']
-CFG_RX = re.compile(r'(<span data-cfg="(pricebook|brand):([A-Za-z0-9_.]+)">)(.*?)(</span>)', re.S)
+# any <span> carrying data-cfg, also with other attributes first (e.g. <span class="mono" data-cfg="brand:agreement_version">)
+CFG_RX = re.compile(r'(<span\b[^>]*?\bdata-cfg="(pricebook|brand):([A-Za-z0-9_.]+)"[^>]*>)(.*?)(</span>)', re.S)
 BANNER_RX = re.compile(r'(<div class="draft-banner" role="note")(?: hidden)?>')
 
 

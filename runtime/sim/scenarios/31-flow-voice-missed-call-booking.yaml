@@ -1,4 +1,4 @@
-description: Missed call forwarded to the AI line -> voice answer -> booking; confirmation SMS; call row booked; turn latency p95 < 150 ms (server, Claude mocked).
+description: Missed call forwarded to the AI line -> voice answer -> booking -> the assistant asks before texting (SA §8) -> "yes" -> confirmation SMS; call row booked; turn latency p95 < 150 ms (server, Claude mocked).
 kind: flow
 channel: voice
 steps:
@@ -9,10 +9,14 @@ steps:
     expect: {reply_matches: ["12 PM to 4 PM"]}
   - say: "The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019"
     advance_seconds: 25
-    expect: {reply_matches: ["all set|booked"]}
+    expect: {reply_matches: ["all set|booked"], reply_contains: ["Can I text your confirmation and a reminder"]}
+  - say: "Yes please"
+    advance_seconds: 5
+    if_open: true
+    expect: {reply_contains: ["text your confirmation to this number"]}
   - say: "Thanks"
     if_open: true
-    advance_seconds: 10
+    advance_seconds: 5
     expect: {end: true}
   - hangup: {}
     advance_seconds: 5
@@ -23,5 +27,6 @@ expect:
   sms_sent_contains: ["you're booked"]
   alerts: [booking]
   events: {voice.latency: 1}
+  consent: {booking_texts: "yes"}
   latency_p95_ms_max: 150
   usage_voice_min: 1

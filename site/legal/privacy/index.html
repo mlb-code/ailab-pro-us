@@ -11,13 +11,13 @@
 <link rel="stylesheet" href="../legal.css">
 </head>
 <body>
-<div class="draft-banner" role="note" hidden>DRAFT — not yet in effect. Version <span data-cfg="brand:agreement_version">1.0</span>.</div>
+<div class="draft-banner" role="note" hidden>DRAFT — not yet in effect. Version <span data-cfg="brand:agreement_version">1.1</span>.</div>
 <main>
 <nav class="legal-nav" aria-label="Legal documents"><a href="../terms/">Terms of Service</a><a href="../privacy/">Privacy Policy</a><a href="../service-agreement/">Service Agreement</a></nav>
 <h1>Privacy Policy</h1>
-<p class="meta">Version <span class="mono" data-cfg="brand:agreement_version">1.0</span> · Effective date: October 12, 2026 · Last updated: October 12, 2026</p>
+<p class="meta">Version <span class="mono" data-cfg="brand:agreement_version">1.1</span> · Effective date: October 12, 2026 · Last updated: October 12, 2026</p>
 
-<div class="box"><strong>Plain-English summary.</strong> We collect what we need to quote, build and run your service. For your callers, we keep call transcripts and text messages for 90 days, then delete them. We do not record call audio. We do not sell personal information or share it for targeted advertising. We do not share mobile numbers or SMS opt-in data for marketing.</div>
+<div class="box"><strong>Plain-English summary.</strong> We collect what we need to quote, build and run your service. For your callers, we keep call transcripts and text messages for 90 days, then delete them, and we keep a log of texting consent and opt-outs for 5 years. We do not store call audio. We do not sell personal information or share it for targeted advertising. We do not share mobile numbers or SMS opt-in data for marketing.</div>
 
 <h2>1. Who we are</h2>
 <p><span data-cfg="brand:legal_entity.name">Lavi Entrepreneurship &amp; Management (Meir Lavi)</span>, doing business as <span data-cfg="brand:name">AI Lab Pro</span> ("we", "us"), <span data-cfg="brand:physical_address">29 Yigal Alon St., Herzliya, Israel</span>. Privacy contact: <a data-brand-href="support_email" href="#"><span data-cfg="brand:support_email">support@ailabpro.co</span></a>.</p>
@@ -44,9 +44,11 @@
 <li>Phone number, and what the caller says or types: name, service address or ZIP, job type, urgency, preferred time.</li>
 <li>Call transcripts (speech converted to text) and text message content. <strong>We do not store call audio.</strong> One exception: if our system is down, the phone carrier plays a voicemail greeting and stores the caller's voicemail, with notice in the greeting.</li>
 <li>Booking details created in the business's calendar.</li>
-<li>Opt-out status (STOP / START).</li>
+<li>Opt-out status (STOP / START), including opt-outs made in a text sentence or out loud on a call.</li>
+<li>Consent records: which version of the call notice played, the caller's answer when the assistant asked whether it may text a booking confirmation and a reminder (yes or no, with the words used), the time, the number and the call record, and each opt-out or opt-in with how it was made. If a caller objects to recording or transcription, we keep only a note of the objection and the call details, not a transcript.</li>
 <li>Call and message metadata: time, duration, delivery status, line type (mobile or landline).</li>
 </ul>
+<p><strong>AI and recording notice.</strong> Every call answered by the AI begins with a spoken notice that the caller is speaking with an AI assistant, that the call may be recorded and transcribed by us and our service providers, and that the business may text the caller about the call. The notice plays before the assistant processes anything the caller says. Call audio is streamed to our service providers to convert speech to text and text to speech; we do not store it. If a caller objects to recording or transcription, the assistant stops and we do not keep a transcript of the conversation. We use callers' information only to provide the service to the business and do not use it to train AI models; our service providers process it under their own terms, which limit how they may use it (section 6).</p>
 <h3>3.3 From website visitors</h3>
 <ul>
 <li>Usage data from analytics tools (Google Analytics and Microsoft Clarity): pages viewed, device, approximate location, clicks and scrolls. These tools use cookies or similar technology. You can block cookies in your browser, use Google's opt-out add-on for Google Analytics, or send a Global Privacy Control signal.</li>
@@ -96,14 +98,14 @@
 <tr><td>Call transcripts and text message content</td><td>90 days, then deleted automatically</td></tr>
 <tr><td>Voicemail from the outage fallback (if any)</td><td>90 days</td></tr>
 <tr><td>Technical logs</td><td>30 days</td></tr>
-<tr><td>Opt-out (STOP) records</td><td>As long as needed to honor the opt-out</td></tr>
+<tr><td>Texting consent and opt-out records (the consent log)</td><td>5 years, then deleted automatically. An opt-out stays in effect for as long as the business uses our service.</td></tr>
 <tr><td>Booking records in our system (date, job details, status)</td><td>2 years, for accounting and dispute records. The copy in your own calendar stays under your control.</td></tr>
 <tr><td>Account, questionnaire, Quotes</td><td>While you are a client. Deleted 30 days after your service ends, or sooner if you ask</td></tr>
 <tr><td>Invoices and contract acceptance records</td><td>As long as tax and accounting law requires (generally 7 years)</td></tr>
 <tr><td>Backups</td><td>Weekly backups, kept up to 35 days</td></tr>
 </tbody>
 </table>
-<p>When your service ends, you can ask for an export of your data within 30 days. After that we delete it, except booking records (kept 2 years, as above) and records we must keep by law.</p>
+<p>When your service ends, you can ask for an export of your data within 30 days. After that we delete it, except booking records (kept 2 years, as above), the consent log (kept 5 years, as above) and records we must keep by law.</p>
 
 <h2>8. Security</h2>
 <p>We use encryption in transit, encrypted storage of access tokens, access controls per client, signed webhooks, and the minimum access we need. No system is perfectly secure. If a breach affects your information, we will notify you as the law requires.</p>
@@ -122,12 +124,11 @@
 <li>limit the use of sensitive personal information (we do not collect it on purpose; see section 11);</li>
 <li>not be discriminated against for using these rights.</li>
 </ul>
-<p><strong>Notice at collection.</strong> In the last 12 months we have collected these categories of personal information: identifiers (name, email, phone number, IP address); commercial information (Quotes, invoices); internet activity (website usage); text transcribed from calls; and approximate location (city or ZIP). The sources, purposes, recipients and retention periods are described in sections 3, 4, 6 and 7. We have not sold personal information or shared it for advertising.</p>
+<p><strong>Notice at collection.</strong> In the last 12 months we have collected these categories of personal information: identifiers (name, email, phone number, IP address); commercial information (Quotes, invoices); internet activity (website usage); text transcribed from calls; texting consent and opt-out records; and approximate location (city or ZIP). The sources, purposes, recipients and retention periods are described in sections 3, 4, 6 and 7. We have not sold personal information or shared it for advertising.</p>
 <p><strong>How to make a request.</strong> Email <a data-brand-href="support_email" href="#"><span data-cfg="brand:support_email">support@ailabpro.co</span></a> with the subject "Privacy request". We will confirm your identity before acting, and answer within 45 days (we may extend once by 45 more days when the law allows, and will tell you why). An authorized agent may make a request for you with your written permission. If we deny your request, you may appeal by replying to our answer; we will respond to the appeal within the time the law requires. If you are a caller of one of our client businesses, we will pass your request to that business and help it respond. We honor Global Privacy Control signals as an opt-out request.</p>
 
 <h2>11. Health and other sensitive information</h2>
-<p>Our services are not designed to collect health, financial-account or government-ID information. The AI asks only for name, phone number and a general reason for the call. We are not a HIPAA covered entity or business associate and do not sign business associate agreements. Clients must not configure our services to collect protected health information. Dental and other health-care offices are offered early access only, on these terms.</p>
-
+<p>Our services are not designed to collect health, financial-account or government-ID information. We do not act as a HIPAA business associate unless we have signed a written Business Associate Agreement with the client. Until then, the services are not available to HIPAA covered entities (such as dental and medical practices), and clients must not use them for protected health information. For dental practices we currently run an early-access email list only. It collects the practice's business contact details and no patient information.</p>
 <h2>12. Children</h2>
 <p>Our services are for businesses and their adult staff. They are not directed to children, and we do not knowingly collect personal information from children under 13. If you believe we have, contact us and we will delete it.</p>
 

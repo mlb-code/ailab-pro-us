@@ -14,7 +14,10 @@ Rules covered (SPEC 6.5 numbering):
  8  spam: blocklist, landline, robocall silence                  -> is_blocked, silence_policy
  9  English only unless ADD-ES                                    -> language_fixed_reply
  10 never claims to be human                                     -> is_robot_question, check_reply
-Plus emergency detection and SMS compliance keywords (STOP/START/HELP).
+Plus emergency detection, SMS compliance keywords (STOP/START/HELP) and the consent rules of SA §8
+(docs/reports/legal-residual/02-tcpa-recording.md): the call disclosure, revocation "by any reasonable
+means" (47 C.F.R. §64.1200(a)(10)), the texting-consent question at booking, objections to recording,
+and the texting window checked in the business's AND the caller's time zone.
 """
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from .area_codes import timezone_for
 from .tenants import DAYS, TenantConfig
 
 # ---- fixed texts (client-facing, US English) -----------------------------------------
@@ -44,7 +48,36 @@ SMS_MAX_CHARS = 600
 SMS_REPLY_MAX = 320
 VOICE_MAX_SENTENCES = 2
 
-STOP_WORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"}
+# Call disclosure (SA §8 item 2): played first on every AI-answered call, never removable. The version id goes
+# into the consent log with every text that relies on it.
+DISCLOSURE = "This call may be recorded and transcribed by us and our service providers, and we may text you about it."
+DISCLOSURE_VERSION = "2026-10-12"
+# Texting consent at booking (SA §8 item 3b). Voice asks about the confirmation + one reminder; by text the reply
+# itself is the confirmation, so only the reminder is asked about.
+CONSENT_PROMPT_VERSION = "2026-10-12"
+SMS_CONSENT_Q_VOICE = "Can I text your confirmation and a reminder to the number you're calling from?"
+SMS_CONSENT_Q_SMS = "Can I text you a reminder before the visit? Reply YES or NO."
+CONSENT_YES_VOICE = "Great, I'll text your confirmation to this number. Anything else I can help with?"
+
+
+CONSENT_BYE = "Thanks for calling. Goodbye."
+
+
+def consent_yes_voice(bye: bool = False) -> str:
+    return "Great, I'll text your confirmation to this number. " + (CONSENT_BYE if bye else "Anything else I can help with?")
+
+
+def consent_no_voice(label: str | None, bye: bool = False) -> str:
+    """"No" to texts: the booking stands, so the details are said out loud instead."""
+    head = f"No problem, I won't text you. Your visit is {label}." if label else "No problem, I won't text you."
+    return f"{head} {CONSENT_BYE if bye else 'Anything else I can help with?'}"
+CONSENT_YES_SMS = "Great, we'll text you a reminder before the visit. Reply STOP to opt out."
+CONSENT_NO_SMS = "No problem, no reminder texts. Reply here if you need anything."
+VOICE_NO_TEXT_TEXT = "Got it, we won't text you. What else can I help you with?"
+RECORDING_OBJECTION_TEXT = ("No problem. I'll stop here and won't keep a transcript of this call. "
+                            "The team will call you back at the number you're calling from. Goodbye.")
+
+STOP_WORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "REVOKE", "OPTOUT"}
 START_WORDS = {"START", "UNSTOP", "YES"}
 HELP_WORDS = {"HELP", "INFO"}
 
@@ -53,8 +86,11 @@ def robot_answer(business: str) -> str:
     return f"I'm the virtual assistant for {business}. I can get you booked or take a message for the team."
 
 
-def stop_confirmation(business: str) -> str:
-    return f"{business}: you're unsubscribed and won't get more texts from this number. Reply START to resubscribe."
+def stop_confirmation(business: str, phone: str = "") -> str:
+    """The one confirmation allowed after an opt-out (47 C.F.R. §64.1200(a)(12)): no marketing. "CANCEL" may mean
+    "cancel my appointment", so the business phone is named for appointment changes."""
+    call = f" To change or cancel an appointment, call {phone}." if phone else ""
+    return f"{business}: you're unsubscribed and won't get more texts from us.{call} Reply START to resubscribe."
 
 
 def start_confirmation(business: str) -> str:
@@ -73,8 +109,27 @@ def is_blocked(number: str, cfg: TenantConfig) -> bool:
 
 # ---- SMS compliance keywords (handled before anything else) -------------------------
 
+# Revocation "by any reasonable means": a sentence that clearly asks not to be texted, anywhere in a message or
+# on a call. Ambiguous cases count as an opt-out (stricter is safer).
+NO_TEXTS = re.compile(
+    r"\b(stop|quit|don'?t|do not|never|no more)\s+(texting|txting|messaging|smsing)\b|"
+    r"\b(stop|quit|don'?t|do not|never)\s+(text|txt|message|sms)\s+(me|us|this number|my (number|phone|cell))\b|"
+    r"\b(stop|quit|don'?t|do not|never)\s+send(ing)?\s+(me\s+)?(any\s+)?(more\s+)?(texts|text messages|messages|sms)\b|"
+    r"\b(stop|quit)\s+(contacting|bothering)\s+me\b|"
+    r"\bdon'?t\s+(want|need)\s+(any\s+)?(more\s+)?(texts|text messages|messages)\b|"
+    r"\b(remove|take)\s+me\s+(off|from)\b|\bunsubscribe\b|\bopt(\s|-)?out\b|\brevoke\b|"
+    r"\bleave me alone\b|\bwrong number\b|\bno more (texts|messages)\b", re.I)
+_STOP_LEAD = re.compile(r"^\W*(stop|stopall|unsubscribe|cancel|end|quit|revoke)\b", re.I)
+
+
+def wants_no_texts(text: str) -> bool:
+    """A sentence (SMS or speech) that asks us not to text this number."""
+    return bool(NO_TEXTS.search(text or ""))
+
+
 def sms_keyword(text: str) -> str | None:
-    """'stop' | 'start' | 'help' | None. Only a message that is just the keyword counts."""
+    """'stop' | 'start' | 'help' | None. START/HELP only as the whole message; an opt-out also counts when it is a
+    short message that starts with a stop word ("Stop please") or a sentence that asks not to be texted."""
     word = re.sub(r"[^A-Za-z]", "", (text or "").strip()).upper()
     if word in STOP_WORDS:
         return "stop"
@@ -82,6 +137,40 @@ def sms_keyword(text: str) -> str | None:
         return "start"
     if word in HELP_WORDS:
         return "help"
+    if wants_no_texts(text) or (_STOP_LEAD.match(text or "") and len((text or "").split()) <= 4):
+        return "stop"
+    return None
+
+
+# ---- recording objection (SA §8 "AI and recording notice") ---------------------------------
+
+RECORDING_OBJECTION = re.compile(
+    r"\b(don'?t|do not|stop|quit|no)\s+(record|recording|transcrib|transcript)\w*|"
+    r"\b(i\s+)?(don'?t|do not|won'?t)\s+(consent|agree)\b|\bi\s+(object|refuse)\b|"
+    r"\b(don'?t|do not)\s+want\s+(this|it|to be|my call|the call)?\s*(being\s+|to be\s+)?(recorded|transcribed)\b|"
+    r"\bnot\s+(ok(ay)?|fine|comfortable)\s+with\s+(being\s+|this being\s+|the call being\s+)?(recorded|transcribed|recording)\b",
+    re.I)
+
+
+def objects_to_recording(text: str) -> bool:
+    return bool(RECORDING_OBJECTION.search(text or ""))
+
+
+# ---- texting consent answer -----------------------------------------------------------------
+
+_YES = re.compile(r"^\W*(yes|yeah|yep|yup|sure|ok(ay)?|please|please do|go ahead|of course|absolutely|definitely|"
+                  r"that'?s fine|that works|sounds good|fine|correct|si|sí)\b|\b(you can|text me|send it|that'?s fine)\b", re.I)
+_NO = re.compile(r"^\W*(no|nope|nah|not really|i'?d rather not|rather not|don'?t|do not)\b|"
+                 r"\bplease\s+(don'?t|do not)\b|\b(don'?t|do not)\s+(text|bother)\b|\bno (texts|text|need)\b", re.I)
+
+
+def consent_answer(text: str) -> str | None:
+    """'yes' | 'no' | None for the answer to the texting question. "No" wins over "yes" ("yes, but don't text")."""
+    t = text or ""
+    if wants_no_texts(t) or _NO.search(t):
+        return "no"
+    if _YES.search(t):
+        return "yes"
     return None
 
 
@@ -211,10 +300,54 @@ def on_call(cfg: TenantConfig, now: datetime) -> bool:
     return cfg.handoff.hours == "always" or is_open(cfg, now)
 
 
-def quiet_hours(cfg: TenantConfig, now: datetime) -> bool:
-    """21:00-08:00 tenant time: no outbound SMS that is not a direct reply."""
-    h = now.astimezone(ZoneInfo(cfg.business.timezone)).hour
-    return h >= 21 or h < 8
+# Texting windows (SA §8 item 5). "textback": the one missed-call text, sent right after the caller's own call, not
+# 21:00-08:00. "scheduled": everything else that is not a direct reply (booking confirmation, reminder):
+# 09:00-20:00 Mon-Sat, 12:00-20:00 Sun. Both are checked in the business's and the caller's (area code) zone.
+WINDOWS = {"textback": {d: (8, 21) for d in range(7)},
+           "scheduled": {**{d: (9, 20) for d in range(6)}, 6: (12, 20)}}
+
+
+def caller_timezone(number: str) -> str | None:
+    return timezone_for(number)
+
+
+def window_zones(business_tz: str, contact: str = "") -> list[str]:
+    zones = [business_tz]
+    caller = caller_timezone(contact) if contact else None
+    if caller and caller != business_tz:
+        zones.append(caller)
+    return zones
+
+
+def in_window(zones: list[str], now: datetime, kind: str = "textback") -> bool:
+    for tz in zones:
+        local = now.astimezone(ZoneInfo(tz))
+        start, end = WINDOWS[kind][local.weekday()]
+        if not start <= local.hour < end:
+            return False
+    return True
+
+
+def next_window(zones: list[str], t: datetime, kind: str = "textback") -> datetime:
+    """`t` if inside the window in every zone, else the first half hour (UTC :00/:30) when it is. Windows are at
+    least 8 hours a day in every zone, so a time is always found within two days."""
+    if in_window(zones, t, kind):
+        return t
+    cand = t.replace(minute=0 if t.minute < 30 else 30, second=0, microsecond=0)
+    for _ in range(4 * 48):
+        cand += timedelta(minutes=30)
+        if in_window(zones, cand, kind):
+            return cand
+    return cand  # pragma: no cover - unreachable for real zones (see the docstring)
+
+
+def send_window_ok(cfg: TenantConfig, now: datetime, contact: str = "", kind: str = "textback") -> bool:
+    return in_window(window_zones(cfg.business.timezone, contact), now, kind)
+
+
+def quiet_hours(cfg: TenantConfig, now: datetime, contact: str = "", kind: str = "textback") -> bool:
+    """Outside the texting window (default: the 21:00-08:00 text-back block, business time zone only)."""
+    return not send_window_ok(cfg, now, contact, kind)
 
 
 # ---- 5: per-number rate limits --------------------------------------------------------------

@@ -1,5 +1,5 @@
 {
-  "$comment": "Dental landing (/dental/): early access only, noindex, not linked from public nav, until attorney review. CTA = lead capture. Never ask for health details.",
+  "$comment": "Dental landing (/dental/): waitlist only (a dentist's business email), noindex, not linked from public nav. Not available to HIPAA covered entities until every vendor in the call path is under a BAA (docs/reports/legal-residual/03-hipaa-dental.md). Never ask for health details, never onboard a practice.",
   "key": "dental",
   "slug": "dental",
   "offer": "RCP",
@@ -15,8 +15,8 @@
   "hero": {
     "eyebrow": "Early access · dental practices",
     "title": "The front desk is busy. New patients still get *booked*.",
-    "lead": "Your AI receptionist answers the calls your team can't, texts back anyone who hangs up, and books new-patient and urgent visits into your calendar. It collects only a name, a phone number and a general reason for the visit.",
-    "fine": "Early access: we're onboarding a small number of practices first. Join the list and we'll email you."
+    "lead": "Your AI receptionist will answer the calls your team can't, text back anyone who hangs up, and book new-patient and urgent visits into your calendar.",
+    "fine": "Early access: not yet available to practices covered by HIPAA. We'll open once we can sign a Business Associate Agreement (BAA). Join the list and we'll email you."
   },
   "clock": {
     "caption": "One missed call over lunch. Illustration.",
@@ -417,12 +417,12 @@
   "pricing": {
     "eyebrow": "Expected pricing",
     "title": "The same *fixed* price. No surprises later.",
-    "note": "Practice management systems such as Dentrix or Open Dental get a custom quote. We don't sign a HIPAA BAA in this version."
+    "note": "Expected pricing. Practice management systems such as Dentrix or Open Dental get a custom quote. The service will open to dental practices only with a signed HIPAA BAA."
   },
   "early": {
     "eyebrow": "Early access",
     "title": "Join the *early-access* list.",
-    "text": "We're opening dental to a small number of practices first. Leave your email and we'll write when we can take your practice. No calls, no spam.",
+    "text": "We're preparing a HIPAA-ready version with a signed Business Associate Agreement. Leave your work email and we'll write when it's ready. We collect only your email here. No patient information.",
     "button": "Join early access",
     "ok": "Thanks. You're on the list. We'll email you.",
     "fallback": "Your email app will open with a short message to us."
@@ -430,7 +430,7 @@
   "faq": [
     {
       "q": "Does it handle patient health information?",
-      "a": "No. It collects only a name, a phone number, new or existing patient, and a general reason such as \"cleaning\" or \"tooth pain\". It doesn't give medical advice. We don't sign a HIPAA BAA in this version, which is one reason this is early access."
+      "a": "Yes. Patient name, phone number and appointment details from a dental practice are protected health information under HIPAA. That's why the dental version isn't live yet: we'll open it only once we can sign a Business Associate Agreement (BAA) with your practice and have one in place with every provider we use. Until then, please don't forward patient calls to our service."
     },
     {
       "q": "Does it connect to Dentrix or Open Dental?",
@@ -450,7 +450,7 @@
     },
     {
       "q": "When will it be available?",
-      "a": "When we open the next group of practices. Early-access practices hear from us first, by email."
+      "a": "Only once we can sign a HIPAA Business Associate Agreement with your practice and have one with every provider we use. Until then the service is not available to HIPAA covered entities. Practices on the early-access list hear from us first, by email."
     },
     {
       "ref": "cancel"
@@ -470,12 +470,12 @@
   "included_items": [
     "1 AI line (a US number we provision; you keep your number and forward overflow and after-hours calls to it)",
     "Answers missed and forwarded calls, plus a text-back to callers who hang up",
-    "Collects only a name, a phone number, new or existing patient, and a general reason for the visit",
+    "Asks new or existing patient and a general reason for the visit (planned; opens only with a signed HIPAA BAA)",
     "Booking new-patient and urgent visits into Google Calendar or Calendly, in the slots you open",
     "Up to 25 FAQ entries (hours, location, insurance accepted), after-hours mode, and a 911 instruction for severe symptoms",
     "Front-desk alerts by SMS and email for every booking, plus a daily summary email",
     "A2P 10DLC SMS registration handled by us (registration fees included)",
     "{usage_text}",
-    "No medical advice, no health history, no patient records"
+    "Will open only with a signed HIPAA BAA. No medical advice, no health history."
   ]
 }

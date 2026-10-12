@@ -1,0 +1,11 @@
+description: Legal v1.1 - "don't text me" said on a call is a revocation - the assistant confirms out loud, the number is opted out (consent log channel voice), and no missed-call text-back follows when the caller hangs up.
+kind: flow
+channel: voice
+steps:
+  - call: {}
+  - say: "Please don't text me, I just want a call back"
+    expect: {reply_contains: ["we won't text you"]}
+  - hangup: {duration_s: 9}
+  - jobs: true
+    advance_minutes: 5
+expect: {opted_out: true, sms_sent: 0, claude_calls_max: 0, consent: {opt_out: "revoked"}}

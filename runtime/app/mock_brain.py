@@ -184,7 +184,7 @@ class MockBrain:
             return self._tool(n, "take_message", {"summary": summary, "urgency": "normal", "name": None})
         if name == "book_slot":
             if r.get("ok"):
-                return self._reply(f"You're all set for {r['label']}. You'll get a text confirming it.")
+                return self._reply(f"You're all set for {r['label']}.")
             if r.get("reason") == "duplicate":
                 return self._tool(n, "take_message", {"summary": "Customer already booked that day and called again",
                                                       "urgency": "normal", "name": None})

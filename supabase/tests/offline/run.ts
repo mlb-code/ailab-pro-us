@@ -120,6 +120,8 @@ const mutations: [string, string][] = [
        update public.clients set user_id = null, anonymized_at = now() where id = p_client; return '{}'::jsonb; end $$;`],
   ["tenant whitelist bypass", `grant update on public.tenants to authenticated;
      create policy t_upd on public.tenants for update to authenticated using ((select private.owns_tenant(id)));`],
+  ["consent log deleted with the client's tenant", `alter table public.sms_consent add constraint sms_consent_tenant_fk
+     foreign key (tenant_id) references public.tenants(id) on delete cascade;`],
 ];
 if (!Deno.args.includes("--no-mutations")) {
   for (const [label, sql] of mutations) {

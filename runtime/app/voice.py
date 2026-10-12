@@ -16,11 +16,20 @@ the cap hears one short sentence (+ one owner alert a day), later ones are rejec
 50 calls in a minute cost at most 4 answered calls and no extra Claude calls.
 Billable minutes come from Twilio's status callback (CallDuration, rounded up per call) and feed
 the monthly usage meter (80% / 100% alerts).
+
+Call notice (SA §8 item 2, legal v1.1): every call starts with `DISCLOSURE` (AI assistant, recorded and
+transcribed by us and our service providers, we may text you). A tenant's custom greeting that lacks any part
+of it gets the full sentence appended; it cannot be removed. The caller's speech is not processed before the
+greeting ends: gather mode plays the greeting with <Say> BEFORE <Gather> (no barge-in), stream mode sets
+welcomeGreetingInterruptible="none" and holds the first prompt until the greeting's estimated end
+(`voice_stream`). A caller who objects to recording ends the call with no transcript kept
+(`transcript_withheld`), and the transcript keeps only the greeting as proof of the notice.
 """
 from __future__ import annotations
 
 import logging
 import math
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -34,6 +43,7 @@ from fastapi.concurrency import run_in_threadpool
 from twilio.twiml.voice_response import VoiceResponse
 
 from . import _stubs_b56 as hooks
+from . import guard
 from .conversation import Convo
 from .runtime_ctx import Runtime, who
 from .sms_outbound import after_turn
@@ -51,7 +61,11 @@ DIAL_NO_ANSWER_TEXT = ("Sorry, no one could pick up right now. I've passed your 
                        "and someone will call you back soon. Goodbye.")
 FALLBACK_TEXT = "Sorry, we're having trouble right now. Someone from our team will call you back soon. Goodbye."
 REPEAT_TEXT = "Sorry, could you say that again?"
-DISCLOSURE = "This call may be transcribed."
+DISCLOSURE = guard.DISCLOSURE
+# every part of the notice must be in the greeting (a custom greeting that only says "calls may be recorded for
+# quality" would drop the service providers and the texting notice)
+DISCLOSURE_PARTS = (re.compile(r"\brecorded\b", re.I), re.compile(r"\btranscribed\b", re.I),
+                    re.compile(r"\bservice providers?\b", re.I), re.compile(r"\btext\b", re.I))
 
 MAX_TURNS = 12
 MAX_CALL = timedelta(minutes=6)
@@ -61,13 +75,15 @@ CALLS_PER_DAY = 10
 TERMINAL = {"completed", "busy", "no-answer", "failed", "canceled"}
 
 
+def has_disclosure(text: str) -> bool:
+    return all(p.search(text or "") for p in DISCLOSURE_PARTS)
+
+
 def greeting(tenant: TenantRecord) -> str:
     cfg = tenant.config
-    text = cfg.voice.greeting or (
-        f"Thanks for calling {cfg.business.name}, this is the virtual assistant. "
-        f"Sorry we missed you, I can get you booked. {DISCLOSURE} What can we help with?")
-    low = text.lower()
-    return text if ("transcri" in low or "record" in low) else f"{text} {DISCLOSURE}"
+    text = (cfg.voice.greeting or "").strip() or (
+        f"Thanks for calling {cfg.business.name}. I'm the virtual assistant, an AI. {DISCLOSURE} How can I help?")
+    return text if has_disclosure(text) else f"{text} {DISCLOSURE}"
 
 
 @dataclass
@@ -279,6 +295,10 @@ class VoiceFlow:
                 return {}
             out: dict[str, Any] = {}
             actions: list[dict] = []
+            if c.meta.get("sms_consent") == "asked":  # hung up before answering the texting question: no texts
+                c.meta["sms_consent"] = "no_answer"
+                self.rt.store.for_tenant(tenant.id).record_consent(c.contact, "voice", "booking_texts", "no_answer", "",
+                                                                   call_sid, guard.CONSENT_PROMPT_VERSION)
             if c.outcome is None:
                 if not c.ever_spoke:
                     c.outcome = "abandoned"
@@ -336,12 +356,16 @@ class VoiceFlow:
         if row_id:
             patch = {"transcript": c.transcript, "outcome": c.outcome, "summary": summary(c),
                      "cost_usd": round(c.cost_usd, 4)}
+            if c.meta.get("transcript_withheld"):
+                patch["transcript_withheld"] = True
             if "duration_s" in c.meta:
                 patch["duration_s"] = c.meta["duration_s"]
             self.rt.store.for_tenant(tenant.id).update("calls", row_id, patch)
 
 
 def summary(c: Convo) -> str:
+    if c.meta.get("transcript_withheld") and not c.booking:
+        return "Caller objected to recording; transcript not kept. Call them back."
     if c.booking:
         return f"Booked: {c.booking.get('job_type')} {c.booking.get('label') or c.booking.get('start')}"[:400]
     if c.message:
@@ -360,11 +384,16 @@ def twiml_say_hangup(text: str, voice: str | None = None) -> str:
     return str(vr)
 
 
-def twiml_gather(text: str, voice: str) -> str:
+def twiml_gather(text: str, voice: str, barge_in: bool = True) -> str:
+    """Speak `text` and listen. `barge_in=False` (the greeting with the call notice): <Say> before <Gather>, so the
+    caller cannot cut the notice off and nothing they say is processed before it ends."""
     vr = VoiceResponse()
+    if not barge_in:
+        vr.say(text, voice=voice)
     g = vr.gather(input="speech", action="/voice/turn", method="POST", speech_model="phone_call", enhanced=True,
                   speech_timeout="auto", action_on_empty_result=True, language="en-US")
-    g.say(text, voice=voice)
+    if barge_in:
+        g.say(text, voice=voice)
     return str(vr)
 
 
@@ -427,7 +456,7 @@ async def voice_incoming(request: Request) -> Response:
     if mode == "stream":
         from .voice_stream import relay_twiml
         return _xml(relay_twiml(rt, request, tenant, call_sid))
-    return _xml(twiml_gather(greeting(tenant), tenant.config.voice.tts_voice))
+    return _xml(twiml_gather(greeting(tenant), tenant.config.voice.tts_voice, barge_in=False))
 
 
 async def _safe_voice(rt: Runtime, form: Any, step: str) -> str:

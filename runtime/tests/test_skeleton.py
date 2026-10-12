@@ -104,10 +104,25 @@ def test_signed_voice_incoming_greets_gather_mode(tmp_path):
 
 
 def test_custom_greeting(sim, demo_raw):
-    demo_raw["config"]["voice"]["greeting"] = "Hello from the test line. This call may be transcribed."
+    """A custom greeting that already has every part of the notice is used as written."""
+    from app.voice import DISCLOSURE
+    demo_raw["config"]["voice"]["greeting"] = f"Hello from the test line. {DISCLOSURE}"
     t = sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
-    assert parse_twiml(r.text).text == "Hello from the test line. This call may be transcribed."
+    assert parse_twiml(r.text).text == f"Hello from the test line. {DISCLOSURE}"
+
+
+@pytest.mark.parametrize("custom", [
+    "Hello from the test line. This call may be transcribed.",          # old notice: no providers, no texting
+    "Hello! Calls may be recorded for quality.",                        # 'recorded' alone is not enough
+    "Hi. This call may be recorded and transcribed by our service providers.",  # texting notice missing
+])
+def test_custom_greeting_missing_any_part_gets_full_disclosure(sim, demo_raw, custom):
+    from app.voice import DISCLOSURE
+    demo_raw["config"]["voice"]["greeting"] = custom
+    t = sim.store.upsert_tenant(demo_raw)
+    _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
+    assert parse_twiml(r.text).text == f"{custom} {DISCLOSURE}"
 
 
 def test_unsigned_and_forged_rejected(sim):

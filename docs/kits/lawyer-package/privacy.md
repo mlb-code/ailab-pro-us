@@ -1,10 +1,10 @@
-<!-- Text-only export of site/legal/privacy/index.html (version 1.0, 2026-10-12) for red-lining. Entity name, address and email are filled from config/brand.json; values for refund windows, guarantee text, notice periods, SLA and business days come from config/pricebook.json and config/brand.json, as stamped into the live page. -->
+<!-- Text-only export of site/legal/privacy/index.html (version 1.1, 2026-10-12) for red-lining. Entity name, address and email are filled from config/brand.json; values for refund windows, guarantee text, notice periods, SLA, business days and the liability cap come from config/pricebook.json and config/brand.json, as stamped into the live page. -->
 
 # Privacy Policy
 
-Version 1.0 · Effective date: October 12, 2026 · Last updated: October 12, 2026
+Version 1.1 · Effective date: October 12, 2026 · Last updated: October 12, 2026
 
-> **Plain-English summary.** We collect what we need to quote, build and run your service. For your callers, we keep call transcripts and text messages for 90 days, then delete them. We do not record call audio. We do not sell personal information or share it for targeted advertising. We do not share mobile numbers or SMS opt-in data for marketing.
+> **Plain-English summary.** We collect what we need to quote, build and run your service. For your callers, we keep call transcripts and text messages for 90 days, then delete them, and we keep a log of texting consent and opt-outs for 5 years. We do not store call audio. We do not sell personal information or share it for targeted advertising. We do not share mobile numbers or SMS opt-in data for marketing.
 
 ## 1. Who we are
 
@@ -33,8 +33,11 @@ This Policy covers our website, the online questionnaire, the client portal and 
 - Phone number, and what the caller says or types: name, service address or ZIP, job type, urgency, preferred time.
 - Call transcripts (speech converted to text) and text message content. **We do not store call audio.** One exception: if our system is down, the phone carrier plays a voicemail greeting and stores the caller's voicemail, with notice in the greeting.
 - Booking details created in the business's calendar.
-- Opt-out status (STOP / START).
+- Opt-out status (STOP / START), including opt-outs made in a text sentence or out loud on a call.
+- Consent records: which version of the call notice played, the caller's answer when the assistant asked whether it may text a booking confirmation and a reminder (yes or no, with the words used), the time, the number and the call record, and each opt-out or opt-in with how it was made. If a caller objects to recording or transcription, we keep only a note of the objection and the call details, not a transcript.
 - Call and message metadata: time, duration, delivery status, line type (mobile or landline).
+
+**AI and recording notice.** Every call answered by the AI begins with a spoken notice that the caller is speaking with an AI assistant, that the call may be recorded and transcribed by us and our service providers, and that the business may text the caller about the call. The notice plays before the assistant processes anything the caller says. Call audio is streamed to our service providers to convert speech to text and text to speech; we do not store it. If a caller objects to recording or transcription, the assistant stops and we do not keep a transcript of the conversation. We use callers' information only to provide the service to the business and do not use it to train AI models; our service providers process it under their own terms, which limit how they may use it (section 6).
 
 ### 3.3 From website visitors
 
@@ -86,13 +89,13 @@ If we add or replace a provider that handles callers' information, we will updat
 | Call transcripts and text message content | 90 days, then deleted automatically |
 | Voicemail from the outage fallback (if any) | 90 days |
 | Technical logs | 30 days |
-| Opt-out (STOP) records | As long as needed to honor the opt-out |
+| Texting consent and opt-out records (the consent log) | 5 years, then deleted automatically. An opt-out stays in effect for as long as the business uses our service. |
 | Booking records in our system (date, job details, status) | 2 years, for accounting and dispute records. The copy in your own calendar stays under your control. |
 | Account, questionnaire, Quotes | While you are a client. Deleted 30 days after your service ends, or sooner if you ask |
 | Invoices and contract acceptance records | As long as tax and accounting law requires (generally 7 years) |
 | Backups | Weekly backups, kept up to 35 days |
 
-When your service ends, you can ask for an export of your data within 30 days. After that we delete it, except booking records (kept 2 years, as above) and records we must keep by law.
+When your service ends, you can ask for an export of your data within 30 days. After that we delete it, except booking records (kept 2 years, as above), the consent log (kept 5 years, as above) and records we must keep by law.
 
 ## 8. Security
 
@@ -114,13 +117,13 @@ Depending on where you live (for example California under the CCPA as amended by
 - limit the use of sensitive personal information (we do not collect it on purpose; see section 11);
 - not be discriminated against for using these rights.
 
-**Notice at collection.** In the last 12 months we have collected these categories of personal information: identifiers (name, email, phone number, IP address); commercial information (Quotes, invoices); internet activity (website usage); text transcribed from calls; and approximate location (city or ZIP). The sources, purposes, recipients and retention periods are described in sections 3, 4, 6 and 7. We have not sold personal information or shared it for advertising.
+**Notice at collection.** In the last 12 months we have collected these categories of personal information: identifiers (name, email, phone number, IP address); commercial information (Quotes, invoices); internet activity (website usage); text transcribed from calls; texting consent and opt-out records; and approximate location (city or ZIP). The sources, purposes, recipients and retention periods are described in sections 3, 4, 6 and 7. We have not sold personal information or shared it for advertising.
 
 **How to make a request.** Email support@ailabpro.co with the subject "Privacy request". We will confirm your identity before acting, and answer within 45 days (we may extend once by 45 more days when the law allows, and will tell you why). An authorized agent may make a request for you with your written permission. If we deny your request, you may appeal by replying to our answer; we will respond to the appeal within the time the law requires. If you are a caller of one of our client businesses, we will pass your request to that business and help it respond. We honor Global Privacy Control signals as an opt-out request.
 
 ## 11. Health and other sensitive information
 
-Our services are not designed to collect health, financial-account or government-ID information. The AI asks only for name, phone number and a general reason for the call. We are not a HIPAA covered entity or business associate and do not sign business associate agreements. Clients must not configure our services to collect protected health information. Dental and other health-care offices are offered early access only, on these terms.
+Our services are not designed to collect health, financial-account or government-ID information. We do not act as a HIPAA business associate unless we have signed a written Business Associate Agreement with the client. Until then, the services are not available to HIPAA covered entities (such as dental and medical practices), and clients must not use them for protected health information. For dental practices we currently run an early-access email list only. It collects the practice's business contact details and no patient information.
 
 ## 12. Children
 

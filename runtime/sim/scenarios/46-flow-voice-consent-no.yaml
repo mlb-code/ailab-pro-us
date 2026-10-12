@@ -1,0 +1,27 @@
+description: Legal v1.1 (SA §8 item 3b) - the caller books on the phone, then says no to texts -> the booking stands, the details are said out loud, no confirmation or reminder is ever sent, and the "no" is in the consent log. Same Claude turns as 31 (recordings copied from it).
+kind: flow
+channel: voice
+patch: {config: {booking: {lead_time_hours: 2}}}
+steps:
+  - call: {}
+    expect: {reply_contains: ["recorded and transcribed by us and our service providers", "text you"]}
+  - say: "My furnace stopped working, I'm in 77019"
+    advance_seconds: 20
+    expect: {reply_matches: ["12 PM to 4 PM"]}
+  - say: "The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019"
+    advance_seconds: 25
+    expect: {reply_contains: ["Can I text your confirmation and a reminder"]}
+  - say: "No thanks"
+    advance_seconds: 5
+    expect: {reply_contains: ["I won't text you", "Your visit is"]}
+  - hangup: {}
+    if_open: true
+    advance_seconds: 5
+  - jobs: true
+    advance_minutes: 1500
+expect:
+  outcome: booked
+  bookings: 1
+  sms_sent: 0
+  alerts: [booking]
+  consent: {booking_texts: "no"}

@@ -33,7 +33,7 @@ FALLBACK_TZ = "America/New_York"
 
 
 def safe_greeting(name: str) -> str:
-    return (f"Thanks for calling {name}. Sorry we missed you. This call may be transcribed. "
+    return (f"Thanks for calling {name}. Sorry we missed you. {guard.DISCLOSURE} "
             "Please say your name and the best number to reach you, and someone will call you back.")
 
 
@@ -118,9 +118,9 @@ class SafeMode:
             ts.insert("calls", {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
                                 "transcript": [{"who": "assistant", "text": safe_greeting(bt.name)}], "outcome": None})
         vr = VoiceResponse()
-        g = vr.gather(input="speech", action="/voice/safe-message", method="POST", speech_model="phone_call",
-                      enhanced=True, speech_timeout="auto", action_on_empty_result=True, language="en-US")
-        g.say(safe_greeting(bt.name), voice=SAFE_VOICE)
+        vr.say(safe_greeting(bt.name), voice=SAFE_VOICE)  # the disclosure plays in full before we listen
+        vr.gather(input="speech", action="/voice/safe-message", method="POST", speech_model="phone_call",
+                  enhanced=True, speech_timeout="auto", action_on_empty_result=True, language="en-US")
         return str(vr)
 
     def voice_message(self, bt: BrokenTenant, call_sid: str, caller: str, speech: str, now: datetime) -> str:
@@ -154,14 +154,17 @@ class SafeMode:
         flag = f"safetextback:{bt.id}:{who(caller)}:{self._day(bt, now)}"
         if caller and not self.rt.state.get(flag):
             self.rt.state.put(flag, True, bt.id)
-            self.send(bt, caller, safe_textback(bt.name), now)
+            if self.send(bt, caller, safe_textback(bt.name), now).get("sent"):
+                ts.record_consent(caller, "voice", "text_back", "notice", guard.DISCLOSURE, call_sid,
+                                  guard.DISCLOSURE_VERSION)
 
     # --- sms ---------------------------------------------------------------------------------------
     def send(self, bt: BrokenTenant, to: str, body: str, now: datetime) -> dict[str, Any]:
-        """Proactive SMS without a valid config: opt-out + quiet hours (tenant tz, else Eastern)."""
+        """Proactive SMS without a valid config: opt-out + the text-back window (21:00-08:00 blocked) in the
+        business (tenant tz, else Eastern) and the caller's area-code zone."""
         ts = self.rt.store.for_tenant(bt.id)
-        h = now.astimezone(ZoneInfo(bt.timezone)).hour
-        reason = ("opted_out" if ts.is_opted_out(to) else "quiet_hours" if (h >= 21 or h < 8)
+        quiet = not guard.in_window(guard.window_zones(bt.timezone, to), now, "textback")
+        reason = ("opted_out" if ts.is_opted_out(to) else "quiet_hours" if quiet
                   else "no_twilio_client" if self.rt.outbound.client is None else "")
         if reason:
             ts.log_event("sms.not_sent", {"kind": "safe_textback", "reason": reason})
@@ -193,11 +196,10 @@ class SafeMode:
                                    "twilio_sid": sid or None})
         kw = guard.sms_keyword(body)
         if kw == "stop" or form.get("OptOutType", "").upper() == "STOP":
-            was = ts.is_opted_out(contact)
-            ts.opt_out(contact)
-            return "" if (was or form.get("OptOutType")) else guard.stop_confirmation(bt.name)
+            new = ts.opt_out(contact, "sms", body)
+            return guard.stop_confirmation(bt.name, bt.main_phone) if (new and not form.get("OptOutType")) else ""
         if kw == "start" and ts.is_opted_out(contact):
-            ts.opt_in(contact)
+            ts.opt_in(contact, "sms", body)
             return guard.start_confirmation(bt.name)
         if ts.is_opted_out(contact):
             return ""

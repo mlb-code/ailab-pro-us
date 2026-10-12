@@ -1,12 +1,20 @@
 """Every SMS we send that is not a direct TwiML reply goes through `Outbound.send` (one choke point).
 
-Rules enforced here for all kinds (text-back, booking confirmation, reminder):
-- never to a number that opted out (STOP) or is on the tenant blocklist, checked at send time;
-- quiet hours 21:00-08:00 tenant time for anything that is not a direct reply (SPEC 6.3): queued
-  jobs wait for 08:00; a send attempted inside quiet hours is refused;
+Rules enforced here for all kinds (text-back, booking confirmation, reminder), SA §8:
+- never to a number that opted out (STOP, a sentence, or "don't text me" on a call) or is on the tenant
+  blocklist, checked at send time;
+- texting window, checked in the business's AND the caller's area-code time zone (`guard.WINDOWS`):
+  the missed-call text-back goes out right after the call but not 21:00-08:00; if it has to wait, it is
+  queued for the 09:00-20:00 window (Sunday 12:00-20:00) and dropped if the caller called back; the
+  booking confirmation after a call is the direct response to the caller's yes and goes out right away;
+  the 24-hour reminder only 09:00-20:00 (Sunday 12:00-20:00). A send attempted outside its window is refused;
+- booking confirmation + reminder only after the caller said yes to the texting question (`after_turn`);
+- fixed wording (locked templates): the client can change only the business name; no links, offers or
+  sales content in any automated text;
 - text-back only to numbers Lookup does not report as landline / toll-free / pager (result cached
   30 days), at most one per number per local day;
-- every message is logged in `sms_messages` and its segments counted toward monthly usage.
+- every message is logged in `sms_messages` and its segments counted toward monthly usage; every
+  text-back and consent decision is also logged in the consent log (`sms_consent`, 5 years).
 
 Jobs (text-back after an abandoned call, one reminder 24 h before a booking) live in
 `runtime_state` under `jobs:<tenant_id>` and run from `run_due(now)`: right after the event that
@@ -17,9 +25,8 @@ from __future__ import annotations
 import logging
 import threading
 import uuid
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from . import _stubs_b56 as hooks
 from . import guard
@@ -34,10 +41,10 @@ THREAD_IDLE = timedelta(hours=24)
 REMINDER_BEFORE = timedelta(hours=24)
 
 
+# Locked templates (SA §8 item 3): only the business name varies. No links, prices, offers or review requests:
+# one promotional sentence would turn an informational text into telemarketing (memo 02, A.2).
 def textback_text(tenant: TenantRecord) -> str:
-    cfg = tenant.config
-    link = f" You can also book here: {cfg.booking.booking_link}." if cfg.booking.booking_link else ""
-    return (f"Hi, this is {cfg.business.name}. Sorry we missed your call! What can we help with?{link} "
+    return (f"Hi, this is {tenant.config.business.name}. Sorry we missed your call! What can we help with? "
             "Reply STOP to opt out.")
 
 
@@ -51,14 +58,12 @@ def reminder_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
             "Reply here if you need to change it. Reply STOP to opt out.")
 
 
-def next_allowed(cfg, t: datetime) -> datetime:
-    """`t` if outside quiet hours, else the next 08:00 tenant time."""
-    if not guard.quiet_hours(cfg, t):
-        return t
-    tz = ZoneInfo(cfg.business.timezone)
-    local = t.astimezone(tz)
-    day = local.date() if local.hour < 8 else local.date() + timedelta(days=1)
-    return datetime.combine(day, time(8, 0), tz)
+WINDOW_OF = {"textback": "textback", "confirmation": "scheduled", "reminder": "scheduled"}
+
+
+def next_allowed(cfg, t: datetime, contact: str = "", window: str = "textback") -> datetime:
+    """`t` if inside the texting window (business + caller zone), else the first time it is."""
+    return guard.next_window(guard.window_zones(cfg.business.timezone, contact), t, window)
 
 
 def thread_id(state, tenant: TenantRecord, contact: str, now: datetime) -> str:
@@ -107,10 +112,12 @@ class Outbound:
             reason = "opted_out"
         elif not tenant.active:
             reason = "tenant_paused"
-        elif not direct_reply and guard.quiet_hours(cfg, now):
+        elif not direct_reply and not guard.send_window_ok(cfg, now, to, WINDOW_OF.get(kind, "scheduled")):
             reason = "quiet_hours"
         elif self.client is None or not tenant.twilio_number:
             reason = "no_twilio_client"
+        elif kind in ("confirmation", "reminder") and (line := self.line_type(tenant, to, now)) in NO_TEXT_LINE_TYPES:
+            reason = f"line_type:{line}"  # SA §8 item 6: never text a landline
         if reason:
             ts.log_event("sms.not_sent", {"kind": kind, "reason": reason})
             return {"sent": False, "reason": reason}
@@ -159,13 +166,27 @@ class Outbound:
             return job
 
     def enqueue_textback(self, tenant: TenantRecord, contact: str, call_sid: str, now: datetime) -> dict[str, Any]:
-        due = next_allowed(tenant.config, now)
+        """Right after the call if inside the text-back window (08:00-21:00, both zones). Otherwise it becomes a
+        queued message (memo 02, R2-3/R2-6): it waits for the scheduled window (09:00-20:00, Sunday 12:00-20:00,
+        both zones) and is dropped if the caller called back in the meantime."""
+        if guard.send_window_ok(tenant.config, now, contact, "textback"):
+            due, window = now, "textback"
+        else:
+            due, window = next_allowed(tenant.config, now, contact, "scheduled"), "scheduled"
         return self._add_job(tenant, {"kind": "textback", "contact": contact, "call_sid": call_sid,
+                                      "missed_at": now.isoformat(), "window": window,
                                       "due": due.isoformat(), "dedupe": f"textback:{call_sid}"})
+
+    def confirm_booking(self, tenant: TenantRecord, contact: str, booking: dict[str, Any], now: datetime,
+                        call_sid: str | None = None) -> dict[str, Any]:
+        """Booking confirmation after a call: sent right away, at any hour. It is the direct response to the yes the
+        caller has just given on the call (SA §8 item 5), so the 09:00-20:00 window does not apply to it; opt-out,
+        blocklist and the landline check still do (`send`). Only the 24-hour reminder is bound by the window."""
+        return self.send(tenant, contact, confirmation_text(tenant, booking), "confirmation", now, direct_reply=True)
 
     def enqueue_reminder(self, tenant: TenantRecord, contact: str, booking: dict[str, Any], now: datetime) -> dict[str, Any]:
         start = datetime.fromisoformat(booking["start"])
-        due = next_allowed(tenant.config, start - REMINDER_BEFORE)
+        due = next_allowed(tenant.config, start - REMINDER_BEFORE, contact, "scheduled")
         if due < now + timedelta(hours=1) or due > start - timedelta(hours=1):
             return {}  # booked less than a day ahead: the confirmation is enough
         return self._add_job(tenant, {"kind": "reminder", "contact": contact, "due": due.isoformat(),
@@ -195,20 +216,36 @@ class Outbound:
                 continue
         return out
 
+    @staticmethod
+    def _called_back(ts, job: dict[str, Any]) -> bool:
+        """A later call from the same number since the missed one (a queued text-back is then pointless)."""
+        missed = job.get("missed_at")
+        if not missed:
+            return False
+        return any(r.get("call_sid") != job.get("call_sid") and str(r.get("started_at") or "") > missed
+                   for r in ts.select("calls", from_e164=job["contact"]))
+
     def _run(self, tenant: TenantRecord, job: dict[str, Any], now: datetime) -> dict[str, Any]:
         cfg = tenant.config
         contact = job["contact"]
         ts = self.store.for_tenant(tenant.id)
-        if guard.quiet_hours(cfg, now):  # e.g. the loop was down overnight: wait for 08:00 again
-            if job["kind"] == "reminder" and next_allowed(cfg, now) > datetime.fromisoformat(job["booking"]["start"]) - timedelta(hours=1):
+        window = job.get("window") or WINDOW_OF.get(job["kind"], "scheduled")
+        if job["kind"] == "textback" and window == "scheduled" and self._called_back(ts, job):
+            ts.log_event("sms.textback", {"call_sid": job.get("call_sid"), "sent": False, "reason": "called_back"})
+            return {"sent": False, "reason": "called_back"}
+        if not guard.send_window_ok(cfg, now, contact, window):  # e.g. the loop was down overnight: wait again
+            nxt = next_allowed(cfg, now, contact, window)
+            if job["kind"] != "textback" and nxt > datetime.fromisoformat(job["booking"]["start"]) - timedelta(hours=1):
                 return {"sent": False, "reason": "too_late"}
-            self._add_job(tenant, {**{k: v for k, v in job.items() if k != "id"}, "due": next_allowed(cfg, now).isoformat()})
+            self._add_job(tenant, {**{k: v for k, v in job.items() if k != "id"}, "due": nxt.isoformat()})
             return {"sent": False, "reason": "deferred"}
         if job["kind"] == "textback":
-            day_flag = f"textback:{tenant.id}:{who(contact)}:{now.astimezone(ZoneInfo(cfg.business.timezone)).date()}"
+            # SA §8 item 3a: at most one text-back per number in any 24 hours (rolling, not per calendar day)
+            day_flag = f"textback:{tenant.id}:{who(contact)}"
+            last = self.state.get(day_flag)
             if ts.is_opted_out(contact) or guard.is_blocked(contact, cfg):
                 res = {"sent": False, "reason": "opted_out" if ts.is_opted_out(contact) else "blocklist"}
-            elif self.state.get(day_flag):
+            elif isinstance(last, str) and now - datetime.fromisoformat(last) < timedelta(hours=24):
                 res = {"sent": False, "reason": "already_texted_today"}
             elif (line := self.line_type(tenant, contact, now)) in NO_TEXT_LINE_TYPES:
                 res = {"sent": False, "reason": f"line_type:{line}"}
@@ -216,34 +253,39 @@ class Outbound:
                 body = textback_text(tenant)
                 res = self.send(tenant, contact, body, "textback", now)
                 if res["sent"]:
-                    self.state.put(day_flag, True, tenant.id)
+                    self.state.put(day_flag, now.isoformat(), tenant.id)
+                    # consent basis: the caller's own call + the texting notice in the greeting (SA §8 items 2, 3a)
+                    ts.record_consent(contact, "voice", "text_back", "notice", guard.DISCLOSURE, job.get("call_sid"),
+                                      guard.DISCLOSURE_VERSION)
                     tid = thread_id(self.state, tenant, contact, now)
                     self.rt.engine.note_outbound(tenant, "sms", contact, tid, body, prior=body)
             ts.log_event("sms.textback", {"call_sid": job.get("call_sid"), **{k: v for k, v in res.items() if k != "sid"}})
             return res
-        # reminder: only if the booking still stands
+        # confirmation / reminder: only if the booking still stands
         b = job["booking"]
         live = [r for r in ts.select("bookings", provider_event_id=b.get("event_id")) if r.get("status") == "confirmed"]
-        res = self.send(tenant, contact, reminder_text(tenant, b), "reminder", now) if live else \
-            {"sent": False, "reason": "booking_gone"}
-        ts.log_event("sms.reminder", {k: v for k, v in res.items() if k != "sid"})
+        text = confirmation_text(tenant, b) if job["kind"] == "confirmation" else reminder_text(tenant, b)
+        res = self.send(tenant, contact, text, job["kind"], now) if live else {"sent": False, "reason": "booking_gone"}
+        ts.log_event(f"sms.{job['kind']}", {k: v for k, v in res.items() if k != "sid"})
         return res
 
 
 def after_turn(rt, tenant: TenantRecord, c, now: datetime) -> None:
-    """Follow-ups once per conversation: booking confirmation (voice) + reminder job +
-    `booking.created`; `lead.created` once the conversation has a real outcome."""
+    """Follow-ups once per conversation: `booking.created`; booking confirmation (voice) + reminder job only once
+    the caller said yes to the texting question (SA §8 item 3b; a "no" or no answer = no texts, the booking
+    stands); `lead.created` once the conversation has a real outcome."""
     changed = False
+    if c.booking and c.meta.get("sms_consent") == "yes" and not c.meta.get("booking_texts"):
+        c.meta["booking_texts"] = True
+        changed = True
+        if c.channel == "voice":  # by text, the reply itself is the confirmation
+            # Sent right away at any hour: the direct response to the yes just given on the call (SA §8 item 5).
+            # Only the 24-hour reminder follows the 09-20 window (Sunday 12-20) in both time zones.
+            rt.outbound.confirm_booking(tenant, c.contact, c.booking, now, c.convo_id)
+        rt.outbound.enqueue_reminder(tenant, c.contact, c.booking, now)
     if c.booking and not c.meta.get("booking_followup"):
         c.meta["booking_followup"] = True
         changed = True
-        if c.channel == "voice":  # by text, the reply itself is the confirmation
-            # Owner decision (2026-10-11): the booking confirmation after a call is an immediate response to
-            # an interaction the caller started, not marketing, so it goes out even in quiet hours (21-08).
-            # Reminders and every other proactive message do respect quiet hours.
-            rt.outbound.send(tenant, c.contact, confirmation_text(tenant, c.booking), "confirmation", now,
-                             direct_reply=True)
-        rt.outbound.enqueue_reminder(tenant, c.contact, c.booking, now)
         rt.emit(tenant, "booking.created", {"channel": c.channel, "convo_id": c.convo_id, "contact": c.contact,
                                             **{k: c.booking.get(k) for k in ("name", "address", "job_type", "urgency",
                                                                               "start", "end", "event_id")}},
