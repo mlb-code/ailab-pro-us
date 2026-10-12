@@ -1,7 +1,7 @@
 # Attorney brief — legal review before the first US client (v1, 2026-10-11)
 
 **For:** a US-licensed attorney (business / tech contracts; ideally TCPA and privacy experience).
-**Documents to review** (all marked "DRAFT — to be reviewed by a licensed attorney before first use", version `1.0-draft`):
+**Documents to review** (version `1.0`, effective October 12, 2026, live at ailabpro.co/legal/; standardized against nine competitors, see `docs/reports/LEGAL-STANDARD.md`; not yet reviewed by a licensed US attorney):
 - Terms of Service — `site/legal/terms/index.html`
 - Privacy Policy — `site/legal/privacy/index.html`
 - Service Agreement — `site/legal/service-agreement/index.html`
@@ -66,4 +66,4 @@ A one-person Israeli sole proprietorship (osek murshe) sells fixed-price AI serv
 - Marked-up versions of the three documents (or a list of changes).
 - Final choice for governing law, venue and arbitration provider.
 - A yes/no on dental early access.
-- Then we set `legal_final: true` in `config/brand.json`, change the version from `1.0-draft` to `1.0`, set the effective date, and the "DRAFT" banner disappears.
+- Then we apply your changes, bump the version (e.g. `1.1`) and the "Last updated" date in `config/brand.json`, and notify active clients by email where the documents require it.
