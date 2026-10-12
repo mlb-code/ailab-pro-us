@@ -1,0 +1,67 @@
+# Facebook auto-poster for the US page (social/fb_post.py + social/bank/posts.json).
+# Runs daily at 15:00 UTC (11:00 ET); the script itself posts only when the newest page post is older than 44 h,
+# so the result is one post every ~2 days. Read-only and dry by default:
+#   * scheduled runs do nothing until the repo variable SOCIAL_FB_ENABLED is "true" AND the secret META_ACCESS_TOKEN exists;
+#   * manual runs (Actions -> social-fb -> Run workflow) are dry-run unless "dry_run" is unticked.
+# Pause: set SOCIAL_FB_ENABLED to "false" (or disable this workflow in the Actions tab).
+name: social-fb
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (read the page, print what would be posted, post nothing)"
+        type: boolean
+        default: true
+      slot:
+        description: "Post this slot number (empty = next unposted slot)"
+        type: string
+        default: ""
+      force:
+        description: "Ignore the 44-hour gap"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: social-fb
+  cancel-in-progress: false
+jobs:
+  post:
+    if: github.event_name == 'workflow_dispatch' || vars.SOCIAL_FB_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      META_PRO_PAGE_ID: ${{ vars.META_PRO_PAGE_ID || '1405415849316418' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the token is configured
+        id: gate
+        run: |
+          if [ -z "$META_ACCESS_TOKEN" ]; then
+            echo "META_ACCESS_TOKEN secret is not set: nothing to do."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Post (or dry run)
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          IN_DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          IN_SLOT: ${{ inputs.slot }}
+          IN_FORCE: ${{ inputs.force }}
+        run: |
+          args=""
+          # --status alone is read-only in fb_post.py, so the table is printed only on dry runs
+          if [ "$IN_DRY" = "true" ]; then args="--status --dry-run"; fi
+          if [ -n "$IN_SLOT" ]; then
+            case "$IN_SLOT" in *[!0-9]*) echo "slot must be a number"; exit 1;; esac
+            args="$args --slot $IN_SLOT"
+          fi
+          if [ "$IN_FORCE" = "true" ]; then args="$args --force"; fi
+          python3 social/fb_post.py $args

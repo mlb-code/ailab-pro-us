@@ -1,0 +1,386 @@
+{
+  "$comment": "Facebook post bank for the US page (AI Lab Pro). social/fb_post.py posts the lowest unposted slot, one every ~2 days. Rules: no reviews/testimonials/client names unless real (reviews.json), stats only with the source named, US spelling, ends with an ailabpro.co link. \"skip\": true holds a post. \"card\" feeds social/bank/render.py.",
+  "version": 1,
+  "page": "AI Lab Pro (US)",
+  "posts": [
+    {
+      "id": "fb-01-stat",
+      "slot": 1,
+      "kind": "stat",
+      "message": "Three numbers from US consumer surveys we think every service business should know:\n\n• 84% of US consumers have opted in to receive texts from businesses\n• 71% want to be able to text a business back\n• 53% have texted a business and never got a reply\n\nA missed call is usually followed by a text, or by a call to the next company on the list. Sources on our site: https://ailabpro.co",
+      "image": "social/fb-cover.png",
+      "notes_he": "פוסט 2 מהקובץ המקורי: שלושה נתוני סקר עם מקורות (הודעות טקסט לעסקים)"
+    },
+    {
+      "id": "fb-02-product",
+      "slot": 2,
+      "kind": "product",
+      "message": "For real estate agents: a Lead Assistant that never misses a buyer or seller call.\n\nInstant text-back, lead screening (buying or selling, area, timeline, pre-approval), booking into your calendar, synced to Follow Up Boss via Zapier.\n\nFixed price. Details: https://ailabpro.co/real-estate/",
+      "image": "site/assets/og/real-estate.png",
+      "notes_he": "פוסט 3 מהקובץ המקורי: עוזר לידים לסוכני נדל\"ן"
+    },
+    {
+      "id": "fb-03-website",
+      "slot": 3,
+      "kind": "website",
+      "message": "A 5-page website for your business, live in 7 business days. We write the text from a 10-minute questionnaire, you approve. Lead form, click-to-call, click-to-text, local SEO basics. The domain and the site are yours.\n\nSee how it looks: https://ailabpro.co/website/",
+      "image": "site/assets/og/website.png",
+      "notes_he": "פוסט 4 מהקובץ המקורי: אתר 5 עמודים"
+    },
+    {
+      "id": "fb-04-tip",
+      "slot": 4,
+      "kind": "tip",
+      "message": "Tip for HVAC and plumbing owners: open your call log for last week and count the calls that came in after 6 PM or on the weekend.\n\nThose are often the urgent jobs, a no-heat night or a leaking water heater, and they tend to go to whoever answers first.\n\nIf nobody picks up after hours, decide what should happen instead: a text back, a few questions about the job, and a booking into your next open window. That is what an AI receptionist is for: https://ailabpro.co",
+      "image": "social/bank/img/slot-04.png",
+      "card": {
+        "kicker": "Tip · After hours",
+        "title": "Count your calls after *6 PM*.",
+        "sub": "Last week's call log, five minutes, one number."
+      },
+      "notes_he": "טיפ: לספור שיחות אחרי 18:00 ובסופ\"ש — שם העבודות הדחופות"
+    },
+    {
+      "id": "fb-05-how-it-works",
+      "slot": 5,
+      "kind": "how-it-works",
+      "message": "How it works, part 1: the text-back.\n\nSomeone calls, you can't pick up, and they hang up. Within a minute they get one text from your AI line: who you are, sorry we missed you, how can we help, and how to opt out.\n\nOne text-back per number per day, and never between 9 PM and 8 AM. If they reply, the AI keeps the conversation going and collects the job details.\n\nTry it as the customer: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-05.png",
+      "card": {
+        "kicker": "How it works · Text-back",
+        "title": "Hung up? A text within *a minute*.",
+        "sub": "One per number per day. Never between 9 PM and 8 AM."
+      },
+      "notes_he": "איך זה עובד 1: הודעת חזרה אחרי שיחה שלא נענתה"
+    },
+    {
+      "id": "fb-06-faq",
+      "slot": 6,
+      "kind": "faq",
+      "message": "A question we get a lot: \"Do I keep my business number?\"\n\nYes. The only change on your side is one setting: call forwarding on no-answer or busy, pointed to the AI line we set up. Calls you pick up never reach it. Calls you miss do.\n\nOur setup checklist shows how for Verizon, AT&T, T-Mobile, Comcast Business, RingCentral and Google Voice, with a short video for each step.\n\nMore answers: https://ailabpro.co",
+      "image": "social/bank/img/slot-06.png",
+      "card": {
+        "kicker": "FAQ",
+        "title": "Do I keep my business *number*?",
+        "sub": "Yes. Only the calls you miss are forwarded."
+      },
+      "notes_he": "שאלה נפוצה: האם המספר של העסק נשאר? כן, רק הפניית שיחות"
+    },
+    {
+      "id": "fb-07-stat",
+      "slot": 7,
+      "kind": "stat",
+      "message": "53% of US consumers say they have texted a business and never got a reply (Textmagic survey of 1,800 US consumers, March 2025).\n\nFor a service business, an unanswered text is often a job that went to someone else. The fix is simple to describe: every missed call and every text gets an answer, even when you're on a job.\n\nOur AI receptionist texts back, asks what's going on and books the visit. Source linked on our site: https://ailabpro.co",
+      "image": "social/bank/img/slot-07.png",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "53%",
+        "title": "texted a business and never got a *reply*.",
+        "sub": "Source: Textmagic survey of 1,800 US consumers, Mar 2025"
+      },
+      "notes_he": "נתון 53% (Textmagic): שלחו הודעה לעסק ולא קיבלו תשובה"
+    },
+    {
+      "id": "fb-08-tip",
+      "slot": 8,
+      "kind": "tip",
+      "message": "Tip: what a good missed-call text looks like.\n\n1. Start with your business name.\n2. Say why you're texting: \"Sorry we missed your call.\"\n3. Ask one simple question: \"What's going on?\"\n4. Say how to stop: \"Reply STOP to opt out.\"\n5. Leave out coupons and sales pitches. A text-back is a reply, not an ad.\n\nShort, polite, useful. See a full example: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-08.png",
+      "card": {
+        "kicker": "Tip · Text-back",
+        "title": "A good missed-call text is a reply, not an *ad*."
+      },
+      "notes_he": "טיפ: איך נראית הודעת חזרה טובה (5 כללים, בלי קופונים)"
+    },
+    {
+      "id": "fb-09-product",
+      "slot": 9,
+      "kind": "product",
+      "message": "Founding-client price for our first 3 US clients: $2,450 setup + $300/mo for the Missed-Call AI Receptionist. The regular price is $3,500 setup + $300/mo.\n\nIn exchange, we ask for a short case study once it's running: what changed, in your words.\n\nThe price is fixed and in writing before you pay. No hourly billing, no sales calls. Start with a 6-minute questionnaire: https://ailabpro.co",
+      "image": "social/bank/img/slot-09.png",
+      "card": {
+        "kicker": "Founding clients · 3 seats",
+        "num": "$2,450",
+        "title": "setup for our first *3* clients.",
+        "sub": "+ $300/mo · regular price $3,500 setup"
+      },
+      "notes_he": "מחיר לקוח מייסד: 2,450$ הקמה ל-3 הלקוחות הראשונים תמורת מקרה בוחן"
+    },
+    {
+      "id": "fb-10-how-it-works",
+      "slot": 10,
+      "kind": "how-it-works",
+      "message": "How it works, part 2: booking.\n\nThe AI books only into real openings from your Google Calendar or Calendly, inside your service area and the time windows you set. First it asks for name, callback number, address or ZIP, job type and urgency, so the tech shows up prepared.\n\nIt offers two windows, the caller picks one, and you get a text and an email with the details.\n\nSee a booking end to end: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-10.png",
+      "card": {
+        "kicker": "How it works · Booking",
+        "title": "Only real *openings*. Only your service area."
+      },
+      "notes_he": "איך זה עובד 2: קביעת תור רק בחלונות פנויים ובאזור השירות"
+    },
+    {
+      "id": "fb-11-faq",
+      "slot": 11,
+      "kind": "faq",
+      "message": "\"Will callers know it's AI?\"\n\nYes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it.\n\nBefore it texts a booking confirmation, it asks the caller and logs the answer. If a caller objects to recording, it stops and keeps no transcript. We keep transcripts, not audio.\n\nFull FAQ: https://ailabpro.co",
+      "image": "social/bank/img/slot-11.png",
+      "card": {
+        "kicker": "FAQ",
+        "title": "Will callers know it's *AI*?",
+        "sub": "Yes. It never claims to be a person."
+      },
+      "notes_he": "שאלה נפוצה: האם המתקשרים יודעים שזה AI? כן, וגילוי נאות על הקלטה"
+    },
+    {
+      "id": "fb-12-tip",
+      "slot": 12,
+      "kind": "tip",
+      "message": "Tip for real estate agents: sign calls and listing calls come in when you're busy, at a showing or an open house. A buyer who reaches nobody may simply call the next sign.\n\nTwo habits help. Text back every missed call within minutes. And ask the same four questions every time: buying or selling, which area or property, timeline, pre-approval. Then you know who to call back first.\n\nOur Lead Assistant does both for you: https://ailabpro.co/real-estate/",
+      "image": "social/bank/img/slot-12.png",
+      "card": {
+        "kicker": "Tip · Real estate",
+        "title": "At a showing? The sign is still *ringing*."
+      },
+      "notes_he": "טיפ לסוכני נדל\"ן: לחזור תוך דקות ולשאול 4 שאלות קבועות"
+    },
+    {
+      "id": "fb-13-stat",
+      "slot": 13,
+      "kind": "stat",
+      "message": "84% of US consumers have opted in to receive texts from businesses (SimpleTexting survey of 1,000 US consumers, December 2024).\n\nYour customers are used to texting. A booking confirmation, a reminder the day before, \"the tech is on the way\": these are texts people want, when they asked for them.\n\nThat's why our AI receptionist asks before it texts a confirmation, and logs the answer. Source on our site: https://ailabpro.co",
+      "image": "social/bank/img/slot-13.png",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "84%",
+        "title": "have opted in to texts from *businesses*.",
+        "sub": "Source: SimpleTexting survey of 1,000 US consumers, Dec 2024"
+      },
+      "notes_he": "נתון 84% (SimpleTexting): הסכימו לקבל הודעות מעסקים"
+    },
+    {
+      "id": "fb-14-website",
+      "slot": 14,
+      "kind": "website",
+      "message": "A website for a service business has one job: get the phone to ring.\n\nOur 5-page site is built around that. Home, with one big call button. Services in plain words, each with call and text buttons. About, with your license and insurance. Reviews and FAQ. Contact, with a lead form that goes to your email and a Google Sheet.\n\n$1,900 setup + $129/mo for hosting and 1 small edit a month: https://ailabpro.co/website/",
+      "image": "social/bank/img/slot-14.png",
+      "card": {
+        "kicker": "Websites",
+        "num": "5",
+        "title": "pages. Each one has a *job*.",
+        "sub": "Home · Services · About · Reviews & FAQ · Contact"
+      },
+      "notes_he": "אתר: 5 עמודים, לכל עמוד תפקיד אחד — שהטלפון יצלצל"
+    },
+    {
+      "id": "fb-15-how-it-works",
+      "slot": 15,
+      "kind": "how-it-works",
+      "message": "How it works, part 3: STOP.\n\nIf anyone replies STOP, QUIT, END, CANCEL, UNSUBSCRIBE, REVOKE or OPT OUT, the AI stops all automated texts to that number. The same goes for a sentence like \"please stop texting me.\"\n\nThis check runs before the AI writes anything, and it covers reminders and confirmations too. If the person later texts START, they're back in.\n\nMore on how it works: https://ailabpro.co",
+      "image": "social/bank/img/slot-15.png",
+      "card": {
+        "kicker": "How it works · Opt-out",
+        "num": "STOP",
+        "title": "One word, and the texts *stop*.",
+        "sub": "Also QUIT, END, CANCEL, UNSUBSCRIBE, REVOKE, OPT OUT"
+      },
+      "notes_he": "איך זה עובד 3: הסרה — STOP ודומיו עוצרים את כל ההודעות האוטומטיות"
+    },
+    {
+      "id": "fb-16-tip",
+      "slot": 16,
+      "kind": "tip",
+      "message": "Tip: when you book a job by text, offer two specific windows instead of asking \"when works for you?\"\n\n\"Tuesday 8 AM–12 PM or Tuesday 12–4 PM?\" gets a one-word answer. An open question can start a back-and-forth that lasts all evening.\n\nSame with the details: one question per text, starting with the ZIP code, so you know right away whether the job is in your area.\n\nThat's how our AI receptionist books: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-16.png",
+      "card": {
+        "kicker": "Tip · Booking",
+        "title": "Offer two windows, not an open *question*.",
+        "sub": "\"Tuesday 8 AM–12 PM or Tuesday 12–4 PM?\""
+      },
+      "notes_he": "טיפ: להציע שני חלונות זמן במקום \"מתי נוח לך?\""
+    },
+    {
+      "id": "fb-17-faq",
+      "slot": 17,
+      "kind": "faq",
+      "message": "\"What about emergencies?\"\n\nYou choose the emergency keywords: gas smell, carbon monoxide, flooding, no heat with a baby at home. If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT text right away, and it can ring your cell.\n\nYou decide which keywords count as urgent, and you can change them any time.\n\nMore answers: https://ailabpro.co",
+      "image": "social/bank/img/slot-17.png",
+      "card": {
+        "kicker": "FAQ",
+        "title": "What about *emergencies*?",
+        "sub": "Danger to life: 911 first. Then an URGENT text to you."
+      },
+      "notes_he": "שאלה נפוצה: מקרי חירום — 911 קודם, והתראה דחופה לבעל העסק"
+    },
+    {
+      "id": "fb-18-product",
+      "slot": 18,
+      "kind": "product",
+      "message": "30-day satisfaction guarantee on the Missed-Call AI Receptionist.\n\nIf you're not satisfied within 30 days after go-live, tell us in writing and we refund the setup fee for the AI line and switch the line off. Monthly fees for the period used are not refunded.\n\nOn the bundle, only the AI line's part of the setup fee is refunded, and the website stays yours. Full terms are in the service agreement: https://ailabpro.co",
+      "image": "social/bank/img/slot-18.png",
+      "card": {
+        "kicker": "30-day satisfaction guarantee",
+        "num": "30",
+        "title": "days after go-live to *decide*.",
+        "sub": "Not satisfied? We refund the AI line's setup fee."
+      },
+      "notes_he": "ערבות שביעות רצון 30 יום על המענה החכם (החזר דמי הקמה)"
+    },
+    {
+      "id": "fb-19-stat",
+      "slot": 19,
+      "kind": "stat",
+      "message": "71% of consumers want to be able to text a business back (SimpleTexting survey of 1,000 US consumers, December 2024).\n\nSo when your missed-call text goes out, expect a reply. The question is who answers it at 8 PM while you're at dinner.\n\nOur AI receptionist answers those replies, asks the job questions and books the visit, then sends you the summary. Source on our site: https://ailabpro.co",
+      "image": "social/bank/img/slot-19.png",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "71%",
+        "title": "want to text a business *back*.",
+        "sub": "Source: SimpleTexting survey of 1,000 US consumers, Dec 2024"
+      },
+      "notes_he": "נתון 71% (SimpleTexting): רוצים לענות לעסק בהודעה"
+    },
+    {
+      "id": "fb-20-how-it-works",
+      "slot": 20,
+      "kind": "how-it-works",
+      "message": "How it works, part 4: the summary.\n\nFor every lead you get a text and an email: name, callback number, address or ZIP, job type, urgency, and the booking if one was made. Once a day you get a summary email of everything.\n\nThe full call log, transcripts and bookings are in your client portal. We keep transcripts, not audio.\n\nSee what a lead looks like: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-20.png",
+      "card": {
+        "kicker": "How it works · Summary",
+        "title": "Every lead, in one *text*.",
+        "sub": "Plus an email, and a daily summary."
+      },
+      "notes_he": "איך זה עובד 4: סיכום לכל ליד בהודעה ובמייל + סיכום יומי"
+    },
+    {
+      "id": "fb-21-tip",
+      "slot": 21,
+      "kind": "tip",
+      "message": "Tip: check what callers hear when you can't pick up.\n\nCall your own business number after hours, from a phone that isn't saved in your contacts. Is the voicemail box full? Is it a generic carrier greeting? Does the message even say your business name?\n\nA caller with a leaking pipe may not wait for a callback. Give them a next step: a text, a question, a time slot.\n\nWhat a better next step looks like: https://ailabpro.co",
+      "image": "social/bank/img/slot-21.png",
+      "card": {
+        "kicker": "Tip · Two-minute test",
+        "title": "Call your own number *after hours*."
+      },
+      "notes_he": "טיפ: להתקשר למספר של העסק אחרי שעות העבודה ולשמוע מה הלקוח שומע"
+    },
+    {
+      "id": "fb-22-faq",
+      "slot": 22,
+      "kind": "faq",
+      "message": "\"Why not the AI assistant built into Jobber or Housecall Pro?\"\n\nFair question. Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, works with any calendar or CRM, hands off to a person when needed, and comes with someone who maintains it.\n\nGoogle Calendar or Calendly booking and 1 Zapier webhook are included. A direct Jobber or Housecall Pro connection is an add-on with a fixed price: https://ailabpro.co",
+      "image": "social/bank/img/slot-22.png",
+      "card": {
+        "kicker": "FAQ",
+        "title": "Why not the built-in *assistant*?",
+        "sub": "Ours answers the phone and works with any calendar or CRM."
+      },
+      "notes_he": "שאלה נפוצה: למה לא העוזר המובנה ב-Jobber/Housecall Pro?"
+    },
+    {
+      "id": "fb-23-website",
+      "slot": 23,
+      "kind": "website",
+      "message": "Two things to check before you pay anyone for a website:\n\n1. Is the domain registered in your name? With us it is. If you have one, we connect it. If not, you register it and we show you how.\n\n2. What do they promise about Google? We set up the basics: titles, LocalBusiness schema, a sitemap, Search Console and a link to your Google Business Profile. We don't promise rankings.\n\nhttps://ailabpro.co/website/",
+      "image": "social/bank/img/slot-23.png",
+      "card": {
+        "kicker": "Websites · Before you pay",
+        "title": "Is the domain in *your* name?"
+      },
+      "notes_he": "אתר: שני דברים לבדוק לפני שמשלמים (דומיין על שמך, בלי הבטחות דירוג)"
+    },
+    {
+      "id": "fb-24-how-it-works",
+      "slot": 24,
+      "kind": "how-it-works",
+      "message": "How it works, part 5: quiet hours.\n\nThe missed-call text goes out only between 8 AM and 9 PM. Confirmations and reminders that aren't a direct reply go out between 9 AM and 8 PM, and from noon on Sunday.\n\nBoth windows are checked in your time zone and in the caller's, based on the area code. Outside those hours, it doesn't send automated texts. A reply to someone who just texted is answered right away.\n\nMore: https://ailabpro.co",
+      "image": "social/bank/img/slot-24.png",
+      "card": {
+        "kicker": "How it works · Quiet hours",
+        "title": "No texts at *midnight*.",
+        "sub": "Checked in your time zone and the caller's."
+      },
+      "notes_he": "איך זה עובד 5: שעות שקטות — בלי הודעות בלילה, לפי אזור הזמן של העסק ושל המתקשר"
+    },
+    {
+      "id": "fb-25-tip",
+      "slot": 25,
+      "kind": "tip",
+      "message": "Tip: the five things every first call should capture.\n\nName. Callback number. Service address or ZIP. What's going on. How urgent it is.\n\nWith those five, you can price the trip, route the tech and call back the right person first. Without them, the callback starts from zero.\n\nWrite them on a card by the phone, or let an AI receptionist ask them every time, in the same order: https://ailabpro.co",
+      "image": "social/bank/img/slot-25.png",
+      "card": {
+        "kicker": "Tip · First call",
+        "num": "5",
+        "title": "things every first call should *capture*.",
+        "sub": "Name · number · ZIP · the problem · urgency"
+      },
+      "notes_he": "טיפ: חמשת הפרטים שכל שיחה ראשונה צריכה לאסוף"
+    },
+    {
+      "id": "fb-26-stat",
+      "slot": 26,
+      "kind": "stat",
+      "message": "10 business days: the longest a business may take to honor a text opt-out under FCC rules in force since April 11, 2025 (47 CFR 64.1200(a)(10)). Replies like STOP, QUIT, END, CANCEL, UNSUBSCRIBE, REVOKE and OPT OUT all count.\n\nIf you text customers from a personal phone, someone has to remember who said stop.\n\nOur AI receptionist stops all automated texts to a number as soon as that reply comes in. General information, not legal advice: https://ailabpro.co",
+      "image": "social/bank/img/slot-26.png",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "10",
+        "title": "business days to honor a text *opt-out*.",
+        "sub": "Source: FCC rule 47 CFR 64.1200(a)(10), since Apr 11, 2025"
+      },
+      "notes_he": "נתון רגולטורי: 10 ימי עסקים לכבד בקשת הסרה (כלל FCC) — אצלנו מיד"
+    },
+    {
+      "id": "fb-27-faq",
+      "slot": 27,
+      "kind": "faq",
+      "message": "\"Do I have to get on a call with you?\"\n\nNo. You fill in a 6-minute questionnaire, get a fixed quote in writing within 1 business day, and finish a setup checklist with short videos. Everything happens in writing, on your schedule, and you can stop at any step.\n\nIf you'd rather talk first, you can book an optional 15-minute video call. It's never required.\n\nStart here: https://ailabpro.co",
+      "image": "social/bank/img/slot-27.png",
+      "card": {
+        "kicker": "FAQ",
+        "title": "Do I have to get on a *call*?",
+        "sub": "No. Questionnaire, written quote, checklist."
+      },
+      "notes_he": "שאלה נפוצה: חייבים שיחת מכירה? לא — שאלון, הצעה בכתב, צ'קליסט"
+    },
+    {
+      "id": "fb-28-tip",
+      "slot": 28,
+      "kind": "tip",
+      "message": "Tip: what text consent looks like for a service business.\n\nTell callers in your greeting that you may text them about their call. Ask before you send a booking confirmation: \"OK to text you the details?\" Keep a record of the answer. Keep coupons and offers out of your missed-call text. Honor STOP right away.\n\nOur AI receptionist does each of these by default. General information, not legal advice: https://ailabpro.co",
+      "image": "social/bank/img/slot-28.png",
+      "card": {
+        "kicker": "Tip · Texting consent",
+        "title": "Ask before you *text*.",
+        "sub": "Tell them, ask them, log it, honor STOP."
+      },
+      "notes_he": "טיפ: איך נראית הסכמה לקבלת הודעות (הודעה בפתיח, שאלה לפני אישור, תיעוד)"
+    },
+    {
+      "id": "fb-29-product",
+      "slot": 29,
+      "kind": "product",
+      "message": "The bundle: Missed-Call AI Receptionist + 5-page website.\n\n$4,900 setup + $400/mo, instead of $5,400 + $429 bought separately. Your AI line number goes on the site, and a website chat widget with the same AI is included.\n\nOne fixed price, in writing. Live 14 business days after your access and content are in. The 30-day guarantee covers the AI line's part of the setup fee.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-29.png",
+      "card": {
+        "kicker": "The bundle",
+        "num": "$4,900",
+        "title": "receptionist + website, *one* price.",
+        "sub": "+ $400/mo · saves $500 setup and $29 a month"
+      },
+      "notes_he": "חבילה: מענה חכם + אתר, 4,900$ הקמה + 400$ לחודש"
+    },
+    {
+      "id": "fb-30-tip",
+      "slot": 30,
+      "kind": "tip",
+      "message": "Tip: decide who answers on Saturday.\n\nWeekend calls are often the ones that can't wait until Monday: no AC in July, a garage door stuck open, a lockout. If the plan today is \"whoever notices the phone,\" write down a simple rule: who gets the urgent alert, which jobs you take, and what everyone else is told.\n\nAn AI receptionist can follow that rule every weekend: https://ailabpro.co",
+      "image": "social/bank/img/slot-30.png",
+      "card": {
+        "kicker": "Tip · Weekends",
+        "title": "Who answers on *Saturday*?"
+      },
+      "notes_he": "טיפ: להחליט מי עונה בשבת (כלל כתוב לסופ\"ש)"
+    }
+  ]
+}
