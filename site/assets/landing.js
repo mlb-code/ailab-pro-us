@@ -175,6 +175,6 @@
       es.forEach(function (e) { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); });
       bar.classList.toggle('is-on', seen.size === 0);
     }, { rootMargin: '-64px 0px 0px 0px' });
-    document.querySelectorAll('.hero .btn-row, #demo, #reviews, #pricing, #early-access, .band, .footer').forEach(function (el) { io.observe(el); });
+    document.querySelectorAll('.hero .btn-row, #demo, #pricing, #early-access, .band, .footer').forEach(function (el) { io.observe(el); });
   }
 })();

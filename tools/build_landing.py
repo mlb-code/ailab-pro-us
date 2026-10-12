@@ -397,34 +397,32 @@ def stars(n):
     return f'<span class="rv__stars" role="img" aria-label="{n} out of 5 stars">' + '★' * n + f'<i>{"★" * (5 - n)}</i></span>'
 
 
-def review_cards(c, rv):
-    """Real reviews pasted by the owner into reviews.json. Rendered only when present; each links to its source."""
+REVIEWS_MIN = 2  # the "What clients say" section renders only with at least this many approved reviews
+
+
+def approved_reviews(rv):
+    """Real reviews from reviews.json that may be shown: consent is true and every required field is filled.
+    A consented review with a missing field stops the build (a half-entered real review is a mistake, not a skip)."""
     out = []
     for r in rv.get('reviews') or []:
+        if r.get('consent') is not True:
+            continue
         miss = [k for k in ('name', 'business', 'city', 'text', 'source_url', 'date') if not r.get(k)]
         if miss:
             raise SystemExit(f'build_landing: review by {r.get("name", "?")} is missing {", ".join(miss)}')
+        out.append(r)
+    return out
+
+
+def review_cards(c, rv):
+    """Real reviews pasted by the owner into reviews.json (approved only); each links to its source."""
+    out = []
+    for r in approved_reviews(rv):
         st = stars(r['rating']) if r.get('rating') else ''
         out.append(f'<figure class="rv rv--real"><div class="rv__head"><span class="rv__av" aria-hidden="true">{esc(r["name"][:1])}</span>'
                    f'<span class="rv__who"><b>{esc(r["name"])}</b><small>{esc(r["business"])} · {esc(r["city"])}</small></span>{st}</div>'
                    f'<blockquote class="rv__body"><p>{esc(r["text"])}</p></blockquote>'
                    f'<p class="rv__src"><a href="{esc(r["source_url"])}" rel="noopener nofollow">Original review</a> · <time datetime="{esc(r["date"])}">{esc(r["date"])}</time></p></figure>')
-    return out
-
-
-def founding_cards(c, rv, href):
-    f = rv['founding']
-    n_max = int(c.tokens['founding_max'] or 0)
-    text = f['text_price'] if c.brand.get('show_founder_price') else f['text']
-    out = []
-    for i in range(1, n_max + 1):
-        c.page['n'] = str(i)
-        out.append(f'<figure class="rv rv--open"><div class="rv__head"><span class="rv__av" aria-hidden="true">{i}</span>'
-                   f'<span class="rv__who"><b>{c.h(f["name"])}</b><small>{c.h(f["sub"])}</small></span>'
-                   f'</div>'
-                   f'<blockquote class="rv__body"><span class="rv__stars rv__stars--empty" aria-hidden="true">★★★★★</span><p>{c.h(text)}</p></blockquote>'
-                   f'<p class="rv__src"><a href="{esc(href)}" data-ev="quote_start">{c.h(f["link"])}</a></p></figure>')
-    c.page.pop('n', None)
     return out
 
 
@@ -444,25 +442,27 @@ def marquee_row(cards, reverse=False):
             f'<div class="rvrow__set">{set1}</div><div class="rvrow__set rvrow__set--copy" aria-hidden="true">{set2}</div></div></div>')
 
 
-def section_reviews(c, key, contents, href, early=False):
+def section_reviews(c, key, contents):
+    """Two sections. 1) "What a call sounds like": sample cards from this page's demo, always shown, labeled Sample
+    (a product demo, not social proof). 2) "What clients say": real reviews, only with >= REVIEWS_MIN approved ones;
+    otherwise omitted entirely (no empty "your review here" placeholders)."""
     rv = c.reviews
-    real = review_cards(c, rv)
+    sm = rv['samples']
     samples = sample_cards(c, [key], contents, rv)  # this page's niche only (on-topic; real estate never says "receptionist")
-    found = [] if early else founding_cards(c, rv, href)
-    row1 = real + samples[0::2]
-    rest = samples[1::2]
-    row2 = []
-    for i in range(max(len(found), len(rest))):
-        if i < len(found):
-            row2.append(found[i])
-        if i < len(rest):
-            row2.append(rest[i])
-    title, lead = (rv['title'], rv['lead']) if real else (rv['title_empty'], rv['lead_empty'])
-    return f'''<section class="section reviews" id="reviews"><div class="wrap">
-<div class="shead shead--c"><p class="eyebrow">{c.h(rv['eyebrow'])}</p><h2>{c.h(title)}</h2><p class="lead">{c.h(lead)}</p></div>
+    out = f'''<section class="section reviews" id="sample-calls"><div class="wrap">
+<div class="shead shead--c"><p class="eyebrow">{c.h(sm['eyebrow'])}</p><h2>{c.h(sm['title'])}</h2><p class="lead">{c.h(sm['lead'])}</p></div>
 </div>
-<div class="rvrows">{marquee_row(row1)}{marquee_row(row2, reverse=True)}</div>
+<div class="rvrows">{marquee_row(samples[0::2])}{marquee_row(samples[1::2], reverse=True)}</div>
 </section>'''
+    real = review_cards(c, rv)
+    if len(real) >= REVIEWS_MIN:
+        out += f'''
+<section class="section reviews" id="reviews"><div class="wrap">
+<div class="shead shead--c"><p class="eyebrow">{c.h(rv['eyebrow'])}</p><h2>{c.h(rv['title'])}</h2><p class="lead">{c.h(rv['lead'])}</p></div>
+</div>
+<div class="rvrows">{marquee_row(real)}</div>
+</section>'''
+    return out
 
 
 # ---------------------------------------------------------------- demo
@@ -875,7 +875,7 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
         section_how(c),
         section_after_pay(c),
         section_proof(c),
-        section_reviews(c, key, contents, cta_href, early=early),
+        section_reviews(c, key, contents),
         section_pricing(c, n['pricing'], n['offer'], cta_href, cta_label, early=early, bundle_link=not early, n=n),
     ]
     if early:

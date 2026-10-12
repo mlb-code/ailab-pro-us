@@ -34,6 +34,7 @@ qa-fast: secrets
 	$(PY) tools/pricebook_test.py
 	$(PY) tools/us_setup.py --self-test
 	$(PY) tools/build_landing.py --check
+	$(PY) tools/landing_test.py >/dev/null
 	$(DENO_RUN) tools/build_quote_fixtures.ts --check
 	$(PY) tools/sql_lint.py supabase/migrations
 	$(PY) videos/vo_length.py
