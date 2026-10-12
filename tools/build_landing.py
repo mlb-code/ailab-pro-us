@@ -1,6 +1,6 @@
 """Build the public landing pages from config + content. Stdlib only. Never edit the generated HTML by hand.
 
-Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,dental,website}.json
+Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,dental,website,reviews}.json
 Outputs: site/index.html (home services), site/home-services/, site/real-estate/, site/dental/ (noindex, early access),
          site/website/, site/demo/, site/sitemap.xml, site/robots.txt, site/assets/og/*.png (only with --og or when missing)
 
@@ -109,9 +109,32 @@ class Ctx:
         return re.sub(r'\{([a-z][a-z0-9_]*(?::[A-Z0-9-]+(?:\.[a-z]+)?)?)\}', sub, s)
 
     def h(self, s):
-        """Token-fill + HTML-escape + **bold**."""
+        """Token-fill + HTML-escape + **bold** + *accent word* (italic serif on a brush stroke, base.css .em)."""
         out = html.escape(self.t(s), quote=False)
-        return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', out)
+        out = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', out)
+        return EM_RX.sub(r'<em class="em">\1</em>', out)
+
+    def plain(self, s):
+        """Token-fill, markup stripped (for attributes and meta text)."""
+        return EM_RX.sub(r'\1', re.sub(r'\*\*(.+?)\*\*', r'\1', self.t(s)))
+
+
+EM_RX = re.compile(r'(?<![*\w])\*([^*\n]+?)\*(?![*\w])')
+THEME_VARS = {'ink': '--ink', 'ink_2': '--ink-2', 'ink_3': '--ink-3', 'screen': '--screen', 'paper': '--paper',
+              'violet': '--violet', 'violet_2': '--violet-2', 'violet_deep': '--violet-deep', 'amber': '--amber', 'amber_2': '--amber-2'}
+
+
+def theme_drift(c):
+    """config/brand.json theme must equal the :root values in site/assets/base.css (one palette, two files)."""
+    with open(os.path.join(SITE, 'assets', 'base.css'), encoding='utf-8') as fh:
+        css = fh.read()
+    out = []
+    for k, var in THEME_VARS.items():
+        want = (c.brand.get('theme') or {}).get(k, '')
+        m = re.search(re.escape(var) + r':(#[0-9A-Fa-f]{6})\b', css)
+        if not m or m.group(1).upper() != want.upper():
+            out.append(f'{var} = {m.group(1) if m else "missing"} in base.css, brand.json theme.{k} = {want or "missing"}')
+    return out
 
 
 def money(cents):
@@ -174,7 +197,7 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <!-- {MARK} -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F1A26">
+<meta name="theme-color" content="{esc(c.brand['theme']['ink'])}">
 <meta name="robots" content="{robots}">
 <script>document.documentElement.classList.add('js');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('motion')</script>
 <title>{esc(title)}</title>
@@ -184,7 +207,7 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <meta property="og:title" content="{esc(og_title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:url" content="{esc(canon)}">
 <meta property="og:image" content="{esc(c.site_url + og_image)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F1A26'/%3E%3Cpath d='M16 6l8 10-8 10-8-10z' fill='%23E8A64A'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="/assets/gem-64.png"><link rel="apple-touch-icon" href="/assets/gem-128.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}"></noscript>
@@ -196,31 +219,76 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <a class="skip-link" href="#main">Skip to content</a>'''
 
 
+def brandmark(c):
+    """Diamond gem (from the Israeli site) + wordmark. Decorative image: the link text is the name."""
+    return (f'<a class="brandmark" href="/"><img src="/assets/gem-64.png" alt="" width="28" height="28" decoding="async">'
+            f'{esc(c.brand["name"])}<small>US</small></a>')
+
+
 def nav(c, active, cta=None):
     cta = cta or {'label': 'Get a quote', 'href': '/start/?offer=RCP', 'ev': 'quote_start'}
     links = ''.join(
         f'<a href="{esc(n["href"])}"' + (' aria-current="page"' if n['href'] == active else '') + f'>{esc(n["label"])}</a>'
         for n in c.shared['nav'])
     return f'''<header class="nav"><div class="wrap nav__in">
-<a class="brandmark" href="/">{esc(c.brand['name'])}<small>US</small></a>
+{brandmark(c)}
 <nav class="nav__links" aria-label="Main">{links}<a class="btn btn--primary btn--sm" href="{esc(cta['href'])}"{f' data-ev="{cta["ev"]}"' if cta.get('ev') else ''}{' data-niche-cta' if cta.get('niche_cta') else ''}>{esc(cta['label'])}</a></nav>
 </div></header>'''
 
 
+SOCIAL_ICONS = {
+    'linkedin': ('LinkedIn', '<path d="M6.5 9.5v8M6.5 6.5v.01M10.5 17.5v-4.5a2.5 2.5 0 015 0v4.5M10.5 9.5v8"/>'),
+    'facebook': ('Facebook', '<path d="M14 8h2V5h-2a3 3 0 00-3 3v2H9v3h2v6h3v-6h2l.5-3H14V8.5a.5.5 0 01.5-.5z"/>'),
+    'instagram': ('Instagram', '<rect x="5" y="5" width="14" height="14" rx="4"/><circle cx="12" cy="12" r="3.2"/><path d="M16.2 7.8v.01"/>'),
+    'youtube': ('YouTube', '<rect x="4" y="7" width="16" height="10" rx="3"/><path d="M11 10v4l3.5-2z"/>'),
+    'x': ('X', '<path d="M6 6l12 12M18 6L6 18"/>'),
+}
+
+
 def footer(c, year):
+    """Big footer, same on every generated page: brand + social, 3 link columns, legal column, contact row, legal bar.
+    Copy from _shared.json footer; social URLs, address, email and disclaimer from brand.json."""
     b = c.brand
+    f = c.shared['footer']
     mail = b.get('support_email', '')
-    return f'''<footer class="footer"><div class="wrap">
+    page, c.page = c.page, {}
+
+    def href(h):
+        return h.replace('{support_email}', mail).replace('{video_call}', video_call_href(c))
+
+    def links(ls):
+        return '<ul>' + ''.join(f'<li><a href="{esc(href(x["href"]))}">{c.h(x["label"])}</a></li>' for x in ls) + '</ul>'
+
+    socials = ''.join(
+        f'<a class="footer__social" href="{esc(u)}" rel="noopener" aria-label="{esc(SOCIAL_ICONS[k][0])}">'
+        f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{SOCIAL_ICONS[k][1]}</svg></a>'
+        for k, u in (b.get('social') or {}).items() if k in SOCIAL_ICONS and isinstance(u, str) and u.startswith('https://'))
+    social = f'<div class="footer__socials">{socials}</div>' if socials else f'<p class="small">{c.h(f["social_empty"])}</p>'
+    cols = []
+    for n, col in enumerate(f['columns'], start=2):
+        sub = ''
+        if col.get('sub_links'):
+            sub = f'<p class="footer__sub">{c.h(col["sub_title"])}</p>{links(col["sub_links"])}'
+        cols.append(f'<div class="footer__col"><p class="footer__k">0{n} / {esc(col["title"])}</p><h3 class="footer__h"><em class="em">{c.h(col["title"])}</em></h3>{links(col["links"])}{sub}</div>')
+    contact = []
+    if mail:
+        contact.append(f'<a class="footer__contact" href="mailto:{esc(mail)}"><span class="footer__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M4 7l8 6 8-6"/></svg></span><span><small>Email us</small><b>{esc(mail)}</b></span></a>')
+    if b.get('physical_address'):
+        contact.append(f'<p class="footer__contact"><span class="footer__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></span><span><small>Studio address</small><b>{esc(b["physical_address"])}</b></span></p>')
+    out = f'''<footer class="footer"><div class="wrap">
 <div class="footer__grid">
-<div><a class="brandmark" href="/">{esc(b['name'])}<small>US</small></a>
-<p class="footer__note small">{esc(c.page.get('tagline') or b.get('tagline', ''))}. Fixed prices, everything in writing.</p>
-{f'<p class="small"><a href="mailto:{esc(mail)}">{esc(mail)}</a></p>' if mail else ''}</div>
-<div><h4>Products</h4><ul><li><a href="/">Home services</a></li><li><a href="/real-estate/">Real estate</a></li><li><a href="/website/">Business website</a></li><li><a href="/demo/">Try the demo</a></li></ul></div>
-<div><h4>Legal</h4><ul><li><a href="/legal/terms/">Terms of Service</a></li><li><a href="/legal/privacy/">Privacy Policy</a></li><li><a href="/legal/service-agreement/">Service Agreement</a></li></ul></div>
+<div class="footer__col footer__brand"><p class="footer__k">01 / Social</p><h3 class="footer__h">{c.h(f["social_title"])}</h3>{social}
+{brandmark(c)}
+<p class="footer__note small">{esc(page.get('tagline') or b.get('tagline', ''))}. {c.h(f["note"])}</p>
+<p class="footer__studio small">{c.h(f["studio"])}</p></div>
+{''.join(cols)}
 </div>
+<div class="footer__row">{''.join(contact)}</div>
 <div class="footer__legal"><span>&copy; {year} {esc(b['name'])}</span><span>{esc(b['disclaimers']['footer'])}</span><span>Claude is a trademark of Anthropic, PBC.</span></div>
 </div></footer>
 <script src="/assets/landing.js" defer></script>'''
+    c.page = page
+    return out
 
 
 def price_line(c, code, tag):
@@ -280,6 +348,121 @@ def section_missed(c, steps, sms_note=True):
 <div class="shead"><p class="eyebrow">{c.h(m['eyebrow'])}</p><h2>{c.h(m['title'])}</h2></div>
 <ol class="steps3">{lis}</ol>{note}
 </div></section>'''
+
+
+def section_why(c):
+    """Dark "why" block on a square grid: three cited stats (number, label, line, source under each card). Numbers count
+    up once in view (landing.js, motion only); the final value is always the DOM text."""
+    w = c.shared['why']
+    cards = []
+    for s_ in w['stats']:
+        if not (s_.get('source') and s_.get('source_url', '').startswith('https://')):
+            raise SystemExit('build_landing: every why.stats entry needs source + https source_url (no uncited numbers)')
+        cards.append(f'<li class="stat"><p class="stat__num num" data-count>{esc(s_["num"])}</p><h3>{c.h(s_["label"])}</h3>'
+                     f'<p>{c.h(s_["text"])}</p><p class="stat__src">Source: <a href="{esc(s_["source_url"])}" rel="noopener nofollow">{esc(s_["source"])}</a></p></li>')
+    return f'''<section class="section why" id="why"><div class="wrap">
+<div class="shead shead--c"><p class="eyebrow">{c.h(w['eyebrow'])}</p><h2>{c.h(w['title'])}</h2><p class="lead">{c.h(w['lead'])}</p></div>
+<ul class="stats">{''.join(cards)}</ul>
+<p class="why__pill"><span class="why__dots" aria-hidden="true"><i></i><i></i><i></i></span>{c.h(w['pill'])}</p>
+</div></section>'''
+
+
+def sample_cards(c, keys, contents, rv):
+    """Two honest "Sample" cards per demo scenario: the first exchange, and the booking confirmation (from the scripted demo)."""
+    out = []
+    for k in keys:
+        d = contents[k]['demo']
+        for scn in d['scenarios']:
+            path = demo_paths(scn)[0]
+            first = path[0]
+            reply = scn['nodes'][first['next']].get('bot', [''])[0]
+            vars_ = {}
+            for ch in path:
+                vars_.update(ch.get('set', {}))
+            done = next(n for n in scn['nodes'].values() if n.get('booked'))
+            final = fill_vars((done.get('bot') or [''])[0], vars_)
+            ai = c.t(rv['assistant'])
+            for lines in ([(rv['caller'], first['say']), (ai, fill_vars(reply, vars_))], [(ai, final)]):
+                if not lines[-1][1]:
+                    continue
+                body = ''.join(f'<p><span class="rv__k">{esc(w)}</span>{esc(t)}</p>' for w, t in lines)
+                out.append(f'<figure class="rv rv--sample"><div class="rv__head"><span class="rv__av" aria-hidden="true">{esc(d["business"][:1])}</span>'
+                           f'<span class="rv__who"><b>{esc(d["business"])}</b><small>{esc(rv["sample_sub"])} · {esc(scn["label"])}</small></span>'
+                           f'<span class="rv__tag">{esc(rv["sample_tag"])}</span></div><blockquote class="rv__body">{body}</blockquote></figure>')
+    return out
+
+
+def stars(n):
+    n = max(0, min(5, int(n)))
+    return f'<span class="rv__stars" role="img" aria-label="{n} out of 5 stars">' + '★' * n + f'<i>{"★" * (5 - n)}</i></span>'
+
+
+def review_cards(c, rv):
+    """Real reviews pasted by the owner into reviews.json. Rendered only when present; each links to its source."""
+    out = []
+    for r in rv.get('reviews') or []:
+        miss = [k for k in ('name', 'business', 'city', 'text', 'source_url', 'date') if not r.get(k)]
+        if miss:
+            raise SystemExit(f'build_landing: review by {r.get("name", "?")} is missing {", ".join(miss)}')
+        st = stars(r['rating']) if r.get('rating') else ''
+        out.append(f'<figure class="rv rv--real"><div class="rv__head"><span class="rv__av" aria-hidden="true">{esc(r["name"][:1])}</span>'
+                   f'<span class="rv__who"><b>{esc(r["name"])}</b><small>{esc(r["business"])} · {esc(r["city"])}</small></span>{st}</div>'
+                   f'<blockquote class="rv__body"><p>{esc(r["text"])}</p></blockquote>'
+                   f'<p class="rv__src"><a href="{esc(r["source_url"])}" rel="noopener nofollow">Original review</a> · <time datetime="{esc(r["date"])}">{esc(r["date"])}</time></p></figure>')
+    return out
+
+
+def founding_cards(c, rv, href):
+    f = rv['founding']
+    n_max = int(c.tokens['founding_max'] or 0)
+    text = f['text_price'] if c.brand.get('show_founder_price') else f['text']
+    out = []
+    for i in range(1, n_max + 1):
+        c.page['n'] = str(i)
+        out.append(f'<figure class="rv rv--open"><div class="rv__head"><span class="rv__av" aria-hidden="true">{i}</span>'
+                   f'<span class="rv__who"><b>{c.h(f["name"])}</b><small>{c.h(f["sub"])}</small></span>'
+                   f'</div>'
+                   f'<blockquote class="rv__body"><span class="rv__stars rv__stars--empty" aria-hidden="true">★★★★★</span><p>{c.h(text)}</p></blockquote>'
+                   f'<p class="rv__src"><a href="{esc(href)}" data-ev="quote_start">{c.h(f["link"])}</a></p></figure>')
+    c.page.pop('n', None)
+    return out
+
+
+def marquee_row(cards, reverse=False):
+    """One marquee row. Set 1 holds every card once (plus aria-hidden repeats up to 6, so it is wider than the screen);
+    set 2 is an inert copy for the seamless loop. No motion / no JS: a plain horizontal scroller, copies hidden."""
+    if not cards:
+        return ''
+    reps = []
+    while len(cards) + len(reps) < 6:
+        reps.append(cards[len(reps) % len(cards)])
+    hidden = lambda h: h.replace('<figure class="rv', '<figure aria-hidden="true" inert class="rv is-copy', 1).replace('<a href=', '<a tabindex="-1" href=')
+    set1 = ''.join(cards) + ''.join(hidden(x) for x in reps)
+    set2 = ''.join(hidden(x) for x in cards + reps)
+    n = len(cards) + len(reps)
+    return (f'<div class="rvrow{" rvrow--rev" if reverse else ""}" style="--n:{n}"><div class="rvrow__track">'
+            f'<div class="rvrow__set">{set1}</div><div class="rvrow__set rvrow__set--copy" aria-hidden="true">{set2}</div></div></div>')
+
+
+def section_reviews(c, key, contents, href, early=False):
+    rv = c.reviews
+    real = review_cards(c, rv)
+    samples = sample_cards(c, [key], contents, rv)  # this page's niche only (on-topic; real estate never says "receptionist")
+    found = [] if early else founding_cards(c, rv, href)
+    row1 = real + samples[0::2]
+    rest = samples[1::2]
+    row2 = []
+    for i in range(max(len(found), len(rest))):
+        if i < len(found):
+            row2.append(found[i])
+        if i < len(rest):
+            row2.append(rest[i])
+    title, lead = (rv['title'], rv['lead']) if real else (rv['title_empty'], rv['lead_empty'])
+    return f'''<section class="section reviews" id="reviews"><div class="wrap">
+<div class="shead shead--c"><p class="eyebrow">{c.h(rv['eyebrow'])}</p><h2>{c.h(title)}</h2><p class="lead">{c.h(lead)}</p></div>
+</div>
+<div class="rvrows">{marquee_row(row1)}{marquee_row(row2, reverse=True)}</div>
+</section>'''
 
 
 # ---------------------------------------------------------------- demo
@@ -579,7 +762,7 @@ def faq_items(c, faq):
 def section_faq(faqs):
     items = ''.join(f'<details><summary>{esc(q)}</summary><div><p>{esc(a)}</p></div></details>' for q, a in faqs)
     return f'''<section class="section" id="faq"><div class="wrap">
-<div class="shead"><p class="eyebrow">FAQ</p><h2>Straight answers.</h2></div>
+<div class="shead"><p class="eyebrow">FAQ</p><h2>Straight <em class="em">answers</em>.</h2></div>
 <div class="faq">{items}</div>
 </div></section>'''
 
@@ -685,12 +868,14 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
 </div>
 {clock(c, n['clock'], 'A missed call becomes a booking', n.get('demo'))}
 </div></section>''',
+        section_why(c),
         section_missed(c, n['missed_steps']),
         section_demo(c, key, contents, '#early-access' if early else cta_href, 'Join early access' if early else cta_label),
         section_included(c, key, n['included'], n),
         section_how(c),
         section_after_pay(c),
         section_proof(c),
+        section_reviews(c, key, contents, cta_href, early=early),
         section_pricing(c, n['pricing'], n['offer'], cta_href, cta_label, early=early, bundle_link=not early, n=n),
     ]
     if early:
@@ -742,7 +927,7 @@ def website_page(c, w, year):
 <ol class="pagelist">{pages}</ol>
 </div></section>''',
         f'''<section class="section" id="included"><div class="wrap">
-<div class="shead"><p class="eyebrow">What's included</p><h2>Built, hosted and kept up to date.</h2></div>
+<div class="shead"><p class="eyebrow">What's included</p><h2>Built, hosted and kept up to <em class="em">date</em>.</h2></div>
 <div class="incl"><div><h3>{esc(c.items['WEB']['name'])}</h3><ul class="ticks">{inc_web}</ul>
 <details class="more"><summary>Not included</summary><ul class="ticks ticks--no">{exc_web}</ul></details></div>
 <div>{addons_table(c, 'WEB')}<p class="small muted" style="margin-top:12px">Choosing an add-on adds a short written quote step.</p></div></div>
@@ -750,7 +935,7 @@ def website_page(c, w, year):
         section_how(c, w['how']),
         section_proof(c, w['proof_rows']),
         f'''<section class="section" id="pricing"><div class="wrap">
-<div class="shead"><p class="eyebrow">Pricing</p><h2>Pick one. The price is final.</h2></div>
+<div class="shead"><p class="eyebrow">Pricing</p><h2>Pick one. The price is <em class="em">final</em>.</h2></div>
 <div class="pricing">{price_card(c, 'WEB', href_web, 'Choose this package')}
 <div class="bundle" id="bundle"><span class="badge">{esc('BNDL')}</span><h3>{c.h(w['bundle']['title'])}</h3><p>{c.h(w['bundle']['text'])}</p>
 <div class="price-card__amount"><b>{money(b['setup_cents'])}</b><span>setup</span><b>{money(b['monthly_cents'])}</b><span>/ month</span></div>
@@ -778,7 +963,7 @@ def demo_page(c, contents, year):
         head(c, title=title, desc=desc, path=path, og_image='/assets/og/home-services.png', og_title='Try the AI receptionist', jsonld=ld),
         nav(c, path, {'label': 'Get a quote', 'href': cta0, 'ev': 'quote_start', 'niche_cta': True}), '<main id="main">',
         f'''<section class="section" id="demo"><div class="wrap">
-<div class="shead"><p class="eyebrow">Demo</p><h1 style="font-size:clamp(2.1rem,5vw,3.6rem)">Be the customer. Tap the replies.</h1>
+<div class="shead"><p class="eyebrow">Demo</p><h1 style="font-size:clamp(2.1rem,5vw,3.6rem)">Be the <em class="em">customer</em>. Tap the replies.</h1>
 <p class="lead">This is what a caller gets after a missed call: a text from your AI assistant, a few quick questions, and a booked slot. Scripted, in your browser. {esc(c.brand['disclaimers']['demo'])}.</p>
 <p class="hero__price"><b class="num">{money(i0['setup_cents'])}</b> setup <span class="plus">+</span> <b class="num">{money(i0['monthly_cents'])}</b>/mo<span class="tag"><span data-demo-product>{esc(n0.get('product_name') or i0['name'])}</span> · fixed price, in writing</span></p></div>
 {demo_widget(c, PUBLIC_DEMO_NICHES, contents, cta_href=cta0, cta_label='Get my fixed quote', switcher=True)}
@@ -801,24 +986,30 @@ def robots(c):
 
 # ---------------------------------------------------------------- OG images
 OG_HTML = '''<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="{font}">
-<style>*{{margin:0;box-sizing:border-box}}body{{width:1200px;height:630px;background:#0F1A26;color:#EFE7D8;font-family:'Noto Sans',sans-serif;padding:72px 80px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}}
-body:before{{content:"";position:absolute;right:-180px;bottom:-260px;width:760px;height:760px;border-radius:50%;background:radial-gradient(closest-side,rgba(232,166,74,.18),transparent 70%)}}
-.k{{font-family:'Space Mono',monospace;font-size:22px;letter-spacing:.16em;text-transform:uppercase;color:#E8A64A}}
-h1{{font-family:'Noto Serif',serif;font-size:76px;line-height:1.03;font-weight:700;font-variation-settings:"wdth" 82;max-width:960px}}
-.p{{font-size:30px;color:rgba(239,231,216,.75)}}.p b{{font-family:'Noto Serif',serif;color:#E8A64A;font-size:48px}}
-.f{{display:flex;justify-content:space-between;align-items:baseline;font-family:'Noto Serif',serif;font-size:30px;font-weight:700}}.f small{{font-family:'Space Mono',monospace;font-size:18px;color:rgba(239,231,216,.6);font-weight:400}}</style></head>
-<body><div class="k">{kicker}</div><h1>{title}</h1><div class="f"><div class="p"><b>{setup}</b> setup + <b>{monthly}</b>/mo</div><span>{brand} <small>{note}</small></span></div></body></html>'''
+<style>*{{margin:0;box-sizing:border-box}}body{{width:1200px;height:630px;background:{ink};color:{paper};font-family:'Noto Sans',sans-serif;padding:72px 80px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}}
+body:before{{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(242,240,247,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(242,240,247,.06) 1px,transparent 1px);background-size:60px 60px;-webkit-mask-image:radial-gradient(70% 90% at 80% 20%,#000,transparent)}}
+body:after{{content:"";position:absolute;right:-200px;top:-260px;width:820px;height:820px;border-radius:50%;background:radial-gradient(closest-side,{deep}66,transparent 70%)}}
+body>*{{position:relative;z-index:1}}
+.k{{font-family:'Space Mono',monospace;font-size:22px;letter-spacing:.16em;text-transform:uppercase;color:{violet2}}}
+h1{{font-size:78px;line-height:1.0;font-weight:800;letter-spacing:-.045em;font-variation-settings:"wdth" 86;max-width:980px}}
+.p{{font-size:30px;color:rgba(242,240,247,.75)}}.p b{{font-family:'Noto Serif',serif;color:{amber};font-size:48px}}
+.f{{display:flex;justify-content:space-between;align-items:center}}.b{{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:800;letter-spacing:-.02em}}.b img{{width:56px;height:56px}}.b small{{font-family:'Space Mono',monospace;font-size:18px;color:{violet2};font-weight:400;letter-spacing:.2em}}</style></head>
+<body><div class="k">{kicker}</div><h1>{title}</h1><div class="f"><div class="p"><b>{setup}</b> setup + <b>{monthly}</b>/mo</div><span class="b"><img src="{gem}" alt="">{brand} <small>US</small></span></div></body></html>'''
 
 
 def render_og(c, specs):
     out_dir = os.path.join(SITE, 'assets', 'og')
     os.makedirs(out_dir, exist_ok=True)
     jobs = []
+    import base64
+    with open(os.path.join(SITE, 'assets', 'gem-128.png'), 'rb') as fh:
+        gem = 'data:image/png;base64,' + base64.b64encode(fh.read()).decode()
     for slug, kicker, title, code in specs:
         i = c.items[code]
-        doc = OG_HTML.format(font=esc(c.brand['fonts']['google_css']), kicker=esc(kicker), title=esc(title),
+        th = c.brand['theme']
+        doc = OG_HTML.format(font=esc(c.brand['fonts']['google_css']), kicker=esc(kicker), title=esc(c.plain(title)),
                              setup=money(i['setup_cents']), monthly=money(i['monthly_cents']), brand=esc(c.brand['name']),
-                             note='Fixed price')
+                             gem=gem, ink=th['ink'], paper=th['paper'], deep=th['violet_deep'], violet2=th['violet_2'], amber=th['amber'])
         jobs.append({'html': doc, 'out': os.path.join(out_dir, f'{slug}.png')})
     script = r'''
 import { chromium } from 'playwright';
@@ -871,6 +1062,7 @@ def build(c):
     for k, n in contents.items():
         validate_demo(k, n['demo'])
     website = load(os.path.join(CONTENT, 'website.json'))
+    c.reviews = load(os.path.join(CONTENT, 'reviews.json'))
     year = c.pb.get('updated', '2026')[:4]
     pages = {
         'index.html': niche_page(c, 'home_services', contents, path='/', year=year),
@@ -900,6 +1092,9 @@ def main(argv):
     legal = stamp_legal(c)
     if '--check' in argv:
         bad = 0
+        for d in theme_drift(c):
+            bad += 1
+            print('THEME  ' + d)
         for rel, text in legal.items():
             if open(os.path.join(SITE, rel), encoding='utf-8').read() != text:
                 bad += 1
@@ -923,6 +1118,9 @@ def main(argv):
             with open(p, 'w', encoding='utf-8') as fh:
                 fh.write(text)
             print(f'stamped site/{rel}')
+    drift = theme_drift(c)
+    if drift:
+        raise SystemExit('build_landing: theme drift between config/brand.json and base.css:\n  ' + '\n  '.join(drift))
     for rel, text in pages.items():
         p = os.path.join(SITE, rel)
         os.makedirs(os.path.dirname(p), exist_ok=True)

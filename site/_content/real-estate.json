@@ -13,7 +13,7 @@
   },
   "hero": {
     "eyebrow": "AI lead response · agents · teams · brokerages",
-    "title": "Never miss a buyer or seller call.",
+    "title": "Never miss a *buyer* or seller call.",
     "lead": "Instant text-back, lead screening (buying or selling, area, timeline, pre-approval) and booking into your calendar, synced to Follow Up Boss via Zapier. Even when you're at a showing.",
     "fine": "No sales calls. Fixed quote in writing {quote_sla}."
   },
@@ -62,7 +62,7 @@
   ],
   "demo": {
     "eyebrow": "Try it",
-    "title": "Be the caller. See what your leads would get.",
+    "title": "Be the *caller*. See what your leads would get.",
     "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
     "business": "Jenna Harper · Maple & Main Realty",
     "business_line": "Austin, TX",
@@ -437,12 +437,12 @@
   },
   "included": {
     "eyebrow": "What's included",
-    "title": "One price. Every lead gets screened and booked.",
+    "title": "One price. Every lead gets *screened* and booked.",
     "tools_title": "Works with your tools"
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "title": "The price is on the page.",
+    "title": "The price is on the *page*.",
     "note": "Team with several lines? Each extra line is a fixed-price add-on, listed below."
   },
   "faq": [

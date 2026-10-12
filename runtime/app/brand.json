@@ -103,6 +103,27 @@
   "fonts": {
     "google_css": "https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap"
   },
+  "theme": {
+    "$comment": "Design tokens (design v2, 2026-10-12): near-black ink + violet accent, amber only for prices and numbers. site/assets/base.css :root must use these exact values (tools/build_landing.py --check verifies). AA contrast checked: fg 17.3:1, fg-3 6.0:1+, violet text 5.4:1+ on every surface, ink on violet 6.5:1, amber 8.9:1+.",
+    "ink": "#0C0C10",
+    "ink_2": "#15151C",
+    "ink_3": "#1E1E29",
+    "screen": "#09090C",
+    "paper": "#F2F0F7",
+    "violet": "#9583FF",
+    "violet_2": "#AE9FFF",
+    "violet_deep": "#5B45E6",
+    "amber": "#F2B256",
+    "amber_2": "#F7C77A"
+  },
+  "social": {
+    "$comment": "Public profile URLs for the footer. Empty = not shown. Fill in only real profiles.",
+    "linkedin": "",
+    "facebook": "",
+    "instagram": "",
+    "youtube": "",
+    "x": ""
+  },
   "show_founder_price": true,
   "quote_sla_text": "within 1 business day",
   "business_days_text": "Sunday–Thursday, Israel time",

@@ -1,5 +1,5 @@
 {
-  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit}, {refund}, {days:CODE}, {usage_voice}, {usage_sms}, {overage_pct}, {cancel_days}, {bundle_save_setup}, {bundle_save_monthly}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {business_days}, {refund_label}, {guarantee}, {guarantee_label}, {guarantee_body}, {guarantee_days}, {founding_label}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here.",
+  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit}, {refund}, {days:CODE}, {usage_voice}, {usage_sms}, {overage_pct}, {cancel_days}, {bundle_save_setup}, {bundle_save_monthly}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {business_days}, {refund_label}, {guarantee}, {guarantee_label}, {guarantee_body}, {guarantee_days}, {founding_label}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here. Markup: **bold**; *word* = the accent word (italic serif on a violet brush stroke), at most one per heading.",
   "worked_with_fallback": "Worked with Samsung and Haier in {country} (through their local distributor)",
   "nav": [
     {
@@ -21,7 +21,7 @@
   ],
   "how": {
     "eyebrow": "How it works",
-    "title": "From first click to live. No phone calls.",
+    "title": "From first click to *live*. No phone calls.",
     "lead": "Everything happens in writing, on your schedule. You can stop at any step.",
     "steps": [
       {
@@ -49,7 +49,7 @@
   },
   "proof": {
     "eyebrow": "Why owners trust it",
-    "title": "Small studio. Fixed prices. Everything in writing.",
+    "title": "Small studio. Fixed prices. Everything in *writing*.",
     "rows": [
       {
         "k": "Built with Claude",
@@ -112,12 +112,12 @@
     }
   },
   "cta_band": {
-    "title": "Get your fixed quote. No call needed.",
+    "title": "Get your *fixed* quote. No call needed.",
     "text": "A 6-minute questionnaire. A written quote {quote_sla}."
   },
   "missed": {
     "eyebrow": "What happens to a missed call",
-    "title": "The caller doesn't wait. Your {assistant} doesn't either."
+    "title": "The caller doesn't wait. Your *{assistant}* doesn't either."
   },
   "usage_text_fallback": "{usage_voice} minutes + {usage_sms} texts included every month. We alert you at 80%. No surprise charges: extra usage is added only if you approve it.",
   "sms_note": "Text-back starts after US carrier registration (A2P 10DLC), typically 1–2 weeks. Voice answering starts right away.",
@@ -126,7 +126,7 @@
   },
   "after_pay": {
     "eyebrow": "What happens after you pay",
-    "title": "Five steps, with dates.",
+    "title": "Five steps, with *dates*.",
     "lead": "Day 0 is the day your deposit arrives. Business days.",
     "steps": [
       {
@@ -165,5 +165,155 @@
     "title": "Prefer to talk first?",
     "text": "It's optional.",
     "link": "Book a 15-minute video call"
+  },
+  "why": {
+    "$comment": "Dark stat section after the hero. Only cited numbers: each stat needs source + source_url (verified 2026-10-12). Never invent a number.",
+    "eyebrow": "Why it matters",
+    "title": "Your customers would rather *text*. Most businesses never text back.",
+    "lead": "A missed call is usually followed by a text, or by a call to the next company on the list.",
+    "stats": [
+      {
+        "num": "84%",
+        "label": "Already say yes to texts",
+        "text": "of US consumers have opted in to receive texts from businesses.",
+        "source": "SimpleTexting 2025 survey of 1,000 US consumers (Dec 2024)",
+        "source_url": "https://simpletexting.com/2025-texting-and-sms-marketing-statistics/"
+      },
+      {
+        "num": "71%",
+        "label": "Want to text back",
+        "text": "of consumers want to be able to text a business back.",
+        "source": "SimpleTexting 2025 survey of 1,000 US consumers (Dec 2024)",
+        "source_url": "https://simpletexting.com/2025-texting-and-sms-marketing-statistics/"
+      },
+      {
+        "num": "53%",
+        "label": "Got no reply",
+        "text": "of US consumers have texted a business and never got a reply.",
+        "source": "Textmagic survey of 1,800 US consumers (Mar 2025)",
+        "source_url": "https://textmagic.com/blog/consumer-sms-survey"
+      }
+    ],
+    "pill": "Your {assistant} answers, texts back and books. Every time."
+  },
+  "footer": {
+    "$comment": "Footer columns (all pages from tools/build_landing.py). Social links come from config/brand.json social (empty = hidden). Address, email and disclaimer come from brand.json.",
+    "note": "Fixed prices, everything in writing.",
+    "studio": "Built with Claude — independent studio.",
+    "social_title": "Follow *us*",
+    "social_empty": "Social profiles coming soon. Email is the fastest way to reach us.",
+    "columns": [
+      {
+        "title": "Company",
+        "links": [
+          {
+            "label": "Who is behind this",
+            "href": "/#trust"
+          },
+          {
+            "label": "How it works",
+            "href": "/#how"
+          },
+          {
+            "label": "After you pay",
+            "href": "/#after-you-pay"
+          },
+          {
+            "label": "FAQ",
+            "href": "/#faq"
+          },
+          {
+            "label": "Contact",
+            "href": "mailto:{support_email}"
+          }
+        ]
+      },
+      {
+        "title": "Resources",
+        "links": [
+          {
+            "label": "Try the demo",
+            "href": "/demo/"
+          },
+          {
+            "label": "Pricing",
+            "href": "/#pricing"
+          },
+          {
+            "label": "Book a video call",
+            "href": "{video_call}"
+          },
+          {
+            "label": "Get a fixed quote",
+            "href": "/start/?offer=RCP"
+          },
+          {
+            "label": "Client login",
+            "href": "/start/"
+          }
+        ]
+      },
+      {
+        "title": "Products",
+        "links": [
+          {
+            "label": "Missed-call AI: home services",
+            "href": "/"
+          },
+          {
+            "label": "Lead AI: real estate",
+            "href": "/real-estate/"
+          },
+          {
+            "label": "Dental (early access)",
+            "href": "/dental/"
+          },
+          {
+            "label": "Business website",
+            "href": "/website/"
+          },
+          {
+            "label": "Website + AI bundle",
+            "href": "/website/#bundle"
+          }
+        ],
+        "sub_title": "Use cases",
+        "sub_links": [
+          {
+            "label": "Missed-call text back",
+            "href": "/#how-it-answers"
+          },
+          {
+            "label": "After-hours answering",
+            "href": "/#how-it-answers"
+          },
+          {
+            "label": "Appointment booking",
+            "href": "/#demo"
+          },
+          {
+            "label": "Lead screening for agents",
+            "href": "/real-estate/#demo"
+          }
+        ]
+      },
+      {
+        "title": "Legal",
+        "links": [
+          {
+            "label": "Terms of Service",
+            "href": "/legal/terms/"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "/legal/privacy/"
+          },
+          {
+            "label": "Service Agreement",
+            "href": "/legal/service-agreement/"
+          }
+        ]
+      }
+    ]
   }
 }

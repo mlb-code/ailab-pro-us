@@ -14,7 +14,7 @@
   },
   "hero": {
     "eyebrow": "Early access · dental practices",
-    "title": "The front desk is busy. New patients still get booked.",
+    "title": "The front desk is busy. New patients still get *booked*.",
     "lead": "Your AI receptionist answers the calls your team can't, texts back anyone who hangs up, and books new-patient and urgent visits into your calendar. It collects only a name, a phone number and a general reason for the visit.",
     "fine": "Early access: we're onboarding a small number of practices after a legal review. Join the list and we'll email you."
   },
@@ -63,7 +63,7 @@
   ],
   "demo": {
     "eyebrow": "Try it",
-    "title": "Be the patient. See what your callers would get.",
+    "title": "Be the *patient*. See what your callers would get.",
     "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
     "business": "Fernhollow Dental",
     "business_line": "Scottsdale, AZ",
@@ -411,17 +411,17 @@
   },
   "included": {
     "eyebrow": "What's included",
-    "title": "Planned scope for early-access practices.",
+    "title": "Planned scope for *early-access* practices.",
     "tools_title": "Calendars and systems"
   },
   "pricing": {
     "eyebrow": "Expected pricing",
-    "title": "The same fixed price. No surprises later.",
+    "title": "The same *fixed* price. No surprises later.",
     "note": "Practice management systems such as Dentrix or Open Dental, and any HIPAA BAA request, get a custom quote."
   },
   "early": {
     "eyebrow": "Early access",
-    "title": "Join the early-access list.",
+    "title": "Join the *early-access* list.",
     "text": "We're finishing a legal review for dental practices. Leave your email and we'll write when we can take your practice. No calls, no spam.",
     "button": "Join early access",
     "ok": "Thanks. You're on the list. We'll email you.",
