@@ -10,12 +10,12 @@ const post = (body: unknown, ip = "203.0.113.5", origin = BRAND.site_url) =>
 Deno.test("lead: stores valid lead + lead_received event; honeypot, bad input, rate limit, duplicate e-mail", async () => {
   const store = new MemoryLeadStore();
   const h = makeHandler({ store: () => store });
-  const ok = await h(post({ email: " Dana@Example.com ", company: "Smile <b>Co</b>", city: "Austin, TX", niche: "dental", source_page: "/dental/",
+  const ok = await h(post({ email: " Dana@Example.com ", company: "Smile <b>Co</b>", city: "Austin, TX", niche: "real_estate", source_page: "/real-estate/",
     utm: { utm_source: "upwork", "bad key!": "x" } }));
   eq([ok.status, await ok.json()], [200, { ok: true, stored: true }]);
   eq(ok.headers.get("access-control-allow-origin"), BRAND.site_url.replace(/\/$/, ""));
   const r = store.rows[0];
-  eq([r.email, r.niche, r.source_page, r.utm], ["dana@example.com", "dental", "/dental/", { utm_source: "upwork" }]);
+  eq([r.email, r.niche, r.source_page, r.utm], ["dana@example.com", "real_estate", "/real-estate/", { utm_source: "upwork" }]);
   assert(/^[0-9a-f]{64}$/.test(r.ip_hash) && !r.ip_hash.includes("203"), "ip hashed");
   eq(store.events[0].payload.company, "Smile b Co /b", "markup neutralised");
   eq(store.events[0].type, "lead_received");
@@ -23,6 +23,7 @@ Deno.test("lead: stores valid lead + lead_received event; honeypot, bad input, r
   eq((await (await h(post({ email: "bot@example.com", website: "http://spam" }))).json()).stored, false, "honeypot");
   eq((await h(post({ email: "not-an-email" }))).status, 400);
   eq((await h(post({ email: "a@b.co", niche: "law" }))).status, 400, "law niche removed");
+  eq((await h(post({ email: "a@b.co", niche: "dental" }))).status, 400, "retired niche (2026-10-12) rejected");
   eq((await h(new Request("http://x/", { method: "GET" }))).status, 405);
   eq((await h(post({ email: "x".repeat(5000) + "@a.co" }))).status, 413);
   eq((await (await h(post({ email: "dana@example.com" }))).json()).stored, false, "same e-mail within 10 min: no new row");

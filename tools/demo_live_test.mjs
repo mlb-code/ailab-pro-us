@@ -1,8 +1,7 @@
 // B8: live chat demo in the browser, against a runtime in sim mode (mock brain) or a dead URL.
 //
 // usage: node tools/demo_live_test.mjs --live http://localhost:8961 [baseUrl=http://localhost:8901] [--engine chromium|webkit|firefox]
-//        --live <up runtime>  : live box appears on live niches, a typed conversation books (mock brain), dental stays
-//                               scripted, and a failing /demo/chat (abort, 503 budget, 429 limit) shows
+//        --live <up runtime>  : live box appears on live niches, a typed conversation books (mock brain), and a failing /demo/chat (abort, 503 budget, 429 limit) shows
 //                               "Live demo paused" and the scripted demo then completes to "booked".
 //        --live http://localhost:9 (dead): no live box, scripted paths still complete, no console errors.
 // Start first:  PORT=8901 sh tools/serve.sh   and   (cd runtime && .venv/bin/python -m sim serve --port 8961)
@@ -94,15 +93,7 @@ if (up) {
     check(!errors.length, '/demo/ console errors: ' + errors.slice(0, 3).join(' | '));
     await ctx.close();
   }
-  // 2. dental: scripted only
-  {
-    const { ctx, page, errors } = await open('/dental/');
-    check(!(await page.locator('[data-demo-live]').isVisible()), '/dental/ has no live box');
-    await scriptedToBooked(page, '/dental/ scripted');
-    check(!errors.length, '/dental/ console errors: ' + errors.join(' | '));
-    await ctx.close();
-  }
-  // 3. failures mid-conversation -> "Live demo paused" + scripted demo completes
+  // 2. failures mid-conversation -> "Live demo paused" + scripted demo completes
   for (const [name, fulfil] of [
     ['abort', r => r.abort()],
     ['budget 503', r => r.fulfill({ status: 503, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': base }, body: '{"paused":true,"reason":"budget"}' })],

@@ -123,7 +123,7 @@ Depending on where you live (for example California under the CCPA as amended by
 
 ## 11. Health and other sensitive information
 
-Our services are not designed to collect health, financial-account or government-ID information. We do not act as a HIPAA business associate unless we have signed a written Business Associate Agreement with the client. Until then, the services are not available to HIPAA covered entities (such as dental and medical practices), and clients must not use them for protected health information. For dental practices we currently run an early-access email list only. It collects the practice's business contact details and no patient information.
+Our services are not designed to collect health, financial-account or government-ID information. We do not act as a HIPAA business associate unless we have signed a written Business Associate Agreement with the client. Until then, the services are not available to HIPAA covered entities (such as dental and medical practices), and clients must not use them for protected health information.
 
 ## 12. Children
 

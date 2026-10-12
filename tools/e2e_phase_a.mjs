@@ -96,7 +96,7 @@ async function run(browser, width) {
   // ---------------------------------------------------------------- landing → sign-in → RCP questionnaire
   await goto('/start/?mock=1'); await page.evaluate(() => window.StartMock.admin.reset());
   // every public page: no unresolved {template} tokens from tools/build_landing.py in the visible text
-  for (const u of ['/', '/home-services/', '/real-estate/', '/website/', '/demo/', '/dental/', '/legal/terms/', '/legal/privacy/', '/legal/service-agreement/']) {
+  for (const u of ['/', '/home-services/', '/real-estate/', '/website/', '/demo/', '/legal/terms/', '/legal/privacy/', '/legal/service-agreement/']) {
     await goto(u);
     const raw = await page.evaluate(() => [...new Set(document.body.innerText.match(/\{[a-z_][a-z0-9_:.\-]*\}/gi) || [])]);
     ok(raw.length === 0, u + ': no unresolved template tokens' + (raw.length ? ' (' + raw.join(' ') + ')' : ''));

@@ -1,6 +1,6 @@
 // Quote engine core, independent of HTTP: draft (questionnaire -> Claude codes + text -> priced draft),
 // public view, accept (e-signature-lite), send gate, expiring reminders. Every function takes its Store and clock.
-import { BRAND, PRICEBOOK } from "./config.ts";
+import { BRAND, OFFERED_NICHES, PRICEBOOK } from "./config.ts";
 import { QUOTE_MODEL, type QuoteModel } from "./claude.ts";
 import { customLabel, quoteHints, type Hints } from "./hints.ts";
 import { allowedCodes, outputSchema, SYSTEM_PROMPT, userPrompt } from "./quote_prompt.ts";
@@ -140,7 +140,6 @@ export function planItems(pb: Pricebook, q: { offer: string | null; niche: strin
   // reasons for Meir only (quote_reviews): attach Claude's per-code reason where code matches
   for (const l of lines) if (!l.reason) l.reason = out.items.find((i) => i.code === l.code)?.reason;
   const reasons = lines.map((l) => ({ code: l.code, label: l.label ?? null, source: l.source ?? null, reason: (l.reason ?? "").slice(0, 400) }));
-  if ((q.niche ?? q.answers.niche) === "dental") manual.push("dental_early_access");
   if (hints.notes.includes("consider ADD-RUSH")) flags.push("client_wants_asap: consider ADD-RUSH (never auto-added)");
   return { core, lines, hints, manual_extra: manual, flags, reasons };
 }
@@ -157,9 +156,9 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
   if (existing && !["draft", "needs_manual_price"].includes(existing.status)) throw new QuoteError("quote_already_" + existing.status, 409);
 
   const answers = { ...(q.answers ?? {}), offer: q.offer ?? q.answers?.offer, niche: q.niche ?? q.answers?.niche };
-  // Dental = waitlist only: no quote for a HIPAA covered entity until every vendor in the call path is under a BAA
-  // (docs/reports/legal-residual/03-hipaa-dental.md, Terms §8, SA §12). Fail closed, before any Claude call.
-  if (answers.niche === "dental") throw new QuoteError("dental_waitlist_only", 409);
+  // Only niches we sell today (brand.json). A missing, unknown or retired niche (an old row) fails closed, before any
+  // Claude call; Meir handles such a questionnaire by hand.
+  if (!OFFERED_NICHES.includes(String(answers.niche ?? ""))) throw new QuoteError("niche_not_offered", 409);
   const preHints = quoteHints(answers, pb);
   const user = userPrompt(pb, { offer: (answers.offer as string) ?? null, niche: (answers.niche as string) ?? null, summary: q.summary, answers },
     preHints, preHints.add.map(({ code, qty }) => ({ code, qty })));

@@ -1,6 +1,5 @@
 http://localhost:8787/
 http://localhost:8787/home-services/
 http://localhost:8787/real-estate/
-http://localhost:8787/dental/
 http://localhost:8787/website/
 http://localhost:8787/demo/

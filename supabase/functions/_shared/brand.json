@@ -90,14 +90,6 @@
       "status": "live",
       "index": true,
       "cta": "quote"
-    },
-    {
-      "key": "dental",
-      "label": "Dental practices",
-      "path": "/dental/",
-      "status": "early_access",
-      "index": false,
-      "cta": "early_access"
     }
   ],
   "fonts": {

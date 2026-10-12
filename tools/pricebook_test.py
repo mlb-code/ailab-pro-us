@@ -22,8 +22,9 @@ BRAND = os.path.join(ROOT, 'config', 'brand.json')
 # SPEC 2.3: the closed tool list (10) + Zapier + Other + niche-only tools. Law firms were removed (Addendum).
 SPEC_TOOLS = ['Google Calendar', 'Outlook / Microsoft 365 Calendar', 'Calendly', 'Jobber', 'Housecall Pro',
               'ServiceTitan', 'GoHighLevel', 'HubSpot', 'QuickBooks', 'Google Business Profile', 'Zapier', 'Other',
-              'Follow Up Boss', 'Dentrix', 'Open Dental']
-NICHES = {'home_services', 'real_estate', 'dental'}  # = DB enum (A1), snake_case
+              'Follow Up Boss']
+NICHES = {'home_services', 'real_estate'}  # offered niches (the DB enum keeps one retired value for old rows only)
+RETIRED = re.compile(r'\bdent\w*', re.I)
 REMOVED = re.compile(r'\b(law|lawyers?|law[- ]firms?|clio|legal practice)\b', re.I)
 
 failures = []
@@ -183,15 +184,13 @@ def main():
     for t in SPEC_TOOLS:
         check(t in labels, f'tool list has {t!r}')
     check(ints.get('servicetitan') == 'custom', 'ServiceTitan maps to custom (needs_manual_price)')
-    check(all(ints[k] == 'custom' for k in ('dentrix', 'open_dental')), 'Dentrix/Open Dental map to custom')
 
-    # 5. law firms removed entirely (Addendum); dental hidden
+    # 5. law firms removed entirely (Addendum); health-care practices not offered (owner decision 2026-10-12)
     niches = {n['key'] for n in brand['niches']}
     check(niches == NICHES, f'brand niches = {sorted(NICHES)}')
     used = {n for m in meta.values() for n in m['niches'] if n != '*'}
     check(used <= NICHES, 'integration niches are known niches')
-    dental = next(n for n in brand['niches'] if n['key'] == 'dental')
-    check(dental['index'] is False and dental['cta'] == 'early_access', 'dental is noindex + early access')
+    check(not RETIRED.search(json.dumps(pb) + json.dumps(brand)), 'no retired health-care niche or EHR tool in config')
     hits = [w for w in REMOVED.findall(json.dumps(pb)) if w]
     check(not hits, 'no law-firm niche, tool or copy in pricebook.json' + (f': {hits}' if hits else ''))
     check(not REMOVED.search(json.dumps(brand['niches'])), 'no law niche in brand.json')

@@ -79,6 +79,7 @@ jobs.length === 2 ? ok(`cron jobs: ${jobs.map((j) => j.jobname).join(", ")}`) : 
 
 const law = await q<{ v: string }>(`select e.enumlabel v from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'niche'`);
 const niches = law.map((r) => r.v).join(",");
+// "dental" is retired (2026-10-12) and stays in the enum for historical rows only; dropping an enum value is unsafe
 niches === "home_services,real_estate,dental" ? ok(`niche enum = ${niches}`) : bad("niche enum", niches);
 
 // tests must never delete from storage.* (real Supabase: storage.protect_delete raises)

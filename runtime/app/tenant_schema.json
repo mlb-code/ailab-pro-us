@@ -122,8 +122,7 @@
         "niche": {
           "enum": [
             "home_services",
-            "real_estate",
-            "dental"
+            "real_estate"
           ],
           "title": "Niche",
           "type": "string"

@@ -466,8 +466,6 @@
     "google_business_profile": "native",
     "zapier": "native",
     "follow_up_boss": "zapier",
-    "dentrix": "custom",
-    "open_dental": "custom",
     "other": "custom",
     "kvcore": "zapier"
   },
@@ -556,20 +554,6 @@
       "category": "crm",
       "niches": [
         "real_estate"
-      ]
-    },
-    "dentrix": {
-      "label": "Dentrix",
-      "category": "practice_management",
-      "niches": [
-        "dental"
-      ]
-    },
-    "open_dental": {
-      "label": "Open Dental",
-      "category": "practice_management",
-      "niches": [
-        "dental"
       ]
     },
     "other": {

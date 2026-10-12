@@ -162,8 +162,8 @@ async function main() {
     ok(/^[0-9a-f-]{36}$/.test(qid), 'questionnaire created');
     ok((await stepId(page)) === 'project', 'starts on project step');
     ok((await page.$$eval('input[name=offer]', i => i.map(x => x.value))).join() === 'RCP,WEB,BNDL,UNSURE', 'offer choices RCP/WEB/BNDL/UNSURE');
-    ok((await page.$$eval('input[name=niche]', i => i.map(x => x.value))).join() === 'home_services,real_estate,dental', 'niche closed list (no law)');
-    ok(await page.evaluate(() => [...document.querySelectorAll('input[name=niche]')].find(i => i.value === 'dental').closest('label').innerText.toLowerCase().includes('early access')), 'dental marked early access');
+    ok((await page.$$eval('input[name=niche]', i => i.map(x => x.value))).join() === 'home_services,real_estate', 'niche closed list (home services + real estate only; no law, no health care)');
+    ok(!(await page.evaluate(() => [...document.querySelectorAll('input[name=niche]')].some(i => i.closest('label').innerText.toLowerCase().includes('early access')))), 'no early-access niche offered');
     const pb = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8'));
     const rcp = pb.items.find(i => i.code === 'RCP');
     const usd = c => '$' + (c / 100).toLocaleString('en-US');
@@ -209,15 +209,12 @@ async function main() {
     ok(await page.evaluate(() => { const crm = window.StartQ.reCrmOptions({ niche: 'real_estate' }, window.Start.PB).map(o => o.v); return !window.StartQ.toolOptions({ niche: 'real_estate' }, window.Start.PB).some(o => o.v !== 'other' && crm.includes(o.v)); }), 'real estate: no tool appears in both questions');
     await pick(page, 'input[name=re_crm][value=other]');
     ok(await exists(page, '#f_tools_other'), 'CRM "other" reveals the text field');
-    // back to project, dental
+    // back to project
     await page.goto(BASE + '/start/q/?id=' + qid + '#project', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
-    await pick(page, 'input[name=niche][value=dental]');
-    ok(await exists(page, '#f_dental_note'), 'dental shows early-access note');
-    ok(await page.evaluate(() => window.StartQ.toolOptions({ niche: 'dental' }, window.Start.PB).some(o => o.v === 'dentrix')), 'dental tools include Dentrix');
-    ok(!(await page.evaluate(() => window.StartQ.toolOptions({ niche: 'home_services' }, window.Start.PB).some(o => o.v === 'dentrix' || o.v === 'follow_up_boss'))), 'home services tools exclude niche-only tools');
+    ok(!(await page.evaluate(() => window.StartQ.toolOptions({ niche: 'home_services' }, window.Start.PB).some(o => o.v === 'follow_up_boss' || o.v === 'kvcore'))), 'home services tools exclude niche-only tools');
     // field count limits
     const counts = await page.evaluate(() => ({ rcp: window.StartQ.countFields('RCP', 'home_services'), prof: window.StartQ.PROFILE.length,
-      max: Math.max(...['RCP', 'WEB', 'UNSURE'].flatMap(o => ['home_services', 'real_estate', 'dental'].map(n => window.StartQ.countFields(o, n)))) }));
+      max: Math.max(...['RCP', 'WEB', 'UNSURE'].flatMap(o => ['home_services', 'real_estate'].map(n => window.StartQ.countFields(o, n)))) }));
     ok(counts.rcp + counts.prof <= 28, 'RCP path ≤ 28 fields incl. profile (' + (counts.rcp + counts.prof) + ')');
     ok(counts.max <= 28, 'every non-bundle path ≤ 28 questionnaire fields');
     // happy path: RCP × home services

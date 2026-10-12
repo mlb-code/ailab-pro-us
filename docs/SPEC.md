@@ -284,3 +284,8 @@
 1. **עורכי דין יורדים לגמרי** מהמפרט, מהמחירון, מהשאלון ומדפי הנחיתה. נישות: שירותי בית (מלא), נדל"ן (מלא), שיניים (נבנה, מוסתר עד ביקורת עו"ד).
 2. חמש ההחלטות של הסוכן (מחירים מקובץ אחד, Python ב-Railway, 20 תרחישים, שיניים מוסתר, חבילה ותוספות) **אושרו**.
 3. דומיין: ייקנה בסיומת זולה (.co) ב-Cloudflare; המותג "AI Lab Pro". Supabase יוקם תחת מייל של הדומיין החדש (לא תחת meir@ai-lab.co.il), כדי שלא יהיה צורך בהעברה.
+
+---
+## נספח: 12.10.2026, דנטל הוסר
+**12.10: dental removed (no BAA budget); re-adding requires BAAs with Twilio/Anthropic/Supabase etc., see legal-residual/03** (`docs/reports/legal-residual/03-hipaa-dental.md`). אין דף `/dental/`, אין אפשרות בשאלון, במחירון (Dentrix/Open Dental), בפורטל, באדמין או ב-runtime. נישות: שירותי בית ונדל"ן בלבד. שאלון או ליד ישן עם נישה שאינה מוצעת נדחים בצד השרת (`niche_not_offered` / `bad_niche`), ו-tenant ישן כזה עובר ל-safe mode.
+- **'dental' remains in the Postgres enum `public.niche` (and in `private.niches`) for historical rows only.** לא מוחקים ערך מ-enum במסד חי; פשוט לא מציעים אותו.

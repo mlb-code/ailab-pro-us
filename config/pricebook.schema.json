@@ -340,8 +340,7 @@
               "enum": [
                 "*",
                 "home_services",
-                "real_estate",
-                "dental"
+                "real_estate"
               ]
             },
             "minItems": 1

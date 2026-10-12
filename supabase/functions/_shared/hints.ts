@@ -38,7 +38,6 @@ export function quoteHints(a: Answers, pb: Pricebook): Hints {
     else notes.push("real-estate CRM " + k + " via " + (k === "other" ? "zapier" : m));
   }
   if (a.timeline === "asap") notes.push("consider ADD-RUSH");
-  if (a.niche === "dental") notes.push("dental early access: manual review");
   return { core: (a.offer as string) || null, add, custom, notes };
 }
 
