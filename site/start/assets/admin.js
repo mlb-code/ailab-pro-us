@@ -842,7 +842,7 @@
     const rr = PB.refund_rules || {}, dp = rr.deposit || {}, rt = rr.retainer || {}, g = rr.rcp_guarantee || {};
     if (!dp.refund_pct && !rt.refund_pct) return '<p class="muted">אין כללי החזר בקונפיג.</p>';
     return '<dl class="kv">' +
-      (g.text ? '<dt>אחריות שביעות רצון</dt><dd>החזר דמי ההקמה אם הלקוח לא מרוצה תוך ' + esc(rr.rcp_guarantee_days) + ' ימים מהעלייה לאוויר, והקו מכובה. החודשי על התקופה שנוצלה לא מוחזר (<bdi dir="ltr">' + esc((g.codes || []).join(', ')) + '</bdi>; לאתר בלבד חל רק כלל המקדמה)' +
+      (g.text ? '<dt>אחריות שביעות רצון</dt><dd>החזר דמי ההקמה אם הלקוח לא מרוצה תוך ' + esc(rr.rcp_guarantee_days) + ' ימים מהעלייה לאוויר, והקו מכובה. בחבילה מוחזר רק חלק המזכירה, והאתר נשאר אצל הלקוח. החודשי על התקופה שנוצלה לא מוחזר (<bdi dir="ltr">' + esc((g.codes || []).join(', ')) + '</bdi>; לאתר בלבד חל רק כלל המקדמה)' +
         '<br><span class="muted small" dir="ltr" lang="en">' + esc(g.text) + '</span></dd>' : '') +
       (dp.refund_pct != null ? '<dt>מקדמת הקמה</dt><dd>' + esc(dp.refund_pct) + '% החזר לפי בקשה, תוך ' + esc(dp.window_days) + ' ימים מהתשלום, כל עוד הצ\'ק-ליסט לא הושלם' +
         '<br><span class="muted small" dir="ltr" lang="en">' + esc(dp.text || '') + '</span></dd>' : '') +

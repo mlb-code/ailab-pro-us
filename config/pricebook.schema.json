@@ -254,6 +254,11 @@
                 "setup_fee"
               ]
             },
+            "bundle_refunds": {
+              "enum": [
+                "rcp_setup_part"
+              ]
+            },
             "monthly_fees_refunded": {
               "const": false
             },
