@@ -24,10 +24,10 @@
     "name": "Lavi Entrepreneurship & Management (Meir Lavi)",
     "form": "Israeli sole proprietorship (Osek Murshe)",
     "country": "Israel",
-    "governing_law": ""
+    "governing_law": "the State of New York"
   },
-  "legal_final": false,
-  "agreement_version": "1.0-draft",
+  "legal_final": true,
+  "agreement_version": "1.0",
   "physical_address": "29 Yigal Alon St., Herzliya, Israel",
   "calendly_url": "https://calendar.app.google/eJdAx1dAqnp9cjPD7",
   "analytics": {
@@ -119,7 +119,7 @@
   "social": {
     "$comment": "Public profile URLs for the footer. Empty = not shown. Fill in only real profiles.",
     "linkedin": "",
-    "facebook": "",
+    "facebook": "https://www.facebook.com/profile.php?id=61595236564521",
     "instagram": "",
     "youtube": "",
     "x": ""
