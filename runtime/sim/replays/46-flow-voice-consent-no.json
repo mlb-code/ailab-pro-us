@@ -1,0 +1,377 @@
+{
+ "074cfbb17cd2366629c128e4": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_01P8HzAuGgFt1NvuxeoMrj1i",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, Carlos. Your furnace repair is booked for today, Monday October 12, between 12 PM and 4 PM, at 45 Westheimer Rd. A technician will check the furnace on site.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_011kp9N875GaJdg4WWpjpunp",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 906.2,
+    "first_text_ms": 906.3,
+    "total_ms": 1183.5
+   },
+   "usage": {
+    "cache_creation_input_tokens": 285,
+    "cache_read_input_tokens": 2536,
+    "input_tokens": 2,
+    "output_tokens": 121
+   }
+  }
+ },
+ "0efac635509731e6522422bb": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_011kp9N875GaJdg4WWpjpunp",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 742.9
+   },
+   "usage": {
+    "cache_creation_input_tokens": 133,
+    "cache_read_input_tokens": 2821,
+    "input_tokens": 2,
+    "output_tokens": 1
+   }
+  }
+ },
+ "259b3cbe8edeef0844f1a33e": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_012sYMgpGNTFwwarLxsNYBxH",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I have two openings: today, Monday October 12, from 12 PM to 4 PM, or tomorrow, Tuesday October 13, from 8 AM to 12 PM. Which one would you like?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 1246.0,
+    "first_text_ms": 1246.2,
+    "total_ms": 1523.8
+   },
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2377,
+    "input_tokens": 2,
+    "output_tokens": 66
+   }
+  }
+ },
+ "30389b93f6d8bab6c64d6341": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My furnace stopped working, I'm in 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear your furnace stopped working. Let me check the schedule for a furnace repair visit in your area.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_012sYMgpGNTFwwarLxsNYBxH",
+     "input": {
+      "date_from": "2026-10-12",
+      "job_type": "Furnace repair",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 843.8,
+    "first_text_ms": 844.0,
+    "total_ms": 1412.9
+   },
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 4,
+    "output_tokens": 144
+   }
+  }
+ },
+ "448ca135d69b21f8a55a20e9": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_01GPyZ9JWHXz74xc5peRCE2m",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, Carlos. You're booked for a furnace repair today, Monday October 12, between 12 PM and 4 PM, at 45 Westheimer Rd. A technician will check the furnace then.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01T1CkJf2nB9mqU6JUa5LnNS",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 778.6,
+    "first_text_ms": 778.6,
+    "total_ms": 1071.8
+   },
+   "usage": {
+    "cache_creation_input_tokens": 285,
+    "cache_read_input_tokens": 2528,
+    "input_tokens": 2,
+    "output_tokens": 120
+   }
+  }
+ },
+ "5705cd9c744c70625098b7b8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01P8HzAuGgFt1NvuxeoMrj1i",
+     "input": {
+      "address": "45 Westheimer Rd, Houston, 77019",
+      "job_type": "Furnace repair",
+      "name": "Carlos Reyes",
+      "notes": "Furnace stopped working. Customer requested afternoon slot.",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 763.5,
+    "first_text_ms": null,
+    "total_ms": 1562.7
+   },
+   "usage": {
+    "cache_creation_input_tokens": 159,
+    "cache_read_input_tokens": 2377,
+    "input_tokens": 4,
+    "output_tokens": 246
+   }
+  }
+ },
+ "570a772e519b5008a2911c5f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01T1CkJf2nB9mqU6JUa5LnNS",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 873.4
+   },
+   "usage": {
+    "cache_creation_input_tokens": 132,
+    "cache_read_input_tokens": 2813,
+    "input_tokens": 2,
+    "output_tokens": 1
+   }
+  }
+ },
+ "8f1927b740ff55b1242bad8a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01GPyZ9JWHXz74xc5peRCE2m",
+     "input": {
+      "address": "45 Westheimer Rd, Houston, 77019",
+      "job_type": "Furnace repair",
+      "name": "Carlos Reyes",
+      "notes": "Furnace stopped working. Customer requested afternoon slot.",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 761.9,
+    "first_text_ms": null,
+    "total_ms": 1511.3
+   },
+   "usage": {
+    "cache_creation_input_tokens": 161,
+    "cache_read_input_tokens": 2367,
+    "input_tokens": 4,
+    "output_tokens": 246
+   }
+  }
+ },
+ "b2b7464336137d35a1a5ca0e": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_0156JtuRX2dCTzQLw5TChZrV",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I have two openings for you: today, Monday October 12 from 12 PM to 4 PM, or tomorrow, Tuesday October 13 from 8 AM to 12 PM. Which one would you like?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 724.1,
+    "first_text_ms": 724.2,
+    "total_ms": 969.1
+   },
+   "usage": {
+    "cache_creation_input_tokens": 308,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 2,
+    "output_tokens": 68
+   }
+  }
+ }
+}

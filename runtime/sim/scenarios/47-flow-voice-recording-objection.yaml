@@ -1,0 +1,14 @@
+description: Legal v1.1 (SA §8, AI and recording notice) - the caller objects to recording right after the notice -> the assistant stops, the call ends, no transcript of the caller is kept (only the greeting as proof of notice), the team gets a call-back alert, and Claude is never called.
+kind: flow
+channel: voice
+steps:
+  - call: {}
+  - say: "Wait, I don't want to be recorded"
+    expect: {reply_contains: ["won't keep a transcript", "call you back"], end: true}
+  - hangup: {}
+    if_open: true
+expect:
+  outcome: message
+  transcript_withheld: true
+  alerts: [lead]
+  claude_calls_max: 0

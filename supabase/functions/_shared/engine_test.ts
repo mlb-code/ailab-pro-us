@@ -95,6 +95,17 @@ Deno.test("malformed model output fails closed (no quote row)", async () => {
   eq(store.quotes.size, 0);
 });
 
+Deno.test("dental questionnaire = waitlist only: no draft, no Claude call, no quote row", async () => {
+  const store = new MemoryStore();
+  const { qid } = seed(store, "hvac_basic");
+  const q = store.questionnaires.get(qid)!;
+  store.questionnaires.set(qid, { ...q, niche: "dental", answers: { ...(q.answers ?? {}), niche: "dental" } });
+  let called = 0;
+  await rejects(() => draftQuote(qid, { store, model: mockModel(() => { called++; return "{}"; }) }), "dental_waitlist_only");
+  eq(called, 0);
+  eq(store.quotes.size, 0);
+});
+
 Deno.test("regenerate overwrites a draft; a sent quote cannot be redrafted", async () => {
   const { store, q, qid } = await drafted("hvac_basic");
   const again = await draftQuote(qid, { store, model: replayModel(), replayKey: "hvac_basic" });

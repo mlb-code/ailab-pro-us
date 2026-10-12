@@ -96,7 +96,7 @@
       { k: 'offer', label: 'What would you like us to build?', type: 'offer', req: true },
       { k: 'niche', label: 'Your industry', type: 'niche', req: true },
       { k: 'dental_note', type: 'note', when: a => a.niche === 'dental',
-        text: 'Dental is in early access. We review every dental request by hand and confirm fit before quoting. The assistant collects only name, phone number and a general reason for the visit — no patient records.' }
+        text: 'Dental is a waitlist for now: the service is not available to HIPAA covered entities until we can sign a Business Associate Agreement (BAA). If you submit, we add your practice to the early-access list and email you when it opens. We do not send dental quotes yet.' }
     ] },
     { id: 'recommend', title: 'Help us recommend', sub: 'Three quick questions so we can suggest the right setup.', when: offerIs('UNSURE'), fields: [
       { k: 'goal', label: 'What matters most right now?', type: 'single', opts: [O('calls', 'Stop losing jobs to missed calls'),

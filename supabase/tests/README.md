@@ -2,7 +2,7 @@
 
 | File | What it is |
 |---|---|
-| `rls_test.sql` | One `DO` block: creates 4 users (client A, client B, admin, cancelled client C), fixtures in every table, then checks RLS, guard triggers, RPC whitelists, storage policies, anon access and the retention/expiry jobs (159 checks). It **always ends with an error** so everything rolls back. Success = message starts with `RLS_TESTS_PASSED`; failure = `FAIL <which check>`. |
+| `rls_test.sql` | One `DO` block: creates 4 users (client A, client B, admin, cancelled client C), fixtures in every table, then checks RLS, guard triggers, RPC whitelists, storage policies, anon access and the retention/expiry jobs and the consent log (167 checks). It **always ends with an error** so everything rolls back. Success = message starts with `RLS_TESTS_PASSED`; failure = `FAIL <which check>`. |
 | `offline/supabase_shim.sql` | OFFLINE ONLY. Minimal stand-in for Supabase internals (roles `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`, `storage.buckets/objects`, `storage.foldername()`, `cron.schedule()`, Supabase's default grants, and the `storage.protect_delete` trigger that blocks direct DELETE on storage tables). Never apply to a real project. |
 | `offline/run.ts` | Runs everything in real Postgres 18 compiled to WASM (PGlite), in-process. No Docker, no Supabase project. |
 
@@ -13,6 +13,7 @@
 | Call transcripts, summaries, caller number (`from_e164`) | cleared after 90 days (row kept: outcome, duration, cost; no number hash — a hashed US number is reversible) |
 | SMS messages | deleted after 90 days |
 | Bookings | deleted 2 years after the job date |
+| Consent log (`sms_consent`: texting consent at booking, opt-outs/opt-ins, missed-call text notice; legal v1.1) | kept **5 years**, then deleted. Not part of the 90-day cleanup and **not** deleted when a client is anonymised (`tenant_id` has no FK on purpose). Admin-only read; written by the runtime (service role). |
 | Cancelled client, 30 days after `ended_at` | `private.anonymize_client()`: **personal + operational data deleted** — tenant (→ calls/SMS/bookings/opt-outs/credentials), onboarding items, requests (+ attachments), **every `private.quote_drafts` row** of the client's quotes (Claude raw output), **every `admin_notes` row on the client's entities** (client, its quotes, questionnaires, tenants, requests, leads with the same e-mail). If the user has no other live client and is not admin: also the user's events, unaccepted quotes, leads with the same e-mail and the auth user (→ profile, questionnaires, attachments). |
 | Bookkeeping records (Israeli bookkeeping law: keep 7 years) | **kept, anonymised**: `clients` row (client_id, `business_name` snapshot, products, amounts, `user_id = null`, `anonymized_at`), `payments` (amounts/kind/status/dates; e-mails and phone numbers scrubbed from `reference`), the accepted quote = the order (line items reduced to code/qty/name/kind/amounts, totals, agreement version, `accepted_at`). Removed from it: `scope_md`, `timeline_text`, `assumptions`, item `reason`, signer name/IP/UA, `user_id`. Its `public_token` is replaced by a fresh random value and `anonymized = true` (one-way, guarded). **A6: `quote-view` / `quote-accept` must refuse any quote with `anonymized = true`.** There is no separate `orders` table. |
 | Failure isolation | the 90-day / 2-year cleanup runs first and never depends on clients; each client is anonymised in its own `begin … exception` block — on error a `retention_error` event (`entity='client'`, payload `client_id`, `error`, `sqlstate`) is logged, nothing of that client is changed, the loop continues, and the client is retried the next day. |
@@ -32,7 +33,7 @@ python3 tools/sql_lint.py supabase/migrations                                # s
 1. loads the shim, applies every migration **twice** (idempotency);
 2. catalog checks: RLS on every `public` table, ≥ 1 policy each, no `(true)` policies, anon has no table grants and can execute only `public.ping()`, `private.*` not granted to API roles, buckets, cron jobs, niche enum (`home_services, real_estate, dental`; no law);
 3. runs `rls_test.sql` and verifies the rollback left nothing behind;
-4. **mutation self-test**: breaks one protection at a time (10 mutations: unsent quotes visible, profile guard dropped, anon lead read, storage path check, request guard, one-active index, RLS off on calls, credentials readable by clients, retention that only flags the client, tenant whitelist bypass) and asserts `rls_test.sql` catches each.
+4. **mutation self-test**: breaks one protection at a time (11 mutations: unsent quotes visible, profile guard dropped, anon lead read, storage path check, request guard, one-active index, RLS off on calls, credentials readable by clients, retention that only flags the client, tenant whitelist bypass, consent log cascading with the tenant) and asserts `rls_test.sql` catches each.
 
 Never `delete from storage.*` in tests or functions (real Supabase raises; files go through `private.storage_purge_queue` + Storage API). The rollback is guaranteed on a real project too: the whole test is one `DO` statement.
 

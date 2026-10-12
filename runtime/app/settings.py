@@ -82,6 +82,10 @@ class Settings:
     voice_mode: str = "stream"
     voice_silence_s: float = 7.0
     voice_tts_wps: float = 2.5
+    # Hold a caller prompt that arrives while the greeting (with the call notice) is still playing until its
+    # estimated end, so nothing the caller says reaches Claude before the notice is complete (SA §8).
+    # The simulator's VOICE_TTS_WPS=1000 makes the hold ~0 there; VOICE_GREETING_HOLD=0 switches it off.
+    voice_greeting_hold: bool = True
     # Relay socket closed without an `end` from us: wait this long for /voice/relay-end (-> continue with
     # <Gather>) or the call status callback (-> finalize) before closing the call ourselves.
     voice_relay_grace_s: float = 20.0
@@ -156,6 +160,8 @@ def load(env: dict[str, str] | None = None) -> Settings:
         voice_mode=env.get("VOICE_MODE", "stream").strip().lower(),
         voice_silence_s=float(env.get("VOICE_SILENCE_SECONDS", "7")),
         voice_tts_wps=float(env.get("VOICE_TTS_WPS", "2.5")),
+        voice_greeting_hold=(env.get("VOICE_GREETING_HOLD") or "1").strip().lower()
+        not in ("0", "false", "no", "off"),
         voice_relay_grace_s=float(env.get("VOICE_RELAY_GRACE_SECONDS", "20")),
         twilio_account_sid=env.get("TWILIO_ACCOUNT_SID", ""),
         jobs_token=env.get("JOBS_TOKEN", ""),

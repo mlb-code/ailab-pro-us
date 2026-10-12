@@ -5,7 +5,10 @@
 Twilio runs streaming STT + TTS; we exchange JSON over the socket:
     in : setup {callSid, from, to} | prompt {voicePrompt, last} | interrupt | dtmf | error
     out: text {token, last, interruptible} | end {handoffData}
-The welcome greeting (with the transcription disclosure) is spoken by Twilio from the TwiML.
+The welcome greeting (with the call notice, `voice.DISCLOSURE`) is spoken by Twilio from the TwiML with
+welcomeGreetingInterruptible="none" (the caller cannot cut it off), and a prompt that arrives while it is
+still playing (estimated from its length) is held until it has ended: nothing the caller says reaches
+Claude before the notice is complete (SA §8, "AI and recording notice").
 After `end`, Twilio requests the Connect action (/voice/relay-end) with HandoffData: we answer
 <Dial> (handoff / urgent line) or <Hangup>. If the relay session fails, /voice/relay-end
 continues the same call in turn-based <Gather> mode (same conversation state).
@@ -141,7 +144,10 @@ class RelaySession:
             await self.ws.close(code=1008)
             return
         self.caller = str(first.get("from", ""))
-        timeout = self.rt.settings.voice_silence_s + speaking_seconds(self.rt, greeting(self.tenant))
+        loop = asyncio.get_running_loop()
+        greeting_s = speaking_seconds(self.rt, greeting(self.tenant))
+        greeting_ends = loop.time() + greeting_s
+        timeout = self.rt.settings.voice_silence_s + greeting_s
         while True:
             try:
                 msg = await asyncio.wait_for(self.queue.get(), timeout)
@@ -159,6 +165,9 @@ class RelaySession:
                 continue
             if kind != "prompt" or not msg.get("last", True):
                 continue
+            hold = greeting_ends - loop.time()
+            if hold > 0 and self.rt.settings.voice_greeting_hold and not msg.get("_silence"):  # caller spoke over the notice: process it once it has ended
+                await asyncio.sleep(hold)
             turn = await run_in_threadpool(flow.turn, self.tenant, self.call_sid, self.caller,
                                            str(msg.get("voicePrompt") or ""), now(), self._sentence_sink())
             ending = bool(turn.end or turn.dial)

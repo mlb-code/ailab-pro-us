@@ -285,13 +285,15 @@
     S.trackFunnel(['quote', 'submit'], { offer: answers.offer, niche: answers.niche });
     history.replaceState(null, '', '/start/q/?id=' + encodeURIComponent(id));
     const pay = isWeb() && payEndpoint();
-    const lead = isWeb()
+    const dental = answers.niche === 'dental';
+    const lead = dental
+      ? '<p class="lead" id="doneLead">You’re on the dental early-access list. We’ll email <b>' + S.esc(session.user.email) + '</b> when we can sign a HIPAA Business Associate Agreement and take your practice. We don’t send a quote before then.</p>'
+      : isWeb()
       ? '<p class="lead" id="doneLead">Your deposit link is on its way — we email it ' + S.esc(S.sla()) + ' to <b>' + S.esc(session.user.email) + '</b>. Draft in 3 business days after we have your content.</p>' +
         (pay ? '<div class="btn-row spaced-b"><a class="btn btn--primary" id="payDeposit" href="' + S.esc(pay + (pay.indexOf('?') === -1 ? '?' : '&') + 'offer=WEB&ref=' + encodeURIComponent(id)) + '">Pay the ' + depPct() + '% deposit</a></div>' : '')
       : '<p class="lead" id="doneLead">You’ll get a written fixed quote ' + S.esc(S.sla()) + '. We’ll email it to <b>' + S.esc(session.user.email) + '</b>.</p>';
     app.innerHTML = '<span class="eyebrow">Submitted</span><h1 class="t" id="doneTitle" tabindex="-1">Thanks — we have everything we need.</h1>' + lead +
-      (answers.niche === 'dental' ? '<div class="notice" role="note">Dental is in early access: we’ll first confirm it’s a fit for your practice.</div>' : '') +
-      nextStepsHtml() + '<div class="btn-row spaced"><a class="btn btn--primary" href="/start/">Go to your portal</a></div>';
+      (dental ? '<div class="notice" role="note">Not available to HIPAA covered entities until we can sign a BAA. Please don’t forward patient calls to us.</div>' : nextStepsHtml()) + '<div class="btn-row spaced"><a class="btn btn--primary" href="/start/">Go to your portal</a></div>';
     window.scrollTo(0, 0); S.$('#doneTitle').focus({ preventScroll: true });
   }
 

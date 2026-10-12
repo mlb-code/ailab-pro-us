@@ -175,7 +175,7 @@
     return '<form class="q-accept" id="acceptForm" novalidate><h2 id="accept">Accept your quote</h2>' +
       '<p class="small muted" style="margin-bottom:16px">Type your full name and tick the box. This is your electronic signature. We record the time and a fingerprint of these exact terms.</p>' +
       '<div class="field"><label for="accName">Full name</label><input class="input" id="accName" name="name" autocomplete="name" maxlength="200" required value="' + esc(q.client.name) + '"></div>' +
-      '<label class="check" style="margin-bottom:16px"><input type="checkbox" id="accAgree" required><span>I agree to the <a href="/legal/service-agreement/" target="_blank" rel="noopener">Service Agreement v' + esc(q.agreement_version) + '</a> and this quote, and I’m authorized to sign for ' + esc(q.client.company || 'my business') + '.</span></label>' +
+      '<label class="check" style="margin-bottom:16px"><input type="checkbox" id="accAgree" required><span>I agree to the <a href="/legal/service-agreement/" target="_blank" rel="noopener">Service Agreement v' + esc(q.agreement_version) + '</a>, the <a href="/legal/terms/" target="_blank" rel="noopener">Terms of Service</a> and this quote, including individual arbitration, the class-action waiver and the 30-day opt-out (Terms §17), and I’m authorized to sign for ' + esc(q.client.company || 'my business') + ' and buying for its business use.</span></label>' +
       '<div id="accMsg"></div>' +
       '<button class="btn btn--primary btn--block" type="submit" id="accBtn">Accept &amp; pay deposit ' + money(q.totals.deposit_cents) + '</button>' +
       '<div id="pay-slot" hidden></div></form>';

@@ -1,4 +1,4 @@
-description: Text conversation -> booking a day ahead -> one reminder 24 h before the visit via the jobs runner.
+description: Text conversation -> booking a day ahead -> the reply asks about a reminder text (SA §8) -> "yes" -> one reminder 24 h before the visit via the jobs runner.
 kind: flow
 channel: sms
 patch: {config: {booking: {lead_time_hours: 26}}}
@@ -12,7 +12,9 @@ steps:
   - sms: "My name is Dana Miller"
     expect: {reply_contains: ["address"]}
   - sms: "2100 Rice Blvd, Houston 77005"
-    expect: {reply_matches: ["all set|booked"]}
+    expect: {reply_matches: ["all set|booked"], reply_contains: ["reminder before the visit? Reply YES or NO"]}
+  - sms: "Yes"
+    expect: {reply_contains: ["we'll text you a reminder"]}
   - jobs: true
     advance_minutes: 60
   - jobs: true
@@ -20,4 +22,4 @@ steps:
   - jobs: true
     advance_minutes: 60
 expect: {outcome: booked, bookings: 1, sms_sent: 1, sms_sent_contains: ["reminder of your visit"], alerts: [booking],
-         events: {sms.reminder: 1}}
+         events: {sms.reminder: 1}, consent: {booking_texts: "yes"}}

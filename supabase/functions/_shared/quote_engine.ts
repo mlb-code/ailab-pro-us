@@ -157,6 +157,9 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
   if (existing && !["draft", "needs_manual_price"].includes(existing.status)) throw new QuoteError("quote_already_" + existing.status, 409);
 
   const answers = { ...(q.answers ?? {}), offer: q.offer ?? q.answers?.offer, niche: q.niche ?? q.answers?.niche };
+  // Dental = waitlist only: no quote for a HIPAA covered entity until every vendor in the call path is under a BAA
+  // (docs/reports/legal-residual/03-hipaa-dental.md, Terms §8, SA §12). Fail closed, before any Claude call.
+  if (answers.niche === "dental") throw new QuoteError("dental_waitlist_only", 409);
   const preHints = quoteHints(answers, pb);
   const user = userPrompt(pb, { offer: (answers.offer as string) ?? null, niche: (answers.niche as string) ?? null, summary: q.summary, answers },
     preHints, preHints.add.map(({ code, qty }) => ({ code, qty })));

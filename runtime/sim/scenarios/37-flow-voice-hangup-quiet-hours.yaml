@@ -1,4 +1,4 @@
-description: Abandoned call at 11:10 pm -> text-back waits for 8:00 am tenant time (quiet hours 21-08), then goes out once.
+description: Abandoned call at 11:10 pm -> outside the text-back window (21-08), so it is queued for the scheduled window (9:00 am, both time zones; memo 02 R2-6), then goes out once.
 kind: flow
 channel: voice
 modes: [gather]
@@ -9,7 +9,7 @@ steps:
   - jobs: true
     advance_minutes: 30
   - jobs: true
-    advance_minutes: 500
+    advance_minutes: 560
   - jobs: true
     advance_minutes: 10
 expect: {outcome: abandoned, sms_sent: 1, sms_sent_contains: ["Sorry we missed your call"]}

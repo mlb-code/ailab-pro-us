@@ -70,6 +70,9 @@ begin
     values (ta, call_a, 'Pat', now() + interval '1 day', now() + interval '1 day 2 hours');
   insert into public.bookings (tenant_id, customer_name) values (tb, 'Lee');
   insert into public.opt_outs (tenant_id, contact_e164) values (ta, '+12145550199');
+  insert into public.sms_consent (tenant_id, contact_e164, channel, consent_type, decision, evidence, call_sid)
+    values (ta, '+12145550199', 'sms', 'opt_out', 'revoked', 'please stop texting me', null),
+           (ta, '+12145550101', 'voice', 'booking_texts', 'yes', 'Yes please', 'CA_rls_a');
   insert into public.leads (email, niche, source_page) values ('lead@example.com', 'real_estate', '/real-estate/');
   insert into public.admin_notes (entity, entity_id, body) values ('client', ca, 'internal: slow payer');
   insert into private.quote_drafts (quote_id, model, prompt_hash, raw_output) values (quo_a_draft, 'test-model', 'h', '{}');
@@ -232,6 +235,12 @@ begin
   if not ok then raise exception 'FAIL client inserted a call'; end if; c := c + 1;
   select count(*) into n from public.opt_outs;
   if n <> 0 then raise exception 'FAIL client sees opt_outs'; end if; c := c + 1;
+  select count(*) into n from public.sms_consent;
+  if n <> 0 then raise exception 'FAIL client sees the consent log'; end if; c := c + 1;
+  ok := false;
+  begin insert into public.sms_consent (tenant_id, contact_e164, channel, consent_type, decision)
+    values (ta, '+12145550101', 'sms', 'opt_in', 'yes'); exception when others then ok := true; end;
+  if not ok then raise exception 'FAIL client wrote the consent log'; end if; c := c + 1;
 
   -- events, notes, leads, private
   select count(*) into n from public.events where user_id is distinct from ua or not client_visible;
@@ -335,6 +344,8 @@ begin
   if n < 1 then raise exception 'FAIL admin cannot read leads'; end if; c := c + 1;
   select count(*) into n from public.opt_outs;
   if n < 1 then raise exception 'FAIL admin cannot read opt_outs'; end if; c := c + 1;
+  select count(*) into n from public.sms_consent;
+  if n < 2 then raise exception 'FAIL admin cannot read the consent log'; end if; c := c + 1;
   select count(*) into n from storage.objects where bucket_id = 'client-files' and name like ua::text || '/%';
   if n <> 5 then raise exception 'FAIL admin storage list (%)', n; end if; c := c + 1;
   select count(*) into n from public.admin_notes where entity_id = ca;
@@ -399,7 +410,8 @@ begin
   perform set_config('role', 'anon', true);
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   foreach tbl in array array['profiles','leads','questionnaires','quotes','clients','payments','onboarding_items','requests',
-                             'attachments','tenants','calls','sms_messages','bookings','opt_outs','events','admin_notes','runtime_state'] loop
+                             'attachments','tenants','calls','sms_messages','bookings','opt_outs','events','admin_notes','runtime_state',
+                             'sms_consent'] loop
     n := 0;
     begin execute format('select count(*) from public.%I', tbl) into n; exception when insufficient_privilege then n := 0; end;
     if n <> 0 then raise exception 'FAIL anon reads public.%', tbl; end if;
@@ -452,6 +464,11 @@ begin
     values (cc, 'deposit', 175000, 'paid', 'paypal_link', 'PayPal 9XK21 from chris@cplumbing.com tel +1 (713) 555-0177') returning id into pc;
   insert into public.tenants (client_id, slug, config) values (cc, 'rls-tenant-c', '{}') returning id into tc;
   insert into public.calls (tenant_id, call_sid, transcript) values (tc, 'CA_rls_c', '[{"r":"caller","t":"c"}]');
+  -- consent log: 5-year retention, independent of the 90-day cleanup and of the client's anonymisation
+  insert into public.sms_consent (tenant_id, contact_e164, channel, consent_type, decision, evidence, created_at)
+    values (tc, '+12145550177', 'voice', 'booking_texts', 'yes', 'C consent', now() - interval '100 days'),
+           (ta, '+12145550166', 'sms', 'opt_out', 'revoked', 'four years', now() - interval '4 years'),
+           (ta, '+12145550155', 'sms', 'opt_out', 'revoked', 'six years', now() - interval '6 years');
   insert into public.requests (client_id, title) values (cc, 'C request') returning id into rc;
   insert into public.runtime_state (key, tenant_id, value) values ('usage:' || tc::text || ':2026-10', tc, '{"min": 12}');
   insert into public.admin_notes (entity, entity_id, body) values ('client', cc, 'internal C'), ('quote', quo_c, 'q note'),
@@ -484,6 +501,13 @@ begin
   if not coalesce(ok, false) then raise exception 'FAIL failed client partially changed'; end if; c := c + 1;
   select from_e164 is null into ok from public.calls where call_sid = 'CA_old';
   if not ok then raise exception 'FAIL caller number kept after 90 days'; end if; c := c + 1;
+  select count(*) into n from public.sms_consent where evidence = 'six years';
+  if n <> 0 then raise exception 'FAIL consent log older than 5 years kept'; end if; c := c + 1;
+  select count(*) into n from public.sms_consent where evidence in ('four years', 'C consent');
+  if n <> 2 then raise exception 'FAIL consent log purged before 5 years or with the client (%)', n; end if; c := c + 1;
+  if (j ->> 'consent_deleted')::int <> 1 then raise exception 'FAIL consent_deleted count (%)', j; end if; c := c + 1;
+  select transcript_withheld = false into ok from public.calls where call_sid = 'CA_rls_a';
+  if not coalesce(ok, false) then raise exception 'FAIL calls.transcript_withheld default'; end if; c := c + 1;
   select from_e164 is not null into ok from public.calls where call_sid = 'CA_rls_a';
   if not ok then raise exception 'FAIL fresh caller number cleared'; end if; c := c + 1;
   select user_id is null and anonymized_at is not null and business_name = 'C Plumbing LLC' into ok from public.clients where id = cc;

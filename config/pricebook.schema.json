@@ -45,7 +45,9 @@
         "discounts",
         "included_usage",
         "overage_markup_pct",
-        "custom_triggers"
+        "custom_triggers",
+        "liability_cap_months",
+        "liability_cap_floor_usd"
       ],
       "properties": {
         "core_codes": {
@@ -126,6 +128,17 @@
         "cancel_notice_days": {
           "type": "integer",
           "minimum": 0
+        },
+        "liability_cap_months": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24,
+          "description": "Liability cap: fees paid in the N months before the event (Terms §15, SA §15). Legal pages stamp it."
+        },
+        "liability_cap_floor_usd": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Liability cap floor in whole US dollars: the cap is the greater of N months of fees or this amount."
         },
         "included_usage": {
           "type": "object",

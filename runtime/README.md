@@ -35,5 +35,10 @@ Twilio cost estimate per call: `TWILIO_VOICE_USD_PER_MIN` (default 0.0785 = inbo
 0.07, list prices assumed Oct 2026; 0.0125 when `VOICE_MODE=gather`), billed in whole minutes; SMS `TWILIO_SMS_USD_PER_SEGMENT`.
 Invalid tenant config = safe mode (`app/voice_safe.py`): polite sentence + name/number message, SMS text-back, minimal SMS replies
 (STOP/HELP still work), event `tenant_config_invalid` + Hebrew admin alert once a day; `/health/deep` lists `tenants_invalid`.
+Consent rules (legal v1.1, SA §8; `tests/test_legal_v11.py`, scenarios 46-49): every greeting carries `guard.DISCLOSURE` (a custom
+greeting missing any part gets it appended; stream mode holds caller speech until the greeting ends, `VOICE_GREETING_HOLD`);
+after a booking the assistant asks before texting (confirmation + reminder only on "yes"); a recording objection ends the call
+with `calls.transcript_withheld`; opt-outs by keyword, sentence or voice; texting window in the business AND caller (area-code)
+zone; locked SMS templates; every decision in `sms_consent` (5 years, `supabase/migrations/20261012100000_us_sms_consent.sql`).
 B5/B6 hooks used by voice/SMS: `app/_stubs_b56.py` (`get_provider`, `owner_alert`, `emit`).
 Model and brand name come from `app/brand.json` (synced from `config/brand.json`).

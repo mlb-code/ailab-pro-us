@@ -14,7 +14,8 @@ Steps (one key each, optional `advance_minutes` / `advance_seconds` before the s
   if_open: true on a say/silence/dial step skips it when the call already ended (live model may close first)
 Step `expect`: reply_contains, reply_matches (regex), reply_not_matches, reply_starts_with, reply_empty, end, dial, rejected.
 Final `expect`: outcome, bookings, sms_sent, sms_sent_contains, sms_sent_max, alerts, no_alerts,
-  events {type: n}, claude_calls_max, latency_p95_ms_max, opted_out, burst {answered_max, capped,
+  events {type: n}, claude_calls_max, latency_p95_ms_max, opted_out, consent {type: decision},
+  transcript_withheld, burst {answered_max, capped,
   rejected_min}, usage_voice_min, first_sentence {server_p95_ms_max, client_p95_ms_max, total_p95_ms_min}.
 Scenario `slow_model: {first_ms, rest_ms}`: the mock model streams like a live one (first text after
 first_ms, then rest_ms before the rest of the reply) in every mode; nothing is recorded or replayed.
@@ -269,6 +270,19 @@ def _check_final(out, exp: dict[str, Any], sim, tenant, contact, latencies, burs
             f.append(f"turn total p95 {got.get('total_ms_p95')} < {fs['total_p95_ms_min']} ms (reply not streamed?)")
     if "opted_out" in exp and sim.store.is_opted_out(tenant.id, contact) != exp["opted_out"]:
         f.append(f"opted_out != {exp['opted_out']}")
+    # consent log (SA §8 item 7): {consent_type: last decision} for this caller
+    for ctype, decision in (exp.get("consent") or {}).items():
+        rows = sim.store.select("sms_consent", tenant_id=tenant.id, contact_e164=contact, consent_type=ctype)
+        got = rows[-1]["decision"] if rows else None
+        if got != decision:
+            f.append(f"consent {ctype}: {got!r} != {decision!r}")
+    if "transcript_withheld" in exp:
+        rows = sim.store.select("calls", tenant_id=tenant.id)
+        withheld = bool(rows) and all(r.get("transcript_withheld") is True and
+                                      not any(t.get("who") == "customer" for t in (r.get("transcript") or []))
+                                      for r in rows)
+        if withheld != exp["transcript_withheld"]:
+            f.append(f"transcript_withheld {withheld} != {exp['transcript_withheld']}")
     b = exp.get("burst") or {}
     if b:
         out.notes.append(f"burst {burst}")

@@ -1,8 +1,8 @@
 """SMS flow (SPEC 6.3): /sms/incoming and /sms/status.
 
 Every inbound text goes through the conversation engine, which handles STOP / STOPALL / CANCEL /
-END / QUIT / UNSUBSCRIBE, START / UNSTOP / YES (only for a number that opted out) and HELP / INFO
-before Claude, then guard -> Claude -> reply check. The reply is sent as TwiML (a direct reply,
+END / QUIT / UNSUBSCRIBE / REVOKE / OPT OUT and any sentence that asks not to be texted ("please stop
+texting me"), START / UNSTOP / YES (only for a number that opted out) and HELP / INFO before Claude, then guard -> Claude -> reply check. The reply is sent as TwiML (a direct reply,
 so quiet hours do not apply), at most 320 characters. Messages are logged in `sms_messages`
 (Twilio retries of the same MessageSid are ignored), segments count toward monthly usage, and a
 booking queues one reminder 24 h before the visit. Proactive messages (text-back, reminder,
@@ -52,7 +52,7 @@ def handle_inbound(rt: Runtime, form: dict[str, str]) -> str:
     ts.log_event("sms.incoming", {"message_sid": sid})
     now = rt.now()
     if form.get("OptOutType", "").upper() == "STOP":
-        ts.opt_out(contact)  # Twilio Advanced Opt-Out already confirmed it: stay silent
+        ts.opt_out(contact, "sms", body)  # Twilio Advanced Opt-Out already confirmed it: stay silent
         return ""
     try:
         num_media = int(form.get("NumMedia") or 0)
@@ -98,5 +98,5 @@ async def sms_status(request: Request) -> Response:
         ts.log_event("sms.status", {"sid": str(form.get("MessageSid", "")), "status": str(form.get("MessageStatus", "")),
                                     **({"error": err} if err else {})})
         if err in CARRIER_OPT_OUT_ERRORS:
-            ts.opt_out(str(form.get("To", "")))
+            ts.opt_out(str(form.get("To", "")), "carrier", f"carrier error {err}")
     return Response(status_code=204)
