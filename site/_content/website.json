@@ -13,7 +13,7 @@
   },
   "hero": {
     "eyebrow": "Websites for local service businesses",
-    "title": "A website that makes the phone ring.",
+    "title": "A website that makes the phone *ring*.",
     "lead": "Five fast pages built around one job: getting a customer to call, text or fill in the form. Written from your questionnaire, approved by you, live {days:WEB} business days after your content is in.",
     "fine": "{web_flow} No sales calls."
   },
@@ -39,10 +39,10 @@
       "line": "Lead form to your email and a Google Sheet. Map and hours."
     }
   ],
-  "steps_title": "Five pages. Each one has a job.",
+  "steps_title": "Five pages. Each one has a *job*.",
   "how": {
     "eyebrow": "How it works",
-    "title": "Choose, answer, approve. No calls.",
+    "title": "Choose, answer, *approve*. No calls.",
     "steps": [
       {
         "num": "{web_step1_num}",
@@ -67,7 +67,7 @@
     ]
   },
   "bundle": {
-    "title": "Want missed calls answered too?",
+    "title": "Want missed calls *answered* too?",
     "text": "The bundle adds the Missed-Call AI Receptionist, puts your AI line on the site, and includes a website chat widget. You save {bundle_save_setup} on setup and {bundle_save_monthly} a month."
   },
   "faq": [
@@ -127,7 +127,7 @@
     }
   ],
   "band": {
-    "title": "Choose your package.",
+    "title": "Choose your *package*.",
     "text": "{web_flow}"
   },
   "variants": {

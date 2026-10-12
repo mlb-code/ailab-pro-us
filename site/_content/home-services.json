@@ -13,7 +13,7 @@
   },
   "hero": {
     "eyebrow": "AI receptionist for HVAC & plumbing companies",
-    "title": "Every missed call, answered and booked.",
+    "title": "Every missed call, answered and *booked*.",
     "lead": "You're on a roof or under a sink. The phone rings. Your AI receptionist answers, texts back anyone who hangs up, and books the job into your calendar.",
     "fine": "No sales calls. Fixed quote in writing {quote_sla}.",
     "also": "Also for electrical, roofing and garage door companies."
@@ -63,7 +63,7 @@
   ],
   "demo": {
     "eyebrow": "Try it",
-    "title": "Be the customer. See what your callers would get.",
+    "title": "Be the *customer*. See what your callers would get.",
     "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
     "business": "Copperleaf Air & Plumbing",
     "business_line": "Heating, Air & Plumbing · Houston",
@@ -403,12 +403,12 @@
   },
   "included": {
     "eyebrow": "What's included",
-    "title": "One price. Everything a missed call needs.",
+    "title": "One price. *Everything* a missed call needs.",
     "tools_title": "Works with your tools"
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "title": "The price is on the page.",
+    "title": "The price is on the *page*.",
     "note": "Adding a second location, Spanish, or a direct Jobber connection? Each add-on has a fixed price, listed below."
   },
   "faq": [

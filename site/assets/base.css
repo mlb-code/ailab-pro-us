@@ -1,23 +1,34 @@
 /* AI Lab Pro (US) — base design system. LTR, Latin fonts (Noto Serif / Noto Sans / Space Mono via Google Fonts).
-   Same family as the Hebrew site (navy + amber, grain, restraint), not a copy. Every page links this file first.
+   Design v2: near-black ink, violet accent, amber for numbers; heavy sans headlines with one italic serif accent word. Every page links this file first.
    Fonts are loaded by each page's <head> (URL in config/brand.json → fonts.google_css); this file never @imports.
    Living reference: /_styleguide/ */
 
+/* metric-matched fallbacks (no layout shift when the Google fonts swap in; widths measured in Chrome 2026-10-12) */
+@font-face{font-family:'NS Fallback';src:local('Arial'),local('ArialMT');size-adjust:102%}
+@font-face{font-family:'NS Head Fallback';src:local('Arial Bold'),local('Arial-BoldMT');font-weight:600 900;size-adjust:95.5%}
+@font-face{font-family:'NS Head Fallback';src:local('Arial'),local('ArialMT');font-weight:100 599;size-adjust:97%}
+@font-face{font-family:'SM Fallback';src:local('Courier New'),local('CourierNewPSMT');size-adjust:102%}
+
 :root{
-  /* color */
-  --navy:#0F1A26; --navy-2:#17253A; --navy-3:#1E2F47; --cream:#EFE7D8; --amber:#E8A64A; --amber-2:#F2BC63;
-  --bg:var(--navy); --surface:var(--navy-2); --surface-2:var(--navy-3);
-  --fg:var(--cream); --fg-2:rgba(239,231,216,.70); --fg-3:rgba(239,231,216,.58);   /* fg-3 still ≥ 4.5:1 on --bg and --surface */
-  --line:rgba(239,231,216,.16); --line-2:rgba(239,231,216,.32);
-  --acc:var(--amber); --acc-2:var(--amber-2); --on-acc:var(--navy);
-  --ok:#7FD1A8; --warn:#F2BC63; --err:#F28B7A;
+  /* color: design v2 (2026-10-12). Values = config/brand.json "theme" (build_landing --check verifies).
+     Near-black ink + violet accent; amber is reserved for prices and numbers (--num). */
+  --ink:#0C0C10; --ink-2:#15151C; --ink-3:#1E1E29; --screen:#09090C; --paper:#F2F0F7;
+  --violet:#9583FF; --violet-2:#AE9FFF; --violet-deep:#5B45E6; --amber:#F2B256; --amber-2:#F7C77A;
+  /* legacy aliases (portal, quote, admin CSS still say navy/cream) */
+  --navy:var(--ink); --navy-2:var(--ink-2); --navy-3:var(--ink-3); --cream:var(--paper);
+  --bg:var(--ink); --surface:var(--ink-2); --surface-2:var(--ink-3);
+  --fg:var(--paper); --fg-2:rgba(242,240,247,.72); --fg-3:rgba(242,240,247,.60);   /* fg-3 ≥ 6.0:1 on every surface */
+  --line:rgba(242,240,247,.12); --line-2:rgba(242,240,247,.26);
+  --acc:var(--violet); --acc-2:var(--violet-2); --on-acc:var(--ink); --num:var(--amber);
+  --ok:#7FD1A8; --warn:#F7C77A; --err:#F28B7A;
   /* type */
   --serif:'Noto Serif',Georgia,'Times New Roman',serif;
-  --sans:'Noto Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
-  --mono:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'Noto Sans','NS Fallback',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --sans-head:'Noto Sans','NS Head Fallback',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --mono:'Space Mono','SM Fallback',ui-monospace,SFMono-Regular,Menlo,monospace;
   /* space + shape */
   --gutter:clamp(16px,5vw,88px); --maxw:1200px; --radius:18px; --radius-sm:12px; --pill:999px;
-  --ease:cubic-bezier(.2,.7,.2,1); --focus:0 0 0 3px rgba(232,166,74,.55);
+  --ease:cubic-bezier(.2,.7,.2,1); --focus:0 0 0 3px rgba(149,131,255,.55);
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -27,7 +38,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:1rem
 img,svg,video{max-width:100%;display:block}
 a{color:inherit;text-decoration-color:var(--line-2);text-underline-offset:3px}
 a:hover{text-decoration-color:var(--acc)}
-:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--amber-2),0 0 0 9px rgba(232,166,74,.18)}
+:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--violet-2),0 0 0 9px rgba(149,131,255,.22)}
 a:not([class]):focus-visible{border-radius:4px}
 ::selection{background:var(--acc);color:var(--on-acc)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -36,10 +47,10 @@ a:not([class]):focus-visible{border-radius:4px}
 @media (pointer:fine){body::after{content:"";position:fixed;inset:0;z-index:9000;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .7 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}}
 
 /* ---------- type ---------- */
-h1,h2,h3,h4{font-family:var(--serif);font-weight:700;line-height:1.1;letter-spacing:-.012em;color:var(--fg);text-wrap:balance}
-h1{font-size:clamp(2.1rem,5vw,4rem);font-variation-settings:"wdth" 88}
+h1,h2,h3,h4{font-family:var(--sans-head);font-weight:800;line-height:1.08;letter-spacing:-.028em;color:var(--fg);text-wrap:balance}
+h1{font-size:clamp(2.1rem,5vw,4rem);font-variation-settings:"wdth" 90}
 h2{font-size:clamp(1.7rem,3.6vw,2.9rem);font-variation-settings:"wdth" 90}
-h3{font-size:clamp(1.2rem,2vw,1.5rem)}
+h3{font-size:clamp(1.15rem,1.8vw,1.4rem);font-weight:700;letter-spacing:-.018em}
 h4{font-size:1.05rem}
 p{color:var(--fg-2);max-width:68ch}
 p b,p strong,li b,li strong{color:var(--fg);font-weight:600}
@@ -50,6 +61,10 @@ p b,p strong,li b,li strong{color:var(--fg);font-weight:600}
 .muted{color:var(--fg-3)}
 .small{font-size:.875rem}
 
+/* accent word: one italic serif word on a violet brush stroke ("More than a *receptionist*"). Markup: <em class="em">.
+   Content writes it as *word* (single asterisks); tools/build_landing.py turns it into this element. */
+.em{font-family:var(--serif);font-style:italic;font-weight:600;letter-spacing:-.01em;font-variation-settings:"wdth" 100;padding:0 .08em .06em .02em;margin-right:-.04em;color:inherit;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M3 9.5C40 5 90 4.2 197 6.5c-60 .6-120 2.4-160 5.6' fill='none' stroke='%239583FF' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") left calc(100% - .02em)/100% .3em no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+
 /* ---------- layout ---------- */
 .wrap{width:100%;max-width:calc(var(--maxw) + 2 * var(--gutter));margin-inline:auto;padding-inline:var(--gutter)}
 .section{padding-block:clamp(56px,9vh,112px);border-bottom:1px solid var(--line)}
@@ -57,13 +72,16 @@ p b,p strong,li b,li strong{color:var(--fg);font-weight:600}
 .stack>*+*{margin-top:var(--stack,16px)}
 .grid{display:grid;gap:clamp(14px,2vw,24px);grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.section--amber{background:var(--acc);--fg:var(--navy);--fg-2:rgba(15,26,38,.80);--fg-3:rgba(15,26,38,.72);--line:rgba(15,26,38,.18);--line-2:rgba(15,26,38,.36);color:var(--fg);--acc:var(--navy);--on-acc:var(--cream)}
+/* closing CTA band (class name kept from v1): dark ink, violet glow, square grid */
+.section--amber{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(60% 90% at 50% 110%,rgba(91,69,230,.42),transparent 70%),var(--ink-2);color:var(--fg)}
+.section--amber::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(242,240,247,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(242,240,247,.05) 1px,transparent 1px);background-size:56px 56px;-webkit-mask-image:radial-gradient(70% 80% at 50% 50%,#000,transparent);mask-image:radial-gradient(70% 80% at 50% 50%,#000,transparent)}
 
 /* ---------- nav + footer ---------- */
-.nav{position:sticky;top:0;z-index:900;background:rgba(15,26,38,.92);border-bottom:1px solid var(--line)}
-@supports (backdrop-filter:blur(1px)){@media (min-width:761px){.nav{background:rgba(15,26,38,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}}}
+.nav{position:sticky;top:0;z-index:900;background:rgba(12,12,16,.92);border-bottom:1px solid var(--line)}
+@supports (backdrop-filter:blur(1px)){@media (min-width:761px){.nav{background:rgba(12,12,16,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}}}
 .nav__in{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:64px}
-.brandmark{font-family:var(--serif);font-weight:700;font-size:1.15rem;display:inline-flex;align-items:baseline;gap:8px;text-decoration:none;white-space:nowrap}
+.brandmark{font-family:var(--sans);font-weight:800;letter-spacing:-.02em;font-size:1.15rem;display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap}
+.brandmark img{width:28px;height:28px;flex:none;filter:drop-shadow(0 0 10px rgba(110,240,255,.25))}
 .brandmark small{font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;color:var(--acc);font-weight:400}
 .nav__links{display:flex;gap:22px;align-items:center;font-size:.92rem}
 .nav__links a{text-decoration:none;color:var(--fg-2)}
@@ -101,10 +119,10 @@ p b,p strong,li b,li strong{color:var(--fg);font-weight:600}
 
 /* ---------- price card ---------- */
 .price-card{position:relative;display:flex;flex-direction:column;gap:18px;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--radius);padding:clamp(20px,3vw,34px)}
-.price-card--featured{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 24px 60px -30px rgba(232,166,74,.35)}
-.price-card__name{font-family:var(--serif);font-size:1.35rem;font-weight:700}
+.price-card--featured{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 24px 60px -30px rgba(149,131,255,.35)}
+.price-card__name{font-family:var(--sans);font-size:1.35rem;font-weight:800;letter-spacing:-.02em}
 .price-card__amount{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
-.price-card__amount b{font-family:var(--serif);font-size:clamp(2.2rem,4vw,3rem);line-height:1;color:var(--acc);font-weight:700;font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 80}
+.price-card__amount b{font-family:var(--serif);font-size:clamp(2.2rem,4vw,3rem);line-height:1;color:var(--num);font-weight:700;font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 80}
 .price-card__amount span{color:var(--fg-2);font-size:.95rem}
 .price-card__list{list-style:none;display:grid;gap:10px;font-size:.95rem;color:var(--fg-2)}
 .price-card__list li{position:relative;padding-left:22px}
@@ -133,15 +151,15 @@ p b,p strong,li b,li strong{color:var(--fg);font-weight:600}
 .textarea{min-height:120px;resize:vertical}
 .input::placeholder,.textarea::placeholder{color:var(--fg-3)}
 .input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--acc);box-shadow:var(--focus)}
-.select{appearance:none;-webkit-appearance:none;padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23EFE7D8' stroke-width='1.6'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.select{appearance:none;-webkit-appearance:none;padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23F2F0F7' stroke-width='1.6'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .select option{background:var(--navy-2);color:var(--cream)}
 .field--error .input,.field--error .select,.field--error .textarea{border-color:var(--err)}
 .field .error{font-size:.85rem;color:var(--err)}
 .check{display:flex;gap:12px;align-items:flex-start;font-size:.95rem;color:var(--fg-2);cursor:pointer}
-.check input{flex:none;width:20px;height:20px;margin-top:2px;accent-color:var(--amber)}
+.check input{flex:none;width:20px;height:20px;margin-top:2px;accent-color:var(--violet)}
 .choices{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
 .choice{position:relative;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;transition:border-color .2s var(--ease)}
-.choice input{flex:none;width:18px;height:18px;margin-top:3px;accent-color:var(--amber)}
+.choice input{flex:none;width:18px;height:18px;margin-top:3px;accent-color:var(--violet)}
 .choice:hover{border-color:var(--fg-3)}
 .choice:has(input:checked){border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 .choice b{display:block;color:var(--fg)}
@@ -170,7 +188,7 @@ p b,p strong,li b,li strong{color:var(--fg);font-weight:600}
 /* ---------- FAQ ---------- */
 .faq{border-top:1px solid var(--line)}
 .faq details{border-bottom:1px solid var(--line)}
-.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;font-family:var(--serif);font-size:clamp(1.05rem,1.6vw,1.3rem);font-weight:500}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;font-family:var(--sans);font-size:clamp(1.02rem,1.5vw,1.2rem);font-weight:600;letter-spacing:-.01em}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::after{content:"+";flex:none;font-family:var(--mono);color:var(--acc);font-size:1.2rem;transition:transform .25s var(--ease)}
 .faq details[open] summary::after{transform:rotate(45deg)}

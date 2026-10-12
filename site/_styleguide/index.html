@@ -44,7 +44,7 @@
 
   <section class="section" id="color">
     <div class="wrap">
-      <div class="section__head"><span class="eyebrow">01 · Color</span><h2>Navy, cream, one amber accent</h2></div>
+      <div class="section__head"><span class="eyebrow">01 · Color</span><h2>Ink, paper, one <em class="em">violet</em> accent</h2></div>
       <div class="sg-swatches" id="swatches"></div>
       <h3 style="margin:32px 0 12px">Contrast (WCAG AA ≥ 4.5 for text)</h3>
       <ul class="sg-pairs" id="pairs"></ul>
@@ -58,7 +58,7 @@
       <h2>What happens to a missed call</h2>
       <h3>Booked into your calendar</h3>
       <p class="lead">Lead paragraph in Noto Sans Light. Concrete, plain American English.</p>
-      <p>Body copy in Noto Sans. <b>Bold for the one fact that matters.</b> Secondary text uses <span class="muted">muted cream</span>, which still passes AA.</p>
+      <p>Body copy in Noto Sans. <b>Bold for the one fact that matters.</b> Secondary text uses <span class="muted">muted paper</span>, which still passes AA.</p>
       <p class="mono small">Space Mono for labels, codes and numbers · RCP · 10 business days</p>
     </div>
   </section>
@@ -165,8 +165,8 @@
   <section class="section section--amber">
     <div class="wrap stack">
       <span class="eyebrow">10 · Amber section</span>
-      <h2>One CTA block per page, in amber</h2>
-      <p>Tokens flip inside <code class="mono">.section--amber</code> so every component stays readable.</p>
+      <h2>One CTA block per page, on the <em class="em">grid</em></h2>
+      <p><code class="mono">.section--amber</code> (name kept from v1) is now the dark violet-glow band; amber is reserved for prices and numbers.</p>
       <div class="row btn-row"><a class="btn btn--primary" href="#forms">Get a fixed quote</a><a class="btn" href="#chat">Try the demo</a></div>
     </div>
   </section>
@@ -188,7 +188,7 @@
 
   // color tokens + contrast
   var css = getComputedStyle(document.documentElement);
-  var tokens = ['--navy', '--navy-2', '--navy-3', '--cream', '--amber', '--amber-2', '--ok', '--err'];
+  var tokens = ['--ink', '--ink-2', '--ink-3', '--paper', '--violet', '--violet-2', '--amber', '--amber-2', '--ok', '--err'];
   var sw = document.getElementById('swatches');
   tokens.forEach(function (t) {
     var v = css.getPropertyValue(t).trim(), box = el('div', 'sg-swatch'), i = el('i'), d = el('div'), c = el('code', null, t);
@@ -200,10 +200,10 @@
   function lum(c) { var l = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; }
   function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
   var pairs = [
-    ['cream on navy', '#EFE7D8', '#0F1A26'], ['fg-2 on navy', 'rgba(239,231,216,.70)', '#0F1A26'],
-    ['fg-3 on navy', 'rgba(239,231,216,.58)', '#0F1A26'], ['fg-3 on surface', 'rgba(239,231,216,.58)', '#17253A'],
-    ['amber on navy', '#E8A64A', '#0F1A26'], ['navy on amber', '#0F1A26', '#E8A64A'],
-    ['amber-section fg-3', 'rgba(15,26,38,.72)', '#E8A64A'], ['error on navy', '#F28B7A', '#0F1A26']
+    ['paper on ink', '#F2F0F7', '#0C0C10'], ['fg-2 on ink', 'rgba(242,240,247,.72)', '#0C0C10'],
+    ['fg-3 on ink', 'rgba(242,240,247,.60)', '#0C0C10'], ['fg-3 on surface-2', 'rgba(242,240,247,.60)', '#1E1E29'],
+    ['violet on ink', '#9583FF', '#0C0C10'], ['violet on surface-2', '#9583FF', '#1E1E29'], ['ink on violet', '#0C0C10', '#9583FF'],
+    ['amber (numbers) on ink', '#F2B256', '#0C0C10'], ['amber on surface-2', '#F2B256', '#1E1E29'], ['error on ink', '#F28B7A', '#0C0C10']
   ];
   var ul = document.getElementById('pairs');
   pairs.forEach(function (p) {

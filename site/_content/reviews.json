@@ -1,0 +1,20 @@
+{
+  "$comment": "Reviews section (tools/build_landing.py). FTC rule on fake reviews (16 CFR 465, 2024): never add a review that a real client did not write. Paste real reviews into \"reviews\" (name, business, city, text, source_url, date YYYY-MM-DD, optional rating 1-5); they render first, only when present. Until then the section shows sample conversations (labeled Sample) and founding-client placeholders.",
+  "eyebrow": "Reviews",
+  "title_empty": "No fake reviews. Just *sample* conversations.",
+  "lead_empty": "We are new in the US, so there are no client reviews here yet. Below is what the {assistant} says in our demo scenarios, and {founding_max} open seats for founding clients.",
+  "title": "What owners *say*.",
+  "lead": "Reviews from real clients, with a link to the original. Sample conversations from our demo are marked Sample.",
+  "sample_tag": "Sample",
+  "sample_sub": "Sample conversation",
+  "caller": "Caller",
+  "assistant": "AI {assistant}",
+  "founding": {
+    "name": "Your review here",
+    "sub": "Founding client · seat {n} of {founding_max}",
+    "text_price": "Be one of the first {founding_max} clients: {price:RCP.founding} setup + {price:RCP.monthly}/mo, in exchange for a short case study.",
+    "text": "Be one of the first {founding_max} clients, in exchange for a short case study.",
+    "link": "Claim a founding seat"
+  },
+  "reviews": []
+}

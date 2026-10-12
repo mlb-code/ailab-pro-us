@@ -150,6 +150,23 @@
     }
   }
 
+  // "Why" stats (design v2): numbers count up once in view. The final value is the DOM text (no-JS / reduced motion).
+  document.querySelectorAll('[data-count]').forEach(function (el) {
+    if (!motion) return;
+    var m = /^(\D*)(\d+)(.*)$/.exec(el.textContent.trim());
+    if (!m) return;
+    var to = +m[2];
+    once(el, 0.6, function () {
+      var start = null;
+      (function tick(now) {
+        if (start === null) start = now;
+        var p = Math.min(1, (now - start) / 1100), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = m[1] + Math.round(to * e) + m[3];
+        if (p < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    });
+  });
+
   // Sticky CTA bar on phones: visible only while no other CTA-bearing block (hero buttons, demo, pricing, band, footer) is on screen.
   var bar = document.querySelector('[data-mbar]');
   if (bar && hasIO) {
@@ -158,6 +175,6 @@
       es.forEach(function (e) { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); });
       bar.classList.toggle('is-on', seen.size === 0);
     }, { rootMargin: '-64px 0px 0px 0px' });
-    document.querySelectorAll('.hero .btn-row, #demo, #pricing, #early-access, .band, .footer').forEach(function (el) { io.observe(el); });
+    document.querySelectorAll('.hero .btn-row, #demo, #reviews, #pricing, #early-access, .band, .footer').forEach(function (el) { io.observe(el); });
   }
 })();
