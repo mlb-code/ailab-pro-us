@@ -101,7 +101,7 @@
     },
     {
       "q": "Can I cancel?",
-      "a": "The monthly plan cancels with {cancel_days} days notice. {refund}"
+      "a": "The monthly plan cancels with {cancel_days} days' notice. {refund}"
     }
   ],
   "proof_rows": [

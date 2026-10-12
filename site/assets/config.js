@@ -14,5 +14,5 @@ window.SITE_CONFIG = {
   BUCKET: 'client-files',
   MAX_FILES: 5,
   MAX_FILE_MB: 10,
-  FEATURES: {"show_founder_price": true, "legal_final": false}
+  FEATURES: {"show_founder_price": true, "legal_final": true}
 };

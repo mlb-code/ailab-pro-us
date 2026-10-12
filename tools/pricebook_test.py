@@ -142,6 +142,8 @@ def main():
     check('WEB' not in G['codes'] and '`WEB` keeps only the 7-day deposit rule' in md, 'guarantee: WEB keeps the deposit rule only')
     check(G['refunds'] == 'setup_fee' and G['monthly_fees_refunded'] is False and 'Monthly fees for the period used are not refunded' in md,
           'guarantee: setup fee refunded, monthly fees not')
+    check(G.get('bundle_refunds') == 'rcp_setup_part' and '`BNDL` we refund only the AI Receptionist part' in md and 'AI Receptionist part' in G['legal'],
+          'guarantee: on BNDL only the RCP part of the setup fee is refunded (decision 2026-10-12)')
     for k in ('label', 'text', 'legal'):
         nums = {int(x) for x in re.findall(r'(\d+)[- ]day', G[k])}
         check(nums == {gd}, f'guarantee: {k} text uses {gd} days only ({sorted(nums)})')

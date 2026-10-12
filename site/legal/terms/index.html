@@ -6,22 +6,22 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230C0C10'/%3E%3Cpath d='M16 6l8 10-8 10-8-10z' fill='%239583FF'/%3E%3C/svg%3E">
 <title>Terms of Service</title>
-<meta name="description" content="Terms of Service for our websites, client portal and AI services. Version 1.0-draft."> <!-- hardcoded-ok: version shown before JS loads -->
+<meta name="description" content="Terms of Service for our websites, client portal and AI services.">
 <link rel="stylesheet" href="../../assets/base.css">
 <link rel="stylesheet" href="../legal.css">
 </head>
 <body>
-<div class="draft-banner" role="note" hidden>DRAFT — to be reviewed by a licensed attorney before first use. Version <span data-brand="agreement_version">1.0-draft</span>. Not yet in effect.</div> <!-- hardcoded-ok: version shown before JS loads -->
+<div class="draft-banner" role="note" hidden>DRAFT — not yet in effect. Version <span data-cfg="brand:agreement_version">1.0</span>.</div>
 <main>
 <nav class="legal-nav" aria-label="Legal documents"><a href="../terms/">Terms of Service</a><a href="../privacy/">Privacy Policy</a><a href="../service-agreement/">Service Agreement</a></nav>
 <h1>Terms of Service</h1>
-<p class="meta">Version <span class="mono" data-brand="agreement_version">1.0-draft</span> · Effective date: [EFFECTIVE DATE] · Last updated: October 11, 2026</p> <!-- hardcoded-ok: version shown before JS loads -->
+<p class="meta">Version <span class="mono" data-cfg="brand:agreement_version">1.0</span> · Effective date: October 12, 2026 · Last updated: October 12, 2026</p>
 
-<div class="box"><strong>Plain-English summary.</strong> We build and run AI tools for small US businesses, remotely from Israel. These Terms cover our website, the questionnaire, the client portal and the demo. Paid work is also covered by the <a href="../service-agreement/">Service Agreement</a> and your written Quote. We build with Claude, Anthropic's AI model. We are not affiliated with or endorsed by Anthropic.</div> <!-- hardcoded-ok: country of the business, a fact not a brand string -->
+<div class="box"><strong>Plain-English summary.</strong> We build and run AI tools for small US businesses, remotely from <span data-cfg="brand:legal_entity.country">Israel</span>. These Terms cover our website, the questionnaire, the client portal and the demo. Paid work is also covered by the <a href="../service-agreement/">Service Agreement</a> and your written Quote. Monthly plans renew each month until you cancel. Disputes go to individual arbitration, not class actions (section 17). We build with Claude, Anthropic's AI model. We are not affiliated with or endorsed by Anthropic.</div>
 
 <h2>1. Who we are</h2>
-<p>"We", "us" and "our" mean <span data-brand="legal_entity.name">[LEGAL ENTITY NAME]</span>, <span data-brand="legal_entity.form">[LEGAL FORM]</span>, doing business as <span data-brand="name">[BRAND NAME]</span>, with its address at <span data-brand="physical_address">[BUSINESS ADDRESS]</span>. We provide our services remotely from Israel. Contact: <a data-brand-href="support_email" href="#"><span data-brand="support_email">[SUPPORT EMAIL]</span></a>.</p> <!-- hardcoded-ok: country of the business, a fact not a brand string -->
-<p>"You" means the business, and the person acting for it, that uses our website, portal or services.</p>
+<p>"We", "us" and "our" mean <span data-cfg="brand:legal_entity.name">Lavi Entrepreneurship &amp; Management (Meir Lavi)</span>, <span data-cfg="brand:legal_entity.form">Israeli sole proprietorship (Osek Murshe)</span>, doing business as <span data-cfg="brand:name">AI Lab Pro</span>, with its address at <span data-cfg="brand:physical_address">29 Yigal Alon St., Herzliya, Israel</span>. We provide our services remotely from <span data-cfg="brand:legal_entity.country">Israel</span>. Contact: <a data-brand-href="support_email" href="#"><span data-cfg="brand:support_email">support@ailabpro.co</span></a>.</p>
+<p>"You" means the business, and the person acting for it, that uses our website, portal or services. By using them, you agree to these Terms and to our <a href="../privacy/">Privacy Policy</a>.</p>
 
 <h2>2. What these Terms cover</h2>
 <ul>
@@ -40,10 +40,11 @@
 <h2>5. The demo</h2>
 <p>The chat demo on our website uses a fictional business. No real booking is made, no real message is sent, and nothing you type is a request for service. Do not type personal or sensitive information into the demo.</p>
 
-<h2>6. Quotes, prices and payment (summary)</h2>
+<h2>6. Quotes, prices, payment and renewal (summary)</h2>
 <ul>
 <li>Prices are fixed, in US dollars, and shown in your written Quote. A Quote is valid for 14 days.</li>
-<li>Setup fees: 50% deposit to start, 50% before go-live. Monthly fees start on the go-live date and are billed monthly in advance.</li>
+<li>Setup fees: 50% deposit to start, 50% before go-live.</li>
+<li><strong>Automatic renewal:</strong> monthly plans start on the go-live date, are billed monthly in advance, and renew automatically each month until you cancel. You can cancel anytime by email or in your portal, with <span data-cfg="pricebook:rules.cancel_notice_days">30</span> days' notice. We will not charge you after the notice period ends. We will tell you at least 30 days in advance before we change the price of your plan.</li>
 <li>We accept payment through the methods named in your Quote (for example Upwork, PayPal or bank transfer).</li>
 <li>Full details are in the <a href="../service-agreement/">Service Agreement</a>.</li>
 </ul>
@@ -53,7 +54,7 @@
 <li><strong><span data-cfg="pricebook:refund_rules.rcp_guarantee.label">30-day satisfaction guarantee</span></strong> (AI Receptionist and the Receptionist + Website bundle): <span data-cfg="pricebook:refund_rules.rcp_guarantee.legal">If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid for the AI Receptionist and switch the AI line off. On the Receptionist + Website bundle, we refund only the AI Receptionist part of the setup fee: the AI Receptionist&#x27;s stand-alone setup price, less the same percentage discount (if any) you received on the bundle. The website stays yours, and its monthly plan continues unless you cancel it. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the bundle, not to the website on its own.</span></li>
 <li><strong>Setup deposit:</strong> fully refunded on request within <span data-cfg="pricebook:refund_rules.deposit.window_days">7</span> days of payment, as long as you have not completed the setup (access) checklist. After you complete the checklist, the deposit is non-refundable, except under the satisfaction guarantee above. For the website on its own, this deposit rule is the only setup refund, because content work starts right away.</li>
 <li><strong>Retainer plans</strong> (Care, Growth, Studio): if you cancel within <span data-cfg="pricebook:refund_rules.retainer.window_days">7</span> days of your first retainer payment, we refund <span data-cfg="pricebook:refund_rules.retainer.refund_pct">75</span>% of that first payment. After that, retainer fees are non-refundable.</li>
-<li><strong>Monthly service fees</strong> (for example the receptionist or website plan): cancel anytime with <span data-cfg="pricebook:rules.cancel_notice_days">30</span> days' notice. We do not refund partial months or months already used.</li>
+<li><strong>Monthly service fees</strong> (for example the receptionist or website plan): we do not refund partial months or months already used.</li>
 <li>Payments made through Upwork are refunded through Upwork.</li>
 </ul>
 
@@ -72,15 +73,16 @@
 <h2>9. Not an emergency service</h2>
 <p>The AI receptionist is not a 911 or emergency service. When a caller describes an emergency, it tells them to call 911 and alerts you, but it cannot dispatch help. Do not rely on it for life-safety situations.</p>
 
-<h2>10. AI output</h2>
+<h2>10. AI, transcription and your responsibilities</h2>
 <p>The AI can make mistakes: it can misunderstand a caller, write a wrong detail, or book a wrong slot. You can review every call, text and booking in your portal and pause the AI at any time. You are responsible for decisions you make based on AI output. We do not promise any business result (for example more leads, jobs or revenue).</p>
+<p>The AI's greeting tells callers that they are speaking with an automated assistant and that the call may be transcribed. We do not record call audio. You are the business your callers are calling, and you are responsible for any additional notice or consent that the laws of your callers' states require for AI calls, transcription or texts. We do not obtain consent on your behalf.</p>
 
-<h2>11. SMS program terms (for people who receive our texts)</h2>
-<p>This section is for callers of our client businesses who receive text messages from a business's AI line.</p>
+<h2>11. SMS program terms (for people who receive our clients' texts)</h2>
+<p>This section is for callers of our client businesses who receive text messages from a business's AI line. The business is the sender of these messages; we provide the technology.</p>
 <ul>
 <li><strong>Why you get texts:</strong> you called the business, and the call was missed or ended. The business sends a text-back about your request, a booking confirmation, or a reminder for a booking you made. These texts are informational, not marketing.</li>
 <li><strong>Message frequency</strong> varies, usually 1 to 5 messages per request. <strong>Message and data rates may apply.</strong></li>
-<li><strong>Opt out:</strong> reply <strong>STOP</strong> (or CANCEL, END, QUIT, UNSUBSCRIBE) at any time. You will get one confirmation and no more messages from that business line. Reply <strong>START</strong> to opt back in. Reply <strong>HELP</strong> for help, or contact <span data-brand="support_email">[SUPPORT EMAIL]</span>.</li>
+<li><strong>Opt out:</strong> reply <strong>STOP</strong> (or CANCEL, END, QUIT, UNSUBSCRIBE) at any time. You will get one confirmation and no more messages from that business line. Reply <strong>START</strong> to opt back in. Reply <strong>HELP</strong> for help, or contact <a data-brand-href="support_email" href="#"><span data-cfg="brand:support_email">support@ailabpro.co</span></a>.</li>
 <li>Carriers are not liable for delayed or undelivered messages.</li>
 <li>Mobile phone numbers and SMS opt-in information are not shared with third parties or affiliates for marketing or promotional purposes. See our <a href="../privacy/">Privacy Policy</a>.</li>
 </ul>
@@ -92,25 +94,35 @@
 <p>Our services connect to tools run by other companies, such as Twilio, Google, Calendly, Zapier and your CRM. Their terms apply to your use of them. We are not responsible for their outages or changes.</p>
 
 <h2>14. Disclaimers</h2>
-<p>Except as stated in the Service Agreement, our website, demo and services are provided "as is" and "as available". To the extent the law allows, we disclaim all implied warranties, including merchantability, fitness for a particular purpose and non-infringement. We do not claim that our services make you compliant with any law or regulation; compliance with laws that apply to your business is your responsibility.</p>
+<p>Except as stated in the Service Agreement, our website, demo and services are provided "as is" and "as available". To the extent the law allows, we disclaim all implied warranties, including merchantability, fitness for a particular purpose and non-infringement. We do not promise that the services will be uninterrupted or error-free. We do not claim that our services make you compliant with any law or regulation; compliance with laws that apply to your business is your responsibility.</p>
 
 <h2>15. Limitation of liability</h2>
-<p>To the extent the law allows: (a) our total liability for all claims related to our website and services is limited to the amounts you paid us in the 12 months before the event that caused the claim; and (b) we are not liable for indirect, incidental, special, consequential or punitive damages, or for lost profits, lost revenue, lost jobs or lost data.</p>
+<p>To the extent the law allows: (a) our total liability for all claims related to our website and services is limited to the greater of the amounts you paid us in the 12 months before the event that caused the claim, or one hundred US dollars; and (b) we are not liable for indirect, incidental, special, consequential or punitive damages, or for lost profits, lost revenue, lost jobs or lost data. For paid services, the limits in the Service Agreement apply.</p>
 
 <h2>16. Indemnity</h2>
-<p>You will defend and hold us harmless from third-party claims that arise from your content, your instructions to us, your messages to your customers, or your breach of these Terms or of the law (including telemarketing, SMS and call-recording laws).</p>
+<p>You will defend and hold us harmless from third-party claims (including claims by callers, carriers or regulators) that arise from your content, your instructions to us, your messages to your customers, or your breach of these Terms or of the law (including telemarketing, SMS and call-recording laws). For paid services, the indemnities in the Service Agreement apply, including ours to you.</p>
 
 <h2>17. Governing law and disputes</h2>
-<p>These Terms are governed by the laws of <strong><span data-brand="legal_entity.governing_law">[GOVERNING LAW — proposed: the State of New York]</span></strong>, without regard to conflict-of-law rules. Any dispute will be resolved by binding arbitration conducted online by <strong>[ARBITRATION PROVIDER — to be chosen by attorney]</strong>, in English, by a single arbitrator. Either party may bring an individual claim in small-claims court instead. [ATTORNEY: confirm venue, provider, class-action waiver and opt-out window.]</p>
+<ol>
+<li><strong>Governing law.</strong> These Terms are governed by the laws of <span data-cfg="brand:legal_entity.governing_law">the State of New York</span> and the Federal Arbitration Act, without regard to conflict-of-law rules.</li>
+<li><strong>Talk to us first.</strong> Before starting a claim, send a written description of the dispute to the other party. Both parties will try in good faith to resolve it within 30 days.</li>
+<li><strong>Binding arbitration.</strong> If the dispute is not resolved, it will be settled by binding arbitration administered by the American Arbitration Association (AAA) under its Commercial Arbitration Rules, before a single arbitrator, in English. Hearings will be held by video or on documents only, unless the arbitrator decides otherwise; the legal seat is New York, New York. Judgment on the award may be entered in any court with jurisdiction.</li>
+<li><strong>Small claims and urgent relief.</strong> Either party may instead bring an individual claim in a small-claims court that has jurisdiction, and either party may ask a court for urgent relief to protect its intellectual property or confidential information, or to collect unpaid fees.</li>
+<li><strong>No class actions; no jury.</strong> Claims may be brought only on an individual basis, not as a plaintiff or class member in any class, collective or representative proceeding. To the extent a dispute goes to court, both parties waive trial by jury.</li>
+<li><strong>Courts.</strong> For any matter that is not arbitrated, the parties agree to the courts located in New York County, New York.</li>
+</ol>
 
 <h2>18. Changes and termination</h2>
-<p>We may update these Terms. We will post the new version here with a new date and, for material changes, email active clients at least 14 days before they take effect. You may stop using our services at any time; paid services end as described in the Service Agreement.</p>
+<p>We may update these Terms. We will post the new version here with a new date and version and, for material changes, email active clients at least 14 days before they take effect. If you keep using the services after that, the new Terms apply; if you do not agree, you may cancel. A change never applies to a dispute that started before it. You may stop using our services at any time; paid services end as described in the Service Agreement.</p>
 
 <h2>19. Not affiliated with Anthropic</h2>
 <p>We build with Claude, an AI model made by Anthropic, PBC. We are an independent business. We are not affiliated with, endorsed by or sponsored by Anthropic. "Claude" and "Anthropic" are trademarks of their owner.</p>
 
-<h2>20. Contact</h2>
-<p><span data-brand="legal_entity.name">[LEGAL ENTITY NAME]</span> · <span data-brand="physical_address">[BUSINESS ADDRESS]</span> · <span data-brand="support_email">[SUPPORT EMAIL]</span>. We reply to messages within one business day and send written quotes <span data-cfg="brand:quote_sla_text">within 1 business day</span> of a completed questionnaire. Business days are <span data-cfg="brand:business_days_text">Sunday–Thursday, Israel time</span>.</p>
+<h2>20. General</h2>
+<p>You agree to receive notices from us electronically (email or the portal). If part of these Terms is unenforceable, the rest stays in force. Our failure to enforce a right is not a waiver. Neither of us is liable for delays caused by events beyond reasonable control (for example carrier or cloud outages, natural disasters or war).</p>
+
+<h2>21. Contact</h2>
+<p><span data-cfg="brand:legal_entity.name">Lavi Entrepreneurship &amp; Management (Meir Lavi)</span> · <span data-cfg="brand:physical_address">29 Yigal Alon St., Herzliya, Israel</span> · <a data-brand-href="support_email" href="#"><span data-cfg="brand:support_email">support@ailabpro.co</span></a>. We reply to messages within one business day and send written quotes <span data-cfg="brand:quote_sla_text">within 1 business day</span> of a completed questionnaire. Business days are <span data-cfg="brand:business_days_text">Sunday–Thursday, Israel time</span>.</p>
 </main>
 <script src="../legal.js" defer></script>
 </body>

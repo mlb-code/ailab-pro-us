@@ -118,16 +118,16 @@
     "deposit_pct": 50
   },
   "refund": {
-    "guarantee": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee and switch the line off. Monthly fees for the period used are not refunded.",
+    "guarantee": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee for the AI line and switch the line off. On the bundle, only the AI line's part of the setup fee is refunded and the website stays yours. Monthly fees for the period used are not refunded.",
     "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
     "retainer": null,
-    "status": "pending attorney review; owner to confirm"
+    "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)"
   },
   "payment": {
     "method": "wire",
     "link": null
   },
-  "agreement_version": "1.0-draft",
+  "agreement_version": "1.0",
   "accepted": null,
   "call_offer_prominent": true,
   "currency": "USD",

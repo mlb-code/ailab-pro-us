@@ -43,7 +43,7 @@
     "overage_policy": "no_auto_billing_alert_80_100_addon_with_approval"
   },
   "refund_rules": {
-    "status": "pending attorney review; owner to confirm",
+    "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)",
     "deposit": {
       "refund_pct": 100,
       "window_days": 7,
@@ -72,12 +72,13 @@
       ],
       "window_from": "go_live",
       "refunds": "setup_fee",
+      "bundle_refunds": "rcp_setup_part",
       "monthly_fees_refunded": false,
       "service_after_refund": "switched_off",
       "not_for": "WEB keeps only the 7-day deposit rule: content work starts immediately",
       "label": "30-day satisfaction guarantee",
-      "text": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee and switch the line off. Monthly fees for the period used are not refunded.",
-      "legal": "If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid and switch the AI line off. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the Receptionist + Website bundle, not to the website on its own."
+      "text": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee for the AI line and switch the line off. On the bundle, only the AI line's part of the setup fee is refunded and the website stays yours. Monthly fees for the period used are not refunded.",
+      "legal": "If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid for the AI Receptionist and switch the AI line off. On the Receptionist + Website bundle, we refund only the AI Receptionist part of the setup fee: the AI Receptionist's stand-alone setup price, less the same percentage discount (if any) you received on the bundle. The website stays yours, and its monthly plan continues unless you cancel it. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the bundle, not to the website on its own."
     }
   },
   "items": [

@@ -16,7 +16,7 @@
     "eyebrow": "Early access · dental practices",
     "title": "The front desk is busy. New patients still get *booked*.",
     "lead": "Your AI receptionist answers the calls your team can't, texts back anyone who hangs up, and books new-patient and urgent visits into your calendar. It collects only a name, a phone number and a general reason for the visit.",
-    "fine": "Early access: we're onboarding a small number of practices after a legal review. Join the list and we'll email you."
+    "fine": "Early access: we're onboarding a small number of practices first. Join the list and we'll email you."
   },
   "clock": {
     "caption": "One missed call over lunch. Illustration.",
@@ -417,12 +417,12 @@
   "pricing": {
     "eyebrow": "Expected pricing",
     "title": "The same *fixed* price. No surprises later.",
-    "note": "Practice management systems such as Dentrix or Open Dental, and any HIPAA BAA request, get a custom quote."
+    "note": "Practice management systems such as Dentrix or Open Dental get a custom quote. We don't sign a HIPAA BAA in this version."
   },
   "early": {
     "eyebrow": "Early access",
     "title": "Join the *early-access* list.",
-    "text": "We're finishing a legal review for dental practices. Leave your email and we'll write when we can take your practice. No calls, no spam.",
+    "text": "We're opening dental to a small number of practices first. Leave your email and we'll write when we can take your practice. No calls, no spam.",
     "button": "Join early access",
     "ok": "Thanks. You're on the list. We'll email you.",
     "fallback": "Your email app will open with a short message to us."
@@ -450,7 +450,7 @@
     },
     {
       "q": "When will it be available?",
-      "a": "After a legal review for dental practices. Early-access practices hear from us first, by email."
+      "a": "When we open the next group of practices. Early-access practices hear from us first, by email."
     },
     {
       "ref": "cancel"

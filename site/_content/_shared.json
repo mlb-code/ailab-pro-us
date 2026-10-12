@@ -96,7 +96,7 @@
     },
     "cancel": {
       "q": "Can I cancel? What if I'm not happy?",
-      "a": "{guarantee} {refund} Monthly service cancels with {cancel_days} days notice."
+      "a": "{guarantee} {refund} Monthly service cancels with {cancel_days} days' notice."
     },
     "who": {
       "q": "Who is behind this?",
