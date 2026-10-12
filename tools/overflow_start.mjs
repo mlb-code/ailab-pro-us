@@ -23,7 +23,7 @@ if (!process.argv[2]) {
   await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 }
 const WIDTHS = [375, 390, 414, 1280];
-const PATHS = [['RCP', 'home_services'], ['RCP', 'real_estate'], ['WEB', 'home_services'], ['BNDL', 'dental'], ['UNSURE', 'home_services']];
+const PATHS = [['RCP', 'home_services'], ['RCP', 'real_estate'], ['WEB', 'home_services'], ['BNDL', 'real_estate'], ['UNSURE', 'home_services']];
 let checks = 0; const problems = [];
 
 async function runEngine(name, type) {

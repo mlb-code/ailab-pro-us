@@ -40,7 +40,9 @@ def _check_span(span: list[str] | tuple[str, str] | None, where: str) -> None:
 
 class Business(_Strict):
     name: str = Field(min_length=1, max_length=120)
-    niche: Literal["home_services", "real_estate", "dental"]
+    # Offered niches only. A stored config with a retired niche (health care, removed 2026-10-12: no HIPAA BAAs) fails
+    # validation -> TenantConfigError -> safe mode (message + text-back, admin alert), never a crash.
+    niche: Literal["home_services", "real_estate"]
     trade: str = Field(default="", max_length=60, description="e.g. 'HVAC', 'plumbing'; used in the prompt")
     timezone: str
     service_area_zips: list[ZIP] = Field(default_factory=list, max_length=500,

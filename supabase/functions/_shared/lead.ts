@@ -5,6 +5,7 @@
 // Rate limit: ≤ 5 leads per IP hash per hour; the same e-mail within 10 minutes is accepted once (idempotent, no new row).
 // Writes public.leads (email, niche, source_page, utm, ip_hash) + public.events {entity:'lead', type:'lead_received'}.
 // The raw IP is never stored: ip_hash = SHA-256("lead|<UTC day>|<ip>"), so it only matches within a day.
+import { OFFERED_NICHES } from "./config.ts";
 import { sha256Hex } from "./quote_engine.ts";
 
 export interface LeadRow { email: string; niche: string | null; source_page: string | null; utm: Record<string, string>; ip_hash: string }
@@ -15,7 +16,7 @@ export interface LeadStore {
   event(leadId: string, payload: Record<string, unknown>): Promise<void>;
 }
 
-export const NICHES = ["home_services", "real_estate", "dental"];
+export const NICHES = OFFERED_NICHES; // retired or unknown niche -> 400 bad_niche
 export const IP_PER_HOUR = 5;
 const EMAIL_RX = /^[^\s@<>"']{1,64}@[^\s@<>"']{1,255}\.[A-Za-z]{2,24}$/;
 

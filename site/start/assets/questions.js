@@ -8,7 +8,7 @@
      they are collected after the deposit in the setup checklist (SPEC §6.8). Here we only ask what changes the quote.
 
    KEYS (step -> keys)                         used by the quote engine (A6) as
-   project   offer, niche                      core code (RCP|WEB|BNDL|UNSURE), niche (dental = manual review)
+   project   offer, niche                      core code (RCP|WEB|BNDL|UNSURE), niche (home_services | real_estate)
    recommend goal, website_now, biggest_leak   UNSURE only: inputs for the recommended core offer
    business  services[], service_area,         context
              locations                         '2' -> ADD-LOC x1, '3' -> ADD-LOC x2, '4plus' -> custom
@@ -61,13 +61,11 @@
       home_services: [O('hvac', 'HVAC'), O('plumbing', 'Plumbing'), O('electrical', 'Electrical'), O('roofing', 'Roofing'), O('garage_doors', 'Garage doors'),
         O('locksmith', 'Locksmith'), O('pest', 'Pest control'), O('cleaning', 'Cleaning'), O('landscaping', 'Landscaping'), O('other', 'Other')],
       real_estate: [O('buyers', 'Buyer agent'), O('listings', 'Listing agent'), O('team', 'Team or brokerage'), O('rentals', 'Rentals / property management'),
-        O('investor', 'Investor'), O('other', 'Other')],
-      dental: [O('general', 'General dentistry'), O('cosmetic', 'Cosmetic'), O('ortho', 'Orthodontics'), O('pediatric', 'Pediatric'), O('surgery', 'Oral surgery'), O('other', 'Other')]
+        O('investor', 'Investor'), O('other', 'Other')]
     },
     job_value: {
       home_services: [O('lt200', 'Under $200'), O('200_1k', '$200–$1,000'), O('1k_3k', '$1,000–$3,000'), O('gt3k', 'Over $3,000'), O('unsure', 'Not sure')],
-      real_estate: [O('lt3k', 'Under $3,000'), O('3k_8k', '$3,000–$8,000'), O('8k_15k', '$8,000–$15,000'), O('gt15k', 'Over $15,000'), O('unsure', 'Not sure')],
-      dental: [O('lt1k', 'Under $1,000'), O('1k_3k', '$1,000–$3,000'), O('gt3k', 'Over $3,000'), O('unsure', 'Not sure')]
+      real_estate: [O('lt3k', 'Under $3,000'), O('3k_8k', '$3,000–$8,000'), O('8k_15k', '$8,000–$15,000'), O('gt15k', 'Over $15,000'), O('unsure', 'Not sure')]
     }
   };
   const nicheOf = a => NICHE_OPTS.services[a.niche] ? a.niche : 'home_services';
@@ -94,9 +92,7 @@
   const STEPS = [
     { id: 'project', title: 'Your project', sub: 'About 6 minutes. Everything saves as you go, so you can stop and come back.', fields: [
       { k: 'offer', label: 'What would you like us to build?', type: 'offer', req: true },
-      { k: 'niche', label: 'Your industry', type: 'niche', req: true },
-      { k: 'dental_note', type: 'note', when: a => a.niche === 'dental',
-        text: 'Dental is a waitlist for now: the service is not available to HIPAA covered entities until we can sign a Business Associate Agreement (BAA). If you submit, we add your practice to the early-access list and email you when it opens. We do not send dental quotes yet.' }
+      { k: 'niche', label: 'Your industry', type: 'niche', req: true }
     ] },
     { id: 'recommend', title: 'Help us recommend', sub: 'Three quick questions so we can suggest the right setup.', when: offerIs('UNSURE'), fields: [
       { k: 'goal', label: 'What matters most right now?', type: 'single', opts: [O('calls', 'Stop losing jobs to missed calls'),
@@ -127,7 +123,7 @@
       { k: 're_qualify', label: 'What should every caller be asked?', hint: 'Pick all that apply. You get the answers with each lead.', type: 'multi', when: isRE,
         opts: [O('timeline', 'When they plan to buy, sell or move'), O('preapproval', 'Mortgage pre-approval status'), O('budget', 'Budget or price range'),
           O('areas', 'Neighborhoods they want'), O('property', 'Address of the property to sell')] },
-      { k: 'job_value', label: a => a.niche === 'real_estate' ? 'Average commission per closed deal' : a.niche === 'dental' ? 'Average value of a new patient' : 'Average value of a job',
+      { k: 'job_value', label: a => a.niche === 'real_estate' ? 'Average commission per closed deal' : 'Average value of a job',
         type: 'single', opts: a => NICHE_OPTS.job_value[nicheOf(a)] }
     ] },
     { id: 'website', title: a => a.offer === 'WEB' ? 'Your site details' : 'Your website', sub: a => a.offer === 'WEB' ? 'The facts your site will show. Rough is fine — you review every page before it goes live.' : 'What you have today.', when: offerIs('WEB', 'BNDL'), fields: [
@@ -230,7 +226,6 @@
       if (m === 'custom' && a.re_crm !== 'other') custom.push('crm:' + a.re_crm); else notes.push('real-estate CRM ' + a.re_crm + ' via ' + (a.re_crm === 'other' ? 'zapier' : m));
     }
     if (a.timeline === 'asap') notes.push('consider ADD-RUSH');
-    if (a.niche === 'dental') notes.push('dental early access: manual review');
     return { core: a.offer || null, add, custom, notes };
   }
 

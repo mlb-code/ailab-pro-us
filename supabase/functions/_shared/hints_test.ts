@@ -14,6 +14,6 @@ Deno.test(`hints parity with questions.js on ${fixtures.length} fixtures + edge 
   const cases = fixtures.map((f) => JSON.parse(Deno.readTextFileSync(new URL(`./fixtures/${f}`, import.meta.url))).questionnaire.answers);
   cases.push({ offer: "RCP", niche: "home_services", locations: "4plus", calls_week: "400plus", tools: ["other", "outlook_calendar", "quickbooks"] });
   cases.push({ offer: "RCP", niche: "real_estate", re_crm: "other", tools: [] });
-  cases.push({ offer: "BNDL", niche: "dental", tools: ["dentrix", "hubspot", "jobber"], timeline: "asap" });
+  cases.push({ offer: "BNDL", niche: "home_services", tools: ["servicetitan", "hubspot", "jobber"], timeline: "asap" });
   for (const a of cases) eq(quoteHints(a, PB), win.StartQ.quoteHints(a, PB), JSON.stringify(a).slice(0, 80));
 });

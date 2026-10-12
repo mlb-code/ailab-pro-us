@@ -354,7 +354,7 @@
           '(Demo draft: written by the mock quote engine, not by Claude.)',
         assumptions: ['Access to the tools listed in the questionnaire is provided within the setup checklist.', 'Prices are fixed as listed; no usage overage is billed automatically.'],
         timeline_text: it.delivery_business_days ? it.delivery_business_days + ' business days ' + (it.delivery_starts || '') : '',
-        __review: { manual_reasons: r.manual_reasons, risk_flags: q.niche === 'dental' ? ['dental early access: manual review'] : [],
+        __review: { manual_reasons: r.manual_reasons, risk_flags: [],
           questions_for_client: [], hints, removed: [], model: 'mock' }
       };
     }
@@ -581,7 +581,7 @@
     const ray = person('ray@brightair.test', 'Ray Brooks', 'Bright Air Heating & Cooling', 'home_services', { city: 'Phoenix', state: 'AZ', timezone: 'America/Phoenix' });
 
     db.leads.push({ id: uuid(), email: 'mike@quickfixgarage.test', niche: 'home_services', source_page: '/home-services/', utm: { source: 'upwork' }, created_at: ago(5) });
-    db.leads.push({ id: uuid(), email: 'sara@smiledental.test', niche: 'dental', source_page: '/dental/', utm: {}, created_at: ago(30) });
+    db.leads.push({ id: uuid(), email: 'sara@sunbeltrealty.test', niche: 'real_estate', source_page: '/real-estate/', utm: {}, created_at: ago(30) });
     db.leads.push({ id: uuid(), email: 'dani@coolbreeze.test', niche: 'home_services', source_page: '/', utm: { source: 'google' }, created_at: ago(60) });
 
     const q1 = qn(dani, 'RCP', 'home_services', { services: ['hvac'], service_area: 'Houston 77002 77005', locations: '1', tools: ['google_calendar', 'jobber'], spanish: 'no' }, 'submitted', 3);

@@ -52,7 +52,7 @@ All prices USD, fixed-price, excluding any sales tax (none expected; service per
 | `ADD-BLOG` | Blog section + 3 starter articles | WEB | $600 | $0 |
 | `ADD-RUSH` | Rush delivery (half the business days) | any | +25% of setup | $0 |
 
-Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan, Dentrix/Open Dental/any EHR, more than 3 locations, call volume > 3,000 min/month, HIPAA BAA requests.
+Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan, any EHR or practice-management system, more than 3 locations, call volume > 3,000 min/month, HIPAA BAA requests.
 
 ## 3. Later offers (on the price book, not marketed in phase A)
 

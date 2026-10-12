@@ -1,7 +1,7 @@
 """Build the public landing pages from config + content. Stdlib only. Never edit the generated HTML by hand.
 
-Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,dental,website,reviews}.json
-Outputs: site/index.html (home services), site/home-services/, site/real-estate/, site/dental/ (noindex, early access),
+Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,website,reviews}.json
+Outputs: site/index.html (home services), site/home-services/, site/real-estate/,
          site/website/, site/demo/, site/sitemap.xml, site/robots.txt, site/assets/og/*.png (only with --og or when missing)
 
 usage:
@@ -27,7 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'site')
 CONTENT = os.path.join(SITE, '_content')
 MARK = 'generated-by: tools/build_landing.py (edit site/_content/*.json or config/*.json, then rebuild)'
-NICHE_FILES = {'home_services': 'home-services.json', 'real_estate': 'real-estate.json', 'dental': 'dental.json'}
+NICHE_FILES = {'home_services': 'home-services.json', 'real_estate': 'real-estate.json'}
 PUBLIC_DEMO_NICHES = ['home_services', 'real_estate']
 
 
@@ -1075,7 +1075,6 @@ def build(c):
         'index.html': niche_page(c, 'home_services', contents, path='/', year=year),
         'home-services/index.html': niche_page(c, 'home_services', contents, path='/home-services/', canonical='/', year=year),
         'real-estate/index.html': niche_page(c, 'real_estate', contents, path='/real-estate/', year=year),
-        'dental/index.html': niche_page(c, 'dental', contents, path='/dental/', year=year),
         'website/index.html': website_page(c, website, year),
         'demo/index.html': demo_page(c, contents, year),
     }

@@ -21,6 +21,9 @@ export interface Brand {
   disclaimers: { footer: string; demo: string };
   legal_entity: { name: string };
   endpoints?: { payment?: string };
+  niches: Array<{ key: string; label: string }>;
   [k: string]: unknown;
 }
 export const BRAND = brandJson as unknown as Brand;
+/** Niches we sell today (brand.json). The DB enum public.niche may hold retired values for old rows only. */
+export const OFFERED_NICHES: readonly string[] = BRAND.niches.map((n) => n.key);

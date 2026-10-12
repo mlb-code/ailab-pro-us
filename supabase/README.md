@@ -1,4 +1,4 @@
-> **החלטה (11.10.2026): מפתחות נישה בכל הריפו הם snake_case כמו ב-DB — `home_services`, `real_estate`, `dental`.** (ה-enum `public.niche`; `brand.json`, דפים ושאלון משתמשים באותם מפתחות. נתיבי URL כמו `/home-services/` הם נתיבים בלבד, לא מפתחות.) אין נישת משפט.
+> **החלטה (11.10.2026): מפתחות נישה בכל הריפו הם snake_case כמו ב-DB — `home_services`, `real_estate`.** (12.10.2026: `dental` הוסר מהמוצר ונשאר ב-enum רק לשורות היסטוריות; אין מיגרציה שמוחקת ערך enum.) (ה-enum `public.niche`; `brand.json`, דפים ושאלון משתמשים באותם מפתחות. נתיבי URL כמו `/home-services/` הם נתיבים בלבד, לא מפתחות.) אין נישת משפט.
 
 # supabase/ — מיגרציות, RLS, בדיקות SQL ו-Edge Functions (quote-draft, quote-view, quote-accept, notify, zapier-out) של פרויקט ailab-us.
 

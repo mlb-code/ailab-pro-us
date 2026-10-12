@@ -143,3 +143,17 @@ def test_record_call_uses_the_voice_rate(tmp_path, demo_raw, monkeypatch):
     assert row["cost_usd"] >= 0.3
     t = sim.tenant("demo-hvac")
     assert sim.rt.state.get(calllog.twilio_cost_key(t.id, "2026-10-12")) >= 0.3  # 3 min x 0.1 (+ any SMS)
+
+
+def test_retired_niche_config_goes_to_safe_mode_not_a_crash(tmp_path, demo_raw):
+    """A tenant stored before the health-care niche was retired (2026-10-12) is flagged and served in safe mode."""
+    clock = harness.FakeClock(MON_10)
+    sim = harness.build(tmp_path, clock=clock, VOICE_MODE="gather")
+    row = sim.store.select("tenants", slug="demo-hvac")[0]
+    cfg = demo_raw["config"]
+    sim.store.update("tenants", row["id"], {"config": {**cfg, "business": {**cfg["business"], "niche": "dental"}}})
+    call = sim.call()
+    first = call.start()
+    assert "Thanks for calling Cool Breeze HVAC" in first.text and not first.end
+    ev = events(sim, "tenant_config_invalid")
+    assert len(ev) == 1 and "business.niche" in str(ev[0])

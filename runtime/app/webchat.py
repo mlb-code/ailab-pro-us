@@ -64,7 +64,7 @@ DEFAULTS: dict[str, Any] = {
     "live_niches": ["home_services", "real_estate"],
     "allowed_origins": [],
 }
-LIVE_CAPABLE = ("home_services", "real_estate")  # dental stays scripted-only (no BAA, early access)
+LIVE_CAPABLE = ("home_services", "real_estate")  # anything else (unknown or retired niche) is never live
 MAX_MESSAGE_CHARS = 2000  # transport cap; guard answers anything over 600 chars with a fixed reply
 
 PAUSED_NOTE = "Live demo paused"

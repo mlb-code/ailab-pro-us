@@ -84,11 +84,11 @@ def test_full_booking_touches_no_real_system(make):
     assert len(be(sim).calendar.events) == 1
 
 
-def test_real_estate_live_dental_scripted_only(make):
+def test_real_estate_live_unknown_niche_not_live(make):
     sim = make()
     r = start(sim, "real_estate").json()
     assert "Maple & Main Realty" in r["greeting"] and r["business"] == "Maple & Main Realty"
-    d = start(sim, "dental")
+    d = start(sim, "veterinary")  # unknown or retired niche
     assert d.status_code == 404 and d.json() == {"paused": True, "reason": "niche_not_live", "note": "Live demo paused"}
 
 
@@ -260,7 +260,7 @@ def test_demo_config_defaults_and_clamps(monkeypatch):
     assert cfg["max_messages_per_ip_hour"] == 60 and cfg["live_niches"] == ["home_services", "real_estate"]
     monkeypatch.setattr(webchat.settings_mod, "brand", lambda: {"demo": {
         "daily_budget_usd": "oops", "max_messages_per_session": 10_000, "retention_hours": 99,
-        "live_niches": ["dental", "real_estate"], "allowed_origins": "x"}})
+        "live_niches": ["veterinary", "real_estate"], "allowed_origins": "x"}})
     cfg = webchat.demo_config()
     assert cfg["daily_budget_usd"] == 3.0 and cfg["max_messages_per_session"] == 100
     assert cfg["retention_hours"] == 24 and cfg["live_niches"] == ["real_estate"] and cfg["allowed_origins"] == []

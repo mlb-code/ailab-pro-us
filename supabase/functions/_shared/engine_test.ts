@@ -95,15 +95,17 @@ Deno.test("malformed model output fails closed (no quote row)", async () => {
   eq(store.quotes.size, 0);
 });
 
-Deno.test("dental questionnaire = waitlist only: no draft, no Claude call, no quote row", async () => {
-  const store = new MemoryStore();
-  const { qid } = seed(store, "hvac_basic");
-  const q = store.questionnaires.get(qid)!;
-  store.questionnaires.set(qid, { ...q, niche: "dental", answers: { ...(q.answers ?? {}), niche: "dental" } });
-  let called = 0;
-  await rejects(() => draftQuote(qid, { store, model: mockModel(() => { called++; return "{}"; }) }), "dental_waitlist_only");
-  eq(called, 0);
-  eq(store.quotes.size, 0);
+Deno.test("retired, unknown or missing niche: no draft, no Claude call, no quote row", async () => {
+  for (const niche of ["dental", "law", null]) { // "dental" = retired 2026-10-12 (no BAAs), still in the DB enum for old rows
+    const store = new MemoryStore();
+    const { qid } = seed(store, "hvac_basic");
+    const q = store.questionnaires.get(qid)!;
+    store.questionnaires.set(qid, { ...q, niche, answers: { ...(q.answers ?? {}), niche } } as typeof q);
+    let called = 0;
+    await rejects(() => draftQuote(qid, { store, model: mockModel(() => { called++; return "{}"; }) }), "niche_not_offered");
+    eq(called, 0);
+    eq(store.quotes.size, 0);
+  }
 });
 
 Deno.test("regenerate overwrites a draft; a sent quote cannot be redrafted", async () => {

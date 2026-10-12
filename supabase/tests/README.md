@@ -31,7 +31,7 @@ python3 tools/sql_lint.py supabase/migrations                                # s
 
 `run.ts` does:
 1. loads the shim, applies every migration **twice** (idempotency);
-2. catalog checks: RLS on every `public` table, ≥ 1 policy each, no `(true)` policies, anon has no table grants and can execute only `public.ping()`, `private.*` not granted to API roles, buckets, cron jobs, niche enum (`home_services, real_estate, dental`; no law);
+2. catalog checks: RLS on every `public` table, ≥ 1 policy each, no `(true)` policies, anon has no table grants and can execute only `public.ping()`, `private.*` not granted to API roles, buckets, cron jobs, niche enum (`home_services, real_estate, dental`; no law; 'dental' is retired and stays in the enum for historical rows only);
 3. runs `rls_test.sql` and verifies the rollback left nothing behind;
 4. **mutation self-test**: breaks one protection at a time (11 mutations: unsent quotes visible, profile guard dropped, anon lead read, storage path check, request guard, one-active index, RLS off on calls, credentials readable by clients, retention that only flags the client, tenant whitelist bypass, consent log cascading with the tenant) and asserts `rls_test.sql` catches each.
 
