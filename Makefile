@@ -79,3 +79,15 @@ qa-sql:
 
 qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-phase-a
 	@echo "make qa: all checks passed"
+
+# ---------- social (Facebook post bank, social/bank/) ----------
+# social-status / social-dry read the real page (needs META_ACCESS_TOKEN or the local meta-ads/.env) and never post.
+.PHONY: social-status social-dry social-cards social-check
+social-status:
+	$(PY) social/fb_post.py --status --dry-run
+social-dry:
+	$(PY) social/fb_post.py --dry-run
+social-cards:
+	$(PY) social/bank/render.py
+social-check:
+	$(PY) social/bank/render.py --check
