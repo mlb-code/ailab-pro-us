@@ -2,6 +2,8 @@
 
 מסמך עבודה לסוכן או למי שמיישם את השינויים. מאיר רק מאשר בסוף. כל הנתיבים יחסיים לתיקיית `ailab-pro-us/`.
 
+**מצב נוכחי (12.10.2026):** המסמכים סופיים בגרסה `1.0` (`legal_final: true`), אחרי יישור לסטנדרט של 9 מתחרים (`docs/reports/LEGAL-STANDARD.md`). עדיין לא נשכר עורך דין אמריקאי. הצ'ק-ליסט הזה משמש אם וכאשר עורך דין יבדוק אותם בהמשך: כל שינוי שלו ייכנס כגרסה חדשה (למשל `1.1`).
+
 ## איך בנויים דפי המשפט
 - שלושת הדפים כתובים ב-HTML ידני ב-`site/legal/terms/index.html`, `site/legal/privacy/index.html` ו-`site/legal/service-agreement/index.html`. שינויי נוסח של עורך הדין נכנסים לשם ישירות.
 - יש שני סוגים של ערכים שאסור להקליד ידנית:
@@ -17,19 +19,19 @@
    - אם המספרים השתנו, מעדכנים את הבדיקות ב-`tools/pricebook_test.py`.
    - אותם ערכים מזינים גם את דפי הנחיתה, דף ההצעה, מייל ההצעה ומייל `went_live`.
 3. **ימי עסקים או SLA:** `config/brand.json` → `business_days_text`, `quote_sla_text`.
-4. **דין חל:** `config/brand.json` → `legal_entity.governing_law` (למשל `"the State of New York"`). ספק הבוררות כתוב בטקסט קבוע ב-Terms §17 וב-SA §18 (`[ARBITRATION PROVIDER…]`). מחליפים אותו ב-HTML, ומוחקים את הערות `[ATTORNEY: …]`.
+4. **דין חל:** `config/brand.json` → `legal_entity.governing_law` (למשל `"the State of New York"`). ספק הבוררות (AAA) כתוב בטקסט קבוע ב-Terms §17 וב-SA §18. אם עורך הדין משנה אותו, מחליפים ב-HTML.
 5. **שם, כתובת ומייל:** `config/brand.json` → `legal_entity.name`, `legal_entity.form`, `physical_address`, `support_email`. הם כבר מולאו, וצריך רק לוודא שעורך הדין אישר.
 6. **גרסה ותאריך תוקף:**
-   - `config/brand.json` → `agreement_version`: `"1.0-draft"` → `"1.0"`. דף ההצעה שומר את הערך הזה בכל אישור לקוח (`quote-accept`).
-   - (תוקן) התכונה היא עכשיו `data-brand="agreement_version"`, והגרסה מתעדכנת מהקונפיג. נשאר להחליף ידנית את ברירת המחדל `1.0-draft` שמופיעה ב-`site/legal` (כולל ה-`<meta description>`).
-   - מחליפים את `[EFFECTIVE DATE]` ואת "Last updated" בשלושת הדפים.
+   - `config/brand.json` → `agreement_version` הוא כבר `"1.0"` (בוצע 12.10.2026). אחרי שינויי עורך דין מעלים לגרסה חדשה (למשל `"1.1"`). דף ההצעה שומר את הערך הזה בכל אישור לקוח (`quote-accept`).
+   - (תוקן) התכונה היא עכשיו `data-brand="agreement_version"`, והגרסה מתעדכנת מהקונפיג. ברירת המחדל ב-`site/legal` כבר מוטבעת כ-`1.0`.
+   - תאריך התוקף ו-"Last updated" הם 12.10.2026 בשלושת הדפים. בגרסה חדשה מעדכנים את שניהם.
 7. **החלטות שמוסיפות טקסט חדש** (לפי `decisions-for-meir.he.md`):
-   - סעיף case study ומחיר מייסדים: טיוטה כבר נמצאת ב-SA §11. מעדכנים לפי עורך הדין, ושוקלים תיבת הסכמה בדף ההצעה.
+   - סעיף case study ומחיר מייסדים: כבר נמצא ב-SA §11. מעדכנים לפי עורך הדין, ושוקלים תיבת הסכמה בדף ההצעה.
    - חיוב החריגה ב-SA §4 (תוקן): אין חיוב אוטומטי, התראה ב-80% וב-100%, ותוספת רק באישור.
    - חריג small-claims (תוקן): נמצא עכשיו גם ב-SA §18.
    - DPA, אם עורך הדין דורש: עמוד חדש תחת `site/legal/`, שמתווסף ל-`LEGAL_PAGES` ב-`tools/build_landing.py`.
 8. **דנטל:** אם התשובה היא "לא", משנים ב-`config/brand.json` → `niches[key=dental].status`, ומעדכנים את `site/_content/dental.json`.
-9. **הכרזה על המסמכים כסופיים:** `config/brand.json` → `"legal_final": true`. בלי השלב הזה הבאנר נשאר.
+9. **הכרזה על המסמכים כסופיים:** `config/brand.json` → `"legal_final": true` (בוצע 12.10.2026, הבאנר מוסתר).
 10. **סנכרון ובנייה:**
     ```
     python3 tools/sync_config.py
