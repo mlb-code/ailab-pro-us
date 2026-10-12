@@ -12,6 +12,7 @@ Puppeteer is configured never to download Chrome, see `.puppeteerrc.cjs`).
 | `check_hardcoded.py` | Flags brand values (from `config/brand.json`) and price-book dollar amounts typed into source files. Generated files (`generated-by: tools/` marker) and `.md` only get warnings for amounts not in the price book. Pragma: `hardcoded-ok`. `--self-test`. |
 | `sync_config.py` | Validates `config/` and copies `brand.json` + `pricebook.json` to `site/assets/`, `supabase/functions/_shared/`, `runtime/app/`. `--check` = drift report. |
 | `pricebook_test.py` | Parses `docs/PRICEBOOK.md` tables and rules, diffs them against `config/pricebook.json`, validates the schema, checks integrations/niches. |
+| `landing_test.py` | Reviews rule (in `make qa-fast`): renders the landing pages with 0, 1 and 2 reviews; the "What clients say" section appears only with >= 2 approved (`consent: true`) reviews in `site/_content/reviews.json`; the "What a call sounds like" sample strip always shows; no "your review here" placeholders. |
 | `schema_lite.py` | Tiny JSON Schema subset validator used by the two scripts above. |
 | `cdp-shots.mjs` | Headless Chrome screenshots with real mouse-wheel scrolling: `node tools/cdp-shots.mjs <url> qa-shots/x/d 1440 900 0 9333 '[0,900,1800]'` (mobile: `390 844 1`). Exit 1 on console errors. |
 | `cdp-eval.mjs` / `cdp-eval-m.mjs` | Load a page (desktop / 390px touch) and print the JSON result of a JS expression. |

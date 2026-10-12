@@ -303,7 +303,7 @@ main>.section:nth-of-type(odd):not(.section--amber){background:linear-gradient(1
 @media (max-width:860px){.stats{grid-template-columns:1fr}}
 @media (max-width:520px){.why__pill{border-radius:var(--radius-sm);align-items:flex-start}}
 
-/* reviews: two marquee rows (pause on hover/focus); honest cards only (Sample / founding seat / real with source) */
+/* sample calls (labeled Sample) + real reviews (only >= 2 approved, with source): marquee rows, pause on hover/focus */
 .reviews .wrap{position:relative}
 .rvrows{display:grid;gap:18px}
 .rvrow{overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding:4px var(--gutter) 12px;scrollbar-width:thin}
@@ -322,17 +322,14 @@ main>.section:nth-of-type(odd):not(.section--amber){background:linear-gradient(1
 .rv__head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}
 .rv__av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(149,131,255,.16);color:var(--violet-2);font-weight:700;font-size:1rem}
 .rv__who{display:grid;min-width:0;line-height:1.3}
-.rv__who b{font-size:.95rem;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv__who b{font-size:.95rem;color:var(--fg);overflow-wrap:anywhere}
 .rv__who small{font-size:.76rem;color:var(--fg-3);overflow-wrap:anywhere}
 .rv__tag{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--line-2);border-radius:var(--pill);color:var(--fg-2)}
 .rv__stars{color:var(--amber);letter-spacing:2px;font-size:.95rem;white-space:nowrap}
 .rv__stars i{font-style:normal;color:var(--line-2)}
-.rv__stars--empty{color:transparent;-webkit-text-stroke:1px var(--fg-3)}
 .rv__body{display:grid;gap:10px;align-content:start}
 .rv__body p{font-size:.95rem;line-height:1.5;color:var(--fg-2);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .rv__k{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--violet-2);margin-bottom:2px}
-.rv--open{border-style:dashed;border-color:rgba(149,131,255,.45);background:linear-gradient(180deg,rgba(91,69,230,.12),var(--surface))}
-.rv--open .rv__av{background:transparent;border:1px dashed var(--violet);color:var(--violet-2)}
 .rv__src{font-size:.82rem;color:var(--fg-3)}
 .rv__src a{color:var(--violet-2);font-weight:600}
 
