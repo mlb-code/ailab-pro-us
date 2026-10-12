@@ -1029,6 +1029,7 @@ await b.close();
 # ---------------------------------------------------------------- legal pages (hand-written, values stamped from config)
 LEGAL_PAGES = ['legal/terms/index.html', 'legal/service-agreement/index.html', 'legal/privacy/index.html']
 CFG_RX = re.compile(r'(<span data-cfg="(pricebook|brand):([A-Za-z0-9_.]+)">)(.*?)(</span>)', re.S)
+BANNER_RX = re.compile(r'(<div class="draft-banner" role="note")(?: hidden)?>')
 
 
 def cfg_value(c, src, path):
@@ -1039,19 +1040,24 @@ def cfg_value(c, src, path):
         v = v[k]
     if isinstance(v, bool) or not isinstance(v, (str, int)) or v == '':
         raise SystemExit(f'build_landing: legal data-cfg "{src}:{path}" is not a non-empty string/number')
-    return str(v)
+    return f'{v:,}' if isinstance(v, int) else str(v)
 
 
 def stamp_legal(c):
-    """site/legal/* are written by hand; every <span data-cfg="pricebook:a.b">…</span> is re-filled from config here
-    (refund windows, the satisfaction guarantee, quote SLA, business days), so the text never drifts from the price book."""
+    """site/legal/* are written by hand; every <span data-cfg="pricebook:a.b">…</span> / "brand:a.b" is re-filled from config
+    here (refund windows, the satisfaction guarantee, quote SLA, business days, entity, address, governing law, version), so
+    the text never drifts from the config. The DRAFT banner gets `hidden` exactly when brand.json legal_final is true."""
     out = {}
     for rel in LEGAL_PAGES:
         p = os.path.join(SITE, rel)
         if not os.path.exists(p):
             continue
         cur = open(p, encoding='utf-8').read()
-        out[rel] = CFG_RX.sub(lambda m: m.group(1) + esc(cfg_value(c, m.group(2), m.group(3))) + m.group(5), cur)
+        cur = CFG_RX.sub(lambda m: m.group(1) + esc(cfg_value(c, m.group(2), m.group(3))) + m.group(5), cur)
+        # DRAFT banner: hidden in the static HTML exactly when brand.json "legal_final" is true (legal.js does the same).
+        hidden = ' hidden' if c.brand.get('legal_final') is True else ''
+        cur = BANNER_RX.sub(lambda m: m.group(1) + hidden + '>', cur)
+        out[rel] = cur
     return out
 
 

@@ -76,8 +76,9 @@ Custom (not auto-priced → "custom quote", Meir prices manually): ServiceTitan,
 4. If any item is `custom` or setup total > $10,000 → quote status `needs_manual_price`; it cannot be sent until Meir enters prices.
 5. Discount: only `FOUNDING` (founding-client, first 3 clients) = 30% off setup, applied by Meir in admin, never by Claude. Monthly fees are never discounted.
 6. Quote valid 14 days. Upwork jobs: same prices; Upwork fee is ours to absorb.
-7. Refund policy (pending lawyer): the setup deposit is fully refunded on request within 7 days of payment, as long as the client has not completed the access checklist. Retainers: 75% refund of the first payment if cancelled within 7 days.
+7. Refund policy (final 2026-10-12, aligned with market standard; no attorney review yet): the setup deposit is fully refunded on request within 7 days of payment, as long as the client has not completed the access checklist. Retainers: 75% refund of the first payment if cancelled within 7 days.
    - Satisfaction guarantee (owner decision 2026-10-11) on `RCP` and `BNDL`: if the client is not satisfied within 30 days after go-live, we refund the setup fee and switch the line off. Monthly fees for the period used are not refunded. `WEB` keeps only the 7-day deposit rule, since content work starts immediately.
+   - Bundle scope (decision 2026-10-12, `rcp_guarantee.bundle_refunds = rcp_setup_part`): on `BNDL` we refund only the AI Receptionist part of the setup fee (the `RCP` stand-alone setup price, less the same percentage discount the client got), not the full bundle setup fee. The website stays with the client; its monthly plan continues unless cancelled.
    - Business days for every SLA (`brand.quote_sla_text`) are Sunday–Thursday, Israel time (`brand.business_days_text`).
    - Client-facing copy reads all of this from `config/pricebook.json` → `refund_rules` (`deposit.text`, `rcp_guarantee_days`, `rcp_guarantee.text` / `.legal` / `.label`); never type the numbers by hand.
 8. The `FOUNDING` discount is labelled "Founding-client price" in client copy (`rules.discounts.FOUNDING.label`).
