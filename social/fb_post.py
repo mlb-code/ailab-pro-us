@@ -2,11 +2,11 @@
 """Post the next Facebook post from social/bank/posts.json to the US page, one every ~2 days. Stdlib only.
 
 usage:
-  python3 social/fb_post.py              post the next unposted slot if the newest page post is older than 44 h
+  python3 social/fb_post.py              post the next unposted slot if the newest page post is older than 20 h
   python3 social/fb_post.py --dry-run    same decision, prints what it would post, never posts
   python3 social/fb_post.py --status     table of posted / unposted slots (read-only; combine with --dry-run)
   python3 social/fb_post.py --slot N     post slot N (refuses a slot that is already posted unless --force)
-  python3 social/fb_post.py --force      ignore the 44-hour gap
+  python3 social/fb_post.py --force      ignore the 20-hour gap
 
 Env: META_ACCESS_TOKEN (system-user token; local fallback: META_ACCESS_TOKEN in
 "~/Desktop/Pyton1/pyton corus 1/meta-ads/.env"), META_PRO_PAGE_ID (fallback below), SOCIAL_FB_DRY_RUN=1 = --dry-run.
@@ -32,7 +32,7 @@ BANK = os.path.join(HERE, 'bank', 'posts.json')
 GRAPH = 'https://graph.facebook.com/v21.0'
 DEFAULT_PAGE_ID = '1405415849316418'
 LOCAL_ENV = os.path.expanduser('~/Desktop/Pyton1/pyton corus 1/meta-ads/.env')
-MIN_GAP_HOURS = 44
+MIN_GAP_HOURS = 20
 FEED_LIMIT = 60
 KEY_LEN = 60
 
