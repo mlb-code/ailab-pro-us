@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 POSTS = os.path.join(HERE, 'posts.json')
 IMG = os.path.join(HERE, 'img')
 MAX_BYTES = 400 * 1024
-KINDS = {'tip', 'stat', 'how-it-works', 'faq', 'product', 'story-sample', 'website', 'review'}
+KINDS = {'tip', 'stat', 'how-it-works', 'faq', 'product', 'story-sample', 'website', 'review', 'myth-fact', 'real-estate'}
 # FTC / claims / brand rules (see social/bank/README.he.md). Case-insensitive substrings.
 BANNED = ['hipaa', 'tcpa compliant', 'tcpa-compliant', 'compliant', 'guaranteed', 'guarantee you', 'testimonial',
           'dental', 'dentist', 'patient', 'israel', 'hebrew', 'best in', '#1', 'world-class', 'revolution']

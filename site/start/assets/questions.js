@@ -144,7 +144,7 @@
         opts: [O('extra_pages', 'More pages'), O('spanish', 'Spanish version'), O('logo', 'Logo design'), O('blog', 'Blog with starter articles'), O('none', 'No, 5 pages is fine')] }
     ] },
     { id: 'tools', when: a => a.offer !== 'WEB', title: 'Your tools', sub: 'Just tick what you use. We connect everything after you accept the quote — no logins needed now.', fields: [
-      { k: 're_crm', label: 'Which CRM holds your leads?', type: 'single', when: isRE, hint: 'Any CRM works: the ones not listed connect through Zapier.',
+      { k: 're_crm', label: 'Where do you keep your leads (your CRM)?', type: 'single', when: isRE, hint: 'If yours isn’t listed, most apps connect through Zapier. Some systems need a custom quote.',
         opts: reCrmOptions },
       { k: 'tools', label: a => isRE(a) ? 'Anything else you use?' : 'Which of these do you use?', hint: 'Pick all that apply.', type: 'multi', opts: toolOptions },
       { k: 'tools_other', label: 'Which other tool?', type: 'text', when: a => has(a, 'tools', 'other') || (isRE(a) && a.re_crm === 'other'), ph: 'Tool name' }

@@ -44,7 +44,7 @@
       "id": "fb-05-how-it-works",
       "slot": 5,
       "kind": "how-it-works",
-      "message": "How it works, part 1: the text-back.\n\nSomeone calls, you can't pick up, and they hang up. Within a minute they get one text from your AI line: who you are, sorry we missed you, how can we help, and how to opt out.\n\nOne text-back per number per day, and never between 9 PM and 8 AM. If they reply, the AI keeps the conversation going and collects the job details.\n\nTry it as the customer: https://ailabpro.co/demo/",
+      "message": "How it works, part 1: the text-back.\n\nSomeone calls, you can't pick up, and they hang up. Within a minute they get one text from your AI receptionist's number: who you are, sorry we missed you, how can we help, and how to opt out.\n\nOne text-back per number per day, and never between 9 PM and 8 AM. If they reply, the AI keeps the conversation going and collects the job details.\n\nTry it as the customer: https://ailabpro.co/demo/",
       "image": "social/bank/img/slot-05.png",
       "card": {
         "kicker": "How it works · Text-back",
@@ -57,7 +57,7 @@
       "id": "fb-06-faq",
       "slot": 6,
       "kind": "faq",
-      "message": "A question we get a lot: \"Do I keep my business number?\"\n\nYes. The only change on your side is one setting: call forwarding on no-answer or busy, pointed to the AI line we set up. Calls you pick up never reach it. Calls you miss do.\n\nOur setup checklist shows how for Verizon, AT&T, T-Mobile, Comcast Business, RingCentral and Google Voice, with a short video for each step.\n\nMore answers: https://ailabpro.co",
+      "message": "A question we get a lot: \"Do I keep my business number?\"\n\nYes. The only change on your side is one setting: when you don't answer or the line is busy, your phone sends the call to the new number we set up (call forwarding). Calls you pick up never reach it. Calls you miss do.\n\nOur setup checklist shows how for Verizon, AT&T, T-Mobile, Comcast Business, RingCentral and Google Voice, with a short video for each step.\n\nMore answers: https://ailabpro.co",
       "image": "social/bank/img/slot-06.png",
       "card": {
         "kicker": "FAQ",
@@ -96,7 +96,7 @@
       "id": "fb-09-product",
       "slot": 9,
       "kind": "product",
-      "message": "Founding-client price for our first 3 US clients: $2,450 setup + $300/mo for the Missed-Call AI Receptionist. The regular price is $3,500 setup + $300/mo.\n\nIn exchange, we ask for a short case study once it's running: what changed, in your words.\n\nThe price is fixed and in writing before you pay. No hourly billing, no sales calls. Start with a 6-minute questionnaire: https://ailabpro.co",
+      "message": "Founding-client price for our first 3 US clients: $2,450 setup + $300/mo for the Missed-Call AI Receptionist. The regular price is $3,500 setup + $300/mo.\n\nIn return, you let us write a short case study about your results once it's running: what changed, in your words.\n\nThe price is fixed and in writing before you pay. No hourly billing, no sales calls. Start with a 6-minute questionnaire: https://ailabpro.co",
       "image": "social/bank/img/slot-09.png",
       "card": {
         "kicker": "Founding clients · 3 seats",
@@ -215,13 +215,13 @@
       "id": "fb-18-product",
       "slot": 18,
       "kind": "product",
-      "message": "30-day satisfaction guarantee on the Missed-Call AI Receptionist.\n\nIf you're not satisfied within 30 days after go-live, tell us in writing and we refund the setup fee for the AI line and switch the line off. Monthly fees for the period used are not refunded.\n\nOn the bundle, only the AI line's part of the setup fee is refunded, and the website stays yours. Full terms are in the service agreement: https://ailabpro.co",
+      "message": "30-day satisfaction guarantee on the Missed-Call AI Receptionist.\n\nNot happy within 30 days of go-live (the day it starts answering real customers)? Tell us in writing and we refund the AI receptionist's setup fee and turn it off. Monthly fees for the period used are not refunded.\n\nOn the bundle, we refund only the receptionist's part of the setup fee, and you keep the website. Full terms are in the service agreement: https://ailabpro.co",
       "image": "social/bank/img/slot-18.png",
       "card": {
         "kicker": "30-day satisfaction guarantee",
         "num": "30",
         "title": "days after go-live to *decide*.",
-        "sub": "Not satisfied? We refund the AI line's setup fee."
+        "sub": "Not happy? We refund the receptionist's setup fee."
       },
       "notes_he": "ערבות שביעות רצון 30 יום על המענה החכם (החזר דמי הקמה)"
     },
@@ -243,7 +243,7 @@
       "id": "fb-20-how-it-works",
       "slot": 20,
       "kind": "how-it-works",
-      "message": "How it works, part 4: the summary.\n\nFor every lead you get a text and an email: name, callback number, address or ZIP, job type, urgency, and the booking if one was made. Once a day you get a summary email of everything.\n\nThe full call log, transcripts and bookings are in your client portal. We keep transcripts, not audio.\n\nSee what a lead looks like: https://ailabpro.co/demo/",
+      "message": "How it works, part 4: the summary.\n\nFor every lead you get a text and an email: name, callback number, address or ZIP, job type, urgency, and the booking if one was made. Once a day you get a summary email of everything.\n\nEvery call, a written copy of each conversation, and your bookings are in your online account. We keep written copies, never the audio.\n\nSee what a lead looks like: https://ailabpro.co/demo/",
       "image": "social/bank/img/slot-20.png",
       "card": {
         "kicker": "How it works · Summary",
@@ -268,12 +268,12 @@
       "id": "fb-22-faq",
       "slot": 22,
       "kind": "faq",
-      "message": "\"Why not the AI assistant built into Jobber or Housecall Pro?\"\n\nFair question. Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, works with any calendar or CRM, hands off to a person when needed, and comes with someone who maintains it.\n\nGoogle Calendar or Calendly booking and 1 Zapier webhook are included. A direct Jobber or Housecall Pro connection is an add-on with a fixed price: https://ailabpro.co",
+      "message": "\"Why not the AI assistant built into Jobber or Housecall Pro?\"\n\nFair question. Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, passes the caller to a person when needed, and a real person keeps it running. It works with Google Calendar, Calendly and most apps through Zapier. Some systems (for example Outlook or ServiceTitan) need a custom quote.\n\nGoogle Calendar or Calendly booking and 1 Zapier link are included. A direct link to Jobber or Housecall Pro is an extra with a fixed price: https://ailabpro.co",
       "image": "social/bank/img/slot-22.png",
       "card": {
         "kicker": "FAQ",
         "title": "Why not the built-in *assistant*?",
-        "sub": "Ours answers the phone and works with any calendar or CRM."
+        "sub": "Ours answers the phone and hands off to a person."
       },
       "notes_he": "שאלה נפוצה: למה לא העוזר המובנה ב-Jobber/Housecall Pro?"
     },
@@ -281,7 +281,7 @@
       "id": "fb-23-website",
       "slot": 23,
       "kind": "website",
-      "message": "Two things to check before you pay anyone for a website:\n\n1. Is the domain registered in your name? With us it is. If you have one, we connect it. If not, you register it and we show you how.\n\n2. What do they promise about Google? We set up the basics: titles, LocalBusiness schema, a sitemap, Search Console and a link to your Google Business Profile. We don't promise rankings.\n\nhttps://ailabpro.co/website/",
+      "message": "Two things to check before you pay anyone for a website:\n\n1. Is the domain registered in your name? With us it is. If you have one, we connect it. If not, you register it and we show you how.\n\n2. What do they promise about Google? We set up the basics so Google can read your site: page titles, your business details in Google's format, a list of your pages, Google's free site tools and a link to your Google Business Profile. We don't promise rankings.\n\nhttps://ailabpro.co/website/",
       "image": "social/bank/img/slot-23.png",
       "card": {
         "kicker": "Websites · Before you pay",
@@ -360,7 +360,7 @@
       "id": "fb-29-product",
       "slot": 29,
       "kind": "product",
-      "message": "The bundle: Missed-Call AI Receptionist + 5-page website.\n\n$4,900 setup + $400/mo, instead of $5,400 + $429 bought separately. Your AI line number goes on the site, and a website chat widget with the same AI is included.\n\nOne fixed price, in writing. Live 14 business days after your access and content are in. The 30-day guarantee covers the AI line's part of the setup fee.\n\nhttps://ailabpro.co",
+      "message": "The bundle: Missed-Call AI Receptionist + 5-page website.\n\n$4,900 setup + $400/mo, instead of $5,400 + $429 bought separately. Your AI receptionist's number goes on the site, and a chat box on your website with the same answers is included.\n\nOne fixed price, in writing. Live 14 business days after your setup checklist and content are done. The 30-day guarantee covers the receptionist's part of the setup fee.\n\nhttps://ailabpro.co",
       "image": "social/bank/img/slot-29.png",
       "card": {
         "kicker": "The bundle",
@@ -381,6 +381,433 @@
         "title": "Who answers on *Saturday*?"
       },
       "notes_he": "טיפ: להחליט מי עונה בשבת (כלל כתוב לסופ\"ש)"
+    },
+    {
+      "id": "fb-31-story",
+      "slot": 31,
+      "kind": "story-sample",
+      "message": "Picture a Tuesday at 7 PM in July. It's a made-up example, but you may know it.\n\nYou're finishing an install across town when the phone rings. A homeowner's AC is blowing warm air. You can't pick up, so they hang up and call the next company on the list.\n\nSame evening, with an AI receptionist: the call forwards, the caller hears your business name, gets asked what's going on and the ZIP code, and picks a window for tomorrow morning. You get a text with the details before you pack up.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-31.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · Tuesday, 7 PM",
+        "title": "The AC call you *didn't* hear.",
+        "sub": "A made-up example. Same evening, two endings."
+      },
+      "notes_he": "סיפור היפותטי: שלישי 19:00, מזגן חם, השיחה שלא נענתה מול מענה חכם שקובע תור"
+    },
+    {
+      "id": "fb-32-tip",
+      "slot": 32,
+      "kind": "tip",
+      "message": "Tip: the first sentence of every business call should do three things.\n\n1. Say the business name.\n2. Say your name.\n3. Ask a question: \"What's going on?\"\n\n\"Thanks for calling Riverside Heating, this is Sam. What's going on?\" The caller starts talking about the problem right away, and you skip the awkward \"Hello? Is this the AC company?\"\n\nIf you have to call back, give a time, not \"soon\": \"I'll call you by 4 PM.\"\n\nOur AI receptionist opens every call the same way: https://ailabpro.co",
+      "image": "social/bank/img/slot-32.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Tip · Answering the phone",
+        "title": "Name, your name, *one* question.",
+        "sub": "\"Thanks for calling Riverside Heating, this is Sam. What's going on?\""
+      },
+      "notes_he": "טיפ: משפט הפתיחה בשיחה — שם העסק, השם שלך ושאלה אחת"
+    },
+    {
+      "id": "fb-33-stat",
+      "slot": 33,
+      "kind": "stat",
+      "message": "44% of callers to businesses never reach a person. Source: Invoca Lead Conversion Benchmarks Report 2026, based on over 70 million phone calls.\n\nSome of those calls end in voicemail, some in a phone menu, some just ring out. For a plumbing or HVAC company, many of them are a job that someone needed today.\n\nAn AI receptionist isn't a person either, and it says so. But it picks up, asks what's going on, books the visit and texts you the details: https://ailabpro.co",
+      "image": "social/bank/img/slot-33.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "44%",
+        "title": "of callers never reach a *person*.",
+        "sub": "Source: Invoca Lead Conversion Benchmarks Report 2026"
+      },
+      "notes_he": "נתון 44% (Invoca 2026, ניתוח 70 מיליון שיחות): מתקשרים לעסקים שלא מגיעים לאדם"
+    },
+    {
+      "id": "fb-34-myth",
+      "slot": 34,
+      "kind": "myth-fact",
+      "message": "Myth: an AI receptionist pretends to be a human.\n\nFact: ours introduces itself as your virtual assistant on every call and never claims to be a person. The greeting also says the call may be recorded and transcribed.\n\nIf a caller would rather talk to someone, it takes their name, number and what's going on, and flags the lead so you know who to call back first.\n\nCallers get a straight answer, and you get the details. Try it as the customer: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-34.png",
+      "link": "https://ailabpro.co/demo/",
+      "card": {
+        "kicker": "Myth vs fact",
+        "title": "It never claims to be a *person*.",
+        "sub": "Myth: AI receptionists pretend to be human."
+      },
+      "notes_he": "מיתוס מול עובדה: \"AI מתחזה לאדם\" — אצלנו מציג את עצמו כעוזר וירטואלי"
+    },
+    {
+      "id": "fb-35-product",
+      "slot": 35,
+      "kind": "product",
+      "message": "Hear it live: call +1 832-307-0813.\n\nIt reaches Copperleaf Air & Plumbing, a made-up demo company in Houston, and the same AI receptionist we set up for clients answers. Say your AC is blowing warm air, or that there's water on the garage floor, and listen to what it asks.\n\nIt's a US number, so regular call charges apply, and the call may be recorded and written down as text.\n\nThen picture it answering with your business name: https://ailabpro.co",
+      "image": "social/bank/img/slot-35.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Hear it live · Demo line",
+        "title": "Call *+1 832-307-0813*.",
+        "sub": "A made-up Houston HVAC company answers. Standard rates apply."
+      },
+      "notes_he": "מוצר: \"תשמע את זה חי\" — מספר הדמו +1 832-307-0813 (חברת הדגמה בדויה ביוסטון)"
+    },
+    {
+      "id": "fb-36-story",
+      "slot": 36,
+      "kind": "story-sample",
+      "message": "Picture a Saturday at 8:15 AM. A made-up example: a homeowner finds water under the kitchen sink, and the plumber who owns the company is at his kid's soccer game.\n\nWithout a plan, the call rings out and the homeowner keeps dialing down the list.\n\nWith an AI receptionist, the call is answered. It asks whether the water is still running, sees that \"leak\" is one of the owner's urgent keywords, and sends him an URGENT text. The homeowner is booked into the first weekend window the owner opened.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-36.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · Saturday, 8:15 AM",
+        "title": "A leak during the *soccer* game.",
+        "sub": "A made-up example of the urgent-call path."
+      },
+      "notes_he": "סיפור היפותטי: שבת בבוקר, נזילה, בעל העסק במשחק כדורגל — התראה דחופה ותור"
+    },
+    {
+      "id": "fb-37-re",
+      "slot": 37,
+      "kind": "real-estate",
+      "message": "Real estate agents: picture a seller lead calling at 6:48 PM while you're with buyers. A made-up example.\n\n\"I'm thinking about selling.\" If nobody answers, that homeowner may just call the next name on the next sign.\n\nOur Lead Assistant answers with your name, asks which neighborhood and when they hope to sell, and offers two times you opened for a home value call. You get a text with the lead and the booking.\n\nSee the seller conversation: https://ailabpro.co/real-estate/",
+      "image": "social/bank/img/slot-37.png",
+      "link": "https://ailabpro.co/real-estate/",
+      "card": {
+        "kicker": "Real estate · Seller leads",
+        "title": "\"I'm thinking about *selling*.\"",
+        "sub": "Answered, screened and booked while you're with buyers."
+      },
+      "notes_he": "נדל\"ן: ליד של מוכר בשעה 18:48 — שכונה, לוח זמנים, תיאום שיחת הערכה"
+    },
+    {
+      "id": "fb-38-tip",
+      "slot": 38,
+      "kind": "tip",
+      "message": "Tip: five texting habits that make a small business look professional.\n\n1. Start with your business name, every time.\n2. Plain words. Skip slang and \"u\" for \"you\".\n3. One question per text.\n4. If a text comes in after hours, say when you'll answer: \"We'll get back to you by 9 AM.\"\n5. Don't add links or offers the customer didn't ask for.\n\nCustomers read your texts the way they read your truck: as a sign of how you work.\n\nSee a full text conversation: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-38.png",
+      "link": "https://ailabpro.co/demo/",
+      "card": {
+        "kicker": "Tip · Texting customers",
+        "title": "Text like a *business*, not a buddy.",
+        "sub": "Name first · plain words · one question per text"
+      },
+      "notes_he": "טיפ: 5 הרגלי הודעות טקסט שגורמים לעסק להיראות מקצועי"
+    },
+    {
+      "id": "fb-39-stat",
+      "slot": 39,
+      "kind": "stat",
+      "message": "83% of consumers who were asked to leave a review went on to leave one (BrightLocal Local Consumer Review Survey 2026, 1,002 US consumers).\n\nMost happy customers don't think to write a review. They will if you ask, at the right moment, with a direct link.\n\nAsk the same day, while the fixed AC is still fresh. Our optional review-request text ($400 add-on) sends one short message after each completed job with your Google review link: https://ailabpro.co",
+      "image": "social/bank/img/slot-39.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "83%",
+        "title": "of people asked for a review left *one*.",
+        "sub": "Source: BrightLocal Local Consumer Review Survey 2026"
+      },
+      "notes_he": "נתון 83% (BrightLocal 2026): מי שהתבקש לכתוב ביקורת כתב. + תוסף בקשת ביקורת 400$"
+    },
+    {
+      "id": "fb-40-story",
+      "slot": 40,
+      "kind": "story-sample",
+      "message": "Picture an electrician on a ladder at 11 AM. This is a made-up example.\n\nThree calls come in within an hour: a breaker that keeps tripping, a quote for an EV charger, and a spam call. He can't answer any of them with both hands on a panel.\n\nWith an AI receptionist, the breaker caller is asked a few safety questions and flagged as urgent. The EV charger caller is booked into an estimate window. The spam call goes nowhere. At lunch, he reads two summaries instead of three voicemails.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-40.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · 11 AM, on a ladder",
+        "title": "Three calls. Both hands *busy*.",
+        "sub": "A made-up example: sorted, flagged, booked."
+      },
+      "notes_he": "סיפור היפותטי: חשמלאי על סולם, שלוש שיחות בשעה — דחוף, הצעת מחיר, ספאם"
+    },
+    {
+      "id": "fb-41-myth",
+      "slot": 41,
+      "kind": "myth-fact",
+      "message": "Myth: AI receptionists are only for big companies with call centers.\n\nFact: ours is built for a one-truck or five-truck shop. One AI receptionist, your calendar, your service area, your emergency rules. You keep your business number and forward only the calls you miss.\n\nThe price is fixed: $3,500 setup + $300/mo, with 400 voice minutes and 1,000 texts a month included. You get alerts at 80% and 100%, and nothing extra is billed without your OK.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-41.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Myth vs fact",
+        "title": "Built for the *one-truck* shop.",
+        "sub": "Myth: AI receptionists are only for big companies."
+      },
+      "notes_he": "מיתוס מול עובדה: \"רק לחברות גדולות\" — בנוי לעסק קטן, מחיר קבוע וכמויות כלולות"
+    },
+    {
+      "id": "fb-42-product",
+      "slot": 42,
+      "kind": "product",
+      "message": "What's included in the Missed-Call AI Receptionist, in plain words:\n\n• A US phone line we set up. You keep your number.\n• It answers missed calls and texts back callers who hang up.\n• It asks name, number, ZIP, job type and urgency.\n• It books into Google Calendar or Calendly.\n• A text and an email for every lead, plus a daily summary.\n• An online portal with every call and transcript.\n• We register your texting with the phone carriers, a step US business texting requires.\n\n$3,500 setup + $300/mo: https://ailabpro.co",
+      "image": "social/bank/img/slot-42.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "What's included",
+        "title": "Everything a missed call *needs*.",
+        "sub": "Answer · text back · ask · book · alert you"
+      },
+      "notes_he": "מוצר: מה כלול במענה החכם, בשפה פשוטה (כולל רישום הודעות מול הספקים)"
+    },
+    {
+      "id": "fb-43-tip",
+      "slot": 43,
+      "kind": "tip",
+      "message": "Tip: set booking windows you can actually keep.\n\n• Use windows, not exact times: 8 AM–12 PM and 12–4 PM.\n• Leave room for drive time between jobs across town.\n• Hold back one slot a day for urgent calls.\n• Close the windows you know you'll miss: Friday afternoons, inspection days.\n\nA customer who was promised 10 AM and sees you at 1 PM remembers it. A customer promised \"between 12 and 4\" and seen at 1 PM is happy.\n\nOur AI books only into the windows you open: https://ailabpro.co",
+      "image": "social/bank/img/slot-43.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Tip · Booking windows",
+        "title": "Promise a window you can *keep*.",
+        "sub": "Windows, drive time, one urgent slot a day"
+      },
+      "notes_he": "טיפ: חלונות תיאום שאפשר לעמוד בהם (חלונות, זמן נסיעה, משבצת לדחופים)"
+    },
+    {
+      "id": "fb-44-story",
+      "slot": 44,
+      "kind": "story-sample",
+      "message": "Picture a roofing company the Monday after a hailstorm. A made-up example, but a familiar one.\n\nThe phone rings all morning. The owner is up on a roof doing the first inspections, and the office manager can take one call at a time. The rest go to voicemail, and some of those homeowners won't wait.\n\nWith an AI receptionist, every overflow call is answered. It collects the address, asks about leaks inside the house, and books inspection windows across the week. The owner sees the list at noon.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-44.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · After the storm",
+        "title": "Monday after the *hail*.",
+        "sub": "A made-up example: every overflow call answered."
+      },
+      "notes_he": "סיפור היפותטי: חברת גגות ביום שני אחרי ברד — כל השיחות העודפות נענות"
+    },
+    {
+      "id": "fb-45-stat",
+      "slot": 45,
+      "kind": "stat",
+      "message": "89% of consumers expect business owners to respond to reviews, and 50% are put off by generic, copy-paste replies (BrightLocal Local Consumer Review Survey 2026, 1,002 US consumers).\n\nA good reply is short. Thank them by first name. Mention the job. For a bad review, say what you'll do and give a number to call.\n\nTwo honest sentences you wrote yourself beat a perfect template. Five minutes on Friday covers the week's reviews.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-45.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "89%",
+        "title": "expect owners to *reply* to reviews.",
+        "sub": "Source: BrightLocal Local Consumer Review Survey 2026"
+      },
+      "notes_he": "נתון 89% (BrightLocal 2026): מצפים שבעל העסק יענה לביקורות; 50% נרתעים מתשובה גנרית"
+    },
+    {
+      "id": "fb-46-re",
+      "slot": 46,
+      "kind": "real-estate",
+      "message": "For agents who use Follow Up Boss: every new lead from a missed call can land there without retyping.\n\nOur Lead Assistant answers, asks buying or selling, area, timeline and pre-approval, then sends the lead and any booking through Zapier, a tool that passes information from one app to another. One Zapier connection is included.\n\nYou still get a text and an email for every lead, and the full conversation is in your portal.\n\n$3,500 setup + $300/mo: https://ailabpro.co/real-estate/",
+      "image": "social/bank/img/slot-46.png",
+      "link": "https://ailabpro.co/real-estate/",
+      "card": {
+        "kicker": "Real estate · Follow Up Boss",
+        "title": "Leads in your CRM, no *retyping*.",
+        "sub": "Through Zapier, included. Plus a text and an email."
+      },
+      "notes_he": "נדל\"ן: לידים נכנסים ל-Follow Up Boss בלי הקלדה (Zapier מוסבר בשפה פשוטה)"
+    },
+    {
+      "id": "fb-47-tip",
+      "slot": 47,
+      "kind": "tip",
+      "message": "Tip: write your after-hours rules on one page, in three lines.\n\n1. Danger to life (gas smell, carbon monoxide): call 911 first.\n2. Urgent (no heat, active leak): alert the on-call tech now.\n3. Everything else: book the first window tomorrow and tell the caller when.\n\nPut a name next to line 2 for every night of the week. A rule nobody owns turns into \"whoever sees the phone.\"\n\nAn AI receptionist can follow these three lines every night: https://ailabpro.co",
+      "image": "social/bank/img/slot-47.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Tip · After hours",
+        "title": "Three lines for every *night*.",
+        "sub": "Danger: 911 · Urgent: on-call · Everything else: tomorrow"
+      },
+      "notes_he": "טיפ: כללי אחרי שעות העבודה בשלוש שורות (סכנה, דחוף, כל השאר)"
+    },
+    {
+      "id": "fb-48-myth",
+      "slot": 48,
+      "kind": "myth-fact",
+      "message": "Myth: an AI receptionist will make up prices or promise things you don't offer.\n\nFact: ours answers only from the facts you give it: your services, service area, hours and up to 25 common questions. If a caller asks something outside that, like an exact price for a job it can't see, it says so, takes the details and passes the question to you.\n\nYou can read every conversation in your portal, and we update the answers when you ask.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-48.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Myth vs fact",
+        "title": "It answers from *your* facts.",
+        "sub": "Myth: the AI will make up prices."
+      },
+      "notes_he": "מיתוס מול עובדה: \"AI ימציא מחירים\" — עונה רק מהעובדות שנתת, השאר מועבר אליך"
+    },
+    {
+      "id": "fb-49-story",
+      "slot": 49,
+      "kind": "story-sample",
+      "message": "Picture the first evening of a garage door owner's week off. A made-up example.\n\nBefore, a vacation meant forwarding calls to his own cell and answering from the beach.\n\nWith an AI receptionist, routine calls are booked into the windows his tech covers that week. A door stuck open at night gets an urgent alert to the tech on call, not to the owner. Each evening he reads one summary email and puts the phone down.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-49.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · A week off",
+        "title": "A vacation without the *phone*.",
+        "sub": "A made-up example: routine calls booked, urgent ones to the tech."
+      },
+      "notes_he": "סיפור היפותטי: בעל חברת דלתות מוסך בחופשה — תורים נקבעים, דחופים לטכנאי"
+    },
+    {
+      "id": "fb-50-product",
+      "slot": 50,
+      "kind": "product",
+      "message": "Two things for our first US clients.\n\nFounding price: $2,450 setup instead of $3,500, plus $300/mo, for the first 3 clients of the Missed-Call AI Receptionist. In return, you let us write a short case study about your results once it's running.\n\n30-day satisfaction guarantee: not happy within 30 days of go-live (the day it starts answering real customers)? Tell us in writing. We refund the receptionist's setup fee and turn it off. Monthly fees for the time used are not refunded.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-50.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Founding clients · 30 days",
+        "num": "$2,450",
+        "title": "setup, and 30 days to *decide*.",
+        "sub": "First 3 clients · + $300/mo · regular setup $3,500"
+      },
+      "notes_he": "מוצר: מחיר מייסד 2,450$ + ערבות שביעות רצון 30 יום (החזר דמי הקמה)"
+    },
+    {
+      "id": "fb-51-stat",
+      "slot": 51,
+      "kind": "stat",
+      "message": "47% of US consumers say business texts with slang or emojis feel unprofessional (Textmagic survey of 1,800 US consumers, March 2025).\n\nThe texts your business sends are part of your first impression, just like how the phone is answered.\n\nOur AI receptionist writes plain, polite texts: business name first, one question at a time, no emojis, and a line on how to opt out. You can read every conversation in your portal.\n\nSee an example: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-51.png",
+      "link": "https://ailabpro.co/demo/",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "47%",
+        "title": "say slang or emojis look *unprofessional*.",
+        "sub": "Source: Textmagic survey of 1,800 US consumers, Mar 2025"
+      },
+      "notes_he": "נתון 47% (Textmagic 2025): סלנג ואימוג'י בהודעות עסק נראים לא מקצועיים"
+    },
+    {
+      "id": "fb-52-tip",
+      "slot": 52,
+      "kind": "tip",
+      "message": "Tip: how to ask for a Google review without being pushy.\n\n• Ask the same day, while the job is fresh.\n• Send the direct review link, so it's one tap.\n• Ask every customer, not only the happy ones. Google's review rules don't allow picking who gets asked.\n• Never offer a discount or gift for a review.\n• Ask once. A second reminder is plenty.\n• Reply to every review, good or bad.\n\nWant the ask sent for you after each job? That's our review-request add-on: https://ailabpro.co",
+      "image": "social/bank/img/slot-52.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Tip · Reviews",
+        "title": "Ask every customer, *once*.",
+        "sub": "Same day · direct link · no rewards for reviews"
+      },
+      "notes_he": "טיפ: לבקש ביקורת בגוגל בלי להציק (לכולם, פעם אחת, בלי הטבה)"
+    },
+    {
+      "id": "fb-53-story",
+      "slot": 53,
+      "kind": "story-sample",
+      "message": "Picture a customer who'd rather text than call. A made-up example: at 9:40 PM she texts a plumbing company, \"Water heater making a loud banging noise. Can someone come this week?\"\n\nBefore, the text sat unread until morning, and by then she had booked someone else.\n\nWith an AI receptionist, she gets a reply right away, because she texted first. It asks the ZIP code and how old the heater is, and offers Wednesday 8 AM–12 PM or 12–4 PM. The owner sees the booking at breakfast.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-53.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · 9:40 PM text",
+        "title": "She texted. Someone *answered*.",
+        "sub": "A made-up example: a reply right away, booked by breakfast."
+      },
+      "notes_he": "סיפור היפותטי: לקוחה ששולחת הודעה ב-21:40 — מענה מיידי ותור (תשובה למי שכתב ראשון)"
+    },
+    {
+      "id": "fb-54-myth",
+      "slot": 54,
+      "kind": "myth-fact",
+      "message": "Myth: with an AI receptionist, you lose control of your calendar.\n\nFact: it books only into the windows you open, inside the service area you set. Block a day off, and nothing gets booked there. Want urgent jobs only after 6 PM? That's a rule you choose.\n\nEvery booking comes to you by text and email, with the job details, so you know what's on your schedule before the day of the job.\n\nSee a booking end to end: https://ailabpro.co/demo/",
+      "image": "social/bank/img/slot-54.png",
+      "link": "https://ailabpro.co/demo/",
+      "card": {
+        "kicker": "Myth vs fact",
+        "title": "Your windows. Your *rules*.",
+        "sub": "Myth: AI takes over your calendar."
+      },
+      "notes_he": "מיתוס מול עובדה: \"מאבדים שליטה ביומן\" — קובע רק בחלונות ובאזור שבחרת"
+    },
+    {
+      "id": "fb-55-re",
+      "slot": 55,
+      "kind": "real-estate",
+      "message": "Real estate agents: what should an AI assistant say about your listings?\n\nOurs answers only from the facts you give it: address, status, open house times, and your own FAQ. It won't guess about price changes, offers or the condition of a home. It tells the caller you'll follow up, and passes those questions to you with the caller's details.\n\nThe buyer gets an answer in minutes. The tricky questions stay with you.\n\nTry the buyer conversation: https://ailabpro.co/real-estate/",
+      "image": "social/bank/img/slot-55.png",
+      "link": "https://ailabpro.co/real-estate/",
+      "card": {
+        "kicker": "Real estate · Listing questions",
+        "title": "Facts it knows. Questions it *passes*.",
+        "sub": "No guessing about price, offers or condition."
+      },
+      "notes_he": "נדל\"ן: מה העוזר אומר על נכסים — רק עובדות שנתת, שאלות רגישות עוברות לסוכן"
+    },
+    {
+      "id": "fb-56-website",
+      "slot": 56,
+      "kind": "website",
+      "message": "Need a website before anything else? Start there.\n\nA 5-page site for your business: $1,900 setup + $129/mo for hosting and 1 small edit a month. You fill in a 10-minute questionnaire, we write the text, you approve every page. The draft is ready 3 business days after we have your content.\n\nClick-to-call, click-to-text, a lead form to your email, and the domain in your name. Spanish version available as an add-on.\n\nhttps://ailabpro.co/website/",
+      "image": "social/bank/img/slot-56.png",
+      "link": "https://ailabpro.co/website/",
+      "card": {
+        "kicker": "Websites · Fixed price",
+        "num": "$1,900",
+        "title": "for a 5-page site you *approve*.",
+        "sub": "+ $129/mo hosting and 1 small edit a month"
+      },
+      "notes_he": "מוצר/אתר: אתר 5 עמודים 1,900$ + 129$ לחודש, טיוטה 3 ימי עסקים אחרי התוכן"
+    },
+    {
+      "id": "fb-57-stat",
+      "slot": 57,
+      "kind": "stat",
+      "message": "Customers are 70% more likely to visit and 50% more likely to consider purchasing from businesses with a complete Business Profile. Source: Google's Business Profile Help page (2026).\n\nA five-minute check this week: are your hours right? Is the phone number the one you actually answer? Is your service area set? Are there recent photos of your team and trucks?\n\nWhen we build your website, we link it to your Google Business Profile: https://ailabpro.co/website/",
+      "image": "social/bank/img/slot-57.png",
+      "link": "https://ailabpro.co/website/",
+      "card": {
+        "kicker": "By the numbers",
+        "num": "70%",
+        "title": "more likely to visit a *complete* profile.",
+        "sub": "Source: Google Business Profile Help, 2026"
+      },
+      "notes_he": "נתון 70% (דף העזרה של Google Business Profile, 2026): פרופיל מלא = יותר ביקורים"
+    },
+    {
+      "id": "fb-58-story",
+      "slot": 58,
+      "kind": "story-sample",
+      "message": "Picture 6 PM at the end of a busy day for an HVAC owner. This is a made-up example.\n\nInstead of scrolling through missed calls and guessing who to call back, he opens one email: six leads, two booked for tomorrow, one urgent no-heat call already sent to the on-call tech, three price questions waiting for him.\n\nHe calls back the three in order of urgency, and he's done in twenty minutes.\n\nThat's the daily summary that comes with our AI receptionist: https://ailabpro.co",
+      "image": "social/bank/img/slot-58.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · 6 PM",
+        "title": "The whole day in *one* email.",
+        "sub": "A made-up example of the daily summary."
+      },
+      "notes_he": "סיפור היפותטי: 18:00, מייל סיכום יומי אחד במקום רשימת שיחות שלא נענו"
+    },
+    {
+      "id": "fb-59-tip",
+      "slot": 59,
+      "kind": "tip",
+      "message": "Tip: keep your phone menu short, or skip it.\n\nSomeone with water on the floor doesn't want \"press 3 for billing.\" If you use a menu:\n\n• Say the business name first.\n• Two choices at most: \"Press 1 if this is an emergency. Press 2 for everything else.\"\n• Skip the hours and the ads at the start.\n• Make sure option 1 reaches someone, every time.\n\nOr skip the menu: with an AI receptionist, the caller just says what's going on.\n\nhttps://ailabpro.co",
+      "image": "social/bank/img/slot-59.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Tip · Phone menus",
+        "title": "Two choices *at most*.",
+        "sub": "\"Press 1 for an emergency. Press 2 for everything else.\""
+      },
+      "notes_he": "טיפ: תפריט טלפוני קצר — לכל היותר שתי אפשרויות, או בלי תפריט"
+    },
+    {
+      "id": "fb-60-story",
+      "slot": 60,
+      "kind": "story-sample",
+      "message": "Picture a caller who speaks Spanish. A made-up example: a homeowner in San Antonio calls about a clogged drain and feels more at ease explaining in Spanish.\n\nWith the Spanish add-on, the AI receptionist answers and texts in Spanish, asks the same job questions and books the visit. Your summary still arrives in English, so you and your tech know exactly what to expect.\n\nSpanish is a fixed-price add-on: $750 setup + $50/mo. Details: https://ailabpro.co",
+      "image": "social/bank/img/slot-60.png",
+      "link": "https://ailabpro.co",
+      "card": {
+        "kicker": "Picture this · En español",
+        "title": "A caller who prefers *Spanish*.",
+        "sub": "A made-up example. Summaries to you stay in English."
+      },
+      "notes_he": "סיפור היפותטי: מתקשר דובר ספרדית — תוסף ספרדית 750$ + 50$ לחודש, סיכום באנגלית"
     }
   ]
 }

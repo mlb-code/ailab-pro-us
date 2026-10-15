@@ -37,3 +37,45 @@
 | 30 | טיפ | טיפ: להחליט מי עונה בשבת (כלל כתוב לסופ"ש) | Tip: decide who answers on Saturday. | `slot-30.png` |
 
 אישור: ____  (תאריך: ____)
+
+---
+
+# סבב 2: פוסטים 31–60
+
+עוד 30 פוסטים, מתפרסמים אחרי 30 הראשונים באותו קצב. התמהיל: 8 סיפורים היפותטיים (כתוב בכל אחד שזו דוגמה מומצאת, לא לקוח אמיתי), 6 טיפים, 5 נתונים חדשים עם מקור כתוב בפוסט, 4 מיתוס מול עובדה, 4 מוצר/מחיר (כולל מספר הדמו +1 832-307-0813), 3 לסוכני נדל"ן.
+מה לעשות: לכתוב לי **"מאושר"**, או מספרים של פוסטים שלא מתאימים. כל השאר מאושר.
+
+| # | סוג | מה זה | שורה ראשונה | תמונה |
+|---|---|---|---|---|
+| 31 | סיפור היפותטי | סיפור היפותטי: שלישי 19:00, מזגן חם, השיחה שלא נענתה מול מענה חכם שקובע תור | Picture a Tuesday at 7 PM in July. It's a made-up example, but you ... | `slot-31.png` |
+| 32 | טיפ | טיפ: משפט הפתיחה בשיחה — שם העסק, השם שלך ושאלה אחת | Tip: the first sentence of every business call should do three things. | `slot-32.png` |
+| 33 | נתון | נתון 44% (Invoca 2026, ניתוח 70 מיליון שיחות): מתקשרים לעסקים שלא מגיעים לאדם | 44% of callers to businesses never reach a person. Source: Invoca L... | `slot-33.png` |
+| 34 | מיתוס מול עובדה | מיתוס מול עובדה: "AI מתחזה לאדם" — אצלנו מציג את עצמו כעוזר וירטואלי | Myth: an AI receptionist pretends to be a human. | `slot-34.png` |
+| 35 | מוצר/מחיר | מוצר: "תשמע את זה חי" — מספר הדמו +1 832-307-0813 (חברת הדגמה בדויה ביוסטון) | Hear it live: call +1 832-307-0813. | `slot-35.png` |
+| 36 | סיפור היפותטי | סיפור היפותטי: שבת בבוקר, נזילה, בעל העסק במשחק כדורגל — התראה דחופה ותור | Picture a Saturday at 8:15 AM. A made-up example: a homeowner finds... | `slot-36.png` |
+| 37 | נדל"ן | נדל"ן: ליד של מוכר בשעה 18:48 — שכונה, לוח זמנים, תיאום שיחת הערכה | Real estate agents: picture a seller lead calling at 6:48 PM while ... | `slot-37.png` |
+| 38 | טיפ | טיפ: 5 הרגלי הודעות טקסט שגורמים לעסק להיראות מקצועי | Tip: five texting habits that make a small business look professional. | `slot-38.png` |
+| 39 | נתון | נתון 83% (BrightLocal 2026): מי שהתבקש לכתוב ביקורת כתב. + תוסף בקשת ביקורת 400$ | 83% of consumers who were asked to leave a review went on to leave ... | `slot-39.png` |
+| 40 | סיפור היפותטי | סיפור היפותטי: חשמלאי על סולם, שלוש שיחות בשעה — דחוף, הצעת מחיר, ספאם | Picture an electrician on a ladder at 11 AM. This is a made-up exam... | `slot-40.png` |
+| 41 | מיתוס מול עובדה | מיתוס מול עובדה: "רק לחברות גדולות" — בנוי לעסק קטן, מחיר קבוע וכמויות כלולות | Myth: AI receptionists are only for big companies with call centers. | `slot-41.png` |
+| 42 | מוצר/מחיר | מוצר: מה כלול במענה החכם, בשפה פשוטה (כולל רישום הודעות מול הספקים) | What's included in the Missed-Call AI Receptionist, in plain words: | `slot-42.png` |
+| 43 | טיפ | טיפ: חלונות תיאום שאפשר לעמוד בהם (חלונות, זמן נסיעה, משבצת לדחופים) | Tip: set booking windows you can actually keep. | `slot-43.png` |
+| 44 | סיפור היפותטי | סיפור היפותטי: חברת גגות ביום שני אחרי ברד — כל השיחות העודפות נענות | Picture a roofing company the Monday after a hailstorm. A made-up e... | `slot-44.png` |
+| 45 | נתון | נתון 89% (BrightLocal 2026): מצפים שבעל העסק יענה לביקורות; 50% נרתעים מתשובה גנרית | 89% of consumers expect business owners to respond to reviews, and ... | `slot-45.png` |
+| 46 | נדל"ן | נדל"ן: לידים נכנסים ל-Follow Up Boss בלי הקלדה (Zapier מוסבר בשפה פשוטה) | For agents who use Follow Up Boss: every new lead from a missed cal... | `slot-46.png` |
+| 47 | טיפ | טיפ: כללי אחרי שעות העבודה בשלוש שורות (סכנה, דחוף, כל השאר) | Tip: write your after-hours rules on one page, in three lines. | `slot-47.png` |
+| 48 | מיתוס מול עובדה | מיתוס מול עובדה: "AI ימציא מחירים" — עונה רק מהעובדות שנתת, השאר מועבר אליך | Myth: an AI receptionist will make up prices or promise things you ... | `slot-48.png` |
+| 49 | סיפור היפותטי | סיפור היפותטי: בעל חברת דלתות מוסך בחופשה — תורים נקבעים, דחופים לטכנאי | Picture the first evening of a garage door owner's week off. A made... | `slot-49.png` |
+| 50 | מוצר/מחיר | מוצר: מחיר מייסד 2,450$ + ערבות שביעות רצון 30 יום (החזר דמי הקמה) | Two things for our first US clients. | `slot-50.png` |
+| 51 | נתון | נתון 47% (Textmagic 2025): סלנג ואימוג'י בהודעות עסק נראים לא מקצועיים | 47% of US consumers say business texts with slang or emojis feel un... | `slot-51.png` |
+| 52 | טיפ | טיפ: לבקש ביקורת בגוגל בלי להציק (לכולם, פעם אחת, בלי הטבה) | Tip: how to ask for a Google review without being pushy. | `slot-52.png` |
+| 53 | סיפור היפותטי | סיפור היפותטי: לקוחה ששולחת הודעה ב-21:40 — מענה מיידי ותור (תשובה למי שכתב ראשון) | Picture a customer who'd rather text than call. A made-up example: ... | `slot-53.png` |
+| 54 | מיתוס מול עובדה | מיתוס מול עובדה: "מאבדים שליטה ביומן" — קובע רק בחלונות ובאזור שבחרת | Myth: with an AI receptionist, you lose control of your calendar. | `slot-54.png` |
+| 55 | נדל"ן | נדל"ן: מה העוזר אומר על נכסים — רק עובדות שנתת, שאלות רגישות עוברות לסוכן | Real estate agents: what should an AI assistant say about your list... | `slot-55.png` |
+| 56 | אתר | מוצר/אתר: אתר 5 עמודים 1,900$ + 129$ לחודש, טיוטה 3 ימי עסקים אחרי התוכן | Need a website before anything else? Start there. | `slot-56.png` |
+| 57 | נתון | נתון 70% (דף העזרה של Google Business Profile, 2026): פרופיל מלא = יותר ביקורים | Customers are 70% more likely to visit and 50% more likely to consi... | `slot-57.png` |
+| 58 | סיפור היפותטי | סיפור היפותטי: 18:00, מייל סיכום יומי אחד במקום רשימת שיחות שלא נענו | Picture 6 PM at the end of a busy day for an HVAC owner. This is a ... | `slot-58.png` |
+| 59 | טיפ | טיפ: תפריט טלפוני קצר — לכל היותר שתי אפשרויות, או בלי תפריט | Tip: keep your phone menu short, or skip it. | `slot-59.png` |
+| 60 | סיפור היפותטי | סיפור היפותטי: מתקשר דובר ספרדית — תוסף ספרדית 750$ + 50$ לחודש, סיכום באנגלית | Picture a caller who speaks Spanish. A made-up example: a homeowner... | `slot-60.png` |
+
+אישור סבב 2: ____  (תאריך: ____)

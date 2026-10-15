@@ -5,7 +5,7 @@
   "offer": "RCP",
   "seo": {
     "title": "Never Miss a Buyer or Seller Call: AI Lead Response for Agents | {brand}",
-    "description": "Instant text-back, lead screening and booking into your calendar, synced to Follow Up Boss via Zapier. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
+    "description": "Missed callers get a text right away, get screened, and get booked into your calendar. Leads can go to Follow Up Boss. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
     "og_title": "Never miss a buyer or seller call.",
     "og_kicker": "AI lead response for real estate",
     "service_type": "AI lead response and qualification for real estate agents",
@@ -14,7 +14,7 @@
   "hero": {
     "eyebrow": "AI lead response · agents · teams · brokerages",
     "title": "Never miss a *buyer* or seller call.",
-    "lead": "Instant text-back, lead screening (buying or selling, area, timeline, pre-approval) and booking into your calendar, synced to Follow Up Boss via Zapier. Even when you're at a showing.",
+    "lead": "Even when you're at a showing, every caller gets a text right away. It asks if they're buying or selling, where, when, and if they're pre-approved. Then it books them into your calendar and can send the lead to Follow Up Boss.",
     "fine": "No sales calls. Fixed quote in writing {quote_sla}."
   },
   "clock": {
@@ -47,7 +47,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you can't take forward to your AI line. It answers with your name or your team's name. Hang-ups get a text back within a minute, so sign calls don't go cold."
+      "text": "Calls you can't take go to your AI assistant's number. It answers with your name or your team's name. If a caller hangs up, it texts them within a minute, so sign calls don't go cold."
     },
     {
       "icon": "chat",
@@ -57,7 +57,7 @@
     {
       "icon": "calendar",
       "title": "It books, you get a text",
-      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by text and email. Leads can flow into Follow Up Boss through Zapier."
+      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by text and email. Each lead can also be added to Follow Up Boss automatically (through Zapier, an app that connects apps)."
     }
   ],
   "demo": {
@@ -443,7 +443,7 @@
   "pricing": {
     "eyebrow": "Pricing",
     "title": "The price is on the *page*.",
-    "note": "Team with several lines? Each extra line is a fixed-price add-on, listed below."
+    "note": "Team with several phone numbers? Each extra number has a fixed price, listed below."
   },
   "faq": [
     {
@@ -460,7 +460,7 @@
     },
     {
       "q": "Does it work with Follow Up Boss?",
-      "a": "Yes, through the Zapier webhook that's included: every new lead and booking can create a person and a task in Follow Up Boss. Google Calendar or Calendly booking is included too."
+      "a": "Yes. A Zapier link is included (Zapier is an app that connects apps): each new lead and booking can add a contact and a to-do in Follow Up Boss. Booking into Google Calendar or Calendly is included too."
     },
     {
       "q": "Can it answer questions about my listings?",
@@ -494,17 +494,17 @@
     "ADD-REV"
   ],
   "included_items": [
-    "1 AI line for you or your team (a US number we provision; you keep your number and forward unanswered calls to it)",
-    "Answers missed and forwarded calls, plus an instant text-back to callers who hang up",
+    "1 new US phone number for your lead assistant, for you or your team. You keep your own number; calls you miss are sent to the new one.",
+    "Answers the calls you miss, and texts back callers who hang up, right away",
     "Lead screening: buying or selling, property or area, timeline, pre-approval, already working with an agent",
     "Booking showings, listing consults and buyer calls into Google Calendar or Calendly",
-    "Up to 25 FAQ entries (listings, open houses, your process), business hours and after-hours mode",
+    "Answers to up to 25 common questions (listings, open houses, your process), your business hours, and a nights-and-weekends mode",
     "Lead alerts by SMS and email for every new lead, plus a daily summary email",
-    "Leads synced to Follow Up Boss or kvCORE through 1 included Zapier webhook",
-    "English. Client portal with call log, transcripts, bookings and settings",
-    "A2P 10DLC SMS registration handled by us (registration fees included)",
+    "Leads sent to Follow Up Boss or kvCORE through 1 included Zapier link",
+    "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
+    "We handle the texting registration that US phone carriers require (fees included)",
     "{usage_text}",
-    "Monthly: monitoring, prompt and FAQ updates, 1 active change request at a time (small changes, up to 1 hour each)"
+    "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
   ],
   "bundle_name": "Lead Assistant + Website bundle"
 }

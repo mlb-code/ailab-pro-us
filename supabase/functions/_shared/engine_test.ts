@@ -135,7 +135,9 @@ Deno.test("view: whitelisted JSON, sets viewed once, includes/excludes from pric
   await viewQuote(q.public_token, store);
   eq(store.quotes.get(q.id)!.viewed_at, firstViewed, "viewed_at set once");
   eq(v.includes.find((i) => i.code === "RCP")!.list, PB.items.find((i) => i.code === "RCP")!.includes);
-  assert(!v.excludes.some((e) => e.includes("ADD-CRM")), "exclusion for a purchased add-on removed");
+  assert(!v.excludes.some((e) => e.includes("ADD-CRM") || e.includes("Jobber")), "exclusion for a purchased add-on removed");
+  assert(v.excludes.some((e) => e.endsWith(" (extra, fixed price)")) && !v.excludes.some((e) => /add-on ADD-/.test(e)),
+    "other add-on exclusions shown in plain words, no price-book codes");
   eq(v.refund.deposit, PB.refund_rules.deposit.text);
   eq(v.refund.guarantee, PB.refund_rules.rcp_guarantee.text, "RCP quote carries the satisfaction guarantee");
   eq([v.totals.setup_cents, v.totals.deposit_cents, v.totals.final_cents], [470000, 235000, 235000]);

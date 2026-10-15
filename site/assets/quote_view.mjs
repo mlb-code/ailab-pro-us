@@ -18,7 +18,9 @@ export function toPublicView(q, profile, now, pb, defaultAgreementVersion) {
     .map((it) => ({ code: it.code, name: it.name, list: it.includes }));
   const coreIt = r.core ? itemOf(pb, r.core) : undefined;
   // exclusions from the price book; drop the ones the quote already buys (e.g. "add-on ADD-ES" when ADD-ES is a line)
-  const excludes = ((coreIt && coreIt.excludes) || []).filter((e) => !codes.some((c) => e.includes(`add-on ${c})`)));
+  // then show the code suffix "(add-on ADD-ES)" as plain words: the code stays in the price book for this filter only
+  const excludes = ((coreIt && coreIt.excludes) || []).filter((e) => !codes.some((c) => e.includes(`add-on ${c})`)))
+    .map((e) => e.replace(/ \(add-on [A-Z0-9-]+\)$/, " (extra, fixed price)"));
   const retainer = codes.some((c) => pb.refund_rules.retainer.codes.includes(c)) ? pb.refund_rules.retainer.text : null;
   // satisfaction guarantee (refund_rules.rcp_guarantee): only for its core codes (RCP, BNDL); WEB keeps the deposit rule only
   const g = pb.refund_rules.rcp_guarantee;

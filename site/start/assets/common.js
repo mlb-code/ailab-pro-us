@@ -51,6 +51,12 @@
   // Promised quote turnaround, one wording everywhere: brand.json quote_sla_text (e.g. "within 24 hours").
   const sla = () => BRAND.quote_sla_text || 'soon';
   const slaCap = () => { const t = sla(); return t.charAt(0).toUpperCase() + t.slice(1); };
+  // Website timeline, one wording everywhere (owner decision): first draft in 3 business days, live in WEB.delivery_business_days.
+  const webTimeline = () => {
+    const it = (PB.items || []).find(i => i.code === 'WEB');
+    const live = it && it.delivery_business_days ? ', live in ' + it.delivery_business_days + ' business days' : '';
+    return 'First draft in 3 business days' + live + ' after we have your content.';
+  };
   function track(name, params) { try { if (window.gtag) window.gtag('event', name, params || {}); } catch (e) { /* analytics never breaks the page */ } }
 
   const money = cents => cents == null ? '' : '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 });
@@ -143,7 +149,7 @@
   };
 
   window.Start = {
-    $, $$, esc, loadConfig, get BRAND() { return BRAND; }, get PB() { return PB; }, track, trackFunnel, sla, slaCap, money, priceOf, fmtDate, fmtSize,
+    $, $$, esc, loadConfig, get BRAND() { return BRAND; }, get PB() { return PB; }, track, trackFunnel, sla, slaCap, webTimeline, money, priceOf, fmtDate, fmtSize,
     toast, msgHtml, errText, renderHeader, mockBanner, offline, ls, ss
   };
 })();
