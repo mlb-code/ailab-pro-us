@@ -2,8 +2,11 @@
   "$comment": "Edited by the orchestrator; read by tools/weekly_report.py (Upwork line of the weekly owner report). verified/api_key: true | false | short Hebrew text.",
   "updated": "15.10.2026",
   "status_text": "הפרופיל הוגש ב-12.10, מנוי Freelancer Plus פעיל",
-  "verified": "ממתין",
+  "verified": true,
   "api_key": "ממתין",
-  "proposals_sent": 0,
-  "replies": 0
+  "proposals_sent": 3,
+  "replies": 0,
+  "connects_left": 80,
+  "last_update": "2026-10-15",
+  "note": "15.10: פרופיל פעיל, 3 הצעות נשלחו (דיור מוגן $2,500, אתר HVAC LA $2,000, מספרה $750). מפתח API: להגיש מחדש (נחסם עד אימות הזהות)."
 }
