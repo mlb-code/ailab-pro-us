@@ -12,5 +12,6 @@
   "payout_method": "Direct to Local Bank (ILS), FIBI/Otsar Hahayal, active from 2026-10-18, weekly, min $100",
   "tax": "W-8BEN substitute completed 15.10",
   "idv_badge": "Verified 15.10.2026, valid until 15.10.2029, visible to clients",
-  "strategy": "From 16.10: target $50-300 quick jobs (<15 proposals, verified payment, good rating), 4-6 proposals/day; Meir clicks Send"
+  "strategy": "From 16.10: target $50-300 quick jobs (<15 proposals, verified payment, good rating), 4-6 proposals/day; Meir clicks Send",
+  "availability_badge": "Turned on 15.10 as 2-week trial (14 Connects/week). Review invites in Stats and trends on 30.10; turn off if no invites."
 }
