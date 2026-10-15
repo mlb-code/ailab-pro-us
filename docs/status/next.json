@@ -2,9 +2,22 @@
   "$comment": "Edited by the orchestrator; read by tools/weekly_report.py (\"next actions\" list of the weekly owner report). owner = who does it.",
   "updated": "15.10.2026",
   "items": [
-    {"text": "שיחת בדיקה אמיתית לקו הדמו ולוודא שמגיע מייל New lead. המספר: +1 832-307-0813", "owner": "מאיר"},
-    {"text": "השלמת Business Profile ב-Twilio (נדרש לאישור SMS בארה\"ב, A2P 10DLC)", "owner": "מאיר"},
-    {"text": "חיבור מדידה לאתר: GA4, Clarity ו-Google Search Console", "owner": "מאיר + Claude"},
-    {"text": "שליחת ההצעות הראשונות ב-Upwork אחרי אימות הזהות", "owner": "מאיר"}
+    {
+      "text": "שיחת בדיקה אמיתית לקו הדמו ולוודא שמגיע מייל New lead. המספר: +1 832-307-0813",
+      "owner": "מאיר"
+    },
+    {
+      "text": "השלמת Business Profile ב-Twilio (נדרש לאישור SMS בארה\"ב, A2P 10DLC)",
+      "owner": "מאיר"
+    },
+    {
+      "text": "חיבור מדידה לאתר: GA4, Clarity ו-Google Search Console",
+      "owner": "מאיר + Claude"
+    },
+    {
+      "text": "שליחת ההצעות הראשונות ב-Upwork אחרי אימות הזהות",
+      "owner": "מאיר"
+    },
+    "בדיקת שפה פשוטה באתר ailabpro.co: בעלי עסקים לא טכנולוגים חייבים להבין כל משפט; ממצאים + החלטות יחד עם מאיר (ביקש 15.10)"
   ]
 }
