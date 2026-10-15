@@ -38,7 +38,7 @@
       '<button class="btn btn--primary btn--block" type="submit" id="verifyBtn">Sign in</button>' +
       '<div class="row linkrow"><button type="button" class="linkbtn" id="resendBtn">Send a new code</button><span class="spacer"></span>' +
       '<button type="button" class="linkbtn" id="changeEmail">Use a different email</button></div>' +
-      '<p class="muted small">Not there? Check spam or promotions. The link and the code both work — the code helps when the link opens in a different browser.</p></form>' +
+      '<p class="muted small">Don’t see it? Check your spam or promotions folder. You can click the link or type the code. The code helps if the link opens in a different browser.</p></form>' +
       '<div id="mockInbox"></div><div id="loginMsg"></div></div>' +
       '<p class="muted small fine">We use your answers only to prepare your quote. You can ask us to delete them at any time. See our <a href="/legal/privacy/">Privacy Policy</a>.</p>';
 
@@ -235,7 +235,7 @@
     }
     if (open) return { i: 1, text: 'Your fixed quote is ready.', action: { href: quoteUrl(open), label: 'Review your quote' } };
     const sub = d.qs.find(q => q.status !== 'draft');
-    if (sub && sub.offer === 'WEB') return { i: 2, text: 'Content received. Your deposit link is on its way — we email it ' + S.sla() + '. Draft in 3 business days after we have your content.', action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
+    if (sub && sub.offer === 'WEB') return { i: 2, text: 'Content received. Your deposit link is on its way — we email it ' + S.sla() + '. ' + S.webTimeline(), action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
     if (sub) return { i: 1, text: 'Questionnaire received. You’ll get a written fixed quote ' + S.sla() + '.', action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
     const draft = d.qs.find(q => q.status === 'draft');
     if (draft) return { i: 0, text: 'Your questionnaire is saved. Pick up where you left off.', action: { href: '/start/q/?id=' + draft.id, label: 'Continue the questionnaire' } };

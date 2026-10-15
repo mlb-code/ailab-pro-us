@@ -317,7 +317,7 @@ async function main() {
     await tabTo(page, 'billing');
     const bill = await page.$eval('#panel', e => e.innerText);
     ok(bill.includes('37 of ' + pb.rules.included_usage.voice_minutes.toLocaleString('en-US')) && bill.includes('112 of ' + pb.rules.included_usage.sms_segments.toLocaleString('en-US')), 'billing: usage vs included (pricebook)');
-    ok(/never bill extra usage automatically/.test(bill) && !/Claude|Twilio/.test(bill), 'billing: no-auto-overage note, no cost data for clients');
+    ok(/never charge for extra minutes or texts on our own/.test(bill) && !/Claude|Twilio/.test(bill), 'billing: no-auto-overage note, no cost data for clients');
     ok((await overflow(page)).length === 0, 'billing: no overflow');
     // keyboard tabs
     await page.focus('#tab-home'); await page.keyboard.press('ArrowRight'); await sleep(80);

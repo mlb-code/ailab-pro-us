@@ -290,7 +290,7 @@ async function main() {
     await page.click('#submitBtn');
     await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'You’ll get a written fixed quote ' + brand.quote_sla_text), 'submit → quote promise from brand.quote_sla_text');
-    ok(await waitText(page, 'text-back starts after carrier registration, typically 1–2 weeks'), 'what-happens-next: SMS registration line');
+    ok(await waitText(page, 'Texting starts once phone carriers approve you, usually in 1–2 weeks'), 'what-happens-next: SMS registration line');
     const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     const qrow = db.questionnaires.find(q => q.id === qid);
     ok(qrow.status === 'submitted' && qrow.submitted_at && qrow.offer === 'RCP' && qrow.niche === 'home_services', 'row submitted with offer + niche columns');
@@ -378,7 +378,7 @@ async function main() {
     ok((await text(page, '#submitBtn')).includes('deposit link'), 'WEB submit button = request deposit link');
     await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'Your deposit link is on its way — we email it ' + brand.quote_sla_text), 'WEB finish: deposit link + brand SLA');
-    ok(await waitText(page, 'Draft in 3 business days after we have your content'), 'WEB finish: draft timing');
+    ok(await waitText(page, 'First draft in 3 business days, live in ' + pb.items.find(i => i.code === 'WEB').delivery_business_days + ' business days after we have your content'), 'WEB finish: draft + live timing (live days from pricebook)');
     ok(!(await waitText(page, 'written fixed quote', 300)) && !(await waitText(page, 'text-back', 300)), 'WEB finish: no quote / receptionist steps');
     ok(await waitText(page, 'Review:') && await waitText(page, 'Go live:'), 'WEB next steps: content → draft → review → go-live');
     ok(!(await exists(page, '#payDeposit')) === !(brand.endpoints && brand.endpoints.payment), 'deposit button only when brand.endpoints.payment exists');

@@ -52,7 +52,7 @@
       "window_from": "payment",
       "on_request": true,
       "condition": "client has not completed the access checklist",
-      "text": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+      "text": "Changed your mind? Ask within 7 days of paying and we refund your full deposit, as long as you haven't finished the setup checklist.",
       "label": "7-day refund"
     },
     "retainer": {
@@ -79,7 +79,7 @@
       "service_after_refund": "switched_off",
       "not_for": "WEB keeps only the 7-day deposit rule: content work starts immediately",
       "label": "30-day satisfaction guarantee",
-      "text": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee for the AI line and switch the line off. On the bundle, only the AI line's part of the setup fee is refunded and the website stays yours. Monthly fees for the period used are not refunded.",
+      "text": "30-day satisfaction guarantee: not happy within 30 days of go-live (the day it starts answering real customers)? We refund the setup fee for your AI assistant and turn it off. On the bundle, we refund only the AI assistant's part of the setup fee, and you keep the website. Monthly fees you already used are not refunded.",
       "legal": "If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid for the AI Receptionist and switch the AI line off. On the Receptionist + Website bundle, we refund only the AI Receptionist part of the setup fee: the AI Receptionist's stand-alone setup price, less the same percentage discount (if any) you received on the bundle. The website stays yours, and its monthly plan continues unless you cancel it. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the bundle, not to the website on its own."
     }
   },
@@ -96,27 +96,27 @@
       "delivery_starts": "after access is complete",
       "marketed": true,
       "includes": [
-        "1 location, 1 AI line (a US number we provision; you keep your existing number and forward unanswered calls to it)",
-        "Voice answering of missed and forwarded calls, plus an automatic text-back to callers who hang up",
+        "1 location and 1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
+        "Answers the calls you miss, and texts back callers who hang up",
         "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
         "Booking into 1 calendar: Google Calendar or Calendly",
-        "Up to 25 FAQ entries, business hours, after-hours mode, emergency keywords with an owner alert",
+        "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
         "Owner notifications by SMS and email for every lead, plus a daily summary email",
-        "1 outgoing Zapier webhook (lead and booking events) to connect any other tool",
-        "English. Client portal with call log, transcripts, bookings and settings",
-        "A2P 10DLC SMS registration handled by us (registration fees included)",
-        "Included usage per month: 400 voice minutes and 1,000 SMS segments; alerts at 80% and 100%; no automatic overage billing, extra usage blocks added only with your approval",
-        "Monthly: monitoring, prompt/FAQ updates, 1 active change request at a time (small changes, up to 1 hour each)"
+        "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
+        "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
+        "We handle the texting registration that US phone carriers require (fees included)",
+        "Included usage per month: 400 voice minutes and 1,000 SMS segments; we alert you at 80% and 100%; we never charge for extra minutes or texts on our own, we add more only if you say yes",
+        "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
       ],
       "excludes": [
         "Outbound AI calls and marketing text messages",
-        "Additional locations or AI lines (add-on ADD-LOC)",
-        "Spanish / bilingual line (add-on ADD-ES)",
-        "Native CRM/FSM integrations (add-on ADD-CRM)",
-        "Website chat widget (add-on ADD-CHAT)",
-        "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; extra usage blocks only with your approval)",
-        "Call audio recording (calls are transcribed; audio is not stored)",
-        "Handling of medical records or other protected health information (no HIPAA BAA)"
+        "More locations or phone numbers (add-on ADD-LOC)",
+        "Spanish / bilingual phone line (add-on ADD-ES)",
+        "A direct link to apps like Jobber or HubSpot (add-on ADD-CRM)",
+        "Chat box on your website (add-on ADD-CHAT)",
+        "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+        "Call recordings (we keep a written copy of each call, not the audio)",
+        "Medical records or patient health information (we can't sign a HIPAA agreement)"
       ]
     },
     {
@@ -132,11 +132,11 @@
       "marketed": true,
       "direct_checkout": true,
       "includes": [
-        "5 pages (Home, Services, About, Reviews/FAQ, Contact), mobile-first, fast static hosting, SSL",
-        "Lead form to email and Google Sheet; click-to-call and click-to-text buttons",
-        "Basic local SEO: titles/meta, LocalBusiness schema, sitemap, Google Search Console and Google Business Profile link",
+        "5 pages (Home, Services, About, Reviews/FAQ, Contact). Built for phones first, hosted by us, fast and secure (the padlock in the browser).",
+        "A contact form that goes to your email and a Google Sheet, plus buttons that call or text you in one tap",
+        "Basic setup to help Google show you to local customers: page titles, your business details in Google's format, a page list for Google, Google's free site tools, and a link to your Google Business Profile",
         "Copywriting from your questionnaire (AI-drafted, approved by you), stock or your own photos",
-        "Monthly: hosting, uptime check, 1 small content edit per month"
+        "Every month: we keep the site online, check that it's up, and make 1 small edit"
       ],
       "excludes": [
         "Pages beyond the 5 included (add-on ADD-PAGE)",
@@ -163,19 +163,19 @@
         "WEB"
       ],
       "includes": [
-        "Everything in the Missed-Call AI Receptionist (RCP)",
-        "Everything in the Business Website (WEB)",
-        "Your AI line number on the website",
-        "Web chat widget on the website (same AI brain) included"
+        "Everything in the Missed-Call AI Receptionist",
+        "Everything in the Business Website",
+        "Your AI receptionist's phone number on the website",
+        "A chat box on your website (same answers as your phone line) included"
       ],
       "excludes": [
         "Outbound AI calls and marketing text messages",
-        "Additional locations or AI lines (add-on ADD-LOC)",
-        "Spanish / bilingual line (add-on ADD-ES)",
-        "Native CRM/FSM integrations (add-on ADD-CRM)",
-        "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; extra usage blocks only with your approval)",
-        "Call audio recording (calls are transcribed; audio is not stored)",
-        "Handling of medical records or other protected health information (no HIPAA BAA)",
+        "More locations or phone numbers (add-on ADD-LOC)",
+        "Spanish / bilingual phone line (add-on ADD-ES)",
+        "A direct link to apps like Jobber or HubSpot (add-on ADD-CRM)",
+        "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+        "Call recordings (we keep a written copy of each call, not the audio)",
+        "Medical records or patient health information (we can't sign a HIPAA agreement)",
         "Pages beyond the 5 included (add-on ADD-PAGE)",
         "Spanish version of the website (add-on ADD-WEB-ES)",
         "Logo design (add-on ADD-LOGO)",
@@ -186,7 +186,7 @@
     },
     {
       "code": "ADD-LOC",
-      "name": "Additional location / AI line",
+      "name": "Additional location / phone number",
       "group": "addon",
       "kind": "fixed",
       "setup_cents": 90000,
@@ -195,7 +195,7 @@
         "RCP"
       ],
       "includes": [
-        "1 more location with its own AI line, hours and FAQ"
+        "1 more location with its own phone number, hours and answers to common questions"
       ],
       "excludes": []
     },
@@ -216,7 +216,7 @@
     },
     {
       "code": "ADD-CRM",
-      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "name": "Direct link to your job or customer app, per app (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
       "group": "addon",
       "kind": "fixed",
       "setup_cents": 120000,
@@ -226,15 +226,15 @@
       ],
       "per": "system",
       "includes": [
-        "Leads and bookings written directly into 1 supported system (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
+        "Leads and bookings added directly into 1 supported app (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
       ],
       "excludes": [
-        "Systems not listed here (quoted as custom)"
+        "Apps not listed here (quoted separately)"
       ]
     },
     {
       "code": "ADD-CHAT",
-      "name": "Website chat widget (same AI brain)",
+      "name": "Chat box on your website (same answers as your phone line)",
       "group": "addon",
       "kind": "fixed",
       "setup_cents": 50000,
@@ -243,7 +243,7 @@
         "RCP"
       ],
       "includes": [
-        "A chat widget for your website that uses the same answers, rules and booking as your phone line"
+        "A chat box for your website that uses the same answers, rules and booking as your phone line"
       ],
       "excludes": []
     },
@@ -264,7 +264,7 @@
     },
     {
       "code": "ADD-USAGE",
-      "name": "Extra usage block: +400 min / +1,000 SMS",
+      "name": "Extra minutes and texts: +400 min / +1,000 texts",
       "group": "addon",
       "kind": "fixed",
       "setup_cents": 0,
@@ -273,7 +273,7 @@
         "RCP"
       ],
       "includes": [
-        "400 more voice minutes and 1,000 more SMS segments every month"
+        "400 more voice minutes and 1,000 more texts every month"
       ],
       "excludes": []
     },
@@ -547,7 +547,7 @@
       "niches": [
         "*"
       ],
-      "note": "RCP includes 1 outgoing Zapier webhook."
+      "note": "RCP includes 1 outgoing Zapier link (webhook)."
     },
     "follow_up_boss": {
       "label": "Follow Up Boss",

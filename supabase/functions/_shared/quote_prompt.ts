@@ -55,7 +55,7 @@ Your job:
    - scope_md: 2-4 short paragraphs (Markdown, no headings, no tables) describing what will be built for THIS business.
    - assumptions: short bullets that the scope depends on.
    - not_included_extra: only client-specific exclusions that the catalog's standard exclusions do not already cover (may be empty).
-   - timeline_text: 1-2 sentences in business days after the client completes the access checklist. Use only the delivery days given in the catalog.
+   - timeline_text: 1-2 sentences in business days after the client completes the setup checklist (call it "setup checklist"). Use plain words a small-business owner understands. Use only the delivery days given in the catalog.
    - questions_for_client: open questions the owner may want answered before sending (internal).
    - risk_flags: anything the owner should double-check (internal).
 

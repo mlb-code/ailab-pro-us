@@ -48,7 +48,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Unanswered calls forward to your AI line. It greets callers by your business name and asks what's going on. Hang-ups get a text back within a minute."
+      "text": "Calls you don't pick up go to your AI receptionist's number. It answers with your business name and asks what's going on. If a caller hangs up, it texts them within a minute."
     },
     {
       "icon": "chat",
@@ -58,13 +58,13 @@
     {
       "icon": "calendar",
       "title": "It books, you get a text",
-      "text": "Only real openings from your calendar, inside your service area and time windows. You get the lead by text and email, plus a daily summary."
+      "text": "It books only open times on your calendar, in the areas and hours you serve. You get each new lead by text and email, plus a daily summary."
     }
   ],
   "demo": {
     "eyebrow": "Try it",
     "title": "Be the *customer*. See what your callers would get.",
-    "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
+    "lead": "Pick a situation and tap the answers. You'll see the texts your customer gets after a missed call. The answers are set in advance.",
     "business": "Copperleaf Air & Plumbing",
     "business_line": "Heating, Air & Plumbing · Houston",
     "scenarios": [
@@ -409,7 +409,7 @@
   "pricing": {
     "eyebrow": "Pricing",
     "title": "The price is on the *page*.",
-    "note": "Adding a second location, Spanish, or a direct Jobber connection? Each add-on has a fixed price, listed below."
+    "note": "Need a second location, Spanish, or a direct link to Jobber? Each extra has a fixed price, listed below."
   },
   "faq": [
     {
@@ -433,7 +433,7 @@
     },
     {
       "q": "Does it work with Jobber, Housecall Pro or ServiceTitan?",
-      "a": "Booking into Google Calendar or Calendly is included, and so is 1 Zapier webhook for any other tool. A direct Jobber, Housecall Pro, GoHighLevel or HubSpot connection is a {price:ADD-CRM.setup} add-on ({price:ADD-CRM.monthly}/mo). ServiceTitan gets a custom quote."
+      "a": "Booking into Google Calendar or Calendly is included. So is 1 Zapier link (Zapier is an app that connects apps) to send leads to any other tool. A direct link to Jobber, Housecall Pro, GoHighLevel or HubSpot costs {price:ADD-CRM.setup} + {price:ADD-CRM.monthly}/mo. For ServiceTitan, we quote separately."
     },
     {
       "ref": "no_call"

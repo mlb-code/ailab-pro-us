@@ -222,7 +222,7 @@
     const left = d.ob.filter(o => o.status !== 'done' && o.key !== 'tools');   // 'tools' (Zapier) is optional
     const testing = d.client && d.client.status === 'testing';
     const why = left.length ? 'Finish the checklist first (' + left.length + ' step' + (left.length === 1 ? '' : 's') + ' left).' : !testing ? 'This opens once your receptionist is ready to test — we’ll email you.' : '';
-    return '<div class="golive"><h3 class="h-sub">Request go-live</h3><p>When everything is done and you’ve tried your test number, request go-live. We send the final payment link (' + (100 - depPct()) + '% of setup); you’re switched live once it’s paid.</p>' +
+    return '<div class="golive"><h3 class="h-sub">Request go-live</h3><p>When everything is done and you’ve tried your test number, request go-live (the day your ' + (isRcp(d) ? 'receptionist' : 'website') + ' starts working for real customers). We send the final payment link (' + (100 - depPct()) + '% of setup); you’re switched live once it’s paid.</p>' +
       (data.go_live_requested_at ? S.msgHtml('Go-live requested on ' + S.fmtDate(data.go_live_requested_at) + '. Watch your email for the final payment link.', 'ok')
         : '<div id="msg_golive" aria-live="polite">' + (why ? '<p class="muted small" id="golWhy">' + esc(why) + '</p>' : '') + '</div><div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_golive" data-item="' + esc(it.id) + '"' + (why ? ' disabled aria-describedby="golWhy"' : '') + '>Request go-live</button></div>') + '</div>';
   }
@@ -234,7 +234,7 @@
         const num = d.tenant && d.tenant.twilio_number;
         const car = data.carrier || '';
         return '<p>Send the calls you miss to your receptionist. Your phone still rings first; only unanswered or busy calls are forwarded.</p>' +
-          (num ? '<p>Your AI line number: <b class="mono bignum" id="ob_fwdnum">' + esc(fmtPhone(num)) + '</b></p>' : S.msgHtml('Your AI line number appears here when your receptionist is ready to test. We’ll email you. You can do the other steps first.', 'info')) +
+          (num ? '<p>Your receptionist’s number: <b class="mono bignum" id="ob_fwdnum">' + esc(fmtPhone(num)) + '</b></p>' : S.msgHtml('Your receptionist’s number appears here when your receptionist is ready to test. We’ll email you. You can do the other steps first.', 'info')) +
           '<div class="field"><label for="ob_car">Your phone provider</label><select class="select" id="ob_car"><option value="">Choose…</option>' + CARRIERS.map(c => '<option value="' + c[0] + '"' + (c[0] === car ? ' selected' : '') + '>' + esc(c[1]) + '</option>').join('') + '</select></div>' +
           '<div id="ob_carhow">' + carrierHow(car, num) + '</div>' +
           (num ? '<h3 class="h-sub">Test call</h3><p>Press “Test call”. You then have 30 minutes: call your business number from another phone, let it ring out, and say a few words to the receptionist. This step turns to Done when the call arrives.</p>' +
@@ -276,7 +276,7 @@
           '<textarea class="textarea short" id="ob_kw" aria-describedby="ob_kwH">' + esc((em.keywords || []).join(', ')) + '</textarea></div>' + saveBtn(it);
       }
       case 'tools':
-        return '<p>Optional. If you use other tools (a CRM, a spreadsheet), we can send each new lead and booking to them through one Zapier webhook. Don’t use Zapier? Skip this step.</p>' +
+        return '<p>Optional. If you use other tools (a CRM, a spreadsheet), we can send each new lead and booking to them through Zapier (an app that connects apps). Don’t use Zapier? Skip this step.</p>' +
           '<div class="field"><label for="ob_zap">Zapier webhook URL</label><span class="hint" id="ob_zapH">From “Webhooks by Zapier → Catch Hook”. Starts with https://</span>' +
           '<input class="input" id="ob_zap" inputmode="url" aria-describedby="ob_zapH" value="' + esc(data.zapier_webhook_url || '') + '"></div>' +
           (data.skipped ? S.msgHtml('Skipped. You can add a webhook later here or with a Request.', 'info') : '') +
@@ -646,8 +646,8 @@
     };
     const addon = (S.PB.items || []).find(i => i.code === 'ADD-USAGE');
     return '<section class="card usage"><h2 class="h-card">This month’s usage</h2>' + meter('Call minutes', d.usage.voice_minutes || 0, inc.voice_minutes, 'min') + meter('Text messages', d.usage.sms_segments || 0, inc.sms_segments, 'segments') +
-      '<p class="muted small">We never bill extra usage automatically. You get an alert at 80% and 100%; an extra usage block' + (addon && addon.monthly_cents ? ' (' + S.money(addon.monthly_cents) + '/mo)' : '') + ' is added only if you approve it.</p>' +
-      (d.usage.needs_addon_approval ? S.msgHtml('You’ve used everything included this month. Your receptionist keeps answering; we’ll email you about an extra usage block.', 'info') : '') + '</section>';
+      '<p class="muted small">We never charge for extra minutes or texts on our own. We alert you at 80% and 100% of your monthly minutes and texts. We add more' + (addon && addon.monthly_cents ? ' (' + S.money(addon.monthly_cents) + '/mo)' : '') + ' only if you say yes.</p>' +
+      (d.usage.needs_addon_approval ? S.msgHtml('You’ve used everything included this month. Your receptionist keeps answering; we’ll email you about adding more minutes and texts.', 'info') : '') + '</section>';
   }
 
   // ------------------------------------------------------------ dispatch from home.js

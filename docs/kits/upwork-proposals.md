@@ -27,7 +27,7 @@ Each copy-paste block is marked `<!-- template: ... -->` or `<!-- snippet: ... -
 **Optional founding line** (receptionist templates only, while fewer than 3 founding clients have signed):
 <!-- snippet: founding-line -->
 ```text
-I'm taking 3 founding clients at $2,450 setup (same $300/month) in exchange for a short case study.
+I'm taking 3 founding clients at $2,450 setup (same $300/month) if you let me write a short case study about your results.
 ```
 
 **Demo line** (if the client wants to hear the AI on a real call):
@@ -49,7 +49,7 @@ Hi {first_name},
 
 {their_problem}: this is exactly what I build for {trade} businesses.
 
-- An AI line answers missed and after-hours calls in your business name; callers who hang up get a text back
+- An AI receptionist answers missed and after-hours calls in your business name; callers who hang up get a text back
 - It collects the job details and books into your Google Calendar or Calendly
 - You get a text and an email for every lead
 
@@ -71,7 +71,7 @@ Hi {first_name},
 {their_problem}. When the phone rings during a job, most callers try the next company on the list.
 
 I build a Missed-Call AI Receptionist for {trade} businesses. What you get:
-- An AI line that answers missed and after-hours calls in your business name. You keep your number and forward unanswered calls to it. Callers who hang up get a text back.
+- An AI receptionist that answers missed and after-hours calls in your business name. You keep your number; calls you miss are sent to the receptionist's new number. Callers who hang up get a text back.
 - It collects name, callback number, address or ZIP, job type and urgency, then books an open slot in your Google Calendar or Calendly.
 - A text and an email to you for every lead, a daily summary, and an urgent alert when a caller uses an emergency keyword.
 
@@ -94,7 +94,7 @@ Hi {first_name},
 
 You need {their_need}. I build 5-page websites for {trade} businesses with one job: get the visitor to call, text or fill in the form.
 
-- 5 pages, mobile-first, fast hosting and SSL
+- 5 pages, built for phones first, with fast, secure hosting (the padlock in the browser)
 - Click-to-call, click-to-text, and a lead form to your email and a Google Sheet
 - Basic local SEO and your Google Business Profile link
 
@@ -116,13 +116,13 @@ Hi {first_name},
 You need {their_need}. For a {trade} business, the website has one job: get the visitor to call, text or fill in the form.
 
 What you get:
-- 5 pages (Home, Services, About, Reviews/FAQ, Contact), mobile-first, fast hosting and SSL
+- 5 pages (Home, Services, About, Reviews/FAQ, Contact), built for phones first, fast and secure
 - Click-to-call and click-to-text buttons on every page, plus a lead form that goes to your email and a Google Sheet
-- Basic local SEO: page titles, LocalBusiness schema, sitemap, Google Search Console and a link to your Google Business Profile
+- Basic setup so Google shows you to local customers: page titles, your business details in Google's format, a page list, Google's free site tools and your Google Business Profile link
 
 I draft the text from a 10-minute questionnaire. You approve every page before launch.
 
-Fixed price: $1,900 setup + $129/month (hosting, uptime check, 1 small edit a month). Live 7 business days after your content is in. Extra pages are $250 each.
+Fixed price: $1,900 setup + $129/month (hosting, checking that it's up, 1 small edit a month). First draft in 3 business days, live in 7 business days after we have your content. Extra pages are $250 each.
 
 Sample site: https://ailabpro.co/demo-site/home-services/
 Happy to do a 15-minute call here on Upwork if you prefer.
@@ -143,8 +143,8 @@ Hi {first_name},
 
 You want {their_goal}. Most follow-up gaps start in the first minute, when a lead calls and nobody answers.
 
-- An AI line answers missed calls, texts back hang-ups, collects the details and books
-- Each lead goes to {tool} through a Zapier webhook (included)
+- An AI receptionist answers missed calls, texts back callers who hang up, collects the details and books
+- Each lead goes to {tool} through a Zapier link (included)
 - A text and an email to you for every lead
 
 Fixed price: $3,500 setup + $300/month. Live 10 business days after access. Different workflow? Written fixed quote within 1 business day.
@@ -165,11 +165,11 @@ Hi {first_name},
 You want {their_goal}. In most small businesses I look at, the gap starts in the first minute: a lead calls or writes, nobody answers, and the lead moves on.
 
 What I'd set up:
-- An AI line that answers missed calls, texts back callers who hang up, collects the details (name, phone, address or ZIP, job type, urgency) and books into Google Calendar or Calendly
-- Each lead and booking sent to {tool} through a Zapier webhook (included), or written directly into Jobber, Housecall Pro, GoHighLevel or HubSpot with a native integration
+- An AI receptionist that answers missed calls, texts back callers who hang up, collects the details (name, phone, address or ZIP, job type, urgency) and books into Google Calendar or Calendly
+- Each lead and booking sent to {tool} through a Zapier link (included), or added directly into Jobber, Housecall Pro, GoHighLevel or HubSpot with a direct link
 - A text and an email to you for every lead, plus a daily summary
 
-Fixed price: $3,500 setup + $300/month. Native integration: +$1,200 setup + $50/month. Live 10 business days after access. If your workflow is different, you get a written fixed quote within 1 business day.
+Fixed price: $3,500 setup + $300/month. Direct link to your job app: +$1,200 setup + $50/month. Live 10 business days after your setup checklist is done. If your workflow is different, you get a written fixed quote within 1 business day.
 
 Demo: https://ailabpro.co/demo/
 Happy to do a 15-minute call here on Upwork if you prefer.
@@ -198,11 +198,11 @@ If a field you need is not covered, I will say so in the written scope before yo
 
 <!-- snippet: boost-fsm -->
 ```text
-Jobber / Housecall Pro: leads and bookings can be written directly into {tool} with a native integration (+$1,200 setup + $50/month), or sent through the Zapier webhook that is already included.
+Jobber / Housecall Pro: leads and bookings can be added directly into {tool} with a direct link (+$1,200 setup + $50/month), or sent through the Zapier link that is already included.
 ```
 <!-- snippet: boost-zapier -->
 ```text
-Follow Up Boss / kvCORE: each lead is sent to {tool} through the Zapier webhook that is included, using your own Zapier account. There is no direct native connection.
+Follow Up Boss / kvCORE: each lead is sent to {tool} through the Zapier link that is included, using your own Zapier account. There is no direct connection.
 ```
 <!-- snippet: boost-servicetitan -->
 ```text
@@ -249,7 +249,7 @@ A: I build AI assistants, lead-intake flows and websites for small businesses an
 <!-- snippet: q-timeline -->
 ```text
 Q: How long will this take?
-A: AI receptionist: live 10 business days after you finish the setup checklist (calendar, alerts, business details). Website: live 7 business days after your content is in. Both together: 14 business days. Texting starts after US carrier registration, typically 1-2 weeks; voice answering works from day one.
+A: AI receptionist: live 10 business days after you finish the setup checklist (calendar, alerts, business details). Website: first draft in 3 business days, live in 7 business days after we have your content. Both together: 14 business days. Texting starts once US phone carriers approve your business for texting, usually in 1-2 weeks; phone answering works from day one.
 ```
 
 <!-- snippet: q-portfolio -->
@@ -269,7 +269,7 @@ A: I'm based in Israel (7 hours ahead of New York). I'm online Monday to Thursda
 <!-- snippet: q-tools -->
 ```text
 Q: What tools and technologies do you use?
-A: Claude (Anthropic's AI model) for the conversation, Twilio for calls and texts, Google Calendar or Calendly for booking, Zapier for connecting other tools, and Supabase for the client portal and data. Native integrations are available for Jobber, Housecall Pro, GoHighLevel and HubSpot. Built with Claude; I'm not affiliated with Anthropic.
+A: Claude (Anthropic's AI model) for the conversation, Twilio for calls and texts, Google Calendar or Calendly for booking, Zapier for connecting other tools, and Supabase for the client portal and data. Direct links are available for Jobber, Housecall Pro, GoHighLevel and HubSpot. Built with Claude; I'm not affiliated with Anthropic.
 ```
 
 <!-- snippet: q-approach -->

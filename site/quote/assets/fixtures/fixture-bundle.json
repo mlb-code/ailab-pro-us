@@ -30,7 +30,7 @@
     },
     {
       "code": "ADD-CRM",
-      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "name": "Direct link to your job or customer app, per app (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
       "qty": 1,
       "kind": "fixed",
       "setup_cents": 120000,
@@ -58,10 +58,10 @@
       "code": "BNDL",
       "name": "Receptionist + Website bundle",
       "list": [
-        "Everything in the Missed-Call AI Receptionist (RCP)",
-        "Everything in the Business Website (WEB)",
-        "Your AI line number on the website",
-        "Web chat widget on the website (same AI brain) included"
+        "Everything in the Missed-Call AI Receptionist",
+        "Everything in the Business Website",
+        "Your AI receptionist's phone number on the website",
+        "A chat box on your website (same answers as your phone line) included"
       ]
     },
     {
@@ -73,9 +73,9 @@
     },
     {
       "code": "ADD-CRM",
-      "name": "Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "name": "Direct link to your job or customer app, per app (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
       "list": [
-        "Leads and bookings written directly into 1 supported system (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
+        "Leads and bookings added directly into 1 supported app (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
       ]
     },
     {
@@ -95,13 +95,13 @@
   ],
   "excludes": [
     "Outbound AI calls and marketing text messages",
-    "Additional locations or AI lines (add-on ADD-LOC)",
-    "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; extra usage blocks only with your approval)",
-    "Call audio recording (calls are transcribed; audio is not stored)",
-    "Handling of medical records or other protected health information (no HIPAA BAA)",
-    "Pages beyond the 5 included (add-on ADD-PAGE)",
-    "Spanish version of the website (add-on ADD-WEB-ES)",
-    "Logo design (add-on ADD-LOGO)",
+    "More locations or phone numbers (extra, fixed price)",
+    "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+    "Call recordings (we keep a written copy of each call, not the audio)",
+    "Medical records or patient health information (we can't sign a HIPAA agreement)",
+    "Pages beyond the 5 included (extra, fixed price)",
+    "Spanish version of the website (extra, fixed price)",
+    "Logo design (extra, fixed price)",
     "Ongoing SEO campaigns and paid advertising",
     "More than 1 small content edit per month"
   ],
@@ -118,8 +118,8 @@
     "deposit_pct": 50
   },
   "refund": {
-    "guarantee": "30-day satisfaction guarantee: if you're not satisfied within 30 days after go-live, we refund the setup fee for the AI line and switch the line off. On the bundle, only the AI line's part of the setup fee is refunded and the website stays yours. Monthly fees for the period used are not refunded.",
-    "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+    "guarantee": "30-day satisfaction guarantee: not happy within 30 days of go-live (the day it starts answering real customers)? We refund the setup fee for your AI assistant and turn it off. On the bundle, we refund only the AI assistant's part of the setup fee, and you keep the website. Monthly fees you already used are not refunded.",
+    "deposit": "Changed your mind? Ask within 7 days of paying and we refund your full deposit, as long as you haven't finished the setup checklist.",
     "retainer": null,
     "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)"
   },

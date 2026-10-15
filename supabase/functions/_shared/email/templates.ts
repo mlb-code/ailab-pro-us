@@ -153,7 +153,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     heading: "Your deposit link is on its way",
     blocks: [
       { p: `${hi(ctx)} thanks for choosing your website package${company(ctx) ? ` for **${company(ctx)}**` : ""}.` },
-      { p: `We'll email your secure deposit link ${brand.quote_sla_text}. Once the deposit is in, your content checklist opens in your portal.` },
+      { p: `We'll email your secure deposit link ${brand.quote_sla_text}. Once the deposit is in, your setup checklist opens in your portal (your online account with us).` },
       { small: "Questions? Just reply to this email." },
     ],
     cta: { label: "Open your portal", url: portal(brand) },
@@ -320,7 +320,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       heading: "Welcome aboard",
       blocks: [
         { p: `${hi(ctx)} we received your deposit — thank you.` },
-        { p: `Your setup checklist is ready in your portal${ob && ob.total ? `: **${ob.total} short steps**` : ""}, each with a short how-to. Do them in any order; your progress saves as you go.` },
+        { p: `Your setup checklist is ready in your portal (your online account with us)${ob && ob.total ? `: **${ob.total} short steps**` : ""}, each with a short how-to. Do them in any order; your progress saves as you go.` },
         ...steps,
         { small: "Stuck on a step? Press \"Need help\" on it and we'll answer in writing." },
       ],
@@ -368,11 +368,11 @@ export const TEMPLATES: Record<string, TemplateDef> = {
           { p: `${hi(ctx)} your receptionist is set up and ready for you to try.` },
           ...(num ? [{ facts: [["Test number", num]] } as Block] : [{ p: "Your test number is in your portal." } as Block]),
           { list: ["Call from your phone and act like a customer.", "Ask a question, book a job, ask for a person.", "Check the alert and the booking that come through."] },
-          { p: "When you're happy with it, press **Approve go-live** in your portal. Nothing goes live before that." },
+          { p: "When you're happy with it, press **Request go-live** in your portal. It starts answering real customers only after that." },
         ]
         : [
           { p: `${hi(ctx)} your website is ready for review.` },
-          { p: "Look through every page on your phone and computer. When you're happy with it, press **Approve go-live** in your portal." },
+          { p: "Look through every page on your phone and computer. When you're happy with it, press **Request go-live** in your portal. Nothing goes live before that." },
         ],
       cta: { label: "Open my portal", url: portal(brand, "onboarding") },
     };
@@ -385,10 +385,10 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       preheader: `Amount due: ${usd(amount)}.`,
       heading: "Final payment before go-live",
       blocks: [
-        { p: `${hi(ctx)} thanks for approving go-live. The last step is the final setup payment (the remaining ${100 - depositPct()}%).` },
+        { p: `${hi(ctx)} thanks for requesting go-live. The last step is the final setup payment (the remaining ${100 - depositPct()}%).` },
         { facts: [["Amount due", usd(amount)],
           ["Monthly, from go-live", ctx.client?.monthly_cents ? `${usd(ctx.client.monthly_cents)}/mo` : ""]] },
-        { p: `We'll email your secure payment link ${brand.quote_sla_text}. Once it's received, we schedule your go-live.` },
+        { p: `We'll email your secure payment link ${brand.quote_sla_text}. Once it's received, we set your go-live date (the day it starts working for real customers).` },
       ],
       cta: { label: "View billing", url: portal(brand, "billing") },
     };

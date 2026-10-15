@@ -40,12 +40,12 @@ All prices USD, fixed-price, excluding any sales tax (none expected; service per
 
 | Code | Add-on | Applies to | Setup | Monthly |
 |---|---|---|---|---|
-| `ADD-LOC` | Additional location / AI line | RCP | $900 | $100 |
+| `ADD-LOC` | Additional location / phone number | RCP | $900 | $100 |
 | `ADD-ES` | Spanish (bilingual line) | RCP | $750 | $50 |
-| `ADD-CRM` | Native CRM/FSM integration, per system (Jobber, Housecall Pro, GoHighLevel, HubSpot) | RCP | $1,200 | $50 |
-| `ADD-CHAT` | Website chat widget (same AI brain) | RCP | $500 | $25 |
+| `ADD-CRM` | Direct link to your job or customer app, per app (Jobber, Housecall Pro, GoHighLevel, HubSpot) | RCP | $1,200 | $50 |
+| `ADD-CHAT` | Chat box on your website (same answers as your phone line) | RCP | $500 | $25 |
 | `ADD-REV` | Post-job review-request SMS | RCP | $400 | $0 |
-| `ADD-USAGE` | Extra usage block: +400 min / +1,000 SMS | RCP | $0 | $60 |
+| `ADD-USAGE` | Extra minutes and texts: +400 min / +1,000 texts | RCP | $0 | $60 |
 | `ADD-PAGE` | Extra website page | WEB | $250 | $0 |
 | `ADD-WEB-ES` | Spanish version of the website | WEB | $900 | $20 |
 | `ADD-LOGO` | Simple logo (wordmark + icon) | WEB | $300 | $0 |

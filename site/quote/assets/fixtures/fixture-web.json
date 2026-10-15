@@ -44,11 +44,11 @@
       "code": "WEB",
       "name": "Business Website (template-based, 5 pages)",
       "list": [
-        "5 pages (Home, Services, About, Reviews/FAQ, Contact), mobile-first, fast static hosting, SSL",
-        "Lead form to email and Google Sheet; click-to-call and click-to-text buttons",
-        "Basic local SEO: titles/meta, LocalBusiness schema, sitemap, Google Search Console and Google Business Profile link",
+        "5 pages (Home, Services, About, Reviews/FAQ, Contact). Built for phones first, hosted by us, fast and secure (the padlock in the browser).",
+        "A contact form that goes to your email and a Google Sheet, plus buttons that call or text you in one tap",
+        "Basic setup to help Google show you to local customers: page titles, your business details in Google's format, a page list for Google, Google's free site tools, and a link to your Google Business Profile",
         "Copywriting from your questionnaire (AI-drafted, approved by you), stock or your own photos",
-        "Monthly: hosting, uptime check, 1 small content edit per month"
+        "Every month: we keep the site online, check that it's up, and make 1 small edit"
       ]
     },
     {
@@ -67,8 +67,8 @@
     }
   ],
   "excludes": [
-    "Spanish version of the website (add-on ADD-WEB-ES)",
-    "Blog section and articles (add-on ADD-BLOG)",
+    "Spanish version of the website (extra, fixed price)",
+    "Blog section and articles (extra, fixed price)",
     "Ongoing SEO campaigns and paid advertising",
     "More than 1 small content edit per month"
   ],
@@ -86,7 +86,7 @@
   },
   "refund": {
     "guarantee": null,
-    "deposit": "The setup deposit is fully refunded on request within 7 days of payment, as long as the access checklist has not been completed.",
+    "deposit": "Changed your mind? Ask within 7 days of paying and we refund your full deposit, as long as you haven't finished the setup checklist.",
     "retainer": null,
     "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)"
   },

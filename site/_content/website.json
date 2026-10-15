@@ -14,7 +14,7 @@
   "hero": {
     "eyebrow": "Websites for local service businesses",
     "title": "A website that makes the phone *ring*.",
-    "lead": "Five fast pages built around one job: getting a customer to call, text or fill in the form. Written from your questionnaire, approved by you, live {days:WEB} business days after your content is in.",
+    "lead": "Five fast pages with one job: getting customers to call, text or fill in your form. We write it from your answers and you approve it. First draft in 3 business days, live in {days:WEB} business days after we have your content.",
     "fine": "{web_flow} No sales calls."
   },
   "pages": [
@@ -55,25 +55,25 @@
         "text": "{web_step2}"
       },
       {
-        "num": "{days:WEB} days",
-        "title": "Draft, then your approval",
-        "text": "We write and build it. You review it on a private link and ask for changes."
+        "num": "3 days",
+        "title": "First draft, then your approval",
+        "text": "We write and build it. Your first draft is ready in 3 business days. You review it on a private link and ask for changes."
       },
       {
-        "num": "Live",
+        "num": "{days:WEB} days",
         "title": "Launch",
-        "text": "We connect your domain, Search Console and Google Business Profile link. Then 1 small edit every month."
+        "text": "Live in {days:WEB} business days. We connect your web address (domain), Google's free site tools and your Google Business Profile link. Then 1 small edit every month."
       }
     ]
   },
   "bundle": {
     "title": "Want missed calls *answered* too?",
-    "text": "The bundle adds the Missed-Call AI Receptionist, puts your AI line on the site, and includes a website chat widget. You save {bundle_save_setup} on setup and {bundle_save_monthly} a month."
+    "text": "The bundle adds the Missed-Call AI Receptionist, shows its phone number on your site, and adds a chat box to your site. You save {bundle_save_setup} on setup and {bundle_save_monthly} a month."
   },
   "faq": [
     {
       "q": "What does it cost?",
-      "a": "{price:WEB.setup} setup and {price:WEB.monthly} a month. The deposit is {price:WEB.deposit}; the rest is due before launch. The monthly fee covers hosting, SSL, an uptime check and 1 small content edit per month."
+      "a": "{price:WEB.setup} setup and {price:WEB.monthly} a month. The deposit is {price:WEB.deposit}; the rest is due before launch. The monthly fee covers keeping the site online and secure, checking that it's up, and 1 small edit per month."
     },
     {
       "q": "Who writes the text?",
@@ -89,11 +89,11 @@
     },
     {
       "q": "Will it show up on Google?",
-      "a": "We set up the basics: titles and descriptions, LocalBusiness schema, a sitemap, Google Search Console and a link to your Google Business Profile. Rankings depend on many things; we don't promise positions."
+      "a": "We set up the basics so Google can read your site: page titles and descriptions, your business details in Google's format, a list of your pages, Google's free site tools, and a link to your Google Business Profile. Where you rank depends on many things, so we can't promise a spot."
     },
     {
       "q": "What if I need more pages or Spanish?",
-      "a": "Extra pages are {price:ADD-PAGE.setup} each. A full Spanish version is {price:ADD-WEB-ES.setup} + {price:ADD-WEB-ES.monthly}/mo. Choosing an add-on adds a short written quote step."
+      "a": "Extra pages are {price:ADD-PAGE.setup} each. A full Spanish version is {price:ADD-WEB-ES.setup} + {price:ADD-WEB-ES.monthly}/mo. Choosing an extra adds a short written quote step."
     },
     {
       "q": "Do I have to get on a call with you?",
@@ -107,7 +107,7 @@
   "proof_rows": [
     {
       "k": "Built with Claude",
-      "v": "Your copy is drafted with Claude, Anthropic's AI model, then approved by you. We are an independent studio, not affiliated with or endorsed by Anthropic."
+      "v": "Your text is drafted with Claude, an AI made by the company Anthropic, then approved by you. We are a small independent studio. We are not part of Anthropic, and Anthropic does not endorse us."
     },
     {
       "k": "Real clients",
@@ -119,7 +119,7 @@
     },
     {
       "k": "Fixed price",
-      "v": "The price on this page is the final price. Add-ons are listed with their prices. No hourly billing."
+      "v": "The price on this page is the final price. Extras are listed with their prices. No hourly billing."
     },
     {
       "k": "{refund_label}",
@@ -132,8 +132,8 @@
   },
   "variants": {
     "web_flow": {
-      "link": "No quote step. Fill a 10-minute questionnaire, we email your deposit link {quote_sla}, and the draft is ready 3 business days after we have your content.",
-      "online": "No quote step. Pay the deposit online, fill a 10-minute questionnaire, and the draft is ready 3 business days after we have your content."
+      "link": "No waiting for a quote. Answer 10 minutes of questions and we email your deposit link {quote_sla}. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content.",
+      "online": "No waiting for a quote. Pay the deposit online and answer 10 minutes of questions. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content."
     },
     "web_step1": {
       "link": "Pick the package and fill a 10-minute content questionnaire. We email your 50% deposit link {quote_sla}.",

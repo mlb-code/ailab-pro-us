@@ -590,8 +590,11 @@ def includes_list(c, code):
     return ''.join(out)
 
 
+ADDON_SUFFIX = re.compile(r' \(add-on [A-Z0-9-]+\)$')  # price-book code suffix: machine-readable, shown as plain words
+
+
 def excludes_list(c, code):
-    return ''.join(f'<li>{esc(s)}</li>' for s in c.items[code]['excludes']
+    return ''.join(f'<li>{esc(ADDON_SUFFIX.sub(" (extra, fixed price)", s))}</li>' for s in c.items[code]['excludes']
                    if not s.lower().startswith('usage above'))
 
 
@@ -603,7 +606,7 @@ def tool_status(c, key):
         return 'is-zap', 'Via Zapier · included'
     if v.startswith('addon:'):
         it = c.items[v.split(':', 1)[1]]
-        return 'is-addon', f'Add-on {money(it["setup_cents"])} + {money(it["monthly_cents"])}/mo'
+        return 'is-addon', f'Extra {money(it["setup_cents"])} + {money(it["monthly_cents"])}/mo'
     return 'is-custom', 'Custom quote'
 
 
@@ -707,7 +710,7 @@ def addons_table(c, core, hide=()):
                 parts.append(f'{money(i["monthly_cents"])}/mo')
             price = ' + '.join(parts)
         rows.append(f'<tr><td>{esc(i["name"])}</td><td>{esc(price)}</td></tr>')
-    return f'<table class="addons"><caption>Add-ons, fixed prices</caption><tbody>{"".join(rows)}</tbody></table>'
+    return f'<table class="addons"><caption>Extras, fixed prices</caption><tbody>{"".join(rows)}</tbody></table>'
 
 
 def price_card(c, code, cta_href, cta_label, *, featured=True, early=False, n=None):
@@ -720,7 +723,7 @@ def price_card(c, code, cta_href, cta_label, *, featured=True, early=False, n=No
     btn = (f'<a class="btn btn--primary btn--block" href="#early-access">Join early access</a>' if early else
            f'<a class="btn btn--primary btn--block" href="{esc(cta_href)}" data-ev="quote_start">{esc(cta_label)}</a>')
     return f'''<div class="price-card{' price-card--featured' if featured else ''}">
-<span class="badge badge--acc">{esc(code)} · fixed price</span>
+<span class="badge badge--acc">Fixed price</span>
 <div class="price-card__name">{esc(name)}</div>
 <div class="price-card__amount"><b>{money(i['setup_cents'])}</b><span>setup</span><b>{money(i['monthly_cents'])}</b><span>/ month from go-live</span></div>
 <ul class="split"><li><span>Deposit to start</span><b>{money(dep)}</b></li><li><span>Before go-live</span><b>{money(i['setup_cents'] - dep)}</b></li><li><span>Delivery</span><b>{days} business days</b></li></ul>
@@ -834,9 +837,9 @@ def call_line(c, long=False):
     biz, city = esc(d.get('phone_business') or ''), esc(d.get('phone_city') or '')
     where = f'our demo business, {biz} ({city})' if biz and city else 'our demo business'
     if long:
-        return (f'<p class="call call--long"><b>Hear it live:</b> call {link}, {where}. US number, standard rates apply. '
-                f'An AI assistant answers, and the call may be recorded and transcribed.</p>')
-    return f'<p class="call"><b>Hear it live:</b> call {link}. An AI answers for our demo business; calls may be recorded and transcribed.</p>'
+        return (f'<p class="call call--long"><b>Hear it live:</b> call {link}, {where}. US number, regular call charges apply. '
+                f'An AI assistant answers, and the call may be recorded and written down as text.</p>')
+    return f'<p class="call"><b>Hear it live:</b> call {link}. An AI answers for our demo business; calls may be recorded and written down as text.</p>'
 
 
 def niche_page(c, key, contents, *, path, canonical=None, year):
@@ -948,14 +951,14 @@ def website_page(c, w, year):
 <div class="shead"><p class="eyebrow">What's included</p><h2>Built, hosted and kept up to <em class="em">date</em>.</h2></div>
 <div class="incl"><div><h3>{esc(c.items['WEB']['name'])}</h3><ul class="ticks">{inc_web}</ul>
 <details class="more"><summary>Not included</summary><ul class="ticks ticks--no">{exc_web}</ul></details></div>
-<div>{addons_table(c, 'WEB')}<p class="small muted" style="margin-top:12px">Choosing an add-on adds a short written quote step.</p></div></div>
+<div>{addons_table(c, 'WEB')}<p class="small muted" style="margin-top:12px">Choosing an extra adds a short written quote step.</p></div></div>
 </div></section>''',
         section_how(c, w['how']),
         section_proof(c, w['proof_rows']),
         f'''<section class="section" id="pricing"><div class="wrap">
 <div class="shead"><p class="eyebrow">Pricing</p><h2>Pick one. The price is <em class="em">final</em>.</h2></div>
 <div class="pricing">{price_card(c, 'WEB', href_web, 'Choose this package')}
-<div class="bundle" id="bundle"><span class="badge">{esc('BNDL')}</span><h3>{c.h(w['bundle']['title'])}</h3><p>{c.h(w['bundle']['text'])}</p>
+<div class="bundle" id="bundle"><span class="badge">Bundle</span><h3>{c.h(w['bundle']['title'])}</h3><p>{c.h(w['bundle']['text'])}</p>
 <div class="price-card__amount"><b>{money(b['setup_cents'])}</b><span>setup</span><b>{money(b['monthly_cents'])}</b><span>/ month</span></div>
 <ul class="price-card__list">{''.join(f'<li>{esc(s)}</li>' for s in b['includes'])}</ul>
 <a class="btn btn--ghost" href="{href_b}" data-ev="quote_start">Choose the bundle</a>
@@ -982,7 +985,7 @@ def demo_page(c, contents, year):
         nav(c, path, {'label': 'Get a quote', 'href': cta0, 'ev': 'quote_start', 'niche_cta': True}), '<main id="main">',
         f'''<section class="section" id="demo"><div class="wrap">
 <div class="shead"><p class="eyebrow">Demo</p><h1 style="font-size:clamp(2.1rem,5vw,3.6rem)">Be the <em class="em">customer</em>. Tap the replies.</h1>
-<p class="lead">This is what a caller gets after a missed call: a text from your AI assistant, a few quick questions, and a booked slot. Scripted, in your browser. {esc(c.brand['disclaimers']['demo'])}.</p>
+<p class="lead">This is what a caller gets after a missed call: a text from your AI assistant, a few quick questions, and a booked time. The answers are set in advance. {esc(c.brand['disclaimers']['demo'])}.</p>
 <p class="hero__price"><b class="num">{money(i0['setup_cents'])}</b> setup <span class="plus">+</span> <b class="num">{money(i0['monthly_cents'])}</b>/mo<span class="tag"><span data-demo-product>{esc(n0.get('product_name') or i0['name'])}</span> · fixed price, in writing</span></p>
 {call_line(c, long=True)}</div>
 {demo_widget(c, PUBLIC_DEMO_NICHES, contents, cta_href=cta0, cta_label='Get my fixed quote', switcher=True)}

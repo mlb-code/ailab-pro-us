@@ -256,8 +256,8 @@
     const dep = depPct();
     if (isWeb()) {
       const web = [
-        '<b>Content:</b> done — your answers are the brief. Add photos or a logo any time from your portal.',
-        '<b>Draft:</b> in 3 business days after we have your content (and the ' + dep + '% deposit).',
+        '<b>Content:</b> done — your answers are the brief. Add photos or a logo any time from your portal (your online account with us).',
+        '<b>Timeline:</b> ' + S.esc(S.webTimeline().replace(/\.$/, '')) + ' (and the ' + dep + '% deposit).',
         '<b>Review:</b> you check every page and send changes in writing.',
         '<b>Go live:</b> we connect your domain and switch the site on after the final payment.'
       ];
@@ -268,7 +268,7 @@
       '<b>Accept online</b> and pay a ' + dep + '% deposit. No call needed (a short video call is optional).',
       '<b>Setup checklist</b> with a short video for each step: hours, alerts, calendar and the rest.'
     ];
-    if (receptionist()) items.push('<b>Go live:</b> voice answering starts right away; text-back starts after carrier registration, typically 1–2 weeks.');
+    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away. Texting starts once phone carriers approve you, usually in 1–2 weeks.');
     return '<h2 class="h-sec">What happens next</h2><ol class="next">' + items.map(x => '<li>' + x + '</li>').join('') + '</ol>';
   }
   async function submit() {
@@ -286,7 +286,7 @@
     history.replaceState(null, '', '/start/q/?id=' + encodeURIComponent(id));
     const pay = isWeb() && payEndpoint();
     const lead = isWeb()
-      ? '<p class="lead" id="doneLead">Your deposit link is on its way — we email it ' + S.esc(S.sla()) + ' to <b>' + S.esc(session.user.email) + '</b>. Draft in 3 business days after we have your content.</p>' +
+      ? '<p class="lead" id="doneLead">Your deposit link is on its way — we email it ' + S.esc(S.sla()) + ' to <b>' + S.esc(session.user.email) + '</b>. ' + S.esc(S.webTimeline()) + '</p>' +
         (pay ? '<div class="btn-row spaced-b"><a class="btn btn--primary" id="payDeposit" href="' + S.esc(pay + (pay.indexOf('?') === -1 ? '?' : '&') + 'offer=WEB&ref=' + encodeURIComponent(id)) + '">Pay the ' + depPct() + '% deposit</a></div>' : '')
       : '<p class="lead" id="doneLead">You’ll get a written fixed quote ' + S.esc(S.sla()) + '. We’ll email it to <b>' + S.esc(session.user.email) + '</b>.</p>';
     app.innerHTML = '<span class="eyebrow">Submitted</span><h1 class="t" id="doneTitle" tabindex="-1">Thanks — we have everything we need.</h1>' + lead +
