@@ -1,0 +1,73 @@
+# Weekly owner report (tools/weekly_report.py): Hebrew RTL e-mail to the owner every Sunday 08:00 Israel time.
+# Israel is UTC+3 in summer (IDT) and UTC+2 in winter (IST), so there are two Sunday triggers (05:00 and 06:00 UTC)
+# and the "gate" step keeps only the one that is 08:00 in Asia/Jerusalem that day (robust to GitHub's cron delays).
+# Read-only on every data source. Manual runs (Actions -> weekly-report -> Run workflow) are dry runs by default:
+# the report is built and printed (and uploaded as an artifact), nothing is sent.
+# Secrets: US_SUPABASE_URL (exists), US_SUPABASE_SERVICE_KEY, RESEND_API_KEY, RUNTIME_ADMIN_TOKEN,
+#          TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, META_ACCESS_TOKEN. Variable: META_PRO_PAGE_ID (exists).
+# A missing secret only blanks that part of the report ("לא זמין"); a missing RESEND_API_KEY fails the send.
+name: weekly-report
+on:
+  schedule:
+    - cron: "0 5 * * 0"   # 08:00 IDT (summer, UTC+3)
+    - cron: "0 6 * * 0"   # 08:00 IST (winter, UTC+2)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (build and print the report, send nothing)"
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: weekly-report
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      US_SUPABASE_URL: ${{ secrets.US_SUPABASE_URL }}
+      US_SUPABASE_SERVICE_KEY: ${{ secrets.US_SUPABASE_SERVICE_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RUNTIME_ADMIN_TOKEN: ${{ secrets.RUNTIME_ADMIN_TOKEN }}
+      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      META_PRO_PAGE_ID: ${{ vars.META_PRO_PAGE_ID }}
+    steps:
+      - name: Gate (only the trigger that is 08:00 in Asia/Jerusalem)
+        id: gate
+        env:
+          SCHED: ${{ github.event.schedule }}
+        run: |
+          off=$(TZ=Asia/Jerusalem date +%z)
+          run=false
+          if [ -z "$SCHED" ]; then run=true
+          elif [ "$SCHED" = "0 5 * * 0" ] && [ "$off" = "+0300" ]; then run=true
+          elif [ "$SCHED" = "0 6 * * 0" ] && [ "$off" = "+0200" ]; then run=true
+          fi
+          echo "Asia/Jerusalem offset $off, trigger '${SCHED:-manual}', run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+      - name: Build (dry run) or send
+        if: steps.gate.outputs.run == 'true'
+        env:
+          IN_DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          if [ "$IN_DRY" = "true" ]; then
+            python3 tools/weekly_report.py --dry-run
+          else
+            python3 tools/weekly_report.py --send
+          fi
+      - uses: actions/upload-artifact@v4
+        if: steps.gate.outputs.run == 'true' && github.event_name == 'workflow_dispatch' && inputs.dry_run
+        with:
+          name: weekly-report
+          path: docs/reports/weekly/*.html
+          retention-days: 14
