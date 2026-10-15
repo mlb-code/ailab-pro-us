@@ -62,6 +62,9 @@ class Ctx:
             'disclaimer': self.brand['disclaimers']['footer'],
             'country': self.brand.get('legal_entity', {}).get('country', ''),
         }
+        dp = self.brand.get('demo') or {}  # demo phone line (answered by the runtime's demo tenant)
+        self.tokens.update({'demo_phone': dp.get('phone_number', ''), 'demo_phone_business': dp.get('phone_business', ''),
+                            'demo_phone_city': dp.get('phone_city', '')})
         for code, i in it.items():
             if i.get('delivery_business_days'):
                 self.tokens[f'days:{code}'] = str(i['delivery_business_days'])
@@ -754,8 +757,8 @@ def faq_items(c, faq):
         if 'ref' in f:
             f = c.shared['faq'][f['ref']]
         out.append((c.t(f['q']), c.t(f['a'])))
-    if len(out) != 8:
-        raise SystemExit(f'FAQ must have 8 entries, has {len(out)}')
+    if len(out) not in (8, 9):
+        raise SystemExit(f'FAQ must have 8 or 9 entries, has {len(out)}')
     return out
 
 
@@ -821,6 +824,21 @@ def faq_ld(faqs):
 
 
 # ---------------------------------------------------------------- pages
+def call_line(c, long=False):
+    """'Hear it live' line with a tel: link to the demo number (brand.json demo.phone_*); '' when not configured."""
+    d = c.brand.get('demo') or {}
+    num, e164 = str(d.get('phone_number') or ''), str(d.get('phone_e164') or '')
+    if not num or not re.fullmatch(r'\+1\d{10}', e164):
+        return ''
+    link = f'<a href="tel:{esc(e164)}" data-ev="demo_call" class="call__num">{esc(num)}</a>'
+    biz, city = esc(d.get('phone_business') or ''), esc(d.get('phone_city') or '')
+    where = f'our demo business, {biz} ({city})' if biz and city else 'our demo business'
+    if long:
+        return (f'<p class="call call--long"><b>Hear it live:</b> call {link}, {where}. US number, standard rates apply. '
+                f'An AI assistant answers, and the call may be recorded and transcribed.</p>')
+    return f'<p class="call"><b>Hear it live:</b> call {link}. An AI answers for our demo business; calls may be recorded and transcribed.</p>'
+
+
 def niche_page(c, key, contents, *, path, canonical=None, year):
     n = contents[key]
     c.page = {k: v for k, v in (n.get('page_tokens') or {}).items()}
@@ -864,7 +882,7 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
 <p class="lead">{c.h(hero['lead'])}</p>
 {price_line(c, n['offer'], tag)}
 <div class="btn-row">{buttons}</div>
-<p class="hero__fine">{c.h(hero['fine'])}</p>{also}
+{call_line(c)}<p class="hero__fine">{c.h(hero['fine'])}</p>{also}
 </div>
 {clock(c, n['clock'], 'A missed call becomes a booking', n.get('demo'))}
 </div></section>''',
@@ -965,7 +983,8 @@ def demo_page(c, contents, year):
         f'''<section class="section" id="demo"><div class="wrap">
 <div class="shead"><p class="eyebrow">Demo</p><h1 style="font-size:clamp(2.1rem,5vw,3.6rem)">Be the <em class="em">customer</em>. Tap the replies.</h1>
 <p class="lead">This is what a caller gets after a missed call: a text from your AI assistant, a few quick questions, and a booked slot. Scripted, in your browser. {esc(c.brand['disclaimers']['demo'])}.</p>
-<p class="hero__price"><b class="num">{money(i0['setup_cents'])}</b> setup <span class="plus">+</span> <b class="num">{money(i0['monthly_cents'])}</b>/mo<span class="tag"><span data-demo-product>{esc(n0.get('product_name') or i0['name'])}</span> · fixed price, in writing</span></p></div>
+<p class="hero__price"><b class="num">{money(i0['setup_cents'])}</b> setup <span class="plus">+</span> <b class="num">{money(i0['monthly_cents'])}</b>/mo<span class="tag"><span data-demo-product>{esc(n0.get('product_name') or i0['name'])}</span> · fixed price, in writing</span></p>
+{call_line(c, long=True)}</div>
 {demo_widget(c, PUBLIC_DEMO_NICHES, contents, cta_href=cta0, cta_label='Get my fixed quote', switcher=True)}
 <script src="/assets/demo.js" defer></script>
 </div></section>''',

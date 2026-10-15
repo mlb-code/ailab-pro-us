@@ -109,6 +109,10 @@
     "builtin_ai": {
       "q": "Why not the AI assistant built into Jobber or Housecall Pro?",
       "a": "Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, works with any calendar or CRM, hands off to a person when needed, and comes with someone who maintains it."
+    },
+    "hear_it": {
+      "q": "Can I hear it before I buy?",
+      "a": "Yes. Call {demo_phone}. It reaches our demo business, {demo_phone_business} in {demo_phone_city}, and the same AI receptionist answers. It's a US number, so standard rates apply, and the call may be recorded and transcribed. You can also try the text demo on this page."
     }
   },
   "cta_band": {
