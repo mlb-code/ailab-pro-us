@@ -8,5 +8,7 @@
   "replies": 0,
   "connects_left": 38,
   "last_update": "2026-10-15",
-  "note": "15.10: 6 הצעות: דיור מוגן $2,500, אתר HVAC LA $2,000, מספרה $750, סוכנות נדל\"ן שוודיה $1,000 (boost 6), דף נחיתה בניין משרדים $250, ניוזלטר FUB+Mailchimp פלורידה $1,000. מפתח API נוצר (Disabled עד אישור)."
+  "note": "15.10: 6 הצעות: דיור מוגן $2,500, אתר HVAC LA $2,000, מספרה $750, סוכנות נדל\"ן שוודיה $1,000 (boost 6), דף נחיתה בניין משרדים $250, ניוזלטר FUB+Mailchimp פלורידה $1,000. מפתח API נוצר (Disabled עד אישור).",
+  "payout_method": "Direct to Local Bank (ILS), FIBI/Otsar Hahayal, active from 2026-10-18, weekly, min $100",
+  "tax": "W-8BEN substitute completed 15.10"
 }
