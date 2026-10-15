@@ -422,6 +422,9 @@
       "ref": "ai_disclosure"
     },
     {
+      "ref": "hear_it"
+    },
+    {
       "q": "What about emergencies?",
       "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT text right away, and it can ring your cell."
     },

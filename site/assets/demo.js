@@ -3,8 +3,8 @@
 // Tree: scenario.nodes[id] = { system?, bot: [text], chips: [{ say, next, set? }] } or a final node with { bot, booked }.
 // Speed: window.DEMO_SPEED (0 = instant, used by tools/demo_test.mjs); reduced motion = faster.
 // Live mode (B8): when a runtime URL is configured (data-live on [data-demo], from brand.json demo.runtime_url;
-// window.DEMO_LIVE_URL; or ?live=<url> on localhost only) and GET <url>/demo/status answers live within 4 s, a text
-// box lets the visitor type to the real assistant (POST /demo/session, /demo/chat). Any error, timeout, limit or
+// window.DEMO_LIVE_URL; or ?live=<url> on localhost only; data-live is ignored on localhost; ?mock=1 = scripted)
+// and GET <url>/demo/status answers live within 4 s, a text box lets the visitor type to the real assistant (POST /demo/session, /demo/chat). Any error, timeout, limit or
 // budget stop shows "Live demo paused" and falls back to the scripted demo. No URL configured = no network calls.
 (function () {
   'use strict';
@@ -191,12 +191,16 @@
   var PAUSED_TEXT = 'Live demo paused. Showing the scripted demo instead.';
 
   function liveUrl(root) {
-    var u = '';
+    var u = '', local = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
     try {
-      var q = new URLSearchParams(window.location.search).get('live');
-      if (q && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) u = q;
+      var sp = new URLSearchParams(window.location.search);
+      if (sp.get('mock') === '1') return '';  // ?mock=1 forces the scripted demo anywhere
+      var q = sp.get('live');
+      if (q && local) u = q;
     } catch (e) { /* old browsers: no override */ }
-    u = u || window.DEMO_LIVE_URL || root.getAttribute('data-live') || '';
+    // Local dev / tests never reach the production runtime by default: on localhost data-live is ignored
+    // (opt in with ?live=<url> or window.DEMO_LIVE_URL).
+    u = u || window.DEMO_LIVE_URL || (local ? '' : root.getAttribute('data-live')) || '';
     return /^https?:\/\/[^\s]+$/.test(u) ? u.replace(/\/+$/, '') : '';
   }
 

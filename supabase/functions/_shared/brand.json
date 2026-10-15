@@ -124,7 +124,7 @@
     "worked_with_status": "pending owner approval"
   },
   "demo": {
-    "runtime_url": "",
+    "runtime_url": "https://runtime-production-7097.up.railway.app",
     "daily_budget_usd": 3,
     "max_messages_per_session": 20,
     "max_messages_per_ip_hour": 60,
@@ -136,6 +136,13 @@
       "home_services",
       "real_estate"
     ],
-    "allowed_origins": []
+    "allowed_origins": [
+      "https://ailabpro.co",
+      "https://www.ailabpro.co"
+    ],
+    "phone_number": "+1 832-307-0813",
+    "phone_e164": "+18323070813",
+    "phone_business": "Copperleaf Air & Plumbing",
+    "phone_city": "Houston"
   }
 }

@@ -17,6 +17,11 @@
 .hero__price .plus{color:var(--fg-3);font-family:var(--serif);font-size:1.4rem}
 .hero__price .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);flex-basis:100%}
 .hero__fine{font-size:.88rem;color:var(--fg-3)}
+.call{font-size:.92rem;color:var(--fg-2);max-width:60ch}
+.call b{color:var(--fg)}
+.call__num{white-space:nowrap;font-weight:700;color:var(--fg);text-decoration:underline;text-underline-offset:3px;padding:6px 0}
+.call--long{margin-top:14px}
+@media (max-width:600px){.call__num{padding:10px 0}}
 .btn-row{display:flex;flex-wrap:wrap;gap:12px}
 .badge-early{justify-self:start}
 @media (max-width:900px){.hero__grid{grid-template-columns:1fr}.hero h1{max-width:none}}

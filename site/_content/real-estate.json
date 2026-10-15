@@ -456,6 +456,9 @@
       "ref": "ai_disclosure"
     },
     {
+      "ref": "hear_it"
+    },
+    {
       "q": "Does it work with Follow Up Boss?",
       "a": "Yes, through the Zapier webhook that's included: every new lead and booking can create a person and a task in Follow Up Boss. Google Calendar or Calendly booking is included too."
     },
