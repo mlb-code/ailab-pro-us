@@ -8,7 +8,7 @@ Version 1.1 · Effective date: October 12, 2026 · Last updated: October 12, 202
 
 ## 1. Who we are
 
-Lavi Entrepreneurship & Management (Meir Lavi), doing business as AI Lab Pro ("we", "us"), 29 Yigal Alon St., Herzliya, Israel. Privacy contact: support@ailabpro.co.
+Lavi Entrepreneurship & Management (Meir Lavi), doing business as AI Lab Pro ("we", "us"), 7 Sokolov St., Apt 3, Herzliya 4649711, Israel. Privacy contact: support@ailabpro.co.
 
 This Policy covers our website, the online questionnaire, the client portal and the services we run for our clients. It is part of our Terms of Service.
 
@@ -135,4 +135,4 @@ We will post updates here with a new "Last updated" date and version. For materi
 
 ## 14. Contact
 
-Lavi Entrepreneurship & Management (Meir Lavi) · 29 Yigal Alon St., Herzliya, Israel · support@ailabpro.co.
+Lavi Entrepreneurship & Management (Meir Lavi) · 7 Sokolov St., Apt 3, Herzliya 4649711, Israel · support@ailabpro.co.
