@@ -12,3 +12,4 @@ qa-shots/
 docs/research-external/
 !.secrets.env.example
 docs/kits/lawyer-package/*.pdf
+docs/twilio-call-prep.html
