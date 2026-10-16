@@ -1,8 +1,8 @@
 {
   "$comment": "Edited by the orchestrator; read by tools/weekly_report.py (\"next actions\" list of the weekly owner report). owner = who does it.",
-  "updated": "15.10.2026",
+  "updated": "16.10.2026",
   "items": [
-    "Twilio: פרופיל עסקי ראשי נשלח 15.10 (Persona לא אימת אוטומטית → בדיקה ידנית). אחרי אישור: רישום A2P 10DLC (Brand + Campaign) דרך API",
+    "Twilio: הפרופיל העסקי נדחה 16.10 (מייל Gmail, עוסק מורשה לא מאומת, כתובת). משימה נפרדת, מאיר יחליט מתי. עד אז אין SMS, קו הדמו הקולי עובד",
     {
       "text": "שיחת בדיקה אמיתית לקו הדמו ולוודא שמגיע מייל New lead. המספר: +1 832-307-0813",
       "owner": "מאיר"
