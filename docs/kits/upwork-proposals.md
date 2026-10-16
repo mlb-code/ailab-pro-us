@@ -283,3 +283,7 @@ A: 1. You answer a 6-minute questionnaire. 2. You get a written fixed quote with
 ## 6. Loom video
 
 Script and shot list: `videos/11-upwork-loom.md` (60 seconds for the receptionist, 20 seconds for the website).
+
+
+## כלל (16.10): לא מצטטים בהצעות דברים שעוד לא בנויים
+עד שייבנו: צ'אט לאתר הלקוח, חיבור ישיר ל-CRM (HubSpot/Jobber/HCP — רק Zapier), בקשת ביקורות גוגל, ספרדית אמיתית, שינוי/ביטול תור בשיחה, סינון קונה/מוכר לנדל"ן. יומן גוגל/Calendly: לכתוב "books into your calendar" רק אחרי שהחיבור מוגדר בפרודקשן. SMS: "once the one-time US SMS registration is approved".
