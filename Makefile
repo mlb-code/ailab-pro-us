@@ -3,7 +3,6 @@
 #   make serve     static site on http://localhost:8787 (site/ + /__fixture__/)
 #   make qa-fast   static checks only (no browsers): secrets, hard-coded values, config sync, price book,
 #                  us_setup self-test, generated pages/fixtures up to date, SQL lint, video VO length, Upwork proposals. CI runs this.
-#   make weekly-dry  weekly owner report from live data (read-only), HTML to docs/reports/weekly/, nothing sent
 #   make qa        EVERYTHING: qa-fast + browsers (3 engines) + Deno tests + offline Postgres (PGlite) suites.
 #                  Every browser suite gets its own server on a free port (no port clashes). Prefer serial `make qa`:
 #                  under heavy CPU load `-j` causes Playwright launch/click timeouts.
@@ -14,7 +13,6 @@ PORT ?= 8787
 FREE = $$($(PY) tools/free_port.py)
 DENO_RUN = $(DENO) run -A --node-modules-dir=none
 
-.PHONY: weekly-dry install serve secrets qa qa-fast qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-deno qa-sql qa-phase-a
 
 install:
 	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund
@@ -39,13 +37,7 @@ qa-fast: secrets
 	$(DENO_RUN) tools/build_quote_fixtures.ts --check
 	$(PY) tools/sql_lint.py supabase/migrations
 	$(PY) videos/vo_length.py
-	$(PY) tools/weekly_report.py --self-test
 
-# Weekly owner report: build from live data (read-only), write docs/reports/weekly/<date>.html, print the text. Sends nothing.
-weekly-dry:
-	$(PY) tools/weekly_report.py --dry-run
-	$(PY) tools/proposals_check.py --self-test
-	$(PY) tools/proposals_check.py
 
 # ---------- browsers ----------
 # overflow gate self-test + landing pages, legal, quote fixtures, demo website, styleguide (3 engines x 4 widths)
