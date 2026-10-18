@@ -1053,6 +1053,7 @@ LEGAL_PAGES = ['legal/terms/index.html', 'legal/service-agreement/index.html', '
 # any <span> carrying data-cfg, also with other attributes first (e.g. <span class="mono" data-cfg="brand:agreement_version">)
 CFG_RX = re.compile(r'(<span\b[^>]*?\bdata-cfg="(pricebook|brand):([A-Za-z0-9_.]+)"[^>]*>)(.*?)(</span>)', re.S)
 BANNER_RX = re.compile(r'(<div class="draft-banner" role="note")(?: hidden)?>')
+BANNER_FULL_RX = re.compile(r'\s*<div class="draft-banner" role="note"(?: hidden)?>.*?</div>', re.S)
 
 
 def cfg_value(c, src, path):
@@ -1078,8 +1079,12 @@ def stamp_legal(c):
         cur = open(p, encoding='utf-8').read()
         cur = CFG_RX.sub(lambda m: m.group(1) + esc(cfg_value(c, m.group(2), m.group(3))) + m.group(5), cur)
         # DRAFT banner: hidden in the static HTML exactly when brand.json "legal_final" is true (legal.js does the same).
-        hidden = ' hidden' if c.brand.get('legal_final') is True else ''
-        cur = BANNER_RX.sub(lambda m: m.group(1) + hidden + '>', cur)
+        if c.brand.get('legal_final') is True:
+            # final: drop the banner from the static HTML entirely (a hidden "DRAFT" string still shows up to text scrapers,
+            # e.g. carrier reviewers checking the privacy/terms links for SMS registration)
+            cur = BANNER_FULL_RX.sub('', cur)
+        else:
+            cur = BANNER_RX.sub(lambda m: m.group(1) + '>', cur)
         out[rel] = cur
     return out
 
