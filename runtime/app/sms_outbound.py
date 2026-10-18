@@ -31,7 +31,7 @@ from typing import Any
 from . import _stubs_b56 as hooks
 from . import guard
 from .runtime_ctx import who
-from .tenants import TenantConfigError, TenantRecord, load_record
+from .tenants import TenantConfigError, TenantRecord, load_record, sms_business_name
 
 log = logging.getLogger("rt.sms_out")
 
@@ -41,21 +41,22 @@ THREAD_IDLE = timedelta(hours=24)
 REMINDER_BEFORE = timedelta(hours=24)
 
 
-# Locked templates (SA §8 item 3): only the business name varies. No links, prices, offers or review requests:
+# Locked templates (SA §8 item 3): only the business name varies (`sms_business_name`: business.sms_display_name,
+# else business.name). No links, prices, offers or review requests:
 # one promotional sentence would turn an informational text into telemarketing (memo 02, A.2).
 def textback_text(tenant: TenantRecord) -> str:
-    return (f"Hi, this is {tenant.config.business.name}. Sorry we missed your call! What can we help with? "
+    return (f"Hi, this is {sms_business_name(tenant)}. Sorry we missed your call! What can we help with? "
             "Reply STOP to opt out.")
 
 
 def confirmation_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
-    return (f"{tenant.config.business.name}: you're booked for {booking.get('label') or booking.get('start')}. "
+    return (f"{sms_business_name(tenant)}: you're booked for {booking.get('label') or booking.get('start')}. "
             "Reply here if you need anything. Reply STOP to opt out.")
 
 
 def reminder_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
-    return (f"{tenant.config.business.name}: reminder of your visit {booking.get('label') or booking.get('start')}. "
-            "Reply here if you need to change it. Reply STOP to opt out.")
+    return (f"{sms_business_name(tenant)}: reminder of your visit {booking.get('label') or booking.get('start')}. "
+            "Reply here to change it. Reply STOP to opt out.")  # short: 1 segment with a 44-char SMS name
 
 
 WINDOW_OF = {"textback": "textback", "confirmation": "scheduled", "reminder": "scheduled"}

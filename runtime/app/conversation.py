@@ -26,7 +26,7 @@ from .llm import LLMClient
 from .settings import Settings
 from .speech import TOOL_FILLERS, Speaker
 from .store import StateStore, Store, TenantStore
-from .tenants import TenantRecord
+from .tenants import TenantRecord, sms_business_name
 from .usage import UsageMeter
 
 log = logging.getLogger("rt.conversation")
@@ -278,7 +278,7 @@ class Engine:
             if c.meta.get("sms_consent") == "asked":
                 c.meta["sms_consent"] = "no"
             # exactly one confirmation (47 C.F.R. 64.1200(a)(12)); a repeat STOP gets nothing
-            return done(guard.stop_confirmation(cfg.business.name, cfg.business.main_phone) if new else "", end=True,
+            return done(guard.stop_confirmation(sms_business_name(cfg), cfg.business.main_phone) if new else "", end=True,
                         counted=False)
         if kw == "start":
             notes.append("start")
@@ -290,7 +290,7 @@ class Engine:
         if sms and (blocked := gate()):
             return blocked
         if kw == "start":
-            return done(guard.start_confirmation(cfg.business.name))
+            return done(guard.start_confirmation(sms_business_name(cfg)))
         if not tenant.active:
             notes.append("tenant_paused")
             return done(PAUSED_TEXT, end=True)
@@ -298,7 +298,7 @@ class Engine:
         if sms:
             if kw == "help":
                 notes.append("help")
-                return done(guard.help_text(cfg.business.name, cfg.business.main_phone))
+                return done(guard.help_text(sms_business_name(cfg), cfg.business.main_phone))
             fixed, reason = guard.inbound_fixed_reply(text, num_media)
             if fixed:
                 notes.append(reason)
@@ -350,7 +350,7 @@ class Engine:
         # 10: honest about being an AI, no Claude needed
         if guard.is_robot_question(text):
             notes.append("robot_question")
-            return done(guard.robot_answer(cfg.business.name))
+            return done(guard.robot_answer(sms_business_name(cfg) if sms else cfg.business.name))
 
         # 9: language
         lang = guard.language_fixed_reply(text, cfg)

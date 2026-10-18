@@ -119,6 +119,21 @@
           "title": "Name",
           "type": "string"
         },
+        "sms_display_name": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name shown in outbound SMS instead of `name` (absent or null = `name`)",
+          "title": "Sms Display Name"
+        },
         "niche": {
           "enum": [
             "home_services",

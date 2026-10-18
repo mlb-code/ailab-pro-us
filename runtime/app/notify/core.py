@@ -32,7 +32,7 @@ from zoneinfo import ZoneInfo
 from ..calendar.base import label as slot_label
 from ..settings import brand
 from ..store import StateStore, Store, StoreError
-from ..tenants import TenantConfigError, TenantRecord, load_record
+from ..tenants import TenantConfigError, TenantRecord, load_record, sms_business_name
 from ..guard import sms_segments
 from ..zapier import ZapierClient
 from .calllog import record_sms
@@ -149,8 +149,7 @@ class Notifier:
         if tenant is None:
             return []
         provider = alert.get("provider", "calendar")
-        business = tenant.config.business.name
-        subject, text, html, sms = T.calendar_owner(business, provider)
+        subject, text, html, sms = T.calendar_owner(sms_business_name(tenant), provider)  # the name is only in the SMS
         key = f"calendar:{provider}:{now.date()}"
         out = self._owner_email(tenant, "calendar_reconnect", subject, text, html, key)
         out += self._owner_sms(tenant, "calendar_reconnect", sms, key)
@@ -165,7 +164,7 @@ class Notifier:
         self._event(tenant, "usage.alert", {k: a.get(k) for k in ("kind", "usage_kind", "used", "included")},
                     client_visible=True)
         out: list[dict[str, Any]] = []
-        subject, text, html, sms = T.usage_owner(business, a)  # operational: not gated by client_emails_enabled
+        subject, text, html, sms = T.usage_owner(business, a, sms_business=sms_business_name(tenant))  # operational: not gated by client_emails_enabled
         out += self._owner_email(tenant, "usage", subject, text, html, key)
         out += self._owner_sms(tenant, "usage", sms, key)
         subject, text, html = T.usage_admin(business, tenant.slug, a)

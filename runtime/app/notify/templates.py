@@ -161,7 +161,8 @@ KIND_EN = {"voice_minutes": "voice minutes", "sms_segments": "SMS segments"}
 KIND_HE = {"voice_minutes": "דקות שיחה", "sms_segments": "מקטעי SMS"}
 
 
-def usage_owner(business: str, a: dict[str, Any]) -> tuple[str, str, str, str]:
+def usage_owner(business: str, a: dict[str, Any], sms_business: str | None = None) -> tuple[str, str, str, str]:
+    """`sms_business` = the tenant's SMS display name (`sms_business_name`); the e-mail keeps `business`."""
     pct = 100 if a["kind"] == "usage_100" else 80
     what = KIND_EN.get(a["usage_kind"], a["usage_kind"])
     block = pricebook_item("ADD-USAGE")
@@ -175,7 +176,7 @@ def usage_owner(business: str, a: dict[str, Any]) -> tuple[str, str, str, str]:
               if pct >= 100 else "We'll let you know again if you reach 100%.")]
     text = "\n\n".join([subject, *lines, f"Portal: {portal_url()}"])
     html_ = _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "en", _footer_en())
-    sms = f"{business}: {pct}% of included {what} used this month ({a['used']:g}/{a['included']:g}). Nothing changes automatically. Details by email."
+    sms = f"{sms_business or business}: {pct}% of included {what} used this month ({a['used']:g}/{a['included']:g}). Nothing changes automatically. Details by email."
     return subject, text, html_, sms[:SMS_MAX]
 
 

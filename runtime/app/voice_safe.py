@@ -54,6 +54,12 @@ class BrokenTenant:
     main_phone: str
     timezone: str
     problems: list[str] = field(default_factory=list)
+    sms_display_name: str = ""  # business.sms_display_name if readable; SMS use `sms_name`
+
+    @property
+    def sms_name(self) -> str:
+        """Same rule as `tenants.sms_business_name`: the SMS display name when set, else the business name."""
+        return self.sms_display_name or self.name
 
 
 def broken_tenant(rt: Runtime, number: str) -> BrokenTenant | None:
@@ -76,7 +82,9 @@ def broken_tenant(rt: Runtime, number: str) -> BrokenTenant | None:
     except (ZoneInfoNotFoundError, ValueError):
         tz = FALLBACK_TZ
     phone = biz.get("main_phone") if isinstance(biz.get("main_phone"), str) else ""
-    return BrokenTenant(str(row.get("id")), str(row.get("slug") or "?"), name[:120], number, phone, tz, problems)
+    sms_name = biz.get("sms_display_name") if isinstance(biz.get("sms_display_name"), str) else ""
+    return BrokenTenant(str(row.get("id")), str(row.get("slug") or "?"), name[:120], number, phone, tz, problems,
+                        sms_name.strip()[:80])
 
 
 def _admin_send(rt: Runtime, bt: BrokenTenant, summary: str, key: str, now: datetime) -> None:
@@ -154,7 +162,7 @@ class SafeMode:
         flag = f"safetextback:{bt.id}:{who(caller)}:{self._day(bt, now)}"
         if caller and not self.rt.state.get(flag):
             self.rt.state.put(flag, True, bt.id)
-            if self.send(bt, caller, safe_textback(bt.name), now).get("sent"):
+            if self.send(bt, caller, safe_textback(bt.sms_name), now).get("sent"):
                 ts.record_consent(caller, "voice", "text_back", "notice", guard.DISCLOSURE, call_sid,
                                   guard.DISCLOSURE_VERSION)
 
@@ -197,14 +205,14 @@ class SafeMode:
         kw = guard.sms_keyword(body)
         if kw == "stop" or form.get("OptOutType", "").upper() == "STOP":
             new = ts.opt_out(contact, "sms", body)
-            return guard.stop_confirmation(bt.name, bt.main_phone) if (new and not form.get("OptOutType")) else ""
+            return guard.stop_confirmation(bt.sms_name, bt.main_phone) if (new and not form.get("OptOutType")) else ""
         if kw == "start" and ts.is_opted_out(contact):
             ts.opt_in(contact, "sms", body)
-            return guard.start_confirmation(bt.name)
+            return guard.start_confirmation(bt.sms_name)
         if ts.is_opted_out(contact):
             return ""
         if kw == "help":
-            reply = guard.help_text(bt.name, bt.main_phone) if bt.main_phone else SAFE_SMS_REPLY
+            reply = guard.help_text(bt.sms_name, bt.main_phone) if bt.main_phone else SAFE_SMS_REPLY
         else:
             reply = SAFE_SMS_REPLY
             if body.strip():

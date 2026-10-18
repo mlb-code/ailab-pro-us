@@ -40,6 +40,10 @@ def _check_span(span: list[str] | tuple[str, str] | None, where: str) -> None:
 
 class Business(_Strict):
     name: str = Field(min_length=1, max_length=120)
+    # Optional name used only in outbound SMS (10DLC: reviewers expect the registered brand in every text). Voice and
+    # e-mail keep `name`. Absent/null = SMS use `name` too. See `sms_business_name`.
+    sms_display_name: str | None = Field(default=None, min_length=1, max_length=80,
+                                         description="Name shown in outbound SMS instead of `name` (absent or null = `name`)")
     # Offered niches only. A stored config with a retired niche (health care, removed 2026-10-12: no HIPAA BAAs) fails
     # validation -> TenantConfigError -> safe mode (message + text-back, admin alert), never a crash.
     niche: Literal["home_services", "real_estate"]
@@ -204,6 +208,12 @@ class TenantRecord(BaseModel):
     @property
     def active(self) -> bool:
         return self.status != "paused" and not self.config.paused
+
+
+def sms_business_name(tenant: "TenantRecord | TenantConfig") -> str:
+    """The business name every outbound SMS template uses: `business.sms_display_name` when set, else `business.name`."""
+    b = (tenant.config if isinstance(tenant, TenantRecord) else tenant).business
+    return (b.sms_display_name or "").strip() or b.name
 
 
 class TenantConfigError(ValueError):

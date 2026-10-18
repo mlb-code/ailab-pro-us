@@ -27,7 +27,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .area_codes import timezone_for
-from .tenants import DAYS, TenantConfig
+from .tenants import DAYS, TenantConfig, sms_business_name
 
 # ---- fixed texts (client-facing, US English) -----------------------------------------
 LONG_SMS_TEXT = "Thanks for the details! Could you send a shorter message about what you need help with?"
@@ -515,7 +515,7 @@ def check_reply(text: str, cfg: TenantConfig, channel: str, booked: bool = False
     elif "unbacked_action" in out.violations:
         out.text = UNBACKED_ACTION_TEXT
     elif "claims_human" in out.violations:
-        out.text = robot_answer(cfg.business.name)
+        out.text = robot_answer(sms_business_name(cfg) if channel == "sms" else cfg.business.name)
     elif "advice" in out.violations:
         out.text = "A technician will check it when they arrive. If anyone is in danger, please call 911."
     out.text = _shorten(out.text, channel)
