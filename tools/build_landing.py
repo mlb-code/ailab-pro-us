@@ -276,8 +276,10 @@ def footer(c, year):
     contact = []
     if mail:
         contact.append(f'<a class="footer__contact" href="mailto:{esc(mail)}"><span class="footer__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M4 7l8 6 8-6"/></svg></span><span><small>Email us</small><b>{esc(mail)}</b></span></a>')
-    if b.get('physical_address'):
-        contact.append(f'<p class="footer__contact"><span class="footer__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></span><span><small>Studio address</small><b>{esc(b["physical_address"])}</b></span></p>')
+    # site shows the short address (street + city); the full postal address stays in brand.physical_address for email footers
+    shown_address = b.get('display_address') or b.get('physical_address')
+    if shown_address:
+        contact.append(f'<p class="footer__contact"><span class="footer__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></span><span><small>Studio address</small><b>{esc(shown_address)}</b></span></p>')
     out = f'''<footer class="footer"><div class="wrap">
 <div class="footer__grid">
 <div class="footer__col footer__brand"><p class="footer__k">01 / Social</p><h3 class="footer__h">{c.h(f["social_title"])}</h3>{social}

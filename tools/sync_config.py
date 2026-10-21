@@ -59,6 +59,21 @@ def validate_config():
     return errs
 
 
+# Keys that must not reach the public static site (served as https://<domain>/assets/brand.json). The site renders
+# brand.display_address; the full postal address stays server-side (email footers, runtime) only.
+SITE_PRIVATE_KEYS = {'brand.json': ('physical_address',)}
+
+
+def public_copy(name, target, src):
+    keys = SITE_PRIVATE_KEYS.get(name) if target == 'site/assets' else None
+    if not keys:
+        return src
+    data = json.loads(src)
+    for k in keys:
+        data.pop(k, None)
+    return (json.dumps(data, ensure_ascii=False, indent=2) + '\n').encode()
+
+
 def main(argv):
     check = '--check' in argv
     errs = validate_config()
@@ -68,8 +83,9 @@ def main(argv):
         return 1
     drift = 0
     for name in FILES:
-        src = read(os.path.join(ROOT, 'config', name))
+        base_src = read(os.path.join(ROOT, 'config', name))
         for t in TARGETS:
+            src = public_copy(name, t, base_src)
             dst = os.path.join(ROOT, t, name)
             same = os.path.exists(dst) and read(dst) == src
             rel = os.path.relpath(dst, ROOT)

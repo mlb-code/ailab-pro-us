@@ -37,7 +37,7 @@ PRAGMA = 'hardcoded-ok'
 COMMENT_RX = re.compile(r'^\s*(#|//|/\*|\*|--|<!--)')
 # brand.json keys whose string values are "brand strings". Anything under these keys counts.
 BRAND_KEYS = ('name', 'domain', 'site_url', 'support_email', 'senders', 'legal_entity', 'analytics',
-              'calendly_url', 'claude', 'physical_address')
+              'calendly_url', 'claude', 'physical_address', 'display_address')
 CFG_SPAN_RX = re.compile(r'(<span data-cfg="(?:pricebook|brand):[A-Za-z0-9_.]+">).*?(</span>)')
 MONEY_RX = re.compile(r'\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{2}))?')
 
@@ -116,7 +116,14 @@ def config_copies():
         p = os.path.join(CONFIG, name)
         if os.path.exists(p):
             with open(p, encoding='utf-8') as fh:
-                texts.add(fh.read())
+                raw = fh.read()
+            texts.add(raw)
+            # the public-site copy written by sync_config.py (same config minus server-only keys) is a copy too
+            try:
+                import sync_config  # same directory (tools/)
+                texts.add(sync_config.public_copy(name, 'site/assets', raw.encode()).decode())
+            except Exception:
+                pass
     return texts
 
 

@@ -6,12 +6,12 @@
   "tagline": "AI receptionists and websites for local service businesses",
   "domain": "ailabpro.co",
   "site_url": "https://ailabpro.co",
-  "support_email": "support@ailabpro.co",
+  "support_email": "hello@ailabpro.co",
   "senders": {
     "transactional": "AI Lab Pro <hello@ailabpro.co>",
     "quotes": "AI Lab Pro <quotes@ailabpro.co>",
     "alerts": "AI Lab Pro Alerts <alerts@ailabpro.co>",
-    "reply_to": "support@ailabpro.co",
+    "reply_to": "hello@ailabpro.co",
     "fallback": "AI Lab Pro <pro@ai-lab.co.il>"
   },
   "smtp_from": "AI Lab Pro <hello@ailabpro.co>",
@@ -29,6 +29,7 @@
   "legal_final": true,
   "agreement_version": "1.1",
   "physical_address": "7 Sokolov St., Apt 3, Herzliya 4649711, Israel",
+  "display_address": "7 Sokolov St., Herzliya, Israel",
   "calendly_url": "https://calendar.app.google/eJdAx1dAqnp9cjPD7",
   "analytics": {
     "ga4_id": "",
