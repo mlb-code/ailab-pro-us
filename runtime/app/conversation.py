@@ -12,6 +12,8 @@ to `calls` / `sms_messages`. All row access goes through `store.for_tenant()`.
 """
 from __future__ import annotations
 
+import re
+
 import hashlib
 import logging
 import time
@@ -34,7 +36,20 @@ log = logging.getLogger("rt.conversation")
 FALLBACK_TEXT = ("Sorry, I'm having trouble on my end. I've passed your message to the team "
                  "and someone will get back to you soon.")
 PAUSED_TEXT = "Thanks for reaching out. Our team will get back to you soon."
-REPROMPT_TEXT = "Sorry, I didn't catch that. What can we help you with?"
+REPROMPT_TEXT = "Sorry, I didn't catch that. Could you say that again?"
+_QUESTION = re.compile(r"[^.?!]*\?")
+
+
+def reprompt_for(transcript: list[dict]) -> str:
+    """Silence reprompt that repeats the assistant's last open question (e.g. the ZIP), so a caller who pauses
+    to look something up is not sent back to "what can we help you with?"; generic ask when there was none."""
+    for turn in reversed(transcript or []):
+        if turn.get("who") == "assistant":
+            qs = _QUESTION.findall(turn.get("text") or "")
+            if qs and qs[-1].strip():
+                return "Sorry, I didn't catch that. " + qs[-1].strip()
+            break
+    return REPROMPT_TEXT
 SILENT_END_TEXT = "Sorry, I can't hear you. Someone from our team will call you back. Goodbye."
 CONFIRMED_DANGER_TEXT = guard.CONFIRMED_DANGER_TEXT
 URGENT_DIAL_TEXT = "This sounds urgent. I'm connecting you with our on-call technician now."
@@ -308,7 +323,7 @@ class Engine:
             policy = guard.silence_policy(c.silent_in_a_row, c.ever_spoke)
             notes.append(f"silence:{policy}")
             if policy == "reprompt":
-                return done(REPROMPT_TEXT)
+                return done(reprompt_for(c.transcript))
             if policy == "end_spam":
                 return done("", end=True, outcome="spam")
             self._alert(c, actions, "lead", "Caller went silent before finishing")
