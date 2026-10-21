@@ -5,7 +5,7 @@
    Auth (same as Backend): getSession, sendCode, verifyCode, consumeLink, signOut
    Admin: adminWhoami, adminListLeads, adminListProfiles, adminListQuestionnaires, adminListAttachments, downloadUrl,
           adminListQuotes, adminGetQuoteReview, adminRegenerateDraft, adminSaveQuote, quoteSend, adminCreateClientFromQuote,
-          adminListClients, adminSaveClient, adminListPayments, adminMarkPaid, adminListOnboarding, adminListTenants,
+          adminListClients, adminSaveClient, adminListPayments, adminMarkPaid, adminRefundPayment, adminListOnboarding, adminListTenants,
           adminRuntimeState, adminListRequests, adminSaveRequest, adminListEvents, adminLogEvent, adminGetNote, adminSaveNote, adminOutbox
    Supabase notes:
      - status changes are logged by the DB (log_status_change trigger -> public.events); the browser cannot insert events,
@@ -104,6 +104,8 @@
       async adminMarkPaid(paymentId, reference) {
         return must(await sb.from('payments').update({ status: 'paid', reference: reference || null }).eq('id', paymentId).select('*').single());
       },
+      // PayPal deposit refund (Edge Function pay-refund: admin JWT, 7-day rule, PayPal Refund API, row -> refunded)
+      async adminRefundPayment(paymentId) { return fn('pay-refund', { payment_id: paymentId }); },
       async adminListOnboarding() { return must(await sb.from('onboarding_items').select('*').order('sort')); },
       async adminListTenants() { return must(await sb.from('tenants').select('*')); },
       async adminRuntimeState() { return []; },
@@ -142,7 +144,7 @@
   const api = { mode, ready: () => readyP };
   ['getSession', 'consumeLink', 'sendCode', 'verifyCode', 'signOut', 'adminWhoami', 'adminListLeads', 'adminListProfiles',
     'adminListQuestionnaires', 'adminListAttachments', 'downloadUrl', 'adminListQuotes', 'adminRegenerateDraft', 'adminSaveQuote',
-    'quoteSend', 'adminGetQuoteReview', 'adminCreateClientFromQuote', 'adminListClients', 'adminSaveClient', 'adminListPayments', 'adminMarkPaid',
+    'quoteSend', 'adminGetQuoteReview', 'adminCreateClientFromQuote', 'adminListClients', 'adminSaveClient', 'adminListPayments', 'adminMarkPaid', 'adminRefundPayment',
     'adminListOnboarding', 'adminListTenants', 'adminRuntimeState', 'adminListRequests', 'adminSaveRequest', 'adminListEvents',
     'adminLogEvent', 'adminGetNote', 'adminSaveNote', 'adminOutbox', 'adminTenantUsage', 'adminSaveTenant'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };

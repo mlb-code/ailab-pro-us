@@ -1,0 +1,111 @@
+{
+  "status": "accepted",
+  "client": {
+    "name": "Mark Ortiz",
+    "company": "Rapid Flow Plumbing"
+  },
+  "created_at": "2026-10-12T15:00:00.000Z",
+  "sent_at": "2026-10-12T15:00:00.000Z",
+  "valid_until": "2026-10-26T15:00:00.000Z",
+  "scope_md": "An AI receptionist for Rapid Flow Plumbing that answers missed calls, books visits into Google Calendar and writes every new lead and booking into Jobber.",
+  "assumptions": [
+    "You give us admin access to Jobber during setup."
+  ],
+  "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+  "delivery_business_days": 10,
+  "items": [
+    {
+      "code": "RCP",
+      "name": "Missed-Call AI Receptionist",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 350000,
+      "monthly_cents": 30000
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Direct link to your job or customer app, per app (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "qty": 1,
+      "kind": "fixed",
+      "setup_cents": 120000,
+      "monthly_cents": 5000
+    }
+  ],
+  "includes": [
+    {
+      "code": "RCP",
+      "name": "Missed-Call AI Receptionist",
+      "list": [
+        "1 location and 1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
+        "Answers the calls you miss, and texts back callers who hang up",
+        "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
+        "Booking into 1 calendar: Google Calendar or Calendly",
+        "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
+        "Owner notifications by SMS and email for every lead, plus a daily summary email",
+        "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
+        "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
+        "We handle the texting registration that US phone carriers require (fees included)",
+        "Included usage per month: 400 voice minutes and 1,000 SMS segments; we alert you at 80% and 100%; we never charge for extra minutes or texts on our own, we add more only if you say yes",
+        "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
+      ]
+    },
+    {
+      "code": "ADD-CRM",
+      "name": "Direct link to your job or customer app, per app (Jobber, Housecall Pro, GoHighLevel, HubSpot)",
+      "list": [
+        "Leads and bookings added directly into 1 supported app (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
+      ]
+    }
+  ],
+  "excludes": [
+    "Outbound AI calls and marketing text messages",
+    "More locations or phone numbers (extra, fixed price)",
+    "Spanish / bilingual phone line (extra, fixed price)",
+    "Chat box on your website (extra, fixed price)",
+    "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+    "Call recordings (we keep a written copy of each call, not the audio)",
+    "Medical records or patient health information (we can't sign a HIPAA agreement)"
+  ],
+  "not_included_extra": [],
+  "totals": {
+    "setup_subtotal_cents": 470000,
+    "rush_cents": 0,
+    "discount_cents": 0,
+    "discount_label": null,
+    "setup_cents": 470000,
+    "monthly_cents": 35000,
+    "deposit_cents": 235000,
+    "final_cents": 235000,
+    "deposit_pct": 50
+  },
+  "refund": {
+    "guarantee": "30-day satisfaction guarantee: not happy within 30 days of go-live (the day it starts answering real customers)? We refund the setup fee for your AI assistant and turn it off. On the bundle, we refund only the AI assistant's part of the setup fee, and you keep the website. Monthly fees you already used are not refunded.",
+    "guarantee_label": "30-day satisfaction guarantee",
+    "deposit": "Changed your mind? Ask within 7 days of paying and we refund your full deposit, as long as you haven't finished the setup checklist.",
+    "deposit_label": "7-day refund",
+    "retainer": null,
+    "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)"
+  },
+  "payment": {
+    "method": "paypal_checkout",
+    "link": null
+  },
+  "pay_state": {
+    "deposit": {
+      "status": "paid",
+      "paid_at": "2026-10-13T15:00:00.000Z"
+    },
+    "final": {
+      "status": "due",
+      "paid_at": null
+    }
+  },
+  "agreement_version": "1.1",
+  "accepted": {
+    "name": "Mark Ortiz",
+    "at": "2026-10-12T15:00:00.000Z"
+  },
+  "call_offer_prominent": true,
+  "currency": "USD",
+  "cancel_notice_days": 30
+}

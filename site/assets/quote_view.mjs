@@ -6,16 +6,36 @@ import { deliveryDays, inputsFromStored, itemOf, priceQuote } from "./pricing.mj
 export const TOKEN_RX = /^[A-Za-z0-9]{32,128}$/;
 /** statuses a client may open by link (drafts / needs_manual_price / approved / void are never public) */
 export const VISIBLE = ["sent", "viewed", "accepted", "expired"];
-/** Payment rail of a quote with no explicit pay_method: Upwork Direct Contracts (PayPal / card checkout is postponed).
- *  The same default drives quote-draft / quote-send, the e-mails and the admin's preselected method. */
+/** Payment rail of a quote with no explicit pay_method (and the default while PayPal checkout is off): Upwork Direct
+ *  Contracts. The same default drives quote-draft / quote-send, the e-mails and the admin's preselected method. */
 export const DEFAULT_PAY_METHOD = "upwork";
 export const payMethodOf = (q) => (q && q.pay_method) || DEFAULT_PAY_METHOD;
+/** Card / PayPal checkout on the quote page and in the portal (PayPal JS SDK buttons, server-side capture). */
+export const PAYPAL_METHOD = "paypal_checkout";
+const PAYPAL_CLIENT_ID_RX = /^[A-Za-z0-9_-]{16,128}$/;
+/** brand.json payments.paypal: on only when enabled AND a public client id is set (tools/sync_config.py checks the same). */
+export function paypalOn(brand) {
+  const p = brand && brand.payments && brand.payments.paypal;
+  return !!(p && p.enabled === true && typeof p.client_id === "string" && PAYPAL_CLIENT_ID_RX.test(p.client_id));
+}
+/** New quotes: PayPal checkout when it is on, else Upwork (today's behaviour exactly). */
+export const defaultPayMethod = (brand) => (paypalOn(brand) ? PAYPAL_METHOD : DEFAULT_PAY_METHOD);
+
+/** Client-safe state of one payment kind: due | pending (PayPal is still processing a capture) | paid | refunded. */
+function payStateOf(rows, kind) {
+  const mine = (rows || []).filter((p) => p && p.kind === kind);
+  if (!mine.length) return null;
+  const rank = { paid: 3, refunded: 2, due: 1 };
+  const p = mine.slice().sort((a, b) => (rank[b.status] || 0) - (rank[a.status] || 0))[0];
+  return { status: p.status === "due" && p.provider_capture_id ? "pending" : p.status, paid_at: p.paid_at || null };
+}
 
 export const isPublic = (q) => !!q && !q.anonymized && VISIBLE.includes(q.status);
 export const isExpired = (q, now) => q.status === "expired" || (q.status !== "accepted" && !!q.valid_until && new Date(q.valid_until) < now);
 
-/** Whitelisted public JSON for the quote page and email. Never includes internal reasons, ids, IP/UA or Claude raw output. */
-export function toPublicView(q, profile, now, pb, defaultAgreementVersion) {
+/** Whitelisted public JSON for the quote page and email. Never includes internal reasons, ids, IP/UA or Claude raw output.
+ *  pays (optional): this quote's payment rows ({kind, status, provider_capture_id, paid_at}) -> pay_state of the pay step. */
+export function toPublicView(q, profile, now, pb, defaultAgreementVersion, pays) {
   const r = priceQuote(pb, inputsFromStored(q.items, pb), { discount_code: q.discount_code, manual_approved: true });
   const codes = q.items.map((i) => String(i.code));
   const includes = codes.map((c) => itemOf(pb, c)).filter((it) => it && it.includes.length)
@@ -54,6 +74,8 @@ export function toPublicView(q, profile, now, pb, defaultAgreementVersion) {
     refund: { guarantee, guarantee_label: guarantee ? g.label || null : null, deposit: pb.refund_rules.deposit.text,
       deposit_label: pb.refund_rules.deposit.label || null, retainer, status: pb.refund_rules.status || null },
     payment: { method: payMethodOf(q), link: q.pay_link || null },
+    // null = no payment row yet (nothing paid); never the provider ids or the payer's e-mail
+    pay_state: { deposit: payStateOf(pays, "deposit"), final: payStateOf(pays, "final") },
     agreement_version: q.agreement_version || defaultAgreementVersion,
     accepted: q.status === "accepted" && q.accepted_at ? { name: q.accepted_name || "", at: q.accepted_at } : null,
     call_offer_prominent: setup > asyncCeiling,

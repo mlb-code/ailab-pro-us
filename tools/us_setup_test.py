@@ -4,6 +4,7 @@
 Run: python3 tools/us_setup_test.py   (or: python3 tools/us_setup.py --self-test)
 Fake credentials below are built at runtime so the secrets scanner never sees a key-shaped literal.
 """
+import base64
 import contextlib
 import io
 import json
@@ -481,6 +482,158 @@ class TestSetup(Base):
         self.assertNotIn('"DELETE"', src)
         for word in ("/pause", "/restore", "/remove", "vault.delete", "drop table", "cron.unschedule"):
             self.assertNotIn(word, src.lower())
+
+
+# ------------------------------------------------------------------ --only paypal (fake PayPal REST API, no network)
+PP_CID = "AbCdEfGhIjKlMnOp" + "QrSt-0123456789_x"
+PP_SECRET = "EK" + "p4yp4l" * 8
+PP_TOKEN = "A21AA" + "t0k3n" * 8
+
+
+class FakePayPal:
+    """PayPal OAuth + webhooks API in front of FakeApi (Supabase); records every PayPal call."""
+
+    def __init__(self, supabase, hooks=None, auth_ok=True, env="sandbox"):
+        self.supabase = supabase
+        self.hooks = hooks if hooks is not None else []
+        self.auth_ok = auth_ok
+        self.base = S.PAYPAL_API[env]
+        self.calls = []
+
+    def __call__(self, method, url, headers, data):
+        if not url.startswith(("https://api-m.sandbox.paypal.com", "https://api-m.paypal.com")):
+            return self.supabase(method, url, headers, data)
+        assert url.startswith(self.base), "wrong PayPal environment: " + url
+        path = url[len(self.base):]
+        self.calls.append((method, path, headers, data))
+        if path == "/v1/oauth2/token":
+            good = headers.get("Authorization") == "Basic " + base64.b64encode(f"{PP_CID}:{PP_SECRET}".encode()).decode()
+            if not (self.auth_ok and good and data == b"grant_type=client_credentials"):
+                return 401, b'{"error":"invalid_client","error_description":"Client Authentication failed"}'
+            return 200, json.dumps({"access_token": PP_TOKEN, "expires_in": 32400}).encode()
+        if headers.get("Authorization") != "Bearer " + PP_TOKEN:
+            return 401, b'{"name":"AUTHENTICATION_FAILURE"}'
+        if method == "GET" and path == "/v1/notifications/webhooks":
+            return 200, json.dumps({"webhooks": self.hooks}).encode()
+        if method == "POST" and path == "/v1/notifications/webhooks":
+            body = json.loads(data)
+            hook = {"id": "8PT597110X687430LKGECATA", "url": body["url"], "event_types": body["event_types"]}
+            self.hooks.append(hook)
+            return 201, json.dumps(hook).encode()
+        if method == "PATCH" and path.startswith("/v1/notifications/webhooks/"):
+            ops = json.loads(data)
+            hook = next(h for h in self.hooks if h["id"] == path.rsplit("/", 1)[1])
+            hook["event_types"] = ops[0]["value"]
+            return 200, json.dumps(hook).encode()
+        return 404, b'{"name":"NOT_IN_FAKE"}'
+
+
+class TestPaypal(Base):
+    def setUp(self):
+        super().setUp()
+        self.synced = 0
+        self._sync = S.run_sync_config
+        S.run_sync_config = lambda: setattr(self, "synced", self.synced + 1)
+
+    def tearDown(self):
+        S.run_sync_config = self._sync
+        super().tearDown()
+
+    def fake(self, **kw):
+        return FakePayPal(FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0), **kw)
+
+    def run_pp(self, argv, fake):
+        rc, out = self.run_cli(argv, fake)
+        for s in (PP_SECRET, PP_TOKEN, base64.b64encode(f"{PP_CID}:{PP_SECRET}".encode()).decode()):
+            self.assertNotIn(s, out, "a PayPal secret was printed")
+        return rc, out
+
+    def brand_pp(self):
+        return json.loads(S.read_text(S.BRAND_JSON)).get("payments", {}).get("paypal")
+
+    def test_not_in_a_full_run_and_listed_in_only(self):
+        self.assertNotIn("paypal", S.STEPS)
+        self.assertEqual(S.parse_only("paypal,functions"), ["paypal", "functions"])
+
+    def test_missing_keys_stop_before_any_call(self):
+        fake = self.fake()
+        rc, out = self.run_pp(["--only", "paypal"], fake)
+        self.assertEqual(rc, 1)
+        self.assertIn("PAYPAL_SANDBOX_CLIENT_ID", out)
+        self.assertEqual(fake.calls, [])
+        self.assertEqual(fake.supabase.secrets, [])
+        self.assertIsNone(self.brand_pp())
+
+    def test_bad_key_rejected_before_any_call(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "PAYPAL_SANDBOX_CLIENT_ID": PP_CID, "PAYPAL_SANDBOX_CLIENT_SECRET": "x'; drop"})
+        fake = self.fake()
+        rc, out = self.run_pp(["--only", "paypal"], fake)
+        self.assertEqual(rc, 1)
+        self.assertEqual(fake.calls, [])
+
+    def test_sandbox_creates_webhook_sets_secrets_config_stays_off(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "PAYPAL_SANDBOX_CLIENT_ID": PP_CID, "PAYPAL_SANDBOX_CLIENT_SECRET": PP_SECRET})
+        fake = self.fake()
+        rc, out = self.run_pp(["--only", "paypal", "--paypal-env", "sandbox"], fake)
+        self.assertEqual(rc, 0, out)
+        create = [c for c in fake.calls if c[0] == "POST" and c[1] == "/v1/notifications/webhooks"]
+        self.assertEqual(len(create), 1)
+        body = json.loads(create[0][3])
+        self.assertEqual(body["url"], f"https://{REF}.supabase.co/functions/v1/paypal-webhook")
+        self.assertEqual([e["name"] for e in body["event_types"]], list(S.PAYPAL_EVENTS))
+        sec = {s["name"]: s["value"] for s in fake.supabase.secrets[0]}
+        self.assertEqual(sec, {"PAYPAL_CLIENT_ID": PP_CID, "PAYPAL_CLIENT_SECRET": PP_SECRET, "PAYPAL_ENV": "sandbox",
+                               "PAYPAL_WEBHOOK_ID": "8PT597110X687430LKGECATA"})
+        self.assertEqual(self.brand_pp(), {"enabled": False, "env": "sandbox", "client_id": PP_CID})
+        self.assertEqual(self.synced, 1)
+        self.assertIn("--only functions", out)
+
+    def test_live_enable_reuses_webhook_and_adds_missing_events(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "PAYPAL_LIVE_CLIENT_ID": PP_CID, "PAYPAL_LIVE_CLIENT_SECRET": PP_SECRET})
+        url = f"https://{REF}.supabase.co/functions/v1/paypal-webhook"
+        fake = self.fake(env="live", hooks=[{"id": "1JE4291016473214C", "url": url, "event_types": [{"name": "PAYMENT.CAPTURE.COMPLETED"}]}])
+        rc, out = self.run_pp(["--only", "paypal", "--paypal-env", "live", "--paypal-enable"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertFalse(any(c[0] == "POST" and c[1] == "/v1/notifications/webhooks" for c in fake.calls), "no second webhook")
+        patch = [c for c in fake.calls if c[0] == "PATCH"]
+        self.assertEqual(len(patch), 1)
+        self.assertEqual([e["name"] for e in fake.hooks[0]["event_types"]], list(S.PAYPAL_EVENTS))
+        sec = {s["name"]: s["value"] for s in fake.supabase.secrets[0]}
+        self.assertEqual([sec["PAYPAL_ENV"], sec["PAYPAL_WEBHOOK_ID"]], ["live", "1JE4291016473214C"])
+        self.assertEqual(self.brand_pp(), {"enabled": True, "env": "live", "client_id": PP_CID})
+
+    def test_wrong_keys_stop_with_hebrew_and_change_nothing(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "PAYPAL_SANDBOX_CLIENT_ID": PP_CID, "PAYPAL_SANDBOX_CLIENT_SECRET": PP_SECRET})
+        fake = self.fake(auth_ok=False)
+        rc, out = self.run_pp(["--only", "paypal"], fake)
+        self.assertEqual(rc, 1)
+        self.assertIn("PayPal (sandbox) לא קיבל את המפתחות", out)
+        self.assertEqual(fake.supabase.secrets, [])
+        self.assertIsNone(self.brand_pp())
+
+    def test_disable_touches_only_the_config(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN})
+        fake = self.fake()
+        rc, out = self.run_pp(["--only", "paypal", "--paypal-disable"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(fake.calls, [])
+        self.assertEqual(fake.supabase.secrets, [])
+        self.assertEqual(self.brand_pp()["enabled"], False)
+
+    def test_events_and_public_endpoints_match_the_functions(self):
+        src = S.read_text(os.path.join(S.ROOT if os.path.isdir(os.path.join(S.ROOT, "supabase")) else os.path.dirname(HERE),
+                                       "supabase", "functions", "paypal-webhook", "index.ts"))
+        m = re.search(r"WEBHOOK_EVENTS = \[([^\]]+)\]", src)
+        self.assertEqual(tuple(re.findall(r'"([A-Z._]+)"', m.group(1))), S.PAYPAL_EVENTS)
+        self.assertTrue({"pay-create", "pay-capture", "pay-upwork", "paypal-webhook"} <= S.NO_VERIFY_JWT)
+        self.assertNotIn("pay-refund", S.NO_VERIFY_JWT, "the refund needs the admin's JWT")
+
+    def test_dry_run_lists_paypal_without_network(self):
+        def boom(*a):
+            raise AssertionError("network call in --dry-run")
+        rc, out = self.run_cli(["--dry-run", "--only", "paypal", "--paypal-env", "live", "--paypal-enable"], boom)
+        self.assertEqual(rc, 0)
+        self.assertIn("[paypal] PayPal live", out)
 
 
 class TestCheck(Base):

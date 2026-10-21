@@ -123,6 +123,133 @@ await page.goto(`${BASE}/quote/?t=${tok('old')}&mock=1`); await page.waitForSele
 ok(!(await page.$('#acceptForm')) && (await page.textContent('#accept')).includes('expired'), 'expired: no accept form');
 ok((await read()).quotes[3].status === 'expired', 'expired status written');
 ok(errs.length === 0, 'console errors: ' + errs.join(' | '));
+
+// ---- card / PayPal checkout (payment.method 'paypal_checkout'). brand.json is served with payments.paypal ON and PayPal's
+// SDK is a local fake (window.paypal), so nothing ever reaches paypal.com; any other paypal.com request fails the test.
+const PP_CLIENT = 'E2E-ONLY-client-id-0123456789';
+const brandOn = JSON.parse(JSON.stringify(brand)); brandOn.payments = { paypal: { enabled: true, env: 'sandbox', client_id: PP_CLIENT } };
+const FAKE_SDK = `(function () {
+  var F = { CARD: 'card', PAYPAL: 'paypal', PAYLATER: 'paylater', VENMO: 'venmo' };
+  window.__pp = window.__pp || { mode: 'approve', renders: [] };
+  window.paypal = { FUNDING: F, Buttons: function (o) { return {
+    isEligible: function () { return o.fundingSource === F.CARD || o.fundingSource === F.PAYPAL; },
+    render: function (el) {
+      var box = typeof el === 'string' ? document.querySelector(el) : el;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'fake-pp'; b.setAttribute('data-funding', o.fundingSource);
+      b.textContent = o.fundingSource === F.CARD ? 'Debit or Credit Card' : 'PayPal'; b.style.width = '100%';
+      b.addEventListener('click', function () {
+        var m = window.__pp.mode;
+        if (m === 'cancel') return o.onCancel({});
+        Promise.resolve().then(function () { return o.createOrder({ paymentSource: o.fundingSource }, {}); }).then(function (id) {
+          window.__pp.order = id;
+          if (m === 'error') return o.onError(new Error('fake sdk failure'));
+          return o.onApprove({ orderID: id }, { restart: function () { window.__pp.restarted = (window.__pp.restarted || 0) + 1; } });
+        }, function (e) { return o.onError(e); });
+      });
+      box.appendChild(b); window.__pp.renders.push(o.fundingSource); return Promise.resolve();
+    } }; } };
+})();`;
+const sdkUrls = [], ppLeaks = [];
+async function ppPage(on) {
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => errs.push('pp: ' + e.message)); p.on('console', m => m.type() === 'error' && errs.push('pp: ' + m.text()));
+  if (on) await p.route('**/assets/brand.json', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(brandOn) }));
+  // Playwright tries routes newest first: the catch-all goes in first, the SDK fake after it
+  await p.route(/paypal\.com/, r => { ppLeaks.push(r.request().url()); return r.abort(); });
+  await p.route('https://www.paypal.com/sdk/js**', r => { sdkUrls.push(r.request().url()); return r.fulfill({ contentType: 'text/javascript', body: FAKE_SDK }); });
+  return p;
+}
+const ppBase = { ...base, pay_method: 'paypal_checkout' };
+const ppDb = {
+  profiles: db.profiles,
+  quotes: [
+    { ...ppBase, id: 'p1', status: 'sent', public_token: tok('ppopen'), sent_at: iso(now - 864e5), valid_until: iso(now + 13 * 864e5) },
+    { ...ppBase, ...accepted, id: 'p2', public_token: tok('ppcancel') },
+    { ...ppBase, ...accepted, id: 'p3', public_token: tok('ppmail') },
+  ],
+  clients: [], payments: [], events: [], outbox: []
+};
+const pp = await ppPage(true);
+await pp.goto(BASE + '/quote/');
+await pp.evaluate(d => localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)), ppDb);
+const ppRead = () => pp.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
+const ppSlot = async () => (await pp.textContent('#pay-slot')).replace(/\s+/g, ' ');
+await pp.goto(`${BASE}/quote/?t=${tok('ppopen')}&mock=1`); await pp.waitForSelector('#acceptForm');
+ok(sdkUrls.length === 0, 'PayPal SDK not loaded before the quote is accepted');
+await pp.check('#accAgree'); await pp.click('#accBtn');
+await pp.waitForSelector('#pay-slot .fake-pp');
+s = await ppSlot();
+for (const t of ['Pay your ' + usd(r.deposit_cents) + ' deposit', 'Secure checkout by PayPal. No PayPal account needed. Receipt by email within a minute.',
+  DEP.label + '. ' + DEP.text, other, G.label + ' after go-live.', 'Prefer Upwork’s escrow protection? Pay through Upwork instead']) {
+  ok(s.includes(t), 'PayPal step: "' + t + '"');
+}
+ok(!/Upwork holds the money|We’ll email your secure payment link/.test(s), 'PayPal step: no Upwork or "we\'ll email a link" text');
+ok((await pp.$$eval('#pay-slot .fake-pp', l => l.map(x => x.getAttribute('data-funding')))).join() === 'card,paypal', 'card button first, then PayPal');
+ok(s.indexOf('Secure checkout by PayPal') < s.indexOf(DEP.text) && s.indexOf(DEP.text) < s.indexOf('Pay through Upwork instead'), 'order: note, reassurance, Upwork link');
+const sdk = new URL(sdkUrls[0] || 'https://x/');
+ok(sdkUrls.length === 1 && sdk.searchParams.get('client-id') === PP_CLIENT && sdk.searchParams.get('currency') === 'USD' &&
+  sdk.searchParams.get('intent') === 'capture' && sdk.searchParams.get('disable-funding') === 'paylater,venmo' && sdk.searchParams.get('components') === 'buttons',
+  'SDK URL: client id from brand.json, USD, capture, no Pay Later / Venmo: ' + sdkUrls[0]);
+ok(await pp.$eval('#qPayJump', x => x.textContent) === 'Pay deposit ' + usd(r.deposit_cents), 'summary card: "Pay deposit" jump button');
+for (const wpx of [320, 375, 390, 414]) {
+  await pp.setViewportSize({ width: wpx, height: 800 });
+  ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'PayPal step: no horizontal overflow at ' + wpx + ' px');
+}
+await pp.setViewportSize({ width: 390, height: 844 });
+await pp.click('#pay-slot .fake-pp[data-funding="card"]');
+await pp.waitForSelector('#pay-slot .q-paid');
+s = await ppSlot();
+let pdb = await ppRead();
+const pq = pdb.quotes.find(x => x.id === 'p1'), pc = pdb.clients.find(c => c.quote_id === 'p1');
+const pdep = pc && pdb.payments.find(x => x.client_id === pc.id && x.kind === 'deposit');
+ok(s.includes('Deposit paid: ' + usd(r.deposit_cents) + '. Thank you!') && s.includes('PayPal reference ' + (pdep && pdep.provider_capture_id)) && s.includes('setup checklist is open'),
+  'paid state with the receipt note: ' + s);
+ok(!!pdep && pdep.status === 'paid' && pdep.method === 'paypal_checkout' && pdep.amount_cents === r.deposit_cents && pq.status === 'accepted', 'mock DB: client card + deposit paid');
+ok(['payment_receipt', 'admin_payment_received', 'deposit_received'].every(t => pdb.outbox.some(m => m.template === t)), 'receipt, owner notice, welcome mail');
+ok(await pp.$eval('#pay-slot a.btn', a => a.getAttribute('href')) === '/start/#onboarding', 'paid: link to the setup checklist');
+await pp.reload(); await pp.waitForSelector('#pay-slot .q-paid');
+ok((await ppSlot()).includes('Deposit paid') && !(await pp.$('#pay-slot .fake-pp')) && !(await pp.$('#qPayJump')), 'paid state persists after reload (pay_state), no buttons');
+// cancel, then an error: friendly messages, no money taken, buttons stay, Upwork stays offered
+await pp.goto(`${BASE}/quote/?t=${tok('ppcancel')}&mock=1`); await pp.waitForSelector('#pay-slot .fake-pp');
+await pp.evaluate(() => { window.__pp.mode = 'cancel'; });
+await pp.click('#pay-slot .fake-pp[data-funding="paypal"]'); await pp.waitForSelector('#qPayMsg .notice');
+ok((await pp.textContent('#qPayMsg')).includes('Payment not completed. No money was taken.') && (await pp.textContent('#qPayMsg')).includes('Upwork'), 'cancel: retry + Upwork fallback');
+await pp.evaluate(() => { window.__pp.mode = 'error'; });
+await pp.click('#pay-slot .fake-pp[data-funding="card"]');
+await pp.waitForFunction(() => /Something went wrong with the checkout/.test(document.querySelector('#qPayMsg').textContent));
+ok(!!(await pp.$('#pay-slot .fake-pp')) && (await ppRead()).payments.every(x => x.status !== 'paid' || x.client_id === pc.id), 'error: nothing paid, buttons still there');
+// switch to Upwork: confirm, the request is recorded + Meir's mail, the Upwork step replaces the card checkout
+pp.once('dialog', d => d.accept());
+await pp.click('#qPayUpwork'); await pp.waitForSelector('#pay-slot .q-upwork');
+pdb = await ppRead();
+ok(pdb.quotes.find(x => x.id === 'p2').pay_method === 'upwork' && pdb.outbox.some(m => m.template === 'admin_upwork_requested'), 'switched to Upwork + owner mail');
+ok((await ppSlot()).includes('securely through Upwork') && !(await pp.$('#pay-slot .fake-pp')), 'Upwork step shown');
+// the accepted-quote e-mail button (#t=…&pay=1) opens at the payment step
+await pp.goto(`${BASE}/quote/?mock=1#t=${tok('ppmail')}&pay=1`); await pp.waitForSelector('#pay-slot .fake-pp');
+ok(await pp.evaluate(() => document.activeElement && document.activeElement.id === 'qPayH'), '&pay=1: focus on the payment step');
+// fixture mode (no backend at all): accept + pay simulated in the page
+await pp.goto(`${BASE}/quote/?t=fixture-paypal`); await pp.waitForSelector('#acceptForm');
+await pp.check('#accAgree'); await pp.click('#accBtn'); await pp.waitForSelector('#pay-slot .fake-pp');
+await pp.evaluate(() => { window.__pp.mode = 'approve'; });
+await pp.click('#pay-slot .fake-pp[data-funding="card"]'); await pp.waitForSelector('#pay-slot .q-paid');
+ok((await ppSlot()).includes('Deposit paid'), 'fixture-paypal: accept + card payment simulated');
+ok(ppLeaks.length === 0, 'no request to paypal.com besides the (faked) SDK: ' + ppLeaks.join(' '));
+
+// PayPal OFF (the repo's brand.json): a paypal_checkout quote shows the safe fallback and never loads the SDK; a paid
+// deposit still shows as paid
+const off = await ppPage(false);
+await off.goto(BASE + '/quote/');
+await off.evaluate(d => localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)), { profiles: db.profiles, quotes: [{ ...ppBase, ...accepted, id: 'o1', public_token: tok('ppoff') }],
+  clients: [], payments: [], events: [], outbox: [] });
+const n0 = sdkUrls.length;
+await off.goto(`${BASE}/quote/?t=${tok('ppoff')}&mock=1`); await off.waitForSelector('#pay-slot');
+s = (await off.textContent('#pay-slot')).replace(/\s+/g, ' ');
+ok(s.includes('We’ll email your secure payment link for the ' + usd(r.deposit_cents) + ' deposit') && !(await off.$('#qPay')), 'PayPal off: the email-link fallback');
+await off.goto(`${BASE}/quote/?t=fixture-paypalpaid`); await off.waitForSelector('#pay-slot .q-paid');
+ok((await off.textContent('#pay-slot')).includes('Deposit paid'), 'PayPal off: a paid PayPal deposit still shows as paid');
+ok(sdkUrls.length === n0, 'PayPal off: SDK never requested');
+ok(errs.length === 0, 'console errors (PayPal): ' + errs.join(' | '));
 await b.close(); srv.kill();
 console.log(`e2e_quote: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

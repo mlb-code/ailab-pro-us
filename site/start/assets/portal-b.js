@@ -222,9 +222,68 @@
     const left = d.ob.filter(o => o.status !== 'done' && o.key !== 'tools');   // 'tools' (Zapier) is optional
     const testing = d.client && d.client.status === 'testing';
     const why = left.length ? 'Finish the checklist first (' + left.length + ' step' + (left.length === 1 ? '' : 's') + ' left).' : !testing ? 'This opens once your receptionist is ready to test — we’ll email you.' : '';
-    return '<div class="golive"><h3 class="h-sub">Request go-live</h3><p>When everything is done and you’ve tried your test number, request go-live (the day your ' + (isRcp(d) ? 'receptionist' : 'website') + ' starts working for real customers). We send the final payment link (' + (100 - depPct()) + '% of setup); you’re switched live once it’s paid.</p>' +
-      (data.go_live_requested_at ? S.msgHtml('Go-live requested on ' + S.fmtDate(data.go_live_requested_at) + '. Watch your email for the final payment link.', 'ok')
+    const fp = finalPay(d);   // card / PayPal checkout for the final payment (null = Upwork / a link from us, as before)
+    const how = fp ? 'Then you pay the final payment here, by card or PayPal (' + (100 - depPct()) + '% of setup); you’re switched live once it’s paid.'
+      : 'We send the final payment link (' + (100 - depPct()) + '% of setup); you’re switched live once it’s paid.';
+    return '<div class="golive"><h3 class="h-sub">Request go-live</h3><p>When everything is done and you’ve tried your test number, request go-live (the day your ' + (isRcp(d) ? 'receptionist' : 'website') + ' starts working for real customers). ' + how + '</p>' +
+      (data.go_live_requested_at
+        ? (fp ? S.msgHtml('Go-live requested on ' + S.fmtDate(data.go_live_requested_at) + '. Last step: the final payment.', 'ok') + finalPayHtml(fp, 'golive')
+          : S.msgHtml('Go-live requested on ' + S.fmtDate(data.go_live_requested_at) + '. Watch your email for the final payment link.', 'ok'))
         : '<div id="msg_golive" aria-live="polite">' + (why ? '<p class="muted small" id="golWhy">' + esc(why) + '</p>' : '') + '</div><div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_golive" data-item="' + esc(it.id) + '"' + (why ? ' disabled aria-describedby="golWhy"' : '') + '>Request go-live</button></div>') + '</div>';
+  }
+
+  // ------------------------------------------------------------ final payment by card / PayPal (Edge Functions pay-create /
+  // pay-capture with which=final). Only for a quote paid by PayPal checkout while brand.json payments.paypal is on; the
+  // amount comes from our payment row. Same rule as paypalOn() in /assets/quote_view.mjs.
+  const ppOn = () => { const p = S.BRAND.payments && S.BRAND.payments.paypal; return !!(p && p.enabled === true && /^[A-Za-z0-9_-]{16,128}$/.test(p.client_id || '')); };
+  function finalPay(d) {
+    if (!d.client || !ppOn()) return null;
+    const quotes = d.quotes || [];
+    const q = quotes.find(x => x.id === d.client.quote_id) || quotes.find(x => x.status === 'accepted');
+    if (!q || q.pay_method !== 'paypal_checkout' || !q.public_token) return null;
+    const row = (d.payments || []).find(p => p.kind === 'final') || null;
+    const amount = row ? row.amount_cents : (q.setup_cents || 0) - (q.deposit_cents || 0);
+    const state = !row ? 'due' : row.status === 'due' && row.provider_capture_id ? 'pending' : row.status;
+    return { quote: q, row, amount, state };
+  }
+  function finalPayHtml(fp, where) {
+    if (fp.state === 'paid') return S.msgHtml('Final payment received' + (fp.row && fp.row.paid_at ? ' on ' + S.fmtDate(fp.row.paid_at) : '') + '. Thank you! Next, we set your go-live date and email you when it’s live.', 'ok');
+    if (fp.state === 'pending') return S.msgHtml('PayPal is processing your final payment. We’ll email you as soon as it clears. No need to pay again.', 'info');
+    if (fp.state === 'refunded') return S.msgHtml('Your final payment was refunded. Questions? Reply to any of our emails.', 'info');
+    return '<div class="ppay" data-final-pay="' + esc(where) + '"><h3 class="h-sub">Pay the final ' + S.money(fp.amount) + '</h3>' +
+      '<div class="ppay__btns" data-pp-wrap><div data-pp="card"></div><div data-pp="paypal"></div><p class="muted small" data-pp-loading>Loading secure checkout…</p></div>' +
+      '<p class="small muted">Secure checkout by PayPal. No PayPal account needed. Receipt by email within a minute.</p>' +
+      '<div class="ppay__msg" aria-live="polite"></div></div>';
+  }
+  /** Mount the buttons of a finalPayHtml block found under `root`; `after` reloads the page data once paid. */
+  async function mountFinalPay(d, root, after) {
+    const block = root && root.querySelector('[data-final-pay]');
+    const fp = finalPay(d);
+    if (!block || !fp) return;
+    const box = block.querySelector('[data-pp-wrap]'), msg = block.querySelector('.ppay__msg');
+    const say = (t, k) => { msg.innerHTML = t ? S.msgHtml(t, k || 'err') : ''; };
+    const alt = 'Or reply to any of our emails and we’ll send you a payment link.';
+    let PC = null;
+    try {
+      PC = await import('/assets/paypal_checkout.mjs');
+      await PC.mount(box, {
+        brand: S.BRAND, currency: (S.PB && S.PB.currency) || 'USD',
+        create: async () => { say(''); return (await B.payCreate(fp.quote.public_token, 'final')).order_id; },
+        capture: orderId => B.payCapture(fp.quote.public_token, 'final', orderId),
+        onResult: async r => {
+          S.toast(r && r.status === 'pending' ? 'Payment processing' : 'Final payment received');
+          try { d.payments = await B.listPayments(); } catch (e) { /* the refresh below shows the old state */ }
+          after();
+        },
+        onFail: async code => {
+          if (/already_paid|payment_pending/.test(code)) { try { d.payments = await B.listPayments(); after(); return; } catch (e) { /* message below */ } }
+          say(PC.messageFor(code, alt));
+        },
+        onCancel: () => say(PC.messageFor('cancel', ''), 'info'),
+      });
+    } catch (e) {
+      say(PC ? PC.messageFor(String(e && e.message || e), alt) : 'The secure checkout didn’t load. Check your connection and try again. ' + alt);
+    }
   }
   function stepBody(it, d) {
     const data = it.data || {}, cfg = (d.tenant && d.tenant.config) || {};
@@ -457,6 +516,8 @@
       catch (e) { b.disabled = false; errBox('helpMsg_' + it.key, [settingsErr(e)]); }
     }));
     if (state.calendarReturn) { const r = state.calendarReturn; state.calendarReturn = null; S.$('#calReturn').innerHTML = S.msgHtml(r.text, r.kind); }
+    const last = lastItem(d);
+    if (last) mountFinalPay(d, document, () => { state.open = last.key; api.refresh('onboarding', ['#ob-' + last.key + ' > summary']); });
   }
   function pollTest(d, itemId, api) {
     clearInterval(state.testPoll);
@@ -657,5 +718,5 @@
     if (tab === 'requests') { bindRequests(d, api); return true; }
     return false;
   }
-  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164 };
+  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay };
 })();

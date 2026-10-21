@@ -69,6 +69,11 @@ qa-phase-a:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_phase_a.mjs
 	PORT=$(FREE) $(NODE) tools/e2e_quote.mjs
 
+# Card / PayPal checkout on the mock backend with brand.json payments.paypal served ON and PayPal's SDK faked locally (nothing
+# reaches paypal.com): the portal's final payment + the admin refund. The quote page's PayPal step is in tools/e2e_quote.mjs.
+qa-paypal:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_paypal_portal.mjs
+
 # ---------- Deno + offline Postgres ----------
 qa-deno:
 	cd supabase/functions && $(DENO) test -A --node-modules-dir=none .
@@ -77,8 +82,9 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/run.ts
 	$(DENO_RUN) supabase/tests/offline/quote_engine_run.ts
 	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
+	$(DENO_RUN) supabase/tests/offline/paypal_run.ts
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-phase-a
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-phase-a qa-paypal
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------

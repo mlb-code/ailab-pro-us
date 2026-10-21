@@ -1,6 +1,6 @@
 // Quote engine core, independent of HTTP: draft (questionnaire -> Claude codes + text -> priced draft),
 // public view, accept (e-signature-lite), send gate, expiring reminders. Every function takes its Store and clock.
-import { BRAND, OFFERED_NICHES, PRICEBOOK } from "./config.ts";
+import { BRAND, type Brand, OFFERED_NICHES, PRICEBOOK } from "./config.ts";
 import { QUOTE_MODEL, type QuoteModel } from "./claude.ts";
 import { customLabel, quoteHints, type Hints } from "./hints.ts";
 import { allowedCodes, outputSchema, SYSTEM_PROMPT, userPrompt } from "./quote_prompt.ts";
@@ -9,7 +9,7 @@ import {
   APPROVAL_ONLY, CUSTOM_CODE, inputsFromStored, itemOf, type LineInput, type Pricebook, priceQuote,
   sendBlockers, storedItems,
 } from "./pricing.ts";
-import { DbError, type QuoteRow, type Store } from "./store.ts";
+import { DbError, type PayRow, type QuoteRow, type Store } from "./store.ts";
 import * as QV from "./quote_view.mjs";
 
 export class QuoteError extends Error {
@@ -144,7 +144,7 @@ export function planItems(pb: Pricebook, q: { offer: string | null; niche: strin
   return { core, lines, hints, manual_extra: manual, flags, reasons };
 }
 
-export interface DraftDeps { store: Store; model: QuoteModel; pb?: Pricebook; replayKey?: string }
+export interface DraftDeps { store: Store; model: QuoteModel; pb?: Pricebook; replayKey?: string; brand?: Brand }
 
 export async function draftQuote(questionnaireId: string, deps: DraftDeps): Promise<QuoteRow> {
   const pb = deps.pb ?? PRICEBOOK;
@@ -195,7 +195,7 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
   if (existing) {
     quote = await store.updateQuote(existing.id, row); // a regenerated draft keeps the pay method Meir chose
   } else {
-    quote = await store.insertQuote({ ...row, pay_method: DEFAULT_PAY_METHOD });
+    quote = await store.insertQuote({ ...row, pay_method: QV.defaultPayMethod(deps.brand ?? BRAND) });
   }
   await store.saveDraft({ quote_id: quote.id, model: res.model, prompt_hash: promptHash, raw_output: res.raw,
     tokens: res.input_tokens + res.output_tokens, cost_usd: res.cost_usd });
@@ -215,11 +215,14 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
 
 // ================================================================== send (admin "אשר ושלח")
 export interface SendInput { quote_id: string; discount_code?: string | null; pay_method?: string | null; pay_link?: string | null; manual_approved?: boolean }
-const PAY_METHODS = ["paypal_link", "upwork", "wire", "tranzila_link"];
-/** Payment rail when none was chosen: Upwork Direct Contracts for now (quote_view.mjs; the admin preselects the same). */
+const PAY_METHODS = ["paypal_link", "upwork", "wire", "tranzila_link", QV.PAYPAL_METHOD];
+/** Payment rail when none was chosen while PayPal checkout is off: Upwork Direct Contracts (quote_view.mjs). With
+ *  brand.json payments.paypal on, new quotes default to paypal_checkout instead (QV.defaultPayMethod). */
 export const DEFAULT_PAY_METHOD: string = QV.DEFAULT_PAY_METHOD;
+export const PAYPAL_METHOD: string = QV.PAYPAL_METHOD;
+export const defaultPayMethod = (brand: Brand = BRAND): string => QV.defaultPayMethod(brand);
 
-export async function sendQuote(input: SendInput, store: Store, pb: Pricebook = PRICEBOOK): Promise<QuoteRow> {
+export async function sendQuote(input: SendInput, store: Store, pb: Pricebook = PRICEBOOK, brand: Brand = BRAND): Promise<QuoteRow> {
   let q = await store.quoteById(input.quote_id);
   if (!q) throw new QuoteError("quote_not_found", 404);
   if (q.anonymized) throw new QuoteError("quote_anonymized", 410);
@@ -236,9 +239,12 @@ export async function sendQuote(input: SendInput, store: Store, pb: Pricebook = 
   const r = priceQuote(pb, inputsFromStored(q.items, pb), { discount_code: discount, manual_approved: input.manual_approved });
   if (!r.ok) throw new QuoteError("pricing_failed:" + r.errors.join(","), 422);
   if (r.needs_manual_price) throw new QuoteError("needs_manual_price", 409);
+  const method = input.pay_method ?? q.pay_method ?? QV.defaultPayMethod(brand);
+  // card / PayPal checkout only while it is on (brand.json payments.paypal); the admin offers it only then
+  if (method === QV.PAYPAL_METHOD && !QV.paypalOn(brand)) throw new QuoteError("paypal_off", 409);
   const patch: Partial<QuoteRow> = {
     items: storedItems(r), discount_code: discount ?? null, setup_cents: r.setup_cents, monthly_cents: r.monthly_cents,
-    deposit_cents: r.deposit_cents, pay_method: input.pay_method ?? q.pay_method ?? DEFAULT_PAY_METHOD,
+    deposit_cents: r.deposit_cents, pay_method: method,
     pay_link: input.pay_link === "" ? null : (input.pay_link ?? q.pay_link), agreement_version: BRAND.agreement_version,
   };
   if (q.status !== "approved") q = await store.updateQuote(q.id, { ...patch, status: "approved" });
@@ -268,6 +274,8 @@ export interface PublicQuote {
   refund: { guarantee: string | null; guarantee_label: string | null; deposit: string; deposit_label: string | null; retainer: string | null; status: string | null };
   /** method: the quote's pay_method, or DEFAULT_PAY_METHOD when none was chosen */
   payment: { method: string; link: string | null };
+  /** state of the deposit / final payment rows (null = no row yet); no provider ids, no payer e-mail */
+  pay_state: { deposit: PayState | null; final: PayState | null };
   agreement_version: string;
   accepted: { name: string; at: string } | null;
   call_offer_prominent: boolean;
@@ -275,11 +283,21 @@ export interface PublicQuote {
   cancel_notice_days: number;
 }
 
+export interface PayState { status: "due" | "pending" | "paid" | "refunded"; paid_at: string | null }
+
 /** Whitelisted public JSON for the quote page and email. Never includes internal reasons, ids, IP/UA or Claude raw output. */
 // logic lives in quote_view.mjs (shared with the quote page's mock mode)
 export function toPublicView(q: QuoteRow, profile: { full_name: string | null; company: string | null } | null, now: Date,
-  pb: Pricebook = PRICEBOOK): PublicQuote {
-  return QV.toPublicView(q, profile, now, pb, BRAND.agreement_version) as PublicQuote;
+  pb: Pricebook = PRICEBOOK, pays: PayRow[] = []): PublicQuote {
+  return QV.toPublicView(q, profile, now, pb, BRAND.agreement_version, pays) as PublicQuote;
+}
+
+/** Payment rows of the quote's client card; the quote page must still open if they can't be read. */
+async function paysOf(store: Store, quoteId: string): Promise<PayRow[]> {
+  try { return await store.paymentsForQuote(quoteId); } catch (e) {
+    console.error("pay_state_unavailable", e instanceof Error ? e.message.slice(0, 80) : "unknown");
+    return [];
+  }
 }
 
 async function loadPublic(store: Store, token: string): Promise<QuoteRow> {
@@ -298,7 +316,7 @@ export async function viewQuote(token: string, store: Store, now: Date = new Dat
     q = await store.updateQuote(q.id, { status: "viewed" });
   }
   const profile = q.user_id ? await store.getProfile(q.user_id) : null;
-  return toPublicView(q, profile, now);
+  return toPublicView(q, profile, now, PRICEBOOK, q.status === "accepted" ? await paysOf(store, q.id) : []);
 }
 
 // ================================================================== accept
@@ -308,7 +326,7 @@ export async function acceptQuote(input: AcceptInput, store: Store, now: Date = 
   const q = await loadPublic(store, input.token);
   const name = QV.normName(input.name);
   const chk = QV.acceptCheck(q, input, now, BRAND.agreement_version) as { ok?: string; code?: string; status?: number } | null;
-  if (chk?.ok === "idempotent") return toPublicView(q, q.user_id ? await store.getProfile(q.user_id) : null, now);
+  if (chk?.ok === "idempotent") return toPublicView(q, q.user_id ? await store.getProfile(q.user_id) : null, now, PRICEBOOK, await paysOf(store, q.id));
   if (chk?.code) throw new QuoteError(chk.code, chk.status);
   const version = q.agreement_version ?? BRAND.agreement_version;
   // binds the signature to this exact agreement version AND these exact terms

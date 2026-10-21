@@ -9,6 +9,8 @@
 /quote/?t=fixture-expired
 /quote/?t=fixture-upwork
 /quote/?t=fixture-upworklink
+/quote/?t=fixture-paypal
+/quote/?t=fixture-paypalpaid
 /demo-site/home-services/
 /demo-site/home-services/services/
 /demo-site/home-services/about/

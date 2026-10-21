@@ -3,7 +3,8 @@
 // share from pricebook.json, amounts from the database row (never typed here). Copy: concrete, no promised outcomes.
 // Subjects follow SPEC §5; `q_received` uses brand.quote_sla_text (A5 decision) instead of the literal "1 business day".
 import { PRICEBOOK } from "../config.ts";
-import { DEFAULT_PAY_METHOD, toPublicView } from "../quote_engine.ts";
+import { defaultPayMethod, PAYPAL_METHOD, toPublicView } from "../quote_engine.ts";
+import { paypalOn } from "../quote_view.mjs";
 import { quoteUrl, renderQuoteEmail, usd } from "../quote_email.ts";
 import type { QuoteRow } from "../store.ts";
 import { type Block, type EmailBrand, type EmailSpec, ltr, type Rendered, renderEmail, siteUrl } from "./layout.ts";
@@ -25,7 +26,10 @@ export interface EmailCtx {
   client?: { id: string; status: string; products: string[]; monthly_cents: number | null; business_name: string | null; go_live_at: string | null; next_bill_on: string | null };
   tenant_number?: string | null;
   onboarding?: { total: number; done: number; left: number; left_titles: string[] };
-  payment?: { id: string; kind: string; amount_cents: number; method: string | null; status: string };
+  payment?: { id: string; kind: string; amount_cents: number; method: string | null; status: string; provider?: string | null;
+    provider_capture_id?: string | null; paid_at?: string | null; payer_email?: string | null };
+  /** payment rail from the DB (quote, else payment row, else the client's quote); null = none yet -> brand.json default */
+  pay_method?: string | null;
   final_cents?: number;
   request?: { id: string; title: string; status: string; admin_reply: string | null };
   item?: { id: string; key: string; title: string; status: string; message: string };
@@ -92,10 +96,15 @@ const callOffer = (b: EmailBrand): Block[] =>
   b.calendly_url ? [{ small: `Prefer to talk it through? You can book a 15-minute video call: ${b.calendly_url}` }] : [];
 
 // ------------------------------------------------------------------ Upwork Direct Contracts (pay_method 'upwork')
-/** Payment rail of a mail: the quote's pay_method, else the payment row's method, else the default (Upwork). Client-level
- *  contexts (deposit_received, monthly_invoice, web_deposit_ack) carry no method from the DB, so they follow the default. */
-const payMethod = (ctx: EmailCtx) => ctx.quote?.pay_method || ctx.payment?.method || DEFAULT_PAY_METHOD;
-const isUpwork = (ctx: EmailCtx) => payMethod(ctx) === "upwork";
+/** Payment rail of a mail: the quote's pay_method, else the DB context's pay_method (payment row / the client's quote,
+ *  so deposit_received, monthly_invoice, web_deposit_ack follow the client's real rail), else the payment row's method,
+ *  else the brand.json default (PayPal checkout when it is on, else Upwork). */
+const payMethod = (ctx: EmailCtx, brand: EmailBrand) => ctx.quote?.pay_method || ctx.pay_method || ctx.payment?.method || defaultPayMethod(brand);
+const isUpwork = (ctx: EmailCtx, brand: EmailBrand) => payMethod(ctx, brand) === "upwork";
+/** card / PayPal checkout: the quote page and the portal show the PayPal buttons (only while brand.json turns it on) */
+const isPaypal = (ctx: EmailCtx, brand: EmailBrand) => payMethod(ctx, brand) === PAYPAL_METHOD && paypalOn(brand);
+const PAYPAL_NOTE = "Secure checkout by PayPal. No PayPal account needed. Receipt by email within a minute.";
+const PAYPAL_LABEL_HE = "PayPal – כפתור בדף ההצעה";
 // Client copy: the same facts as the quote page (site/quote/assets/quote.js upworkSlot). Upwork shows its own client fees at
 // checkout, so no fee amount is ever written here.
 const UPWORK_WAYS = "card, PayPal or US bank transfer";
@@ -190,7 +199,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
 
   // WEB is sold without a quote step (SPEC §1): Meir sends the deposit link by hand; the client gets a short confirmation.
   web_deposit_ack: client("transactional", true, (ctx, { brand }) => {
-    const upwork = isUpwork(ctx);
+    const upwork = isUpwork(ctx, brand);
     return {
       subject: "Your deposit link is on its way",
       preheader: upwork ? `Your contract arrives from Upwork ${brand.quote_sla_text}.` : `We'll email your secure deposit link ${brand.quote_sla_text}.`,
@@ -215,10 +224,12 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const qn = ctx.questionnaire;
     const answers = (qn?.summary ?? []).filter((x) => x && String(x.a ?? "").trim()).slice(0, 12)
       .map((x) => `${x.q}: ${String(x.a).slice(0, 200)}`);
-    const upwork = isUpwork(ctx);
+    const upwork = isUpwork(ctx, brand), paypal = isPaypal(ctx, brand);
     return {
       subject: `אתר (WEB): ${biz(ctx)} מחכה לקישור מקדמה`,
-      preheader: upwork ? "לקוח בחר חבילת אתר. צריך ליצור לו חוזה ב-Upwork למקדמה." : "לקוח בחר חבילת אתר. צריך לשלוח לו קישור תשלום למקדמה.",
+      preheader: upwork ? "לקוח בחר חבילת אתר. צריך ליצור לו חוזה ב-Upwork למקדמה."
+        : paypal ? "לקוח בחר חבילת אתר. ליצור לו הצעה מהשאלון ולשלוח: הוא ישלם את המקדמה בכרטיס בדף ההצעה."
+        : "לקוח בחר חבילת אתר. צריך לשלוח לו קישור תשלום למקדמה.",
       heading: "לקוח בחר חבילת אתר",
       blocks: [
         { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
@@ -227,6 +238,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         // no quote on the WEB path: the amounts depend on the extras the client picked (answers below), so Meir sets them
         ...(upwork ? [...upworkContract(ctx, brand, { codes: ["WEB"], basis: "as chosen in your questionnaire" }),
           { small: `הסכומים: המקדמה היא ${depositPct()}% מההקמה לפי המחירון, כולל התוספות שהלקוח בחר; השאר לפני העלייה לאוויר.` } as Block] : []),
+        ...(paypal ? [{ p: `**לשלוח הצעה:** באדמין, בשאלון ← "צור טיוטת הצעה" ← "אשר ושלח". אמצעי התשלום "${PAYPAL_LABEL_HE}" כבר נבחר, והלקוח ישלם את המקדמה בכרטיס או ב-PayPal בדף ההצעה.` } as Block] : []),
         ...(answers.length ? [{ title: "מהשאלון", list: answers } as Block] : []),
         { small: upwork ? `הלקוח קיבל מייל שהחוזה יגיע מ-Upwork ${brand.quote_sla_text}.` : `הלקוח קיבל מייל שהקישור יגיע ${brand.quote_sla_text}.` },
       ],
@@ -329,8 +341,11 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   [T_ACCEPTED]: client("quotes", true, (ctx, { brand }) => {
     const q = ctx.quote!;
     const dep = usd(q.deposit_cents);
-    const upwork = isUpwork(ctx);
-    const pay: Block[] = upwork
+    const upwork = isUpwork(ctx, brand), paypal = !upwork && isPaypal(ctx, brand);
+    const pay: Block[] = paypal
+      ? [{ p: `**Next step: pay your ${dep} deposit by card or PayPal on your quote page.** It takes about a minute.` },
+        { small: PAYPAL_NOTE }]
+      : upwork
       ? (q.pay_link
         ? [{ button: { label: "Open your Upwork contract", url: q.pay_link } },
           { p: `Fund the ${dep} deposit there by card, PayPal or bank transfer.` },
@@ -344,7 +359,8 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       : [{ p: `We'll email your secure payment link for the deposit ${brand.quote_sla_text}.` }];
     return {
       subject: "Quote accepted — next step: the deposit",
-      preheader: upwork ? `Deposit to start: ${dep}, paid securely through Upwork.` : `Deposit to start: ${dep}.`,
+      preheader: upwork ? `Deposit to start: ${dep}, paid securely through Upwork.`
+        : paypal ? `Deposit to start: ${dep}, by card or PayPal on your quote page.` : `Deposit to start: ${dep}.`,
       heading: "Thanks — your quote is accepted",
       blocks: [
         { p: `${hi(ctx)} you accepted the fixed quote${company(ctx) ? ` for **${company(ctx)}**` : ""}${q.accepted_at ? ` on ${fmtDate(q.accepted_at)}` : ""}. A copy of exactly what you accepted stays on your quote page.` },
@@ -352,17 +368,20 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         ...pay,
         { p: upwork ? "Once the first milestone is funded, your setup checklist opens in your portal." : "Once the deposit is in, your setup checklist opens in your portal." },
       ],
-      cta: { label: "View your accepted quote", url: quoteUrl(q.public_token, brand) },
+      // PayPal: the button opens the quote page at its payment step (&pay=1 in the fragment, never sent to a server)
+      cta: paypal ? { label: `Pay your ${dep} deposit`, url: quoteUrl(q.public_token, brand) + "&pay=1" }
+        : { label: "View your accepted quote", url: quoteUrl(q.public_token, brand) },
     };
   }),
 
   [T_ADMIN_ACCEPTED]: toMeir((ctx, { brand }) => {
     const q = ctx.quote!;
-    const upwork = isUpwork(ctx);
+    const upwork = isUpwork(ctx, brand), paypal = !upwork && isPaypal(ctx, brand);
     const final = (q.setup_cents ?? 0) - (q.deposit_cents ?? 0);
     return {
       subject: `✅ ${biz(ctx)} אישר הצעה, ממתין לתשלום`,
-      preheader: upwork ? `מקדמה: ${usd(q.deposit_cents)}. ליצור חוזה ב-Upwork.` : `מקדמה: ${usd(q.deposit_cents)}`,
+      preheader: upwork ? `מקדמה: ${usd(q.deposit_cents)}. ליצור חוזה ב-Upwork.`
+        : paypal ? `מקדמה: ${usd(q.deposit_cents)}. הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה.` : `מקדמה: ${usd(q.deposit_cents)}`,
       heading: "הלקוח אישר את ההצעה",
       blocks: [
         { facts: [
@@ -370,16 +389,21 @@ export const TEMPLATES: Record<string, TemplateDef> = {
           ["הקמה", usd(q.setup_cents)], ["מקדמה", usd(q.deposit_cents)], ["חודשי", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""],
           ...(upwork
             ? [["אמצעי תשלום", "Upwork (Direct Contract)"], ["קישור לחוזה", q.pay_link ? "יש, הלקוח רואה כפתור לחוזה" : "אין, הלקוח מחכה למייל מ-Upwork"]]
-            : [["אמצעי תשלום", payMethod(ctx)], ["קישור תשלום", q.pay_link ? "יש, הלקוח רואה כפתור תשלום" : "אין, צריך לשלוח ללקוח"]]) as Array<[string, string]>,
+            : paypal ? [["אמצעי תשלום", PAYPAL_LABEL_HE], ["תשלום", "הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה"]]
+            : [["אמצעי תשלום", payMethod(ctx, brand)], ["קישור תשלום", q.pay_link ? "יש, הלקוח רואה כפתור תשלום" : "אין, צריך לשלוח ללקוח"]]) as Array<[string, string]>,
         ] },
         ...(upwork ? upworkContract(ctx, brand, { codes: q.items.map((i) => String(i.code)), deposit: q.deposit_cents, final,
           monthly: q.monthly_cents, basis: `as described in your accepted fixed quote${q.accepted_at ? ` (${fmtDate(q.accepted_at)})` : ""}` }) : []),
-        { title: "מה עכשיו", list: [
-          ...(upwork ? ["ליצור את החוזה ב-Upwork לפי הפרטים למעלה."] : q.pay_link ? [] : ["לשלוח ללקוח קישור תשלום למקדמה."]),
-          "לפתוח כרטיס לקוח מההצעה באדמין.",
-          upwork ? "כשהלקוח מימן ב-Upwork את אבן הדרך הראשונה: \"סמן כשולם\" על המקדמה (באסמכתה: מספר החוזה ב-Upwork). הלקוח יקבל אוטומטית את הצ'ק-ליסט."
-            : "כשהכסף מגיע: \"סמן כשולם\" על המקדמה. הלקוח יקבל אוטומטית את הצ'ק-ליסט.",
-        ] },
+        { title: "מה עכשיו", list: paypal
+          ? ["אין צורך לשלוח קישור: הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה.",
+            "כשהתשלום עובר, הוא מסומן \"שולם\" לבד: כרטיס הלקוח נפתח, הצ'ק-ליסט נשלח, ויגיע אליך מייל \"תשלום התקבל ב-PayPal\".",
+            "אם הלקוח יעדיף Upwork, יגיע אליך מייל נפרד עם פרטי החוזה."]
+          : [
+            ...(upwork ? ["ליצור את החוזה ב-Upwork לפי הפרטים למעלה."] : q.pay_link ? [] : ["לשלוח ללקוח קישור תשלום למקדמה."]),
+            "לפתוח כרטיס לקוח מההצעה באדמין.",
+            upwork ? "כשהלקוח מימן ב-Upwork את אבן הדרך הראשונה: \"סמן כשולם\" על המקדמה (באסמכתה: מספר החוזה ב-Upwork). הלקוח יקבל אוטומטית את הצ'ק-ליסט."
+              : "כשהכסף מגיע: \"סמן כשולם\" על המקדמה. הלקוח יקבל אוטומטית את הצ'ק-ליסט.",
+          ] },
       ],
       cta: { label: "פתח באדמין", url: admin(brand, `quotes/${q.id}`) },
     };
@@ -388,7 +412,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   deposit_received: client("transactional", true, (ctx, { brand }) => {
     const ob = ctx.onboarding;
     const steps: Block[] = ob && ob.left_titles.length ? [{ title: "Your setup steps", list: ob.left_titles }] : [];
-    const upwork = isUpwork(ctx), rcp = isReceptionist(ctx);
+    const upwork = isUpwork(ctx, brand), rcp = isReceptionist(ctx);
     return {
       subject: "Welcome aboard — your setup checklist is ready",
       preheader: "Short steps, each with a how-to. No call needed.",
@@ -457,20 +481,24 @@ export const TEMPLATES: Record<string, TemplateDef> = {
 
   final_payment_due: client("transactional", true, (ctx, { brand }) => {
     const amount = ctx.payment?.amount_cents ?? ctx.final_cents ?? 0;
+    const upwork = isUpwork(ctx, brand), paypal = !upwork && isPaypal(ctx, brand);
     return {
       subject: "Final payment before go-live",
-      preheader: `Amount due: ${usd(amount)}.`,
+      preheader: paypal ? `Amount due: ${usd(amount)}, by card or PayPal in your portal.` : `Amount due: ${usd(amount)}.`,
       heading: "Final payment before go-live",
       blocks: [
         { p: `${hi(ctx)} thanks for requesting go-live. The last step is the final setup payment (the remaining ${100 - depositPct()}%).` },
         { facts: [["Amount due", usd(amount)],
           ["Monthly, from go-live", ctx.client?.monthly_cents ? `${usd(ctx.client.monthly_cents)}/mo` : ""]] },
-        ...(isUpwork(ctx)
+        ...(upwork
           ? [{ p: `Next: fund the **${UPWORK_MILESTONES.golive}** milestone (${usd(amount)}) in your Upwork contract, by ${UPWORK_WAYS}. Once it's funded, we set your go-live date (the day it starts working for real customers).` },
             { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` }] as Block[]
+          : paypal
+          ? [{ p: `Next: pay the **final ${usd(amount)}** by card or PayPal in your portal (the Billing tab). It takes about a minute. Once it's paid, we set your go-live date (the day it starts working for real customers).` },
+            { small: PAYPAL_NOTE }] as Block[]
           : [{ p: `We'll email your secure payment link ${brand.quote_sla_text}. Once it's received, we set your go-live date (the day it starts working for real customers).` }]),
       ],
-      cta: { label: "View billing", url: portal(brand, "billing") },
+      cta: paypal ? { label: `Pay the final ${usd(amount)}`, url: portal(brand, "billing") } : { label: "View billing", url: portal(brand, "billing") },
     };
   }),
 
@@ -532,8 +560,9 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       blocks: [
         { p: `${hi(ctx)} here's your monthly invoice for **${month}**.` },
         { facts: [["Service", products], ["Period", month], ["Amount", amount]] },
-        // monthly fee = one fixed-price milestone per month, funded at the start of the month
-        ...(isUpwork(ctx)
+        // monthly fee = one fixed-price milestone per month, funded at the start of the month (PayPal checkout: phase 1 is
+        // deposit + final only, so a PayPal client's monthly fee stays a link Meir sends)
+        ...(isUpwork(ctx, brand)
           ? [{ p: `We add this month's milestone (${amount}) to your Upwork contract ${brand.quote_sla_text}. Fund it there by ${UPWORK_WAYS}.` },
             { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` }] as Block[]
           : [{ p: `We'll email your secure payment link ${brand.quote_sla_text}. All payments are listed in the Billing tab of your portal.` }]),
@@ -541,6 +570,157 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       cta: { label: "View billing", url: portal(brand, "billing") },
     };
   }),
+
+  // ---------------------------------------------------------------- PayPal checkout (phase 1: deposit + final)
+  // Sent by pay_record_capture right after a completed PayPal capture (pay-capture or the webhook).
+  payment_receipt: client("transactional", true, (ctx, { brand, payload, now }) => {
+    const pay = ctx.payment!;
+    const deposit = pay.kind === "deposit";
+    const amount = usd(pay.amount_cents);
+    const funding = String(payload?.funding ?? "").trim();
+    const g = !deposit ? guaranteeOf(ctx) : null;
+    const rule = deposit ? PRICEBOOK.refund_rules.deposit.text : g ? g.text : "";
+    return {
+      subject: `Payment received: ${amount} ${deposit ? "deposit" : "final payment"}`,
+      preheader: deposit ? "Thank you. Your setup checklist is open in your portal." : "Thank you. Next, we set your go-live date.",
+      heading: "Payment received — thank you",
+      blocks: [
+        { p: `${hi(ctx)} we received your ${deposit ? "deposit" : "final setup payment"} of **${amount}**${company(ctx) ? ` for **${company(ctx)}**` : ""}.` },
+        { facts: [
+          ["Amount", amount],
+          ["For", deposit ? `Deposit (${depositPct()}% of setup)` : `Final setup payment (${100 - depositPct()}% of setup)`],
+          ["Service", productsOf(ctx)],
+          ["Date", fmtDate(pay.paid_at ?? now.toISOString())],
+          ["Paid with", funding ? `${funding}, through PayPal` : "PayPal checkout"],
+          ["PayPal reference", pay.provider_capture_id ?? ""],
+        ] },
+        { p: deposit
+          ? "This was the last step before we start. Your setup checklist is now open in your portal (your online account with us), and we've emailed you the steps."
+          : "This was your last setup payment. Next, we set your go-live date (the day it starts working for real customers) and email you when it's live." },
+        ...(rule ? [{ small: rule } as Block] : []),
+        { small: "PayPal also emails you its own receipt. Keep this email for your records." },
+      ],
+      cta: deposit ? { label: "Open my setup checklist", url: portal(brand, "onboarding") } : { label: "View billing", url: portal(brand, "billing") },
+    };
+  }),
+
+  admin_payment_received: toMeir((ctx, { brand }) => {
+    const pay = ctx.payment!;
+    const deposit = pay.kind === "deposit";
+    const days = Number((PRICEBOOK.refund_rules.deposit as { window_days?: number }).window_days ?? 7);
+    return {
+      subject: `💳 תשלום התקבל ב-PayPal: ${biz(ctx)} · ${ltr(usd(pay.amount_cents))}`,
+      preheader: deposit ? "המקדמה שולמה. הצ'ק-ליסט נפתח ללקוח לבד." : "התשלום לפני עלייה לאוויר שולם. אפשר לקבוע עלייה לאוויר.",
+      heading: "תשלום התקבל ב-PayPal",
+      blocks: [
+        { facts: [
+          ["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
+          ["סוג", deposit ? "מקדמה" : "תשלום לפני עלייה לאוויר"], ["סכום", usd(pay.amount_cents)],
+          ["הצעה", ctx.quote ? `${productsOf(ctx) || ctx.quote.items.map((i) => String(i.code)).join(" + ")} · הקמה ${usd(ctx.quote.setup_cents)}` +
+            (ctx.quote.accepted_at ? ` · אושרה ${fmtDate(ctx.quote.accepted_at, brand.owner?.timezone || "UTC", "he")}` : "") : ""],
+          ["מזהה חיוב ב-PayPal", pay.provider_capture_id ?? ""], ["מייל המשלם ב-PayPal", pay.payer_email ?? ""],
+        ] },
+        { title: "מה עכשיו", list: deposit
+          ? ["לא צריך לסמן \"שולם\": זה כבר מסומן. כרטיס הלקוח נפתח, הצ'ק-ליסט נשלח, והלקוח קיבל קבלה ומייל Welcome.",
+            "אם PayPal מחזיק את הכסף (On hold, נפוץ בחודשים הראשונים): אחרי שהעבודה התחילה, בפעילות של PayPal לסמן את העסקה כ-Completed, והכסף משתחרר מהר יותר."]
+          : ["לא צריך לסמן \"שולם\": זה כבר מסומן והלקוח קיבל קבלה.",
+            "לקבוע עלייה לאוויר: בכרטיס הלקוח באדמין, סטטוס \"באוויר\" ← \"שמירת סטטוס\"."] },
+        ...(deposit ? [{ small: `החזר מקדמה תוך ${days} ימים מהתשלום: כפתור "החזר" בשורת התשלום בכרטיס הלקוח.` } as Block] : []),
+      ],
+      cta: { label: "פתח את הלקוח באדמין", url: admin(brand, `clients/${ctx.client?.id ?? ""}`) },
+    };
+  }),
+
+  // From the paypal-webhook: dispute, reversal, partial refund, a capture that doesn't match our row, a capture we don't know.
+  admin_paypal_alert: toMeir((ctx, { brand, payload }) => {
+    const kind = String(payload?.kind ?? "");
+    const a = PAYPAL_ALERTS[kind] ?? PAYPAL_ALERTS.mismatch;
+    const reason = String(payload?.reason ?? "");
+    const who = ctx.client || ctx.profile?.email ? biz(ctx) : "";
+    return {
+      subject: `${a.subject}${who ? `: ${who}` : ""}${ctx.payment ? ` · ${ltr(usd(ctx.payment.amount_cents))}` : ""}`,
+      preheader: a.what[0],
+      heading: a.heading,
+      blocks: [
+        { facts: [
+          ["עסק", who], ["מייל", ctx.profile?.email ?? ""],
+          ["תשלום אצלנו", ctx.payment ? `${ctx.payment.kind === "deposit" ? "מקדמה" : ctx.payment.kind === "final" ? "תשלום לפני עלייה לאוויר" : ctx.payment.kind} · ${usd(ctx.payment.amount_cents)}` : "לא נמצא"],
+          ["סכום לפי PayPal", String(payload?.paypal_amount ?? payload?.refund_amount ?? "")],
+          ["סיבה", reason ? `${DISPUTE_REASONS[reason] ?? reason} (${reason})` : ""],
+          ["מה לא תאם", String(payload?.problems ?? "")],
+          ["מזהה ב-PayPal", String(payload?.ref ?? "")],
+          ["מזהה חיוב", String(payload?.capture_id ?? ctx.payment?.provider_capture_id ?? "")],
+          ["לענות עד", String(payload?.response_due ?? "")],
+        ] },
+        { title: "מה עכשיו", list: a.what },
+      ],
+      cta: ctx.client?.id ? { label: "פתח את הלקוח באדמין", url: admin(brand, `clients/${ctx.client.id}`) } : { label: "פתח את הלקוחות באדמין", url: admin(brand, "clients") },
+    };
+  }),
+
+  // The client pressed "Pay through Upwork instead" on the quote page (pay-upwork): the same contract checklist as when
+  // a quote is accepted on Upwork.
+  admin_upwork_requested: toMeir((ctx, { brand }) => {
+    const q = ctx.quote!;
+    const final = (q.setup_cents ?? 0) - (q.deposit_cents ?? 0);
+    return {
+      subject: `🔁 ${biz(ctx)} ביקש לשלם דרך Upwork`,
+      preheader: `מקדמה: ${usd(q.deposit_cents)}. ליצור חוזה ב-Upwork (Direct Contract).`,
+      heading: "הלקוח בחר לשלם דרך Upwork",
+      blocks: [
+        { p: "בדף ההצעה הלקוח לחץ \"Pay through Upwork instead\" במקום לשלם בכרטיס. ההצעה עברה ל-Upwork, והלקוח רואה שהחוזה יגיע אליו במייל מ-Upwork." },
+        { facts: [
+          ["עסק", biz(ctx)], ["חתם", q.accepted_name ?? ""], ["הקמה", usd(q.setup_cents)], ["מקדמה", usd(q.deposit_cents)],
+          ["חודשי", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""], ["אמצעי תשלום", "Upwork (Direct Contract)"],
+        ] },
+        ...upworkContract(ctx, brand, { codes: q.items.map((i) => String(i.code)), deposit: q.deposit_cents, final, monthly: q.monthly_cents,
+          basis: `as described in your accepted fixed quote${q.accepted_at ? ` (${fmtDate(q.accepted_at)})` : ""}` }),
+        { title: "מה עכשיו", list: ["ליצור את החוזה ב-Upwork לפי הפרטים למעלה.",
+          "כשהלקוח מימן ב-Upwork את אבן הדרך הראשונה: \"סמן כשולם\" על המקדמה (באסמכתה: מספר החוזה ב-Upwork). הלקוח יקבל אוטומטית את הצ'ק-ליסט."] },
+      ],
+      cta: { label: "פתח באדמין", url: admin(brand, `quotes/${q.id}`) },
+    };
+  }),
+};
+
+const productsOf = (ctx: EmailCtx) => (ctx.client?.products ?? []).map(itemName).join(" + ");
+
+/** Hebrew copy of the owner alerts (admin_paypal_alert), by kind. */
+export const PAYPAL_ALERTS: Record<string, { subject: string; heading: string; what: string[] }> = {
+  dispute: { subject: "⚠️ מחלוקת חדשה ב-PayPal", heading: "לקוח פתח מחלוקת ב-PayPal", what: [
+    "להיכנס ל-PayPal ← Resolution Center ולפתוח את המחלוקת.",
+    "לענות תוך יומיים, בכתב, עם הוכחות: ההצעה שאושרה, יומן הפורטל, המיילים ותאריך העלייה לאוויר.",
+    "לא להחזיר כסף מחוץ למחלוקת, אחרת הלקוח עלול לקבל אותו פעמיים."] },
+  reversed: { subject: "⚠️ PayPal החזיר תשלום ללקוח", heading: "תשלום בוטל (Reversal)", what: [
+    "PayPal החזיר את הכסף ללקוח (בדרך כלל אחרי מחלוקת או ביטול חיוב בבנק). התשלום סומן \"הוחזר\" במערכת.",
+    "לבדוק ב-PayPal ← Activity מה הסיבה, ולהחליט אם לעצור את העבודה ללקוח."] },
+  partial_refund: { subject: "החזר חלקי ב-PayPal", heading: "בוצע החזר חלקי", what: [
+    "ב-PayPal בוצע החזר חלקי של התשלום. במערכת התשלום נשאר \"שולם\".",
+    "אם הכוונה הייתה להחזיר הכל, להשלים את ההחזר ב-PayPal. ההחזר המלא יסומן במערכת לבד."] },
+  mismatch: { subject: "⚠️ תשלום PayPal לא תואם", heading: "תשלום שלא תואם להצעה", what: [
+    "PayPal דיווח על תשלום שלא תואם לשורת התשלום אצלנו (סכום, מטבע או הזמנה), או על תשלום כפול. הוא לא סומן \"שולם\".",
+    "לבדוק ב-PayPal ← Activity. אם נגבה כסף בטעות, להחזיר אותו שם.",
+    "להעביר לקלוד את מזהה החיוב מהמייל הזה."] },
+  declined: { subject: "תשלום PayPal לא עבר", heading: "PayPal דחה תשלום שהיה בבדיקה", what: [
+    "PayPal בדק את התשלום (הוא היה \"בעיבוד\") ובסוף דחה אותו. לא התקבל כסף.",
+    "הלקוח יכול לשלם שוב: כפתורי התשלום חזרו לדף ההצעה (או לפורטל, בתשלום שלפני העלייה לאוויר).",
+    "כדאי לכתוב ללקוח שינסה שוב, בכרטיס אחר או דרך Upwork."] },
+  unknown_capture: { subject: "תשלום PayPal שלא דרך כפתור ההצעה", heading: "תשלום שלא מזוהה במערכת", what: [
+    "התקבל ב-PayPal תשלום שלא שייך לאף תשלום במערכת (למשל חשבונית PayPal ששלחת ידנית).",
+    "אם זה תשלום של לקוח: בכרטיס הלקוח באדמין, \"סמן כשולם\" עם מזהה החיוב באסמכתה."] },
+};
+/** PayPal dispute reasons (CUSTOMER.DISPUTE.CREATED resource.reason) in Hebrew. */
+export const DISPUTE_REASONS: Record<string, string> = {
+  MERCHANDISE_OR_SERVICE_NOT_RECEIVED: "הלקוח טוען שלא קיבל את השירות",
+  MERCHANDISE_OR_SERVICE_NOT_AS_DESCRIBED: "הלקוח טוען שהשירות לא כמו שתואר",
+  UNAUTHORISED: "הלקוח טוען שלא הוא ביצע את התשלום",
+  CREDIT_NOT_PROCESSED: "הלקוח טוען שהחזר לא בוצע",
+  DUPLICATE_TRANSACTION: "חיוב כפול",
+  INCORRECT_AMOUNT: "סכום שגוי",
+  PAYMENT_BY_OTHER_MEANS: "הלקוח טוען ששילם בדרך אחרת",
+  CANCELED_RECURRING_BILLING: "חיוב חוזר שבוטל",
+  PROBLEM_WITH_REMITTANCE: "בעיה בהעברה",
+  OTHER: "אחר",
 };
 
 /** SPEC §5 events NOT rendered here (boundary): who sends them instead. */

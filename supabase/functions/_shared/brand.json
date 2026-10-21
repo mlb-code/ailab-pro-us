@@ -145,5 +145,13 @@
     "phone_e164": "+18323070813",
     "phone_business": "Copperleaf Air & Plumbing",
     "phone_city": "Houston"
+  },
+  "payments": {
+    "$comment": "Card / PayPal checkout on the quote page and in the portal (PayPal JS SDK buttons: guest card first, then PayPal; for an Israeli merchant no advanced card fields, Apple Pay or saved cards). PUBLIC values only: client_id is the public REST app client ID (it is in the SDK URL anyway). Secrets live only as Edge Function secrets PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV, PAYPAL_WEBHOOK_ID (tools/us_setup.py --only paypal). enabled=false or an empty client_id = nothing PayPal is shown and Upwork Direct Contracts stays the default.",
+    "paypal": {
+      "enabled": false,
+      "env": "sandbox",
+      "client_id": ""
+    }
   }
 }

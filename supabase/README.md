@@ -36,3 +36,18 @@
 **טרנזקציוני מול תזכורת:** `quote_reminder`, `quote_expiring`, `onboarding_nudge` = תזכורות: נשלחות רק כש-`client_emails_enabled=true`, עם קישור הסרה + `List-Unsubscribe`, ורק אם `brand.physical_address` מלא (CAN-SPAM). כל השאר טרנזקציוני ויוצא תמיד. מיילים למאיר נדחים ל-08:00 שעון `owner.timezone` אם נוצרו בין 23:00 ל-08:00.
 **לא כאן:** `auth_code` (Supabase Auth), `lead_alert` / `daily_summary` / `admin_daily` / התראות שימוש / דוח ROI חודשי (runtime, B6).
 **בדיקות:** `deno run -A --node-modules-dir=none supabase/tests/offline/email_events_run.ts` (אופליין בלבד: הבדיקה כותבת ל-stand-in של `vault`/`net`). בפרויקט אמיתי: `select * from cron.job where jobname like 'ailab-us-%'` = 7 שורות; `select status, count(*) from private.email_outbox group by 1`.
+
+## תשלום בכרטיס / PayPal (שלב 1: מקדמה + תשלום לפני עלייה לאוויר)
+
+מיגרציות `20261021100000_us_paypal_enum.sql` (הערך `paypal_checkout` ב-`pay_method`, קובץ נפרד: אי אפשר להשתמש בערך enum באותה טרנזקציה) ו-`20261021100100_us_paypal_checkout.sql`: ב-`payments` עמודות `provider`, `provider_order_id`, `provider_capture_id` (ייחודי), `payer_email` (נמחק באנונימיזציה); `clients.quote_id` ייחודי; `private.paypal_events`; RPC לשירות בלבד `pay_target`, `pay_set_order`, `pay_record_capture` (אותו UPDATE כמו "סמן כשולם" באדמין, כך שהצ'ק-ליסט ו-`deposit_received` יוצאים כמו היום, ועוד `payment_receipt` + `admin_payment_received`), `pay_mark_refunded`, `pay_clear_capture`, `pay_lookup`, `pay_use_upwork`, `paypal_event_seen`, `paypal_event_log`, `paypal_alert`. `final_payment_due` על שורת final חדשה רק אחרי בקשת go-live. ה-RLS לא השתנה: לקוח קורא את התשלומים שלו ולא כותב.
+
+| Edge Function | `verify_jwt` | מה |
+|---|---|---|
+| `pay-create` | false (הטוקן של ההצעה) | `{t, which: deposit\|final}` → `{order_id}`. הסכום מה-DB, `custom_id = invoice_id = payment id` |
+| `pay-capture` | false | `{t, which, order_id}` → לכידה בשרת, בדיקת סכום/מטבע/custom_id מול השורה, סימון "שולם" |
+| `paypal-webhook` | false (חתימה נבדקת ב-PayPal) | `PAYMENT.CAPTURE.COMPLETED / REFUNDED / REVERSED / DECLINED`, `CUSTOMER.DISPUTE.CREATED` |
+| `pay-refund` | **true** (JWT של אדמין) | `{payment_id}` → החזר מלא של מקדמה תוך `refund_rules.deposit.window_days` |
+| `pay-upwork` | false | `{t}` → ההצעה עוברת ל-Upwork + `admin_upwork_requested` |
+
+סודות Edge Function: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_ENV` (`sandbox`\|`live`), `PAYPAL_WEBHOOK_ID`; נקבעים ב-`python3 tools/us_setup.py --only paypal`. הפונקציות פועלות רק כש-`config/brand.json payments.paypal` מופעל עם אותו client id ואותה סביבה (הפונקציות קוראות את brand.json בזמן הפריסה: אחרי שינוי קונפיג, `--only functions`).
+**בדיקות:** `deno run -A --node-modules-dir=none supabase/tests/offline/paypal_run.ts` (SQL), `cd supabase/functions && deno test -A --node-modules-dir=none .` (PayPal מדומה, בלי רשת).

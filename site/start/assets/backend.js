@@ -22,6 +22,7 @@
      deleteQuestionnaire(id)                   (drafts only)
      listAttachments(qid) / uploadAttachment(qid, file) / removeAttachment(att) / downloadUrl(att)
      listQuotes() / getClient() / listPayments()
+     payCreate(token, which) / payCapture(token, which, orderId)   card / PayPal checkout (Edge Functions pay-create / pay-capture)
      notify(type, payload)                     -> event stub (see below)
    Phase B (task B7; SQL in supabase/migrations/*_us_portal_b7.sql):
      listOnboarding() / updateOnboarding(id, status, data)       update_onboarding_item RPC (todo|done|need_help + data merge)
@@ -62,6 +63,12 @@
     const wrap = s => s ? { user: { id: s.user.id, email: s.user.email || '' } } : null;
     const uid = async () => { const { data } = await sb.auth.getSession(); return data.session && data.session.user.id; };
     const must = r => { if (r.error) throw r.error; return r.data; };
+    // Edge Function call that surfaces the function's {error: code}
+    async function invoke(name, body) {
+      const r = await sb.functions.invoke(name, { body });
+      if (r.error) { let code = r.error.message; try { const j = await r.error.context.json(); if (j && j.error) code = j.error; } catch (e) { /* not JSON */ } throw new Error(code); }
+      return r.data;
+    }
     return {
       mode: 'supabase',
       googleEnabled: !!C.GOOGLE_ENABLED,
@@ -127,6 +134,9 @@
         return must(await sb.from('clients').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle());
       },
       async listPayments() { return must(await sb.from('payments').select('*').order('created_at', { ascending: false })); },
+      // card / PayPal checkout (Edge Functions pay-create / pay-capture; the quote token is the key, the amount comes from the DB)
+      async payCreate(token, which) { return invoke('pay-create', { t: token, which }); },
+      async payCapture(token, which, orderId) { return invoke('pay-capture', { t: token, which, order_id: orderId }); },
       // ---------------------------------------------------------- phase B (B7)
       async listOnboarding() { return must(await sb.from('onboarding_items').select('*').order('sort')); },
       async updateOnboarding(id, status, data) {
@@ -210,7 +220,7 @@
   ['getSession', 'consumeLink', 'sendCode', 'verifyCode', 'signInWithGoogle', 'signOut', 'getProfile', 'saveProfile',
     'listQuestionnaires', 'createQuestionnaire', 'getQuestionnaire', 'saveQuestionnaire', 'submitQuestionnaire',
     'deleteQuestionnaire', 'listAttachments', 'uploadAttachment', 'removeAttachment', 'downloadUrl', 'listQuotes',
-    'getClient', 'listPayments', 'notify',
+    'getClient', 'listPayments', 'notify', 'payCreate', 'payCapture',
     // phase B (B7)
     'listOnboarding', 'updateOnboarding', 'startForwardingTest', 'calendarConnectUrl', 'getTenant', 'updateTenantSettings',
     'listCalls', 'listSms', 'listBookings', 'getUsage', 'listRequests', 'createRequest', 'saveRequest', 'cancelRequest',

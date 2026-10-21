@@ -30,6 +30,10 @@ export async function samples(): Promise<Record<string, Sample>> {
     business_name: "Cool Breeze HVAC", go_live_at: null, next_bill_on: null };
   const left = ["Connect your calendar", "Text messaging registration", "Forward your missed calls"];
   const onboarding = { total: 8, done: 5, left: 3, left_titles: left };
+  // a deposit paid through PayPal checkout (pay_record_capture), amounts from the replayed quote
+  const paid = { id: "9b2f6c1e-3d4a-4b5c-8d6e-7f8091a2b3c4", kind: "deposit", amount_cents: accepted.deposit_cents ?? 0, method: "paypal_checkout",
+    status: "paid", provider: "paypal", provider_capture_id: "3C679366HH908993F", paid_at: "2026-10-12T15:00:00Z" };
+  const ppAmount = `${((accepted.deposit_cents ?? 0) / 100).toFixed(2)} USD`;
   return {
     lead_capture: { ctx: { to: "dani@example.com", lead: { niche: "home_services", source_page: "/home-services/" } } },
     q_received: { ctx: { to: profile.email, profile, questionnaire: { id: sent.questionnaire_id!, offer: "RCP", niche: "home_services", status: "submitted" } } },
@@ -56,5 +60,11 @@ export async function samples(): Promise<Record<string, Sample>> {
     request_update: { ctx: { to: profile.email, profile, client: { ...client, status: "live" },
       request: { id: "r1", title: "Add a question about filter size", status: "waiting_on_you", admin_reply: "Happy to. Which filter sizes do you stock? Reply with the list and we'll add it." } } },
     monthly_invoice: { ctx: { to: profile.email, profile, client: { ...client, status: "live" } }, payload: { month: "2026-11" } },
+    payment_receipt: { ctx: { to: profile.email, profile, client, payment: paid, pay_method: "paypal_checkout" }, payload: { funding: "Visa ending in 4242" } },
+    admin_payment_received: { ctx: { to: "owner@example.com", profile, client, quote: { ...accepted, pay_method: "paypal_checkout", pay_link: null },
+      payment: { ...paid, payer_email: "dani.payer@example.com" }, pay_method: "paypal_checkout" }, payload: { source: "capture" } },
+    admin_paypal_alert: { ctx: { to: "owner@example.com", profile, client, payment: paid }, payload: { kind: "dispute", ref: "PP-D-27803",
+      reason: "MERCHANDISE_OR_SERVICE_NOT_RECEIVED", paypal_amount: ppAmount, capture_id: paid.provider_capture_id, response_due: "2026-10-22T23:59:59Z" } },
+    admin_upwork_requested: { ctx: { to: "owner@example.com", profile, quote: { ...accepted, pay_method: "upwork", pay_link: null } } },
   };
 }

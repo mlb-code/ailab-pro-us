@@ -14,6 +14,7 @@ usage:
 """
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -56,6 +57,35 @@ def validate_config():
     for key in ('model', 'voice_model', 'quote_model'):
         if claude.get(key) and len(prices.get(claude[key]) or []) != 4:
             errs.append(f'brand: claude.price_usd_per_mtok needs [in, out, cache_read, cache_write] for claude.{key}')
+    errs += ['brand: ' + e for e in paypal_errors(brand)]
+    return errs
+
+
+# same rule as paypalOn() in supabase/functions/_shared/quote_view.mjs
+PAYPAL_CLIENT_ID_RX = re.compile(r'^[A-Za-z0-9_-]{16,128}$')
+
+
+def paypal_errors(brand):
+    """payments.paypal (card / PayPal checkout): public values only. A missing section = PayPal off (allowed)."""
+    pay = brand.get('payments')
+    if pay is None:
+        return []
+    pp = pay.get('paypal') if isinstance(pay, dict) else None
+    if not isinstance(pp, dict):
+        return ['payments.paypal must be an object']
+    errs = []
+    if not isinstance(pp.get('enabled'), bool):
+        errs.append('payments.paypal.enabled must be true or false')
+    if pp.get('env') not in ('sandbox', 'live'):
+        errs.append('payments.paypal.env must be "sandbox" or "live"')
+    cid = pp.get('client_id')
+    if not isinstance(cid, str) or (cid and not PAYPAL_CLIENT_ID_RX.match(cid)):
+        errs.append('payments.paypal.client_id must be empty or a PayPal REST client ID (letters, digits, - and _)')
+    if pp.get('enabled') is True and not cid:
+        errs.append('payments.paypal.enabled needs payments.paypal.client_id (run tools/us_setup.py --only paypal)')
+    extra = sorted(k for k in set(pp) - {'enabled', 'env', 'client_id'} if not k.startswith('$'))
+    if extra:
+        errs.append('payments.paypal has unknown keys (secrets never go here): ' + ', '.join(extra))
     return errs
 
 

@@ -29,14 +29,21 @@
     ob: { todo: 'לביצוע', done: 'בוצע', need_help: 'צריך עזרה' },
     tenant: { sandbox: 'ארגז חול', live: 'באוויר', paused: 'מושהה' }
   };
-  // The first method is preselected for a quote without one: Upwork Direct Contracts is the payment rail for now (PayPal/card
-  // checkout postponed). Same default as quote-draft / quote-send and the quote page (DEFAULT_PAY_METHOD in /assets/quote_view.mjs;
-  // tools/e2e_admin.mjs checks they match). The other methods stay selectable.
-  const PAY_METHODS = [['upwork', 'Upwork (Direct Contract)'], ['paypal_link', 'קישור PayPal'], ['wire', 'העברה בנקאית'], ['tranzila_link', 'קישור טרנזילה']];
-  const PAY_DEFAULT = PAY_METHODS[0][0];
+  // The first method is preselected for a quote without one: card / PayPal checkout while brand.json payments.paypal is on,
+  // else Upwork Direct Contracts. Same default as quote-draft / quote-send and the quote page (defaultPayMethod in
+  // /assets/quote_view.mjs; tools/e2e_admin.mjs checks they match). The other methods stay selectable.
+  const PAY_PAYPAL = ['paypal_checkout', 'PayPal – כפתור בדף ההצעה'];
+  const PAY_BASE = [['upwork', 'Upwork (Direct Contract)'], ['paypal_link', 'קישור PayPal'], ['wire', 'העברה בנקאית'], ['tranzila_link', 'קישור טרנזילה']];
+  const ppOn = () => { const p = BRAND.payments && BRAND.payments.paypal; return !!(p && p.enabled === true && /^[A-Za-z0-9_-]{16,128}$/.test(p.client_id || '')); };
+  // while PayPal is off it is listed only for a quote that already stores it (quote-send then refuses it: paypal_off)
+  const payMethods = cur => ppOn() ? [PAY_PAYPAL].concat(PAY_BASE) : cur === PAY_PAYPAL[0] ? PAY_BASE.concat([PAY_PAYPAL]) : PAY_BASE;
+  const payDefault = () => (ppOn() ? PAY_PAYPAL[0] : PAY_BASE[0][0]);
+  const payLabel = v => (PAY_BASE.concat([PAY_PAYPAL]).find(x => x[0] === v) || [, v])[1];
   const ENT = { questionnaire: 'שאלון', quote: 'הצעה', client: 'לקוח', payment: 'תשלום', request: 'בקשה', tenant: 'Tenant', lead: 'ליד', onboarding_item: 'צ\'ק-ליסט', system: 'מערכת' };
   const EVT = { created: 'נוצר', status_changed: 'שינוי סטטוס', admin_edit: 'עריכה באדמין', draft_regenerated: 'טיוטה נוצרה מחדש',
     email_quote_sent: 'מייל ההצעה נשלח', payment_marked_paid: 'תשלום סומן כשולם', admin_note_saved: 'הערה פנימית נשמרה', admin_reply: 'תשובה ללקוח',
+    payment_captured: 'תשלום התקבל ב-PayPal', payment_pending: 'תשלום PayPal בעיבוד', payment_refunded: 'תשלום הוחזר', paypal_alert: 'התראת PayPal',
+    pay_method_changed: 'אמצעי התשלום שונה',
     q_submitted: 'שאלון הוגש', quote_sent: 'הצעה נשלחה', email_requested: 'נשלחה בקשת מייל', settings_updated: 'הלקוח עדכן הגדרות',
     need_help: 'הלקוח ביקש עזרה', onboarding_updated: 'עדכון בצ\'ק-ליסט', retention_error: 'שגיאה במחיקה לפי מדיניות שמירה', retention_run: 'הרצת מחיקה לפי מדיניות שמירה',
     'alert.pending': 'התראה ממתינה', 'booking.cancelled': 'הזמנה בוטלה', 'calendar.connected': 'יומן חובר', 'calendar.reconnect_needed': 'צריך לחבר את היומן מחדש',
@@ -75,7 +82,16 @@
     pricing_failed: 'החישוב נכשל: יש קוד שלא מתאים למחירון.',
     quote_not_found: 'ההצעה לא נמצאה.',
     forbidden: 'אין לך הרשאת ניהול.',
-    founding_limit_reached: 'תקרת הלקוחות המייסדים (FOUNDING) כבר נוצלה. השרת חסם את השליחה עם ההנחה.'
+    founding_limit_reached: 'תקרת הלקוחות המייסדים (FOUNDING) כבר נוצלה. השרת חסם את השליחה עם ההנחה.',
+    // card / PayPal checkout (quote-send, pay-refund)
+    paypal_off: 'תשלום בכרטיס דרך PayPal כבוי כרגע (או שהמפתחות עוד לא הוגדרו). לבחור אמצעי תשלום אחר.',
+    refund_window_passed: 'עברו יותר מ-7 ימים מהתשלום, אז הכפתור לא מחזיר. אם בכל זאת צריך להחזיר: מתוך PayPal עצמו (Activity ← Refund).',
+    not_paypal: 'זה לא תשלום שעבר דרך כפתור ה-PayPal, אז אין מה להחזיר מכאן.',
+    not_paid: 'התשלום לא במצב "שולם", אז אין מה להחזיר.',
+    not_deposit: 'הכפתור מחזיר רק מקדמה. החזר אחר: מתוך PayPal עצמו.',
+    paypal_refund_failed: 'PayPal סירב להחזר. לבדוק ב-PayPal ← Activity, ולהעביר לקלוד אם לא ברור.',
+    paypal_unreachable: 'אין חיבור ל-PayPal כרגע. לנסות שוב בעוד כמה דקות.',
+    paypal_error: 'PayPal החזיר שגיאה. לנסות שוב, ואם חוזר: להעביר לקלוד.'
   };
   function errText(e) {
     const m = (e && (e.code || e.message || e.msg)) || String(e || '');
@@ -235,7 +251,8 @@
       drafts: D.quotes.filter(q => q.status === 'draft' || q.status === 'approved').length,
       manual: D.quotes.filter(q => q.status === 'needs_manual_price').length,
       waiting: D.quotes.filter(q => q.status === 'sent' || q.status === 'viewed').length,
-      accepted: D.quotes.filter(q => q.status === 'accepted' && !clientOfQuote(q.id)).length,
+      // card / PayPal checkout opens the client card by itself on the first payment step (pay_target)
+      accepted: D.quotes.filter(q => q.status === 'accepted' && !clientOfQuote(q.id) && q.pay_method !== PAY_PAYPAL[0]).length,
       depositsDue: due.filter(p => p.kind === 'deposit').length,
       dueSum: due.reduce((s, p) => s + (p.amount_cents || 0), 0),
       queued: D.requests.filter(r => r.status === 'queued').length,
@@ -500,7 +517,7 @@
       '<div class="field"><label for="assum">Assumptions (שורה לכל הנחה)</label><textarea class="textarea ltr" dir="ltr" lang="en" id="assum">' + esc((q.assumptions || []).join('\n')) + '</textarea></div>' +
       '<div class="field"><label for="timeline">Timeline</label><input class="input ltr" dir="ltr" lang="en" id="timeline" maxlength="4000" value="' + esc(q.timeline_text || '') + '"></div>' +
       '<h3>תשלום</h3><div class="field"><label for="payMethod">אמצעי תשלום</label><select class="select" id="payMethod">' +
-      PAY_METHODS.map(([v, l]) => opt(v, l, q.pay_method || PAY_DEFAULT)).join('') + '</select></div>' +
+      payMethods(q.pay_method).map(([v, l]) => opt(v, l, q.pay_method || payDefault())).join('') + '</select></div>' +
       '<div class="field"><label for="payLink">קישור תשלום או קישור לחוזה ב-Upwork (לא חובה; בלי קישור הלקוח רואה מה השלב הבא)</label><input class="input ltr" dir="ltr" type="url" id="payLink" maxlength="1000" placeholder="https://" value="' + esc(q.pay_link || '') + '"></div>' +
       '<div id="eMsg"></div><div class="btnrow"><button type="button" class="btn btn--primary" id="sendBtn">אשר ושלח</button>' +
       '<button type="button" class="btn btn--ghost" id="saveBtn">שמור טיוטה</button>' +
@@ -632,7 +649,7 @@
   function frozenQuote(q) {
     const items = q.items || [];
     const cl = clientOfQuote(q.id);
-    const pm = (PAY_METHODS.find(x => x[0] === (q.pay_method || PAY_DEFAULT)) || [, q.pay_method])[1];
+    const pm = payLabel(q.pay_method || payDefault());
     if (q.anonymized) return '<div class="notice notice--err" role="note"><div>ההצעה עברה אנונימיזציה (מדיניות שמירה). אי אפשר לערוך או לשלוח אותה; היא נשמרת לצורכי הנהלת חשבונות בלבד.</div></div>' +
       '<dl class="totals spaced"><dt class="grand">סה"כ הקמה</dt><dd>' + money(q.setup_cents) + '</dd><dt class="grand">חודשי</dt><dd>' + money(q.monthly_cents) + '</dd></dl>';
     return '<p class="muted">ההצעה ' + (q.status === 'void' ? 'בוטלה' : 'נשלחה') + '. השורות והסכומים נעולים; כדי לשנות מבטלים ומוציאים הצעה חדשה.</p>' +
@@ -679,6 +696,20 @@
     filter();
     clientDetail();
   }
+  // payments made by card / PayPal checkout: PayPal ids on the row, the refund button for a deposit inside the price book's rule
+  const refundDays = () => Number((((PB.refund_rules || {}).deposit || {}).window_days) || 7);
+  const isPending = x => x.provider === 'paypal' && x.status === 'due' && !!x.provider_capture_id;
+  function providerLine(x) {
+    if (x.provider !== 'paypal') return '';
+    const id = x.provider_capture_id ? ' · מזהה חיוב ' + ltr(x.provider_capture_id) : x.provider_order_id ? ' · הזמנה פתוחה ' + ltr(x.provider_order_id) : '';
+    return '<br><span class="muted small">PayPal' + id + (x.payer_email ? ' · משלם ' + ltr(x.payer_email) : '') + '</span>';
+  }
+  function refundCtl(x) {
+    if (x.provider !== 'paypal' || x.kind !== 'deposit' || x.status !== 'paid' || !x.provider_capture_id) return '';
+    const inWindow = x.paid_at && Date.now() - Date.parse(x.paid_at) <= refundDays() * 864e5;
+    return inWindow ? '<button type="button" class="btn btn--ghost btn--sm" data-refund="' + esc(x.id) + '">החזר</button>'
+      : '<span class="muted small">עברו ' + refundDays() + ' ימים: החזר רק מתוך PayPal</span>';
+  }
   async function clientDetail() {
     const d = $('#detail');
     const c = sel && D.clients.find(x => x.id === sel);
@@ -696,9 +727,10 @@
       '</select><button type="button" class="btn btn--ghost" id="cStSave">שמירת סטטוס</button></div>' +
       '<p class="muted small">testing שולח ללקוח "ready_to_test", live שולח "went_live".</p>' +
       '<h3>תשלומים</h3>' + (pays.length ? '<ul class="plist">' + pays.map(x => '<li><span class="grow"><b>' + esc(ST.kind[x.kind] || x.kind) + '</b> ' + money(x.amount_cents) +
-        '<br><span class="muted small">' + (x.paid_at ? 'שולם ' + esc(fmtDate(x.paid_at)) : 'נוצר ' + esc(fmtDate(x.created_at))) + (x.reference ? ' · אסמכתה ' + ltr(x.reference) : '') + '</span></span>' + pill('pay', x.status) +
+        '<br><span class="muted small">' + (x.paid_at ? 'שולם ' + esc(fmtDate(x.paid_at)) : 'נוצר ' + esc(fmtDate(x.created_at))) + (x.reference ? ' · אסמכתה ' + ltr(x.reference) : '') + '</span>' +
+        providerLine(x) + '</span>' + (isPending(x) ? '<span class="pill pill--pending">בעיבוד ב-PayPal</span>' : pill('pay', x.status)) +
         (x.status === 'due' ? '<label class="sr-only" for="ref-' + esc(x.id) + '">אסמכתה</label><input class="input" dir="ltr" id="ref-' + esc(x.id) + '" placeholder="אסמכתה (לא חובה)" maxlength="300">' +
-          '<button type="button" class="btn btn--primary btn--sm" data-pay="' + esc(x.id) + '">סמן כשולם</button>' : '') + '</li>').join('') + '</ul>' : '<p class="muted">אין תשלומים רשומים.</p>') +
+          '<button type="button" class="btn btn--primary btn--sm" data-pay="' + esc(x.id) + '">סמן כשולם</button>' : '') + refundCtl(x) + '</li>').join('') + '</ul>' : '<p class="muted">אין תשלומים רשומים.</p>') +
       '<h3>צ\'ק-ליסט קליטה</h3>' + (ob.length ? '<p class="small">' + done + ' מתוך ' + ob.length + ' הושלמו</p><div class="bar" role="progressbar" aria-label="התקדמות הצ\'ק-ליסט" aria-valuemin="0" aria-valuemax="' + ob.length + '" aria-valuenow="' + done + '"><i style="width:' + Math.round(done / ob.length * 100) + '%"></i></div>' +
         '<ul class="plist">' + ob.map(o => '<li><span class="grow" dir="ltr" lang="en">' + esc(o.title) + '</span>' + pill('ob', o.status) + '</li>').join('') + '</ul>' : '<p class="muted">הצ\'ק-ליסט עוד לא נפתח (משימה B7).</p>') +
       '<h3>Tenant</h3><div id="tenantBox">' + (t ? '' : '<p class="muted">אין tenant עדיין.</p>') + '</div>' +
@@ -712,6 +744,16 @@
     $$('[data-pay]').forEach(b => b.addEventListener('click', async () => {
       b.disabled = true;
       try { await AB.adminMarkPaid(b.dataset.pay, ($('#ref-' + b.dataset.pay) || {}).value || ''); await refresh(); toast('התשלום סומן כשולם.'); } catch (e) { toast(errText(e)); b.disabled = false; }
+    }));
+    // PayPal deposit refund (pay-refund): full amount, within the price book's deposit rule, confirmed in Hebrew first
+    $$('[data-refund]').forEach(b => b.addEventListener('click', async () => {
+      const x = pays.find(p => p.id === b.dataset.refund); if (!x) return;
+      const checklistDone = ob.length > 0 && ob.every(o => o.status === 'done' || o.key === 'tools');
+      if (!confirm('להחזיר ללקוח ' + clientName(c) + ' את כל המקדמה (' + moneyText(x.amount_cents) + ') דרך PayPal?\n' +
+        'הכסף חוזר לכרטיס או לחשבון ה-PayPal של הלקוח, ואי אפשר לבטל את זה.' +
+        (checklistDone ? '\nשים לב: הלקוח כבר השלים את הצ\'ק-ליסט, ולפי הכלל לא חייבים להחזיר.' : ''))) return;
+      b.disabled = true;
+      try { await AB.adminRefundPayment(x.id); await refresh(); toast('המקדמה הוחזרה ב-PayPal.'); } catch (e) { toast(errText(e)); b.disabled = false; }
     }));
     const tq = $('#toQuote'); if (tq) tq.addEventListener('click', () => go('quotes', c.quote_id));
     if (t) tenantSummary(t);

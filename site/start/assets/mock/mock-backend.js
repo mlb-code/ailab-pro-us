@@ -18,8 +18,12 @@
     'calls', 'sms_messages', 'bookings'];   // third row: receptionist data written by the runtime (B7 reads it)
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
-  // = DEFAULT_PAY_METHOD in /assets/quote_view.mjs: a new draft starts with it, quote-send falls back to it (tools/e2e_admin.mjs)
-  const PAY_DEFAULT = 'upwork';
+  // = defaultPayMethod() in /assets/quote_view.mjs: a new draft starts with it, quote-send falls back to it (tools/e2e_admin.mjs).
+  // Card / PayPal checkout while brand.json payments.paypal is on (same rule as paypalOn()), else Upwork Direct Contracts.
+  const ppOnBrand = b => { const p = b && b.payments && b.payments.paypal; return !!(p && p.enabled === true && /^[A-Za-z0-9_-]{16,128}$/.test(p.client_id || '')); };
+  const brandNow = () => window.ADMIN_BRAND || (window.Start && window.Start.BRAND) || {};
+  const PAY_DEFAULT = () => (ppOnBrand(brandNow()) ? 'paypal_checkout' : 'upwork');
+  const PAY_METHODS = ['paypal_link', 'upwork', 'wire', 'tranzila_link', 'paypal_checkout'];
   function load() {
     const db = ls.get(KEY) || {};
     TABLES.forEach(t => { if (!Array.isArray(db[t])) db[t] = []; });
@@ -308,7 +312,7 @@
       if (next.discount_code != null && next.discount_code !== 'FOUNDING') throw err('invalid_discount');
       if (next.pay_link != null && next.pay_link !== '' && !/^https:\/\//.test(next.pay_link)) throw err('pay_link_https');
       if (next.pay_link === '') next.pay_link = null;
-      if (next.pay_method != null && !['paypal_link', 'upwork', 'wire', 'tranzila_link'].includes(next.pay_method)) throw err('invalid_pay_method');
+      if (next.pay_method != null && !PAY_METHODS.includes(next.pay_method)) throw err('invalid_pay_method');
       if (q.sent_at && FROZEN.some(k => JSON.stringify(next[k]) !== JSON.stringify(q[k]))) throw err('quote_frozen_after_send');
       if (next.status !== q.status) {
         const to = next.status, from = q.status;
@@ -387,7 +391,7 @@
             aEvent(db, u, 'quote', quote.id, quote.user_id, 'draft_regenerated', { model: 'mock' });
           } else {
             quote = Object.assign({ id: uuid(), questionnaire_id: qid, user_id: q.user_id, discount_code: null, public_token: rnd(40),
-              pay_method: PAY_DEFAULT, pay_link: null, valid_until: null, sent_at: null, viewed_at: null, accepted_at: null, anonymized: false,
+              pay_method: PAY_DEFAULT(), pay_link: null, valid_until: null, sent_at: null, viewed_at: null, accepted_at: null, anonymized: false,
               agreement_version: null, created_at: now(), updated_at: now() }, d);
             db.quotes.push(quote);
             aEvent(db, u, 'quote', quote.id, quote.user_id, 'created', { to: quote.status, model: 'mock' });
@@ -433,7 +437,8 @@
           const r = P.priceQuote(pb, P.inputsFromStored(q.items, pb), { discount_code: discount || null, manual_approved: !!opts.manual_approved });
           const patch = { items: P.storedItems(r), discount_code: discount || null, setup_cents: r.setup_cents,
             monthly_cents: r.monthly_cents, deposit_cents: r.deposit_cents };
-          patch.pay_method = opts.pay_method || q.pay_method || PAY_DEFAULT;   // quote-send: no method given or stored -> the default
+          patch.pay_method = opts.pay_method || q.pay_method || PAY_DEFAULT();   // quote-send: no method given or stored -> the default
+          if (patch.pay_method === 'paypal_checkout' && !ppOnBrand(brandNow())) throw err('paypal_off');   // as quote-send
           if ('pay_link' in opts && opts.pay_link !== undefined) patch.pay_link = opts.pay_link || null;
           let from = q.status;
           if (from !== 'approved') { applyQuote(db, u, q, Object.assign({ status: 'approved' }, patch)); statusEvent(db, u, 'quote', q, from, 'approved'); from = 'approved'; }
@@ -496,6 +501,22 @@
           aEvent(db, u, 'payment', p.id, c.user_id, 'payment_marked_paid', { kind: p.kind, amount_cents: p.amount_cents, reference: p.reference }, true);
           if (p.kind === 'deposit') db.outbox.push({ id: uuid(), to: emailOf(db, c.user_id), template: 'deposit_received', subject: 'Welcome aboard — your setup checklist is ready', created_at: now() });
           return p;
+        });
+      },
+      // = the pay-refund Edge Function: full PayPal refund of a paid PayPal deposit within refund_rules.deposit.window_days
+      adminRefundPayment(paymentId) {
+        return run((db, u) => {
+          const p = db.payments.find(x => x.id === paymentId); if (!p) throw err('payment_not_found');
+          if (p.provider !== 'paypal' || !p.provider_capture_id) throw err('not_paypal');
+          if (p.status === 'refunded') return { status: 'refunded', refund_status: 'ALREADY_REFUNDED' };
+          if (p.status !== 'paid') throw err('not_paid');
+          if (p.kind !== 'deposit') throw err('not_deposit');
+          const days = ((pbOf().refund_rules || {}).deposit || {}).window_days || 7;
+          if (!p.paid_at || Date.now() - Date.parse(p.paid_at) > days * 864e5) throw err('refund_window_passed');
+          p.status = 'refunded'; p.updated_at = now();
+          const c = db.clients.find(x => x.id === p.client_id) || {};
+          aEvent(db, u, 'payment', p.id, c.user_id, 'payment_refunded', { provider: 'paypal', kind: p.kind, amount_cents: p.amount_cents, capture_id: p.provider_capture_id }, false);
+          return { status: 'refunded', refund_status: 'COMPLETED' };
         });
       },
       adminListOnboarding() { return run(db => db.onboarding_items.slice().sort((a, b) => a.sort - b.sort)); },
@@ -746,8 +767,59 @@
     const nameOf = (db, uid) => { const p = db.profiles.find(x => x.id === uid) || {}; return p.company || p.full_name || p.email || ''; };
     const emailOf = (db, uid) => (db.profiles.find(p => p.id === uid) || {}).email || null;
     const tenantRow = t => t && { id: t.id, client_id: t.client_id, slug: t.slug, status: t.status, twilio_number: t.twilio_number || null, config: t.config || {} };
+    // card / PayPal checkout: mirrors the SQL RPCs pay_target / pay_set_order / pay_record_capture with fake PayPal ids
+    // (the quote page keeps its own copy for the deposit; here: the portal's final payment, own quotes only)
+    function payRow(x, token, which) {
+      const q = x.db.quotes.find(y => y.public_token === token && y.user_id === x.u.id);
+      if (!q || q.anonymized || ['deposit', 'final'].indexOf(which) === -1) throw err('not_found');
+      if (q.status !== 'accepted') throw err('quote_not_accepted');
+      if (q.pay_method !== 'paypal_checkout') throw err('not_paypal');
+      const c = x.db.clients.find(cc => cc.quote_id === q.id);
+      if (!c) throw err(which === 'final' ? 'deposit_not_paid' : 'not_found');
+      const dep = x.db.payments.find(p => p.client_id === c.id && p.kind === 'deposit');
+      if (which === 'final') {
+        if (!dep || dep.status !== 'paid') throw err('deposit_not_paid');
+        if (['testing', 'live'].indexOf(c.status) === -1) throw err('final_not_ready');
+      }
+      let p = x.db.payments.find(pp => pp.client_id === c.id && pp.kind === which);
+      if (!p) {
+        p = { id: uuid(), client_id: c.id, kind: which, amount_cents: which === 'final' ? (q.setup_cents || 0) - (q.deposit_cents || 0) : q.deposit_cents || 0,
+          method: q.pay_method, status: 'due', reference: null, paid_at: null, provider: null, provider_order_id: null, provider_capture_id: null,
+          payer_email: null, created_at: now(), updated_at: now() };
+        x.db.payments.push(p);
+      }
+      return p;
+    }
 
     return {
+      // ---------------------------------------------------------- card / PayPal checkout (pay-create / pay-capture)
+      payCreate(token, which) {
+        return run(x => {
+          const p = payRow(x, token, which);
+          if (p.status === 'paid') throw err('already_paid');
+          if (p.provider_capture_id) throw err('payment_pending');
+          Object.assign(p, { provider: 'paypal', provider_order_id: 'MOCKORDER' + rnd(12).toUpperCase(), updated_at: now() });
+          return { order_id: p.provider_order_id };
+        });
+      },
+      payCapture(token, which, orderId) {
+        return run(x => {
+          const p = payRow(x, token, which);
+          if (p.status === 'paid') {
+            if (p.provider_order_id === orderId) return { status: 'paid', which, reference: p.provider_capture_id, amount_cents: p.amount_cents };
+            throw err('already_paid');
+          }
+          if (p.provider_order_id !== orderId) throw err('order_mismatch');
+          Object.assign(p, { status: 'paid', paid_at: now(), updated_at: now(), method: 'paypal_checkout', provider_capture_id: 'MOCKCAP' + rnd(12).toUpperCase(),
+            payer_email: x.u.email });
+          x.db.outbox.push({ id: uuid(), to: x.u.email, template: 'payment_receipt', payment_id: p.id, subject: 'Payment received', created_at: now() });
+          x.db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_payment_received', payment_id: p.id, subject: 'תשלום התקבל ב-PayPal', created_at: now() });
+          if (p.kind === 'deposit') x.db.outbox.push({ id: uuid(), to: x.u.email, template: 'deposit_received', payment_id: p.id, created_at: now() });
+          x.db.events.push({ id: uuid(), actor: 'runtime', entity: 'payment', entity_id: p.id, user_id: x.u.id, type: 'payment_captured',
+            payload: { provider: 'paypal', kind: p.kind, amount_cents: p.amount_cents, capture_id: p.provider_capture_id }, client_visible: true, created_at: now() });
+          return { status: 'paid', which, reference: p.provider_capture_id, amount_cents: p.amount_cents };
+        });
+      },
       // ---------------------------------------------------------- onboarding
       listOnboarding() {
         return run(x => x.db.onboarding_items.filter(o => ownsClient(x, o.client_id)).sort((a, b) => a.sort - b.sort));

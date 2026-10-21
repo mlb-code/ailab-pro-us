@@ -24,6 +24,9 @@ RULES = [
     ('google-oauth-client-secret', re.compile(r'\bGOCSPX-[A-Za-z0-9_\-]{20,}')),
     ('aws-access-key-id', re.compile(r'\bAKIA[0-9A-Z]{16}\b')),
     ('stripe-secret-key', re.compile(r'\b[sr]k_live_[A-Za-z0-9]{16,}')),
+    # PayPal: a REST app secret has no prefix, so catch the env-style line it would be pasted in, and OAuth access tokens
+    ('paypal-client-secret', re.compile(r'\bPAYPAL_[A-Z_]*SECRET\s*[=:]\s*["\']?[A-Za-z0-9_\-]{20,}')),
+    ('paypal-access-token', re.compile(r'\bA21AA[A-Za-z0-9_\-]{40,}')),
 ]
 
 SKIP_DIRS = {'.git', 'node_modules', 'qa-shots', '.venv', 'venv', '__pycache__', '.pytest_cache', '.mypy_cache'}
@@ -107,6 +110,8 @@ def self_test():
         'google-oauth-client-secret': 'secret=' + 'GOC' + 'SPX-' + alnum,
         'aws-access-key-id': 'AKIA' + 'ABCDEFGHIJKLMNOP',
         'stripe-secret-key': 'sk' + '_live_' + alnum,
+        'paypal-client-secret': 'PAYPAL_' + 'LIVE_CLIENT_' + 'SECRET=' + 'EK' + alnum + alnum,
+        'paypal-access-token': 'Authorization: Bearer ' + 'A21' + 'AA' + alnum + alnum + alnum,
     }
     negatives = [
         'const pre_render = are_you_sure_about_this;',      # "re_" inside words
@@ -114,6 +119,8 @@ def self_test():
         'sk-ant-...',                                         # documentation ellipsis
         'see https://supabase.com/docs, sbp_ prefix tokens',  # prefix mention only
         'ANTHROPIC_API_KEY=',                                 # empty example value
+        'PAYPAL_LIVE_CLIENT_SECRET=',                         # empty example value (.secrets.env.example)
+        'secrets PAYPAL_CLIENT_SECRET, PAYPAL_ENV',           # a name in prose
     ]
     bad = 0
     for rule, sample in positives.items():

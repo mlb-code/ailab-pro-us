@@ -218,8 +218,13 @@
     }
     const glr = (d.ob || []).find(o => o.data && o.data.go_live_requested_at);
     const fin = d.payments.find(p => p.kind === 'final' && p.status !== 'paid');
+    // card / PayPal checkout for the final payment (portal-b.js finalPay: null = Upwork / a link from us, as before)
+    const fp = d.client && glr && window.PortalB && window.PortalB.finalPay ? window.PortalB.finalPay(d) : null;
+    if (fp && fp.state === 'paid') return { i: 4, text: 'Final payment received — thank you. Next, we set your go-live date and email you when it’s live.', action: null };
+    if (fp && fp.state === 'pending') return { i: 4, text: 'PayPal is processing your final payment. We’ll email you as soon as it clears. No need to pay again.', action: null };
     if (d.client && glr && (fin || d.client.status === 'testing')) {
       const amt = fin ? ' (' + S.money(fin.amount_cents) + ')' : '';
+      if (fp) return { i: 4, text: 'Go-live requested. Last step: pay the final ' + S.money(fp.amount) + ' by card or PayPal. It takes about a minute; you’re switched live once it’s paid.', action: { id: 'goBilling', label: 'Pay the final ' + S.money(fp.amount) } };
       return { i: 4, text: 'Go-live requested. Next step: Final payment' + amt + ' — we email your secure link ' + S.sla() + '; you’re switched live once it’s paid.', action: { id: 'goBilling', label: 'Final payment' + amt } };
     }
     if (d.client && d.client.status === 'testing') return { i: 4, text: 'Your setup is ready to test. Check your email for the test number.', action: null };
@@ -282,9 +287,16 @@
         (d.client.next_bill_on ? ' · next bill ' + S.fmtDate(d.client.next_bill_on + 'T12:00:00Z') : ' · starts on your go-live date') + '</p></div>';
     }
     if (window.PortalB) h = window.PortalB.usageHtml(d) + h;
+    // the final payment by card / PayPal, once go-live was requested (or the client is already live with it still due)
+    const fp = d.client && window.PortalB && window.PortalB.finalPay ? window.PortalB.finalPay(d) : null;
+    const glr = (d.ob || []).some(o => o.data && o.data.go_live_requested_at);
+    if (fp && (fp.state === 'due' || fp.state === 'pending') && (glr || d.client.status === 'live')) {
+      h = '<section class="card ppay-card" aria-label="Final payment">' + window.PortalB.finalPayHtml(fp, 'billing') + '</section>' + h;
+    }
     if (!d.payments.length) return h + '<div class="empty"><b>No payments yet.</b> Payments you make (deposit, final payment, monthly fees) are listed here.</div>';
     return h + '<div class="table-wrap"><table class="table"><caption class="sr-only">Payments</caption><thead><tr><th scope="col">Payment</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead><tbody>' +
-      d.payments.map(p => '<tr><td>' + S.esc(payKind(p.kind)) + '</td><td class="num">' + S.money(p.amount_cents) + '</td><td>' + S.esc(PAY_STATUS[p.status] || p.status) +
+      d.payments.map(p => '<tr><td>' + S.esc(payKind(p.kind)) + '</td><td class="num">' + S.money(p.amount_cents) + '</td><td>' +
+        S.esc(p.status === 'due' && p.provider_capture_id ? 'Processing' : PAY_STATUS[p.status] || p.status) +
         '</td><td>' + S.fmtDate(p.paid_at || p.created_at) + '</td></tr>').join('') + '</tbody></table></div>';
   }
 
@@ -359,6 +371,7 @@
     if (gob) gob.addEventListener('click', () => { switchTab(d, 'onboarding'); S.$('#tab-onboarding').focus(); });
     const gbill = S.$('#goBilling');
     if (gbill) gbill.addEventListener('click', () => { switchTab(d, 'billing'); S.$('#tab-billing').focus(); });
+    if (tab === 'billing' && window.PortalB && window.PortalB.mountFinalPay) window.PortalB.mountFinalPay(d, document, () => showPortal('billing'));
     if (tab !== 'home') return;
     ['#startQ', '#anotherQ'].forEach(sel => {
       const b = S.$(sel); if (!b) return;

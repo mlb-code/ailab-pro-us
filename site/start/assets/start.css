@@ -193,3 +193,13 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:4px}
 .usage{margin-bottom:14px}
 .meter{margin-bottom:12px}
 .meter__l{display:flex;justify-content:space-between;gap:10px;font-size:.9rem;margin-bottom:6px;flex-wrap:wrap}
+/* final payment by card / PayPal (portal-b.js finalPayHtml): PayPal's iframes take the box width, so every box may shrink */
+.ppay{display:grid;gap:10px;min-width:0;margin-top:12px;padding:14px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--bg)}
+.ppay .h-sub{margin:0}
+.ppay__btns{display:grid;gap:10px;min-width:0;max-width:100%}
+.ppay__btns>div{min-width:0;max-width:100%;overflow:hidden;border-radius:6px}
+.ppay__btns>div:empty{display:none}
+.ppay__btns [data-pp-loading]{min-height:48px;display:flex;align-items:center}
+.ppay__msg:empty{display:none}
+.ppay-card{min-width:0}
+.ppay-card>.ppay{margin-top:0;border:0;padding:0;background:none}

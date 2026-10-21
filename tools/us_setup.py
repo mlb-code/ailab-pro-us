@@ -21,6 +21,14 @@ What it does (every step is safe to re-run):
   ping       call public.ping() through the REST API with the public key
 then prints a Hebrew checklist of what is still manual.
 
+Opt-in step (only with --only paypal; never part of a full run):
+  paypal     card / PayPal checkout: reads PAYPAL_<SANDBOX|LIVE>_CLIENT_ID + _CLIENT_SECRET from .secrets.env, checks them
+             with PayPal (OAuth), finds or creates the webhook <project>/functions/v1/paypal-webhook with the events the
+             function handles, sets the Edge Function secrets PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV,
+             PAYPAL_WEBHOOK_ID (never printed) and writes config/brand.json payments.paypal (env, public client_id; enabled
+             only with --paypal-enable) + tools/sync_config.py. --paypal-disable only switches the config off.
+             Afterwards: --only functions (the functions bundle brand.json), then the site push.
+
 Usage (from the repo root):
   python3 tools/us_setup.py --dry-run           # the plan only: no network call at all, no token needed
   python3 tools/us_setup.py --plan              # read-only: lists orgs/projects, checks the Free slot
@@ -30,12 +38,16 @@ Usage (from the repo root):
   python3 tools/us_setup.py --only test         # one step (or a comma list: --only auth,config)
   python3 tools/us_setup.py --org <slug>        # required when the account has more than one organization
   python3 tools/us_setup.py --self-test         # offline unit tests with a fake Management API
+  python3 tools/us_setup.py --only paypal --paypal-env sandbox                  # PayPal secrets + webhook, config stays off
+  python3 tools/us_setup.py --only paypal --paypal-env live --paypal-enable     # the go-live switch (then functions + push)
+  python3 tools/us_setup.py --only paypal --paypal-disable                      # card checkout off again (config only)
 
 Secrets are read ONLY from ailab-pro-us/.secrets.env (never from the environment, never prompted), never printed,
 never put in a URL. Error texts are redacted before they are shown. This script has no destructive call:
 it never pauses, restores, deletes or downgrades anything.
 """
 import argparse
+import base64
 import json
 import os
 import re
@@ -65,10 +77,13 @@ BUCKETS = ("client-files", "videos-public")
 CRON_JOBS_BASE = ("ailab-us-retention", "ailab-us-expire-quotes")
 RETENTION_MIGRATION = "20261011100200_us_retention.sql"
 SUPABASE_JS_DEFAULT = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"
-# Public endpoints (no Supabase JWT): quote page, lead form, the unsubscribe link in e-mails (A8).
-NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe"}
+# Public endpoints (no Supabase JWT): quote page, lead form, the unsubscribe link in e-mails (A8), card / PayPal checkout
+# from the quote page and portal (the quote token is the key) and PayPal's webhook (signature checked with PayPal).
+# pay-refund keeps verify_jwt: the admin's session JWT.
+NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe", "pay-create", "pay-capture", "pay-upwork", "paypal-webhook"}
 STEPS = ["migrate", "test", "settings", "auth", "google", "storage", "vault", "secrets",
          "functions", "cron", "config", "ping"]
+OPT_IN_STEPS = ["paypal"]   # only with --only (writes config/brand.json)
 SLEEP = time.sleep          # patched by the tests
 POLL_SECONDS = 10
 POLL_TRIES = 90             # 15 minutes
@@ -730,6 +745,110 @@ def step_ping(ctx):
     ctx.ok("ping() דרך ה-REST עם המפתח הציבורי מחזיר ok")
 
 
+# ------------------------------------------------------------------ step: paypal (opt-in: --only paypal)
+PAYPAL_API = {"sandbox": "https://api-m.sandbox.paypal.com", "live": "https://api-m.paypal.com"}
+# = WEBHOOK_EVENTS in supabase/functions/paypal-webhook/index.ts (tools/us_setup_test.py checks they match)
+PAYPAL_EVENTS = ("PAYMENT.CAPTURE.COMPLETED", "PAYMENT.CAPTURE.REFUNDED", "PAYMENT.CAPTURE.REVERSED",
+                 "PAYMENT.CAPTURE.DECLINED", "CUSTOMER.DISPUTE.CREATED")
+PAYPAL_KEYS = {"sandbox": ("PAYPAL_SANDBOX_CLIENT_ID", "PAYPAL_SANDBOX_CLIENT_SECRET"),
+               "live": ("PAYPAL_LIVE_CLIENT_ID", "PAYPAL_LIVE_CLIENT_SECRET")}
+PAYPAL_ID_RX = r"[A-Za-z0-9_\-]{16,128}"     # client id: same rule as sync_config.py / quote_view.mjs paypalOn()
+
+
+def run_sync_config():
+    """config/brand.json -> site/, supabase/functions/_shared, runtime/ copies (patched by the tests)."""
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "sync_config.py")], capture_output=True, text=True, timeout=120)
+    if r.returncode != 0:
+        raise SetupError("❌ tools/sync_config.py נכשל אחרי עדכון config/brand.json:\n" + (r.stdout + r.stderr)[-600:])
+
+
+def write_paypal_config(ctx, **changes):
+    """Update config/brand.json payments.paypal (public values only) keeping the file's formatting, then sync the copies."""
+    brand = load_brand()
+    pay = brand.setdefault("payments", {})
+    pp = pay.setdefault("paypal", {"enabled": False, "env": "sandbox", "client_id": ""})
+    pp.update(changes)
+    with open(BRAND_JSON, "w", encoding="utf-8") as f:
+        f.write(json.dumps(brand, indent=2, ensure_ascii=False) + "\n")
+    ctx.brand = brand
+    run_sync_config()
+    return pp
+
+
+def paypal_call(ctx, env, method, path, headers, data=None):
+    status, payload = ctx.api.transport(method, PAYPAL_API[env] + path, headers, data)
+    text = (payload or b"").decode("utf-8", errors="replace")
+    try:
+        body = json.loads(text) if text.strip() else {}
+    except ValueError:
+        body = {}
+    return status, body, ctx.api.redact(text)
+
+
+def step_paypal(ctx):
+    a = ctx.args
+    if a.paypal_disable:
+        write_paypal_config(ctx, enabled=False)
+        ctx.ok("PayPal כובה ב-config/brand.json (התשלום בכרטיס לא יוצג). עכשיו: --only functions ואז לדחוף את האתר.")
+        return
+    env = a.paypal_env
+    kid, ksec = PAYPAL_KEYS[env]
+    cid, secret = ctx.sec.get(kid, ""), ctx.sec.get(ksec, "")
+    if not cid or not secret:
+        raise SetupError(f"❌ חסרים {kid} ו/או {ksec} בקובץ .secrets.env. המדריך: docs/kits/paypal-setup.he.md (בריפו הפרטי).")
+    for value, label in ((cid, kid), (secret, ksec)):
+        if not re.fullmatch(PAYPAL_ID_RX if label == kid else r"[A-Za-z0-9_\-]{20,200}", value):
+            raise SetupError(f"❌ {label} בקובץ .secrets.env נראה לא תקין (רק אותיות, ספרות, _ ו-). להעתיק שוב מ-developer.paypal.com.")
+    ctx.api.redact.values.extend([secret, cid])
+    # 1. the keys work (OAuth client credentials)
+    basic = base64.b64encode(f"{cid}:{secret}".encode()).decode()
+    ctx.api.redact.values.append(basic)
+    status, body, text = paypal_call(ctx, env, "POST", "/v1/oauth2/token", {"Authorization": "Basic " + basic, "Accept": "application/json",
+                                     "Content-Type": "application/x-www-form-urlencoded"}, b"grant_type=client_credentials")
+    token = body.get("access_token") if isinstance(body, dict) else None
+    if status != 200 or not isinstance(token, str) or not token:
+        raise SetupError(f"❌ PayPal ({env}) לא קיבל את המפתחות (HTTP {status}). לבדוק ש-{kid} ו-{ksec} הם של אותה אפליקציה "
+                         f"ושל {'Sandbox' if env == 'sandbox' else 'Live'}.")
+    ctx.api.redact.values.append(token)
+    auth = {"Authorization": "Bearer " + token, "Accept": "application/json", "Content-Type": "application/json"}
+    # 2. the webhook: find ours by URL (Meir may have made it by hand), else create it; make sure it has our 4 events
+    url = f"https://{ctx.ref}.supabase.co/functions/v1/paypal-webhook"
+    want = [{"name": n} for n in PAYPAL_EVENTS]
+    status, body, text = paypal_call(ctx, env, "GET", "/v1/notifications/webhooks", auth)
+    if status != 200:
+        raise SetupError(f"❌ PayPal: קריאת ה-webhooks נכשלה (HTTP {status}): {text[:200]}")
+    hook = next((h for h in body.get("webhooks", []) if isinstance(h, dict) and h.get("url") == url), None)
+    if hook:
+        have = {e.get("name") for e in hook.get("event_types", []) if isinstance(e, dict)}
+        if not set(PAYPAL_EVENTS) <= have:
+            status, _, text = paypal_call(ctx, env, "PATCH", f"/v1/notifications/webhooks/{hook.get('id', '')}", auth,
+                                          json.dumps([{"op": "replace", "path": "/event_types", "value": want}]).encode())
+            if status not in (200, 204):
+                raise SetupError(f"❌ PayPal: עדכון האירועים של ה-webhook נכשל (HTTP {status}): {text[:200]}")
+            say("  עודכנו האירועים של ה-webhook הקיים")
+        wid = hook.get("id", "")
+    else:
+        status, body, text = paypal_call(ctx, env, "POST", "/v1/notifications/webhooks", auth,
+                                         json.dumps({"url": url, "event_types": want}).encode())
+        if status not in (200, 201):
+            raise SetupError(f"❌ PayPal: יצירת ה-webhook נכשלה (HTTP {status}): {text[:200]}")
+        wid = body.get("id", "")
+        say("  נוצר webhook ב-PayPal")
+    if not re.fullmatch(r"[A-Za-z0-9\-]{8,64}", str(wid)):
+        raise SetupError("❌ PayPal לא החזיר מזהה webhook תקין. להעביר לקלוד.")
+    # 3. Edge Function secrets (values never printed)
+    ctx.api.req("POST", f"/projects/{ctx.ref}/secrets", [
+        {"name": "PAYPAL_CLIENT_ID", "value": cid}, {"name": "PAYPAL_CLIENT_SECRET", "value": secret},
+        {"name": "PAYPAL_ENV", "value": env}, {"name": "PAYPAL_WEBHOOK_ID", "value": wid}])
+    # 4. public config (the browser's SDK must use the same app + environment as the server)
+    pp = write_paypal_config(ctx, env=env, client_id=cid, **({"enabled": True} if a.paypal_enable else {}))
+    ctx.ok(f"PayPal {env}: המפתחות תקינים, webhook מוגדר ({len(PAYPAL_EVENTS)} אירועים), 4 סודות הוגדרו בפונקציות, "
+           f"config/brand.json עודכן ({'מופעל' if pp.get('enabled') else 'עדיין כבוי'})")
+    if a.paypal_enable and env == "sandbox":
+        ctx.warn("Sandbox מופעל בקונפיג: רק לבדיקה. לא לדחוף את config/brand.json ל-GitHub במצב הזה.")
+    say("  הבא: python3 tools/us_setup.py --only functions (הפונקציות קוראות את brand.json בזמן הפריסה), ואז לדחוף את האתר.")
+
+
 # ------------------------------------------------------------------ checklist
 def checklist(ctx):
     ref = ctx.ref or "<ref>"
@@ -796,6 +915,9 @@ def dry_run(args, sec, brand):
                 + f"בדיקת {len(cron_job_names())} משימות: " + ", ".join(cron_job_names()),
         "config": f"כתיבת {os.path.relpath(CONFIG_JS, ROOT)} עם BACKEND 'supabase'",
         "ping": "בדיקת public.ping() עם המפתח הציבורי",
+        "paypal": ("כיבוי PayPal ב-config/brand.json" if args.paypal_disable else
+                   f"PayPal {args.paypal_env}: מפתחות {have(*PAYPAL_KEYS[args.paypal_env])}, webhook, 4 סודות לפונקציות, config/brand.json"
+                   + (" (מופעל)" if args.paypal_enable else " (נשאר כבוי)")),
     }
     for i, s in enumerate(steps, 1):
         say(f"  {i:>2}. [{s}] {plan[s]}")
@@ -824,15 +946,16 @@ def parse_only(only):
     if not only:
         return None
     steps = [s.strip() for s in only.split(",") if s.strip()]
-    bad = [s for s in steps if s not in STEPS]
+    bad = [s for s in steps if s not in STEPS + OPT_IN_STEPS]
     if bad:
-        raise SetupError(f"❌ שלב לא מוכר: {', '.join(bad)}. האפשרויות: {', '.join(STEPS)}")
+        raise SetupError(f"❌ שלב לא מוכר: {', '.join(bad)}. האפשרויות: {', '.join(STEPS + OPT_IN_STEPS)}")
     return steps
 
 
 STEP_FUNCS = {"migrate": step_migrate, "test": step_test, "settings": step_settings, "auth": step_auth,
               "google": step_google, "storage": step_storage, "vault": step_vault, "secrets": step_secrets,
-              "functions": step_functions, "cron": step_cron, "config": step_config, "ping": step_ping}
+              "functions": step_functions, "cron": step_cron, "config": step_config, "ping": step_ping,
+              "paypal": step_paypal}
 
 
 def build_parser():
@@ -845,6 +968,9 @@ def build_parser():
     ap.add_argument("--plan", action="store_true", help="read-only network check: orgs, projects, Free slot")
     ap.add_argument("--smtp-from", help="override SMTP sender, e.g. 'Name <hello@verified-domain>'")
     ap.add_argument("--functions-via-api", action="store_true", help="deploy functions via the API even if the CLI exists")
+    ap.add_argument("--paypal-env", choices=("sandbox", "live"), default="sandbox", help="--only paypal: which PayPal app (default sandbox)")
+    ap.add_argument("--paypal-enable", action="store_true", help="--only paypal: also set payments.paypal.enabled = true")
+    ap.add_argument("--paypal-disable", action="store_true", help="--only paypal: only set payments.paypal.enabled = false")
     ap.add_argument("--self-test", action="store_true", help="run offline unit tests (tools/us_setup_test.py)")
     return ap
 

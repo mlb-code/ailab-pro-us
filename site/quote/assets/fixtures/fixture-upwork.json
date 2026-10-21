@@ -84,6 +84,10 @@
     "method": "upwork",
     "link": null
   },
+  "pay_state": {
+    "deposit": null,
+    "final": null
+  },
   "agreement_version": "1.1",
   "accepted": {
     "name": "Mark Ortiz",

@@ -55,6 +55,25 @@
 .q-assure{margin-top:4px}
 .q-assure li{overflow-wrap:anywhere}
 .q-badge-row{display:flex;flex-wrap:wrap;gap:8px}
+/* payment step by card / PayPal (PayPal JS SDK buttons: card first, then PayPal). PayPal's iframes take the box width,
+   so the boxes must be allowed to shrink (min-width:0) or a 320 px phone scrolls sideways. */
+#pay-slot>*{min-width:0}
+.q-pay{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--bg)}
+.q-pay__h{margin:0;font-family:var(--sans);font-size:1.15rem;font-weight:600}
+.q-pay__h:focus{outline:none}
+.q-pay__btns{display:grid;gap:10px;min-width:0;max-width:100%}
+.q-pay__btns>div{min-width:0;max-width:100%;overflow:hidden;border-radius:6px}
+.q-pay__btns>div:empty{display:none}
+.q-pay__loading{min-height:48px;display:flex;align-items:center}
+.q-pay__note{color:var(--fg-2);overflow-wrap:anywhere}
+.q-pay__retry{margin-top:8px}
+.q-pay__alt{margin-top:2px}
+.q-linkbtn{background:none;border:0;padding:4px 0;font:inherit;font-size:.92rem;color:var(--fg-2);text-align:left;cursor:pointer;
+  border-bottom:1px solid var(--line-2);overflow-wrap:anywhere;max-width:100%}
+.q-linkbtn:hover,.q-linkbtn:focus-visible{color:var(--fg);border-color:var(--acc)}
+.q-linkbtn[disabled]{opacity:.5;cursor:not-allowed}
+.q-paid>div{display:grid;gap:6px;min-width:0}
+.q-paid p{overflow-wrap:anywhere}
 
 @media (max-width:560px){.q-print{display:none}}
 
@@ -63,7 +82,7 @@
   :root{--bg:#fff;--surface:#fff;--surface-2:#fff;--fg:#000;--fg-2:#222;--fg-3:#444;--line:#bbb;--line-2:#888;--acc:#000;--ok:#000}
   html,body{background:#fff!important;color:#000}
   body::after{display:none!important}
-  .nav,.skip-link,.q-print,.q-noprint,#acceptForm,#pay-slot .btn,.q-call{display:none!important}
+  .nav,.skip-link,.q-print,.q-noprint,#acceptForm,#pay-slot .btn,.q-call,.q-pay__btns,.q-pay__note,#qPayMsg{display:none!important}
   .q{padding:0}
   .q-layout{display:block}
   .q-aside{position:static;margin-top:16px}

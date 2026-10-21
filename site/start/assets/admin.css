@@ -168,3 +168,5 @@ details[open]>.digest__head{margin-bottom:12px}
 .obdata pre{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px;max-width:100%}
 .pill--sandbox,.pill--tenant{color:var(--fg-3)}
 .pill--paused{color:var(--acc)}
+/* card / PayPal checkout: a capture PayPal is still processing (pay_record_capture, status due) */
+.pill--pending{color:var(--warn)}

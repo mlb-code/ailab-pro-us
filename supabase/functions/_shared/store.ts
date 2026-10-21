@@ -41,6 +41,17 @@ export interface ProfileRow { id: string; email: string; full_name: string | nul
 export interface EventRow { actor: string; entity: string; entity_id: string | null; user_id: string | null; type: string; payload: Record<string, unknown>; client_visible: boolean }
 export interface ReviewRow { quote_id: string; manual_reasons: string[]; risk_flags: string[]; questions_for_client: string[]; hints: Record<string, unknown>; removed: string[]; model: string }
 export interface DraftRow { quote_id: string; model: string; prompt_hash: string; raw_output: unknown; tokens: number; cost_usd: number }
+export interface ClientRow {
+  id: string; user_id: string | null; quote_id: string | null; products: string[]; status: string; monthly_cents: number | null;
+  business_name: string | null; anonymized_at: string | null; created_at: string;
+}
+export interface PaymentRow {
+  id: string; client_id: string; kind: string; amount_cents: number; method: string | null; status: string; reference: string | null;
+  paid_at: string | null; provider: string | null; provider_order_id: string | null; provider_capture_id: string | null;
+  payer_email: string | null; created_at: string;
+}
+/** What the public quote view needs of a payment row (quote_view.mjs pay_state): no ids, no payer e-mail. */
+export type PayRow = Pick<PaymentRow, "kind" | "status" | "provider_capture_id" | "paid_at" | "amount_cents">;
 
 export interface Store {
   getQuestionnaire(id: string): Promise<QuestionnaireRow | null>;
@@ -61,6 +72,8 @@ export interface Store {
   /** user id of a valid admin JWT, else null */
   adminFromJwt(jwt: string): Promise<string | null>;
   isServiceKey(token: string): boolean;
+  /** payment rows of the client card made from this quote (none before the card exists) */
+  paymentsForQuote(quoteId: string): Promise<PayRow[]>;
 }
 
 export class DbError extends Error {
@@ -82,6 +95,8 @@ export class MemoryStore implements Store {
   drafts = new Map<string, DraftRow>();
   reviews = new Map<string, ReviewRow>();
   events: EventRow[] = [];
+  clients = new Map<string, ClientRow>();
+  payments = new Map<string, PaymentRow>();
   admins = new Map<string, string>(); // jwt -> user id
   serviceKey = "test-service-key";
   clock: () => Date = () => new Date();
@@ -166,18 +181,23 @@ export class MemoryStore implements Store {
   }
   adminFromJwt(jwt: string) { return Promise.resolve(this.admins.get(jwt) ?? null); }
   isServiceKey(token: string) { return token === this.serviceKey; }
+  paymentsForQuote(quoteId: string) {
+    const ids = [...this.clients.values()].filter((c) => c.quote_id === quoteId).map((c) => c.id);
+    return Promise.resolve([...this.payments.values()].filter((p) => ids.includes(p.client_id))
+      .map(({ kind, status, provider_capture_id, paid_at, amount_cents }) => ({ kind, status, provider_capture_id, paid_at, amount_cents })));
+  }
 }
 
 // ------------------------------------------------------------------ PostgREST (deployed functions)
 export class RestStore implements Store {
-  constructor(private url: string, private key: string) {}
+  constructor(protected url: string, protected key: string, protected fetchFn: typeof fetch = (...a) => fetch(...a)) {}
   static fromEnv(): RestStore {
     const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !key) throw new Error("supabase_env_missing");
     return new RestStore(url.replace(/\/$/, ""), key);
   }
-  private async req(path: string, init: RequestInit = {}, prefer = "return=representation") {
-    const r = await fetch(`${this.url}/rest/v1/${path}`, {
+  protected async req(path: string, init: RequestInit = {}, prefer = "return=representation") {
+    const r = await this.fetchFn(`${this.url}/rest/v1/${path}`, {
       ...init,
       headers: { apikey: this.key, Authorization: `Bearer ${this.key}`, "Content-Type": "application/json", Prefer: prefer, ...(init.headers ?? {}) },
     });
@@ -223,8 +243,14 @@ export class RestStore implements Store {
     const t = template ? `&payload->>template=eq.${encodeURIComponent(template)}` : "";
     return ((await this.req(`events?entity_id=eq.${encodeURIComponent(entityId)}&type=eq.${encodeURIComponent(type)}${t}&select=id&limit=1`)) as unknown[]).length > 0;
   }
+  async paymentsForQuote(quoteId: string) {
+    const cl = (await this.req(`clients?quote_id=eq.${encodeURIComponent(quoteId)}&select=id`)) as Array<{ id: string }>;
+    if (!cl.length) return [];
+    return (await this.req(`payments?client_id=in.(${cl.map((c) => encodeURIComponent(c.id)).join(",")})` +
+      `&select=kind,status,provider_capture_id,paid_at,amount_cents`)) as PayRow[];
+  }
   async adminFromJwt(jwt: string) {
-    const r = await fetch(`${this.url}/auth/v1/user`, { headers: { apikey: this.key, Authorization: `Bearer ${jwt}` } });
+    const r = await this.fetchFn(`${this.url}/auth/v1/user`, { headers: { apikey: this.key, Authorization: `Bearer ${jwt}` } });
     if (!r.ok) return null;
     const u = await r.json();
     const p = await this.getProfile(u.id);
