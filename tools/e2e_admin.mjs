@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 import { chromePath } from './_chrome.mjs';
 import * as SERVER from '../supabase/functions/_shared/pricing.mjs';
+import * as QV from '../supabase/functions/_shared/quote_view.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SITE = path.resolve(HERE, '../site');
@@ -189,11 +190,13 @@ async function main() {
     ok((await db(page)).events.some(e => e.entity_id === q1 && e.type === 'admin_edit'), 'edit logged in events');
     const free = await page.evaluate(id => window.StartMock.create(window.SITE_CONFIG).adminSaveQuote(id, { pay_link: 'http://insecure.test' }).then(() => 'ok', e => e.message), q1);
     ok(free === 'pay_link_https', 'pay link must be https');
-    // approve and send
+    // approve and send (this seeded draft stores PayPal: a stored method stays selected and is sent as is)
+    ok(await page.$eval('#payMethod', s => s.value) === 'paypal_link', 'stored pay method (PayPal) stays selected');
     await page.type('#payLink', 'https://www.paypal.com/invoice/test');
     await page.click('#sendBtn'); await sleep(500);
     d1 = (await db(page)).quotes.find(q => q.id === q1);
     ok(d1.status === 'sent' && !!d1.sent_at && !!d1.valid_until, 'approve-and-send: status sent, sent_at + valid_until set');
+    ok(d1.pay_method === 'paypal_link', 'sent with the chosen method (PayPal), not the default');
     const evs = (await db(page)).events.filter(e => e.entity_id === q1 && e.type === 'status_changed').map(e => e.payload.to);
     ok(evs.includes('approved') && evs.includes('sent'), 'events: draft → approved → sent');
     const mail = (await db(page)).outbox.find(m => m.template === 'quote_sent' && m.quote_id === q1);
@@ -228,6 +231,13 @@ async function main() {
     // FOUNDING cap: enforced by quote-send (server/mock); the admin only warns and shows the server error
     await page.evaluate(id => { const d = window.StartMock.admin.db(); d.quotes.find(x => x.id === id).discount_code = 'FOUNDING'; localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); }, q2);
     const amyDraft = (await db(page)).quotes.find(q => q.status === 'draft');
+    // payment rail: a new draft starts on Upwork; with no method stored the editor preselects it (= quote_view.mjs DEFAULT_PAY_METHOD)
+    ok(amyDraft.pay_method === QV.DEFAULT_PAY_METHOD && QV.DEFAULT_PAY_METHOD === 'upwork', 'new draft starts on the default pay method: ' + amyDraft.pay_method);
+    await page.evaluate(id => { const d = window.StartMock.admin.db(); d.quotes.find(x => x.id === id).pay_method = null; localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); }, amyDraft.id);
+    await nav(page, '/start/admin/#quotes/' + amyDraft.id); await page.waitForSelector('#payMethod');
+    const pm = await page.$eval('#payMethod', s => [s.value, Array.from(s.options).map(o => o.value)]);
+    ok(pm[0] === QV.DEFAULT_PAY_METHOD && pm[1][0] === QV.DEFAULT_PAY_METHOD, 'no method stored → editor preselects Upwork, first in the list: ' + pm[0] + ' / ' + pm[1].join(','));
+    ok(['paypal_link', 'wire', 'tranzila_link'].every(v => pm[1].includes(v)) && !pm[1].includes(''), 'the other methods stay selectable; no "none" option');
     await nav(page, '/start/admin/#quotes/' + amyDraft.id); await page.waitForSelector('#founding');
     ok(/התקרה של/.test(await page.$eval('#detail', d => d.innerText)), 'FOUNDING cap reached → warning in the editor');
     await page.click('#founding'); await page.click('#sendBtn'); await sleep(500);

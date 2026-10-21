@@ -29,7 +29,11 @@
     ob: { todo: 'לביצוע', done: 'בוצע', need_help: 'צריך עזרה' },
     tenant: { sandbox: 'ארגז חול', live: 'באוויר', paused: 'מושהה' }
   };
-  const PAY_METHODS = [['paypal_link', 'קישור PayPal'], ['upwork', 'Upwork (milestone)'], ['wire', 'העברה בנקאית'], ['tranzila_link', 'קישור טרנזילה']];
+  // The first method is preselected for a quote without one: Upwork Direct Contracts is the payment rail for now (PayPal/card
+  // checkout postponed). Same default as quote-draft / quote-send and the quote page (DEFAULT_PAY_METHOD in /assets/quote_view.mjs;
+  // tools/e2e_admin.mjs checks they match). The other methods stay selectable.
+  const PAY_METHODS = [['upwork', 'Upwork (Direct Contract)'], ['paypal_link', 'קישור PayPal'], ['wire', 'העברה בנקאית'], ['tranzila_link', 'קישור טרנזילה']];
+  const PAY_DEFAULT = PAY_METHODS[0][0];
   const ENT = { questionnaire: 'שאלון', quote: 'הצעה', client: 'לקוח', payment: 'תשלום', request: 'בקשה', tenant: 'Tenant', lead: 'ליד', onboarding_item: 'צ\'ק-ליסט', system: 'מערכת' };
   const EVT = { created: 'נוצר', status_changed: 'שינוי סטטוס', admin_edit: 'עריכה באדמין', draft_regenerated: 'טיוטה נוצרה מחדש',
     email_quote_sent: 'מייל ההצעה נשלח', payment_marked_paid: 'תשלום סומן כשולם', admin_note_saved: 'הערה פנימית נשמרה', admin_reply: 'תשובה ללקוח',
@@ -495,9 +499,9 @@
       '<div class="field"><label for="scope">What we\'ll build</label><textarea class="textarea tall ltr" dir="ltr" lang="en" id="scope" maxlength="20000">' + esc(q.scope_md || '') + '</textarea></div>' +
       '<div class="field"><label for="assum">Assumptions (שורה לכל הנחה)</label><textarea class="textarea ltr" dir="ltr" lang="en" id="assum">' + esc((q.assumptions || []).join('\n')) + '</textarea></div>' +
       '<div class="field"><label for="timeline">Timeline</label><input class="input ltr" dir="ltr" lang="en" id="timeline" maxlength="4000" value="' + esc(q.timeline_text || '') + '"></div>' +
-      '<h3>תשלום</h3><div class="field"><label for="payMethod">אמצעי תשלום</label><select class="select" id="payMethod">' + opt('', 'לא נבחר', q.pay_method || '') +
-      PAY_METHODS.map(([v, l]) => opt(v, l, q.pay_method || '')).join('') + '</select></div>' +
-      '<div class="field"><label for="payLink">קישור תשלום (לא חובה; בלי קישור הלקוח רואה שהקישור יגיע בהמשך)</label><input class="input ltr" dir="ltr" type="url" id="payLink" maxlength="1000" placeholder="https://" value="' + esc(q.pay_link || '') + '"></div>' +
+      '<h3>תשלום</h3><div class="field"><label for="payMethod">אמצעי תשלום</label><select class="select" id="payMethod">' +
+      PAY_METHODS.map(([v, l]) => opt(v, l, q.pay_method || PAY_DEFAULT)).join('') + '</select></div>' +
+      '<div class="field"><label for="payLink">קישור תשלום או קישור לחוזה ב-Upwork (לא חובה; בלי קישור הלקוח רואה מה השלב הבא)</label><input class="input ltr" dir="ltr" type="url" id="payLink" maxlength="1000" placeholder="https://" value="' + esc(q.pay_link || '') + '"></div>' +
       '<div id="eMsg"></div><div class="btnrow"><button type="button" class="btn btn--primary" id="sendBtn">אשר ושלח</button>' +
       '<button type="button" class="btn btn--ghost" id="saveBtn">שמור טיוטה</button>' +
       (q.questionnaire_id ? '<button type="button" class="btn btn--ghost" id="regenBtn">צור טיוטה מחדש</button>' : '') +
@@ -628,7 +632,7 @@
   function frozenQuote(q) {
     const items = q.items || [];
     const cl = clientOfQuote(q.id);
-    const pm = (PAY_METHODS.find(x => x[0] === q.pay_method) || [, q.pay_method || 'לא נבחר'])[1];
+    const pm = (PAY_METHODS.find(x => x[0] === (q.pay_method || PAY_DEFAULT)) || [, q.pay_method])[1];
     if (q.anonymized) return '<div class="notice notice--err" role="note"><div>ההצעה עברה אנונימיזציה (מדיניות שמירה). אי אפשר לערוך או לשלוח אותה; היא נשמרת לצורכי הנהלת חשבונות בלבד.</div></div>' +
       '<dl class="totals spaced"><dt class="grand">סה"כ הקמה</dt><dd>' + money(q.setup_cents) + '</dd><dt class="grand">חודשי</dt><dd>' + money(q.monthly_cents) + '</dd></dl>';
     return '<p class="muted">ההצעה ' + (q.status === 'void' ? 'בוטלה' : 'נשלחה') + '. השורות והסכומים נעולים; כדי לשנות מבטלים ומוציאים הצעה חדשה.</p>' +

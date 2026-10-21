@@ -193,9 +193,9 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
   };
   let quote: QuoteRow;
   if (existing) {
-    quote = await store.updateQuote(existing.id, row);
+    quote = await store.updateQuote(existing.id, row); // a regenerated draft keeps the pay method Meir chose
   } else {
-    quote = await store.insertQuote(row);
+    quote = await store.insertQuote({ ...row, pay_method: DEFAULT_PAY_METHOD });
   }
   await store.saveDraft({ quote_id: quote.id, model: res.model, prompt_hash: promptHash, raw_output: res.raw,
     tokens: res.input_tokens + res.output_tokens, cost_usd: res.cost_usd });
@@ -216,6 +216,8 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
 // ================================================================== send (admin "אשר ושלח")
 export interface SendInput { quote_id: string; discount_code?: string | null; pay_method?: string | null; pay_link?: string | null; manual_approved?: boolean }
 const PAY_METHODS = ["paypal_link", "upwork", "wire", "tranzila_link"];
+/** Payment rail when none was chosen: Upwork Direct Contracts for now (quote_view.mjs; the admin preselects the same). */
+export const DEFAULT_PAY_METHOD: string = QV.DEFAULT_PAY_METHOD;
 
 export async function sendQuote(input: SendInput, store: Store, pb: Pricebook = PRICEBOOK): Promise<QuoteRow> {
   let q = await store.quoteById(input.quote_id);
@@ -236,7 +238,7 @@ export async function sendQuote(input: SendInput, store: Store, pb: Pricebook = 
   if (r.needs_manual_price) throw new QuoteError("needs_manual_price", 409);
   const patch: Partial<QuoteRow> = {
     items: storedItems(r), discount_code: discount ?? null, setup_cents: r.setup_cents, monthly_cents: r.monthly_cents,
-    deposit_cents: r.deposit_cents, pay_method: input.pay_method ?? q.pay_method,
+    deposit_cents: r.deposit_cents, pay_method: input.pay_method ?? q.pay_method ?? DEFAULT_PAY_METHOD,
     pay_link: input.pay_link === "" ? null : (input.pay_link ?? q.pay_link), agreement_version: BRAND.agreement_version,
   };
   if (q.status !== "approved") q = await store.updateQuote(q.id, { ...patch, status: "approved" });
@@ -263,8 +265,9 @@ export interface PublicQuote {
   not_included_extra: string[];
   totals: { setup_subtotal_cents: number; rush_cents: number; discount_cents: number; discount_label: string | null;
     setup_cents: number; monthly_cents: number; deposit_cents: number; final_cents: number; deposit_pct: number };
-  refund: { guarantee: string | null; deposit: string; retainer: string | null; status: string | null };
-  payment: { method: string | null; link: string | null };
+  refund: { guarantee: string | null; guarantee_label: string | null; deposit: string; deposit_label: string | null; retainer: string | null; status: string | null };
+  /** method: the quote's pay_method, or DEFAULT_PAY_METHOD when none was chosen */
+  payment: { method: string; link: string | null };
   agreement_version: string;
   accepted: { name: string; at: string } | null;
   call_offer_prominent: boolean;

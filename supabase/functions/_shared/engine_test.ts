@@ -1,7 +1,7 @@
 // Quote engine with recorded (replay) Claude outputs + flows: send gate, view, accept, expiry, anonymised, events.
 import { BRAND, PRICEBOOK as PB } from "./config.ts";
 import { mockModel, replayModel } from "./claude.ts";
-import { acceptQuote, draftQuote, EMAIL, emitExpiring, sendQuote, viewQuote } from "./quote_engine.ts";
+import { acceptQuote, DEFAULT_PAY_METHOD, draftQuote, EMAIL, emitExpiring, sendQuote, viewQuote } from "./quote_engine.ts";
 import { outputSchema } from "./quote_prompt.ts";
 import { violation } from "./sanitize.ts";
 import { MemoryStore, type QuoteRow } from "./store.ts";
@@ -145,6 +145,28 @@ Deno.test("view: whitelisted JSON, sets viewed once, includes/excludes from pric
   const s = JSON.stringify(v);
   for (const k of ["reason", "user_id", "questionnaire_id", "accepted_ip", "risk_flags", "prompt_hash", "manual_reasons", q.id]) assert(!s.includes(k), "leak: " + k);
   eq(v.agreement_version, BRAND.agreement_version);
+});
+
+Deno.test("pay method: drafts start on Upwork (default); send keeps Meir's choice, else Upwork; the view never shows none", async () => {
+  eq(DEFAULT_PAY_METHOD, "upwork");
+  const { q, store } = await drafted("hvac_basic");
+  eq(q.pay_method, DEFAULT_PAY_METHOD, "new draft");
+  await store.updateQuote(q.id, { pay_method: null }); // a row from before the default
+  const sent = await sendQuote({ quote_id: q.id }, store);
+  eq(sent.pay_method, DEFAULT_PAY_METHOD, "send without a method -> default");
+  const v = await viewQuote(sent.public_token, store);
+  eq(v.payment, { method: "upwork", link: null });
+  eq([v.refund.deposit_label, v.refund.guarantee_label], [PB.refund_rules.deposit.label, PB.refund_rules.rcp_guarantee.label], "rule labels from the price book");
+  store.quotes.get(q.id)!.pay_method = null; // the public view applies the same default
+  eq((await viewQuote(sent.public_token, store)).payment.method, DEFAULT_PAY_METHOD);
+  const other = await sentQuote("plumber_jobber"); // Meir chose PayPal
+  eq([other.q.pay_method, (await viewQuote(other.q.public_token, other.store)).payment.method], ["paypal_link", "paypal_link"]);
+  const d = await drafted("bndl");
+  await d.store.updateQuote(d.q.id, { pay_method: "wire" });
+  eq((await draftQuote(d.qid, { store: d.store, model: replayModel(), replayKey: "bndl" })).pay_method, "wire", "regenerate keeps the chosen method");
+  const web = await drafted("web_only");
+  const wv = await viewQuote((await sendQuote({ quote_id: web.q.id }, web.store)).public_token, web.store);
+  eq([wv.payment.method, wv.refund.guarantee, wv.refund.guarantee_label], ["upwork", null, null], "WEB: no satisfaction guarantee");
 });
 
 Deno.test("view refuses drafts, needs_manual_price, void, anonymised and malformed tokens with the same 404", async () => {

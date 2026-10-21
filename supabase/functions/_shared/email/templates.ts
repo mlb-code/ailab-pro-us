@@ -3,7 +3,7 @@
 // share from pricebook.json, amounts from the database row (never typed here). Copy: concrete, no promised outcomes.
 // Subjects follow SPEC §5; `q_received` uses brand.quote_sla_text (A5 decision) instead of the literal "1 business day".
 import { PRICEBOOK } from "../config.ts";
-import { toPublicView } from "../quote_engine.ts";
+import { DEFAULT_PAY_METHOD, toPublicView } from "../quote_engine.ts";
 import { quoteUrl, renderQuoteEmail, usd } from "../quote_email.ts";
 import type { QuoteRow } from "../store.ts";
 import { type Block, type EmailBrand, type EmailSpec, ltr, type Rendered, renderEmail, siteUrl } from "./layout.ts";
@@ -91,6 +91,48 @@ export function fmtPhone(e164: string | null | undefined): string {
 const callOffer = (b: EmailBrand): Block[] =>
   b.calendly_url ? [{ small: `Prefer to talk it through? You can book a 15-minute video call: ${b.calendly_url}` }] : [];
 
+// ------------------------------------------------------------------ Upwork Direct Contracts (pay_method 'upwork')
+/** Payment rail of a mail: the quote's pay_method, else the payment row's method, else the default (Upwork). Client-level
+ *  contexts (deposit_received, monthly_invoice, web_deposit_ack) carry no method from the DB, so they follow the default. */
+const payMethod = (ctx: EmailCtx) => ctx.quote?.pay_method || ctx.payment?.method || DEFAULT_PAY_METHOD;
+const isUpwork = (ctx: EmailCtx) => payMethod(ctx) === "upwork";
+// Client copy: the same facts as the quote page (site/quote/assets/quote.js upworkSlot). Upwork shows its own client fees at
+// checkout, so no fee amount is ever written here.
+const UPWORK_WAYS = "card, PayPal or US bank transfer";
+const UPWORK_ESCROW = "Upwork holds the money in escrow and releases it to us only when you approve the milestone, or automatically if you don't respond within 14 days after we submit it.";
+const UPWORK_FEES = "Upwork adds its own small client fees at checkout.";
+const UPWORK_ACCOUNT = "Already have an Upwork account? Reply to this email with your Upwork email and we'll set it up there.";
+/** Milestone names exactly as Meir types them into Upwork (client-visible there). */
+export const UPWORK_MILESTONES = {
+  setup_line: "Setup: build your AI line until your test call",
+  setup_web: "Setup: build your website until your review",
+  golive: "Go-live",
+};
+const hasLine = (codes: string[]) => codes.some((c) => c === "RCP" || c === "BNDL");
+const coreOf = (codes: string[]) => codes.find((c) => PRICEBOOK.rules.core_codes.includes(c)) ?? codes[0] ?? "";
+
+/** Meir's Direct Contract checklist (Hebrew). One value per row = what he copies into Upwork (English, the client sees it
+ *  there); amounts from the quote row. Without a quote (WEB self-serve) the amounts are left to Meir. */
+function upworkContract(ctx: EmailCtx, brand: EmailBrand, o: { codes: string[]; basis: string; deposit?: number | null; final?: number | null;
+  monthly?: number | null }): Block[] {
+  const product = itemName(coreOf(o.codes));
+  const desc = `Setup of the ${product} ${o.basis}.` + (o.monthly ? ` Monthly plan from go-live: ${usd(o.monthly)}/mo, one milestone per month.` : "");
+  return [
+    { p: `**ליצור ב-Upwork:** ${ltr("Find work → Direct Contracts → Create a contract")}` },
+    { facts: [
+      ["מייל הלקוח", ctx.profile?.email ?? ""],
+      ["סוג חוזה", "Fixed-price"],
+      ["שם החוזה", `${brand.name} – ${product} setup`],
+      ["אבן דרך 1 (המקדמה): שם", hasLine(o.codes) ? UPWORK_MILESTONES.setup_line : UPWORK_MILESTONES.setup_web],
+      ["אבן דרך 1: סכום", usd(o.deposit)],
+      ["אבן דרך 2 (לפני עלייה לאוויר): שם", UPWORK_MILESTONES.golive],
+      ["אבן דרך 2: סכום", usd(o.final)],
+      ["תיאור (שורה אחת)", desc],
+    ] },
+    { small: "אם הלקוח כבר רשום ב-Upwork: לבקש ממנו לשכור אותך דרך הפרופיל." },
+  ];
+}
+
 function quoteFacts(q: QuoteRow): Array<[string, string]> {
   return [
     ["Setup", usd(q.setup_cents)],
@@ -147,32 +189,46 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   })),
 
   // WEB is sold without a quote step (SPEC §1): Meir sends the deposit link by hand; the client gets a short confirmation.
-  web_deposit_ack: client("transactional", true, (ctx, { brand }) => ({
-    subject: "Your deposit link is on its way",
-    preheader: `We'll email your secure deposit link ${brand.quote_sla_text}.`,
-    heading: "Your deposit link is on its way",
-    blocks: [
-      { p: `${hi(ctx)} thanks for choosing your website package${company(ctx) ? ` for **${company(ctx)}**` : ""}.` },
-      { p: `We'll email your secure deposit link ${brand.quote_sla_text}. Once the deposit is in, your setup checklist opens in your portal (your online account with us).` },
-      { small: "Questions? Just reply to this email." },
-    ],
-    cta: { label: "Open your portal", url: portal(brand) },
-  })),
+  web_deposit_ack: client("transactional", true, (ctx, { brand }) => {
+    const upwork = isUpwork(ctx);
+    return {
+      subject: "Your deposit link is on its way",
+      preheader: upwork ? `Your contract arrives from Upwork ${brand.quote_sla_text}.` : `We'll email your secure deposit link ${brand.quote_sla_text}.`,
+      heading: "Your deposit link is on its way",
+      blocks: [
+        { p: `${hi(ctx)} thanks for choosing your website package${company(ctx) ? ` for **${company(ctx)}**` : ""}.` },
+        ...(upwork
+          ? [
+            { p: `You pay the deposit securely through Upwork. You'll get an email from Upwork with your contract ${brand.quote_sla_text}: create a free Upwork client account from that email, then fund the first milestone by ${UPWORK_WAYS}.` },
+            { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` },
+            { small: UPWORK_ACCOUNT },
+            { p: "Once the deposit is funded, your setup checklist opens in your portal (your online account with us)." },
+          ] as Block[]
+          : [{ p: `We'll email your secure deposit link ${brand.quote_sla_text}. Once the deposit is in, your setup checklist opens in your portal (your online account with us).` }]),
+        { small: "Questions? Just reply to this email." },
+      ],
+      cta: { label: "Open your portal", url: portal(brand) },
+    };
+  }),
 
   web_deposit_link_requested: toMeir((ctx, { brand }) => {
     const qn = ctx.questionnaire;
     const answers = (qn?.summary ?? []).filter((x) => x && String(x.a ?? "").trim()).slice(0, 12)
       .map((x) => `${x.q}: ${String(x.a).slice(0, 200)}`);
+    const upwork = isUpwork(ctx);
     return {
       subject: `אתר (WEB): ${biz(ctx)} מחכה לקישור מקדמה`,
-      preheader: "לקוח בחר חבילת אתר. צריך לשלוח לו קישור תשלום למקדמה.",
+      preheader: upwork ? "לקוח בחר חבילת אתר. צריך ליצור לו חוזה ב-Upwork למקדמה." : "לקוח בחר חבילת אתר. צריך לשלוח לו קישור תשלום למקדמה.",
       heading: "לקוח בחר חבילת אתר",
       blocks: [
         { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
           ["טלפון", ctx.profile?.phone ?? ""], ["עיר", [ctx.profile?.city, ctx.profile?.state].filter(Boolean).join(", ")],
           ["נישה", qn?.niche ?? ""]] },
+        // no quote on the WEB path: the amounts depend on the extras the client picked (answers below), so Meir sets them
+        ...(upwork ? [...upworkContract(ctx, brand, { codes: ["WEB"], basis: "as chosen in your questionnaire" }),
+          { small: `הסכומים: המקדמה היא ${depositPct()}% מההקמה לפי המחירון, כולל התוספות שהלקוח בחר; השאר לפני העלייה לאוויר.` } as Block] : []),
         ...(answers.length ? [{ title: "מהשאלון", list: answers } as Block] : []),
-        { small: `הלקוח קיבל מייל שהקישור יגיע ${brand.quote_sla_text}.` },
+        { small: upwork ? `הלקוח קיבל מייל שהחוזה יגיע מ-Upwork ${brand.quote_sla_text}.` : `הלקוח קיבל מייל שהקישור יגיע ${brand.quote_sla_text}.` },
       ],
       cta: { label: "פתח את השאלון באדמין", url: admin(brand, `questionnaires/${qn?.id ?? ""}`) },
     };
@@ -272,18 +328,29 @@ export const TEMPLATES: Record<string, TemplateDef> = {
 
   [T_ACCEPTED]: client("quotes", true, (ctx, { brand }) => {
     const q = ctx.quote!;
-    const pay: Block[] = q.pay_link
-      ? [{ button: { label: `Pay deposit ${usd(q.deposit_cents)}`, url: q.pay_link } }]
+    const dep = usd(q.deposit_cents);
+    const upwork = isUpwork(ctx);
+    const pay: Block[] = upwork
+      ? (q.pay_link
+        ? [{ button: { label: "Open your Upwork contract", url: q.pay_link } },
+          { p: `Fund the ${dep} deposit there by card, PayPal or bank transfer.` },
+          { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` }]
+        : [{ p: `**Next step: your ${dep} deposit, paid securely through Upwork.** You'll get an email from Upwork with your contract ${brand.quote_sla_text}.` },
+          { list: ["Create a free Upwork client account from that email and accept the contract.", `Fund the first milestone (${dep}) by ${UPWORK_WAYS}.`] },
+          { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` },
+          { small: UPWORK_ACCOUNT }])
+      : q.pay_link
+      ? [{ button: { label: `Pay deposit ${dep}`, url: q.pay_link } }]
       : [{ p: `We'll email your secure payment link for the deposit ${brand.quote_sla_text}.` }];
     return {
       subject: "Quote accepted — next step: the deposit",
-      preheader: `Deposit to start: ${usd(q.deposit_cents)}.`,
+      preheader: upwork ? `Deposit to start: ${dep}, paid securely through Upwork.` : `Deposit to start: ${dep}.`,
       heading: "Thanks — your quote is accepted",
       blocks: [
         { p: `${hi(ctx)} you accepted the fixed quote${company(ctx) ? ` for **${company(ctx)}**` : ""}${q.accepted_at ? ` on ${fmtDate(q.accepted_at)}` : ""}. A copy of exactly what you accepted stays on your quote page.` },
         { facts: [quoteFacts(q)[0], quoteFacts(q)[1], ["Before go-live", usd((q.setup_cents ?? 0) - (q.deposit_cents ?? 0))], quoteFacts(q)[2]] },
         ...pay,
-        { p: "Once the deposit is in, your setup checklist opens in your portal." },
+        { p: upwork ? "Once the first milestone is funded, your setup checklist opens in your portal." : "Once the deposit is in, your setup checklist opens in your portal." },
       ],
       cta: { label: "View your accepted quote", url: quoteUrl(q.public_token, brand) },
     };
@@ -291,20 +358,27 @@ export const TEMPLATES: Record<string, TemplateDef> = {
 
   [T_ADMIN_ACCEPTED]: toMeir((ctx, { brand }) => {
     const q = ctx.quote!;
+    const upwork = isUpwork(ctx);
+    const final = (q.setup_cents ?? 0) - (q.deposit_cents ?? 0);
     return {
       subject: `✅ ${biz(ctx)} אישר הצעה, ממתין לתשלום`,
-      preheader: `מקדמה: ${usd(q.deposit_cents)}`,
+      preheader: upwork ? `מקדמה: ${usd(q.deposit_cents)}. ליצור חוזה ב-Upwork.` : `מקדמה: ${usd(q.deposit_cents)}`,
       heading: "הלקוח אישר את ההצעה",
       blocks: [
         { facts: [
           ["עסק", biz(ctx)], ["חתם", q.accepted_name ?? ""], ["מתי", fmtDate(q.accepted_at, brand.owner?.timezone || "UTC", "he")],
           ["הקמה", usd(q.setup_cents)], ["מקדמה", usd(q.deposit_cents)], ["חודשי", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""],
-          ["אמצעי תשלום", q.pay_method ?? "לא נבחר"], ["קישור תשלום", q.pay_link ? "יש, הלקוח רואה כפתור תשלום" : "אין, צריך לשלוח ללקוח"],
+          ...(upwork
+            ? [["אמצעי תשלום", "Upwork (Direct Contract)"], ["קישור לחוזה", q.pay_link ? "יש, הלקוח רואה כפתור לחוזה" : "אין, הלקוח מחכה למייל מ-Upwork"]]
+            : [["אמצעי תשלום", payMethod(ctx)], ["קישור תשלום", q.pay_link ? "יש, הלקוח רואה כפתור תשלום" : "אין, צריך לשלוח ללקוח"]]) as Array<[string, string]>,
         ] },
+        ...(upwork ? upworkContract(ctx, brand, { codes: q.items.map((i) => String(i.code)), deposit: q.deposit_cents, final,
+          monthly: q.monthly_cents, basis: `as described in your accepted fixed quote${q.accepted_at ? ` (${fmtDate(q.accepted_at)})` : ""}` }) : []),
         { title: "מה עכשיו", list: [
-          ...(q.pay_link ? [] : ["לשלוח ללקוח קישור תשלום למקדמה."]),
+          ...(upwork ? ["ליצור את החוזה ב-Upwork לפי הפרטים למעלה."] : q.pay_link ? [] : ["לשלוח ללקוח קישור תשלום למקדמה."]),
           "לפתוח כרטיס לקוח מההצעה באדמין.",
-          "כשהכסף מגיע: \"סמן כשולם\" על המקדמה. הלקוח יקבל אוטומטית את הצ'ק-ליסט.",
+          upwork ? "כשהלקוח מימן ב-Upwork את אבן הדרך הראשונה: \"סמן כשולם\" על המקדמה (באסמכתה: מספר החוזה ב-Upwork). הלקוח יקבל אוטומטית את הצ'ק-ליסט."
+            : "כשהכסף מגיע: \"סמן כשולם\" על המקדמה. הלקוח יקבל אוטומטית את הצ'ק-ליסט.",
         ] },
       ],
       cta: { label: "פתח באדמין", url: admin(brand, `quotes/${q.id}`) },
@@ -314,14 +388,17 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   deposit_received: client("transactional", true, (ctx, { brand }) => {
     const ob = ctx.onboarding;
     const steps: Block[] = ob && ob.left_titles.length ? [{ title: "Your setup steps", list: ob.left_titles }] : [];
+    const upwork = isUpwork(ctx), rcp = isReceptionist(ctx);
     return {
       subject: "Welcome aboard — your setup checklist is ready",
       preheader: "Short steps, each with a how-to. No call needed.",
       heading: "Welcome aboard",
       blocks: [
-        { p: `${hi(ctx)} we received your deposit — thank you.` },
+        { p: upwork ? `${hi(ctx)} your deposit is funded in Upwork — thank you.` : `${hi(ctx)} we received your deposit — thank you.` },
         { p: `Your setup checklist is ready in your portal (your online account with us)${ob && ob.total ? `: **${ob.total} short steps**` : ""}, each with a short how-to. Do them in any order; your progress saves as you go.` },
         ...steps,
+        // milestone 1 is submitted when the build is ready for the client's own test (ready_to_test)
+        ...(upwork ? [{ small: `Upwork holds your deposit in escrow. We submit this milestone when your ${rcp ? "line is ready for your test call" : "website is ready for your review"}; approve it in Upwork once you've ${rcp ? "tried it" : "checked it"}.` } as Block] : []),
         { small: "Stuck on a step? Press \"Need help\" on it and we'll answer in writing." },
       ],
       cta: { label: "Open my setup checklist", url: portal(brand, "onboarding") },
@@ -388,7 +465,10 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         { p: `${hi(ctx)} thanks for requesting go-live. The last step is the final setup payment (the remaining ${100 - depositPct()}%).` },
         { facts: [["Amount due", usd(amount)],
           ["Monthly, from go-live", ctx.client?.monthly_cents ? `${usd(ctx.client.monthly_cents)}/mo` : ""]] },
-        { p: `We'll email your secure payment link ${brand.quote_sla_text}. Once it's received, we set your go-live date (the day it starts working for real customers).` },
+        ...(isUpwork(ctx)
+          ? [{ p: `Next: fund the **${UPWORK_MILESTONES.golive}** milestone (${usd(amount)}) in your Upwork contract, by ${UPWORK_WAYS}. Once it's funded, we set your go-live date (the day it starts working for real customers).` },
+            { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` }] as Block[]
+          : [{ p: `We'll email your secure payment link ${brand.quote_sla_text}. Once it's received, we set your go-live date (the day it starts working for real customers).` }]),
       ],
       cta: { label: "View billing", url: portal(brand, "billing") },
     };
@@ -444,14 +524,19 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   monthly_invoice: client("transactional", true, (ctx, { brand, payload }) => {
     const month = fmtMonth(String(payload?.month ?? ""));
     const products = (ctx.client?.products ?? []).map(itemName).join(" + ");
+    const amount = usd(ctx.client?.monthly_cents ?? 0);
     return {
       subject: `Your ${brand.name} monthly invoice`,
-      preheader: `${month}: ${usd(ctx.client?.monthly_cents ?? 0)}.`,
+      preheader: `${month}: ${amount}.`,
       heading: "Your monthly invoice",
       blocks: [
         { p: `${hi(ctx)} here's your monthly invoice for **${month}**.` },
-        { facts: [["Service", products], ["Period", month], ["Amount", usd(ctx.client?.monthly_cents ?? 0)]] },
-        { p: `We'll email your secure payment link ${brand.quote_sla_text}. All payments are listed in the Billing tab of your portal.` },
+        { facts: [["Service", products], ["Period", month], ["Amount", amount]] },
+        // monthly fee = one fixed-price milestone per month, funded at the start of the month
+        ...(isUpwork(ctx)
+          ? [{ p: `We add this month's milestone (${amount}) to your Upwork contract ${brand.quote_sla_text}. Fund it there by ${UPWORK_WAYS}.` },
+            { small: `${UPWORK_ESCROW} ${UPWORK_FEES}` }] as Block[]
+          : [{ p: `We'll email your secure payment link ${brand.quote_sla_text}. All payments are listed in the Billing tab of your portal.` }]),
       ],
       cta: { label: "View billing", url: portal(brand, "billing") },
     };

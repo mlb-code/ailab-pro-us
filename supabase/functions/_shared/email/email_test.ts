@@ -14,7 +14,7 @@ import {
 import type { EmailBrand } from "./layout.ts";
 import { type Mailer, type OutMail, pickSender, ResendMailer, type SendResult } from "./mailer.ts";
 import { samples } from "./samples.ts";
-import { BOUNDARY, T_ACCEPTED, T_ADMIN_ACCEPTED, TEMPLATES } from "./templates.ts";
+import { BOUNDARY, type EmailCtx, T_ACCEPTED, T_ADMIN_ACCEPTED, TEMPLATES, UPWORK_MILESTONES } from "./templates.ts";
 
 const realFetch = globalThis.fetch;
 globalThis.fetch = (() => Promise.reject(new Error("network disabled in tests"))) as typeof fetch;
@@ -40,6 +40,99 @@ Deno.test("went_live: satisfaction guarantee (from pricebook) for RCP/BNDL only,
   assert(render(["RCP"], "2026-10-12T15:00:00Z").includes(`runs until ${fmt}`), "guarantee end date");
   assert(render(["RCP"], null).includes(G.text) && !render(["RCP"], null).includes("runs until"), "no date without go_live_at");
   assert(!render(["WEB"], "2026-10-12T15:00:00Z").includes(G.label), "WEB has no guarantee (deposit rule only)");
+});
+
+// ------------------------------------------------------------------ Upwork Direct Contracts (pay_method 'upwork', the default)
+const UP_LINK = "https://www.upwork.com/#EMAIL-TEST";
+const ESCROW = "releases it to us only when you approve the milestone, or automatically if you don't respond within 14 days after we submit it.";
+const render = (k: string, ctx: EmailCtx, payload?: Record<string, unknown>) => TEMPLATES[k].render(ctx, { brand: B, now: NOON_IL, payload });
+const has = (r: { text: string }, parts: string[], what: string) => { for (const t of parts) assert(r.text.includes(t), `${what}: missing "${t}"`); };
+
+Deno.test("Upwork: the client's accepted-quote mail without / with the contract link; no method = Upwork; PayPal unchanged", async () => {
+  const s = await samples();
+  const ctx = s[T_ACCEPTED].ctx, q = ctx.quote!; // sample: paypal_link + PayPal link
+  const dep = usd(q.deposit_cents);
+  const withQ = (patch: Record<string, unknown>) => ({ ...ctx, quote: { ...q, ...patch } }) as EmailCtx;
+  const a = render(T_ACCEPTED, withQ({ pay_method: "upwork", pay_link: null }));
+  has(a, [`Next step: your ${dep} deposit, paid securely through Upwork.`, `email from Upwork with your contract ${B.quote_sla_text}.`,
+    "Create a free Upwork client account from that email and accept the contract.", `Fund the first milestone (${dep}) by card, PayPal or US bank transfer.`,
+    `Upwork holds the money in escrow and ${ESCROW}`, "Upwork adds its own small client fees at checkout.",
+    "Already have an Upwork account? Reply to this email with your Upwork email and we'll set it up there.",
+    "Once the first milestone is funded, your setup checklist opens in your portal."], "accepted mail, upwork");
+  assert(!/Pay deposit|payment link/.test(a.text) && !a.html.includes("paypal.com"), "upwork: no PayPal button or wording");
+  eq(a.subject, "Quote accepted — next step: the deposit");
+  assert(a.html.includes(`Deposit to start: ${dep}, paid securely through Upwork.`), "preheader");
+  eq(render(T_ACCEPTED, withQ({ pay_method: null, pay_link: null })).text, a.text, "no pay method chosen = Upwork (default)");
+  const l = render(T_ACCEPTED, withQ({ pay_method: "upwork", pay_link: UP_LINK }));
+  assert(l.html.includes(`href="${UP_LINK}"`) && l.html.includes(">Open your Upwork contract</a>"), "upwork + link: button to the contract");
+  has(l, [`Open your Upwork contract: ${UP_LINK}`, `Fund the ${dep} deposit there by card, PayPal or bank transfer.`, ESCROW], "accepted mail, upwork + link");
+  assert(!l.text.includes("Already have an Upwork account"), "the contract exists: no account question");
+  const p = render(T_ACCEPTED, ctx);
+  assert(p.text.includes(`Pay deposit ${dep}`) && !/Upwork/.test(p.subject + p.html + p.text), "paypal_link: unchanged");
+  const p2 = render(T_ACCEPTED, withQ({ pay_link: null }));
+  assert(p2.text.includes(`We'll email your secure payment link for the deposit ${B.quote_sla_text}.`) && !p2.text.includes("Upwork"), "paypal_link, no link: unchanged");
+});
+
+Deno.test("Upwork: Meir's Hebrew mail lists the Direct Contract to create (menu path, email, fixed-price, milestones, description)", async () => {
+  const s = await samples();
+  const ctx = s[T_ADMIN_ACCEPTED].ctx, q = ctx.quote!;
+  const dep = usd(q.deposit_cents), fin = usd((q.setup_cents ?? 0) - (q.deposit_cents ?? 0));
+  const rcp = PRICEBOOK.items.find((i) => i.code === "RCP")!.name;
+  const m = render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_method: "upwork", pay_link: null } });
+  has(m, ["ליצור ב-Upwork:", "Find work → Direct Contracts → Create a contract", `מייל הלקוח: ${ctx.profile!.email!}`, "סוג חוזה: Fixed-price",
+    `שם החוזה: ${B.name} – ${rcp} setup`, `אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_line}`, `אבן דרך 1: סכום: ${dep}`,
+    `אבן דרך 2 (לפני עלייה לאוויר): שם: ${UPWORK_MILESTONES.golive}`, `אבן דרך 2: סכום: ${fin}`,
+    `תיאור (שורה אחת): Setup of the ${rcp} as described in your accepted fixed quote`, `Monthly plan from go-live: ${usd(q.monthly_cents)}/mo, one milestone per month.`,
+    "אם הלקוח כבר רשום ב-Upwork: לבקש ממנו לשכור אותך דרך הפרופיל", "אמצעי תשלום: Upwork (Direct Contract)", "ליצור את החוזה ב-Upwork לפי הפרטים למעלה.",
+    "סמן כשולם"], "admin upwork");
+  assert(!m.text.includes("לשלוח ללקוח קישור תשלום"), "upwork: no 'send a payment link' task");
+  assert(m.html.includes('lang="he" dir="rtl"') && m.html.includes("\u2066Find work → Direct Contracts → Create a contract\u2069"), "RTL, English path isolated");
+  const p = render(T_ADMIN_ACCEPTED, ctx); // PayPal with a link: unchanged
+  assert(!p.text.includes("Upwork") && p.text.includes("קישור תשלום: יש, הלקוח רואה כפתור תשלום"), "paypal_link: unchanged");
+  assert(render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_link: null } }).text.includes("לשלוח ללקוח קישור תשלום למקדמה."), "paypal_link, no link: unchanged");
+  // WEB quote: the website milestone name; no quote on the WEB self-serve path -> amounts left to Meir
+  const web = render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_method: "upwork", items: [{ code: "WEB", qty: 1 }] } });
+  has(web, [`אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_web}`, `אבן דרך 1: סכום: ${dep}`], "WEB quote: website milestone");
+  const wl = render("web_deposit_link_requested", s.web_deposit_link_requested.ctx);
+  has(wl, ["Find work → Direct Contracts → Create a contract", `שם החוזה: ${B.name} – ${PRICEBOOK.items.find((i) => i.code === "WEB")!.name} setup`,
+    `אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_web}`, "as chosen in your questionnaire", `המקדמה היא ${PRICEBOOK.rules.deposit_pct}% מההקמה`],
+    "web_deposit_link_requested upwork");
+  assert(!wl.text.includes("סכום:"), "WEB self-serve: no quote, so no amounts printed");
+  assert(wl.html.includes("ליצור לו חוזה ב-Upwork"), "preheader: create the Upwork contract");
+});
+
+Deno.test("Upwork: final payment, monthly invoice, deposit received, WEB deposit ack; other methods unchanged", async () => {
+  const s = await samples();
+  const pay = (method: string, kind = "final", amount_cents = 1) => ({ id: "p1", kind, amount_cents, method, status: "due" });
+  // final_payment_due: no payment row (amount from the quote) -> the default; the final row's method decides otherwise
+  const fctx = s.final_payment_due.ctx, amt = usd(fctx.final_cents);
+  has(render("final_payment_due", fctx), [`Next: fund the Go-live milestone (${amt}) in your Upwork contract, by card, PayPal or US bank transfer.`, ESCROW,
+    "Once it's funded, we set your go-live date"], "final_payment_due upwork");
+  has(render("final_payment_due", { ...fctx, payment: pay("upwork", "final", fctx.final_cents!) }), ["Go-live milestone"], "final row on upwork");
+  const f0 = render("final_payment_due", { ...fctx, payment: pay("paypal_link", "final", fctx.final_cents!) });
+  assert(f0.text.includes(`We'll email your secure payment link ${B.quote_sla_text}.`) && !f0.text.includes("Upwork"), "final, paypal_link: unchanged");
+  // monthly_invoice: one milestone per month
+  const mctx = s.monthly_invoice.ctx, mon = usd(mctx.client!.monthly_cents);
+  has(render("monthly_invoice", mctx, s.monthly_invoice.payload), [`We add this month's milestone (${mon}) to your Upwork contract ${B.quote_sla_text}.`,
+    "Fund it there by card, PayPal or US bank transfer.", ESCROW], "monthly_invoice upwork");
+  const m0 = render("monthly_invoice", { ...mctx, payment: pay("wire", "monthly") }, s.monthly_invoice.payload);
+  assert(m0.text.includes("All payments are listed in the Billing tab") && !m0.text.includes("Upwork"), "monthly, wire: unchanged");
+  // deposit_received: funded in Upwork escrow; milestone 1 submitted when ready for the client's own test
+  const dctx = s.deposit_received.ctx;
+  has(render("deposit_received", dctx), ["your deposit is funded in Upwork — thank you.", "Upwork holds your deposit in escrow.",
+    "We submit this milestone when your line is ready for your test call; approve it in Upwork once you've tried it."], "deposit_received upwork");
+  has(render("deposit_received", { ...dctx, client: { ...dctx.client!, products: ["WEB"] } }), ["website is ready for your review"], "deposit_received WEB");
+  const d0 = render("deposit_received", { ...dctx, payment: pay("paypal", "deposit") });
+  assert(d0.text.includes("we received your deposit — thank you.") && !d0.text.includes("Upwork"), "deposit, paypal: unchanged");
+  // web_deposit_ack (WEB has no quote): Upwork contract email, free account, escrow, existing account
+  const wctx = s.web_deposit_ack.ctx;
+  const w = render("web_deposit_ack", wctx);
+  has(w, [`You'll get an email from Upwork with your contract ${B.quote_sla_text}`, "create a free Upwork client account",
+    "fund the first milestone by card, PayPal or US bank transfer.", ESCROW, "Already have an Upwork account?",
+    "Once the deposit is funded, your setup checklist opens"], "web_deposit_ack upwork");
+  eq(w.subject, "Your deposit link is on its way");
+  const w0 = render("web_deposit_ack", { ...wctx, payment: pay("paypal_link", "deposit") });
+  assert(w0.text.includes(`We'll email your secure deposit link ${B.quote_sla_text}.`) && !w0.text.includes("Upwork"), "web ack, paypal_link: unchanged");
 });
 
 Deno.test("SPEC §5: every event is either rendered here or documented as sent elsewhere", () => {

@@ -7,6 +7,8 @@
 /quote/?t=fixture-web
 /quote/?t=fixture-accepted
 /quote/?t=fixture-expired
+/quote/?t=fixture-upwork
+/quote/?t=fixture-upworklink
 /demo-site/home-services/
 /demo-site/home-services/services/
 /demo-site/home-services/about/

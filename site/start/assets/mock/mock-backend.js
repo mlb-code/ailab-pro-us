@@ -18,6 +18,8 @@
     'calls', 'sms_messages', 'bookings'];   // third row: receptionist data written by the runtime (B7 reads it)
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
+  // = DEFAULT_PAY_METHOD in /assets/quote_view.mjs: a new draft starts with it, quote-send falls back to it (tools/e2e_admin.mjs)
+  const PAY_DEFAULT = 'upwork';
   function load() {
     const db = ls.get(KEY) || {};
     TABLES.forEach(t => { if (!Array.isArray(db[t])) db[t] = []; });
@@ -385,7 +387,7 @@
             aEvent(db, u, 'quote', quote.id, quote.user_id, 'draft_regenerated', { model: 'mock' });
           } else {
             quote = Object.assign({ id: uuid(), questionnaire_id: qid, user_id: q.user_id, discount_code: null, public_token: rnd(40),
-              pay_method: null, pay_link: null, valid_until: null, sent_at: null, viewed_at: null, accepted_at: null, anonymized: false,
+              pay_method: PAY_DEFAULT, pay_link: null, valid_until: null, sent_at: null, viewed_at: null, accepted_at: null, anonymized: false,
               agreement_version: null, created_at: now(), updated_at: now() }, d);
             db.quotes.push(quote);
             aEvent(db, u, 'quote', quote.id, quote.user_id, 'created', { to: quote.status, model: 'mock' });
@@ -431,7 +433,7 @@
           const r = P.priceQuote(pb, P.inputsFromStored(q.items, pb), { discount_code: discount || null, manual_approved: !!opts.manual_approved });
           const patch = { items: P.storedItems(r), discount_code: discount || null, setup_cents: r.setup_cents,
             monthly_cents: r.monthly_cents, deposit_cents: r.deposit_cents };
-          if ('pay_method' in opts && opts.pay_method !== undefined) patch.pay_method = opts.pay_method;
+          patch.pay_method = opts.pay_method || q.pay_method || PAY_DEFAULT;   // quote-send: no method given or stored -> the default
           if ('pay_link' in opts && opts.pay_link !== undefined) patch.pay_link = opts.pay_link || null;
           let from = q.status;
           if (from !== 'approved') { applyQuote(db, u, q, Object.assign({ status: 'approved' }, patch)); statusEvent(db, u, 'quote', q, from, 'approved'); from = 'approved'; }

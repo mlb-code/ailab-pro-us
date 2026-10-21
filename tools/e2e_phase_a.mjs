@@ -23,6 +23,7 @@ const brand = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), '
 const pb = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8'));
 const item = c => pb.items.find(i => i.code === c);
 const usd = c => '$' + (c / 100).toLocaleString('en-US');
+const UPWORK_LINK = 'https://www.upwork.com/#E2E-PHASE-A';
 
 const server = http.createServer((req, rsp) => {
   let p = decodeURIComponent(req.url.split('?')[0].split('#')[0]);
@@ -149,11 +150,14 @@ async function run(browser, width) {
   ok(d.outbox.some(m => m.template === 'admin_new_quote'), 'admin_new_quote e-mail (mock)');
   await fresh('/start/admin/#quotes/' + draft.id); await page.waitForSelector('#detail .lines', { timeout: 10000 });
   await noOverflow('admin quote editor');
-  await page.type('#payLink', 'https://www.paypal.com/invoice/p/TEST');
+  // payment rail: Upwork Direct Contracts is preselected; Meir pastes the contract link (optional)
+  ok(await page.$eval('#payMethod', s => s.value) === 'upwork', 'admin: pay method preselected = Upwork');
+  await page.type('#payLink', UPWORK_LINK);
   await page.click('#sendBtn'); await until('(d, id) => d.quotes.some(q => q.id === id && q.status === "sent")', draft.id);
   d = await db();
   const sent = d.quotes.find(q => q.id === draft.id);
   ok(sent.status === 'sent' && !!sent.public_token, 'approve & send → sent, with a public token');
+  ok(sent.pay_method === 'upwork' && sent.pay_link === UPWORK_LINK, 'sent on Upwork with the contract link');
   ok(d.outbox.some(m => m.template === 'quote_sent' && m.subject.includes(usd(expSetup)) && m.subject.includes(brand.name)), 'quote_sent e-mail (mock) with amounts + brand');
 
   // ---------------------------------------------------------------- client: quote page via #t= → accept
@@ -175,7 +179,10 @@ async function run(browser, width) {
   const acc = d.quotes.find(q => q.id === sent.id);
   ok(acc.status === 'accepted' && acc.accepted_name === 'Dani Levi' && !!acc.agreement_version, 'accept stores status, name and agreement version');
   ok(d.outbox.some(m => m.template === 'admin_quote_accepted'), 'admin_quote_accepted e-mail (mock)');
-  ok(await waitText('Pay deposit') || /accepted/i.test(await body()), 'quote page after accept: deposit step shown');
+  ok(await waitText('Open your Upwork contract'), 'quote page after accept: deposit step = "Open your Upwork contract"');
+  ok(await page.$eval('#pay-slot a.btn', a => a.getAttribute('href')).catch(() => '') === UPWORK_LINK, 'the button opens the Upwork contract link');
+  ok(/Fund the \$[\d,]+ deposit there by card, PayPal or bank transfer\./.test(await page.$eval('#pay-slot', e => e.innerText).catch(() => '')), 'funding line under the button');
+  await noOverflow('quote page, Upwork deposit step');
 
   // ---------------------------------------------------------------- portal: deposit step
   await codeSignIn('/start/?mock=1', 'dani@coolbreeze.test');

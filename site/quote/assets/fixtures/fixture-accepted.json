@@ -80,7 +80,9 @@
   },
   "refund": {
     "guarantee": "30-day satisfaction guarantee: not happy within 30 days of go-live (the day it starts answering real customers)? We refund the setup fee for your AI assistant and turn it off. On the bundle, we refund only the AI assistant's part of the setup fee, and you keep the website. Monthly fees you already used are not refunded.",
+    "guarantee_label": "30-day satisfaction guarantee",
     "deposit": "Changed your mind? Ask within 7 days of paying and we refund your full deposit, as long as you haven't finished the setup checklist.",
+    "deposit_label": "7-day refund",
     "retainer": null,
     "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)"
   },

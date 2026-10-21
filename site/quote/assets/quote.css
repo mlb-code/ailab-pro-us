@@ -47,6 +47,13 @@
 .q-accept .btn{margin-top:6px}
 .q-signed{display:grid;gap:6px}
 #pay-slot{margin-top:18px;display:grid;gap:10px}
+/* payment step through Upwork: numbered next steps + reassurance lines (price-book refund rules) */
+.q-upwork>div{display:grid;gap:10px;min-width:0}
+.q-steps{display:grid;gap:6px;padding-left:1.4em;color:var(--fg-2)}
+.q-steps li{overflow-wrap:anywhere}
+.q-steps li::marker{color:var(--acc);font-weight:600}
+.q-assure{margin-top:4px}
+.q-assure li{overflow-wrap:anywhere}
 .q-badge-row{display:flex;flex-wrap:wrap;gap:8px}
 
 @media (max-width:560px){.q-print{display:none}}

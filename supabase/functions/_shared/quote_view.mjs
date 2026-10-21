@@ -6,6 +6,10 @@ import { deliveryDays, inputsFromStored, itemOf, priceQuote } from "./pricing.mj
 export const TOKEN_RX = /^[A-Za-z0-9]{32,128}$/;
 /** statuses a client may open by link (drafts / needs_manual_price / approved / void are never public) */
 export const VISIBLE = ["sent", "viewed", "accepted", "expired"];
+/** Payment rail of a quote with no explicit pay_method: Upwork Direct Contracts (PayPal / card checkout is postponed).
+ *  The same default drives quote-draft / quote-send, the e-mails and the admin's preselected method. */
+export const DEFAULT_PAY_METHOD = "upwork";
+export const payMethodOf = (q) => (q && q.pay_method) || DEFAULT_PAY_METHOD;
 
 export const isPublic = (q) => !!q && !q.anonymized && VISIBLE.includes(q.status);
 export const isExpired = (q, now) => q.status === "expired" || (q.status !== "accepted" && !!q.valid_until && new Date(q.valid_until) < now);
@@ -46,8 +50,10 @@ export function toPublicView(q, profile, now, pb, defaultAgreementVersion) {
       setup_cents: setup, monthly_cents: q.monthly_cents == null ? r.monthly_cents : q.monthly_cents,
       deposit_cents: deposit, final_cents: setup - deposit, deposit_pct: pb.rules.deposit_pct,
     },
-    refund: { guarantee, deposit: pb.refund_rules.deposit.text, retainer, status: pb.refund_rules.status || null },
-    payment: { method: q.pay_method || null, link: q.pay_link || null },
+    // labels = the short names of the same price-book rules (reassurance lines under the payment step)
+    refund: { guarantee, guarantee_label: guarantee ? g.label || null : null, deposit: pb.refund_rules.deposit.text,
+      deposit_label: pb.refund_rules.deposit.label || null, retainer, status: pb.refund_rules.status || null },
+    payment: { method: payMethodOf(q), link: q.pay_link || null },
     agreement_version: q.agreement_version || defaultAgreementVersion,
     accepted: q.status === "accepted" && q.accepted_at ? { name: q.accepted_name || "", at: q.accepted_at } : null,
     call_offer_prominent: setup > asyncCeiling,
