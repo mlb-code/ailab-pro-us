@@ -1,13 +1,16 @@
-/* /start/ — sign in (email magic link + 6-digit code, Google when configured), profile, portal (Home / Quotes / Billing).
+/* /start/ — sign in (Continue with Google / Sign in with Apple when configured in config.js, then email magic link + 6-digit
+   code), profile, portal (Home / Quotes / Billing). Social sign-in rules live in signin.js (StartSignin).
    Phase B tabs (Setup checklist, My receptionist, Requests) and the Billing usage card come from portal-b.js (task B7),
    shown only once the signed-in user has a client record. */
 (function () {
-  const S = window.Start, B = window.Backend, Q = window.StartQ;
+  const S = window.Start, B = window.Backend, Q = window.StartQ, SI = window.StartSignin;
   const app = S.$('#app');
   let session = null, profile = null;
 
   const focusMain = () => { window.scrollTo(0, 0); app.focus({ preventScroll: true }); };
   const setMsg = (el, text, kind) => { el.innerHTML = S.msgHtml(text, kind); };
+  // Apple logo (Sign in with Apple HIG: left-aligned glyph, white on black) and Google "G" (Sign in with Google branding guidelines)
+  const APPLE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>';
   const GOOGLE_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true" width="18" height="18"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 
   // intent from the landing pages: /start/?offer=WEB&niche=home_services
@@ -20,15 +23,18 @@
   // ------------------------------------------------------------ sign in
   function showLogin(errText) {
     S.renderHeader(null);
-    const g = B.googleEnabled;
+    const providers = B.providers;
+    const social = providers.length ? providers.map(p =>
+      '<button type="button" class="btn btn--block sbtn sbtn--' + p + '" id="' + p + 'Btn" data-provider="' + p + '">' +
+      (p === 'apple' ? APPLE_SVG : GOOGLE_SVG) + '<span>' + S.esc(SI.providerLabel(p)) + '</span></button>').join('') +
+      '<p class="muted small center trust" id="trustLine">Secure sign-in. We never see or store your password. ' +
+      '<a href="/legal/privacy/">Privacy</a> · <a href="/legal/terms/">Terms</a></p>' +
+      '<div class="or">or with your email</div>' : '';
     app.innerHTML =
       '<span class="eyebrow">Fixed quote · no sales call</span>' +
       '<h1 class="t">Get your written fixed quote.</h1>' +
-      '<p class="lead">Sign in with your email and answer a short questionnaire (about 6 minutes). You’ll get a written fixed quote ' + S.esc(S.sla()) + '. No password, no phone call.</p>' +
-      '<div class="card login">' +
-      '<button type="button" class="btn btn--block gbtn" id="googleBtn"' + (g ? '' : ' disabled aria-disabled="true" aria-describedby="gNote"') + '>' + GOOGLE_SVG + '<span>Continue with Google</span></button>' +
-      (g ? '' : '<p class="muted small center" id="gNote">Google sign-in is coming soon.</p>') +
-      '<div class="or">or with your email</div>' +
+      '<p class="lead">Sign in' + (providers.length ? ' with ' + providers.map(SI.providerName).join(' or ') + ', or' : '') + ' with your email, and answer a short questionnaire (about 6 minutes). You’ll get a written fixed quote ' + S.esc(S.sla()) + '. No password, no phone call.</p>' +
+      '<div class="card login">' + social +
       '<form id="emailForm" novalidate><div class="field"><label for="email">Email address</label>' +
       '<input class="input" type="email" id="email" name="email" autocomplete="email" inputmode="email" placeholder="you@yourbusiness.com" required></div>' +
       '<button class="btn btn--primary btn--block" type="submit" id="sendBtn">Email me a sign-in link</button></form>' +
@@ -43,12 +49,13 @@
       '<p class="muted small fine">We use your answers only to prepare your quote. You can ask us to delete them at any time. See our <a href="/legal/privacy/">Privacy Policy</a>.</p>';
 
     const loginMsg = S.$('#loginMsg'), emailForm = S.$('#emailForm'), codeForm = S.$('#codeForm'), emailIn = S.$('#email'), codeIn = S.$('#code');
-    if (errText) setMsg(loginMsg, 'Sign-in didn’t finish: ' + errText);
-    S.$('#googleBtn').addEventListener('click', async e => {
-      e.currentTarget.disabled = true;
-      try { S.ss.set('start_login', 'google'); await B.signInWithGoogle(); }
-      catch (err) { e.currentTarget.disabled = !g; setMsg(loginMsg, S.errText(err)); }
-    });
+    if (errText) setMsg(loginMsg, errText.kind ? errText.text : 'Sign-in didn’t finish: ' + errText);
+    S.$$('.sbtn').forEach(btn => btn.addEventListener('click', async e => {
+      const p = e.currentTarget.getAttribute('data-provider'), b = e.currentTarget;
+      b.disabled = true; setMsg(loginMsg, '');
+      try { S.ss.set('start_login', p); await (p === 'apple' ? B.signInWithApple() : B.signInWithGoogle()); }
+      catch (err) { b.disabled = false; setMsg(loginMsg, SI.oauthErrorText({ error: 'server_error', description: String(err && (err.message || err.code) || '') }, p).text); }
+    }));
 
     let timer = null;
     function cooldown() {
@@ -118,8 +125,8 @@
     const m = S.ss.get('start_login'); if (m) { S.track('login', { method: m }); S.ss.del('start_login'); }
     try { profile = await B.getProfile(); }
     catch (err) { app.innerHTML = S.msgHtml(S.errText(err)); return; }
-    S.renderHeader(session);
-    if (!profileDone(profile)) { showProfile(true); return; }
+    S.renderHeader(session, { email: SI.displayEmail(profile, session) });
+    if (!profileDone(profile) || SI.needsContactEmail(profile)) { showProfile(true); return; }
     if (await followIntent()) return;
     showPortal();
   }
@@ -166,11 +173,16 @@
     }
     return '<div class="field' + (f.half ? ' half' : '') + '"><label for="' + id + '">' + S.esc(f.label) + req + '</label>' + hint + input + '</div>';
   }
+  // Apple "Hide My Email" (or any relay address): quotes and receipts go to an address the person recognises, so a contact
+  // e-mail is asked for once, first. Records stay keyed to the auth user id; the relay address keeps working for sign-in.
+  const profileFields = () => (SI.isRelayEmail(profile && profile.email) ? [Q.PROFILE_CONTACT] : []).concat(Q.PROFILE);
   function showProfile(first) {
+    const relay = SI.needsContactEmail(profile);
     app.innerHTML = '<span class="eyebrow">' + (first ? 'Step 0 · About you' : 'Your details') + '</span>' +
       '<h1 class="t">' + (first ? 'Nice to meet you.' : 'Your details') + '</h1>' +
       '<p class="lead">' + (first ? 'Once, so we know who we’re quoting. Then on to the questionnaire.' : 'Update them any time.') + '</p>' +
-      '<form id="profileForm" class="card" novalidate><div class="pgrid">' + Q.PROFILE.map(profileField).join('') + '</div>' +
+      (relay ? '<div class="notice notice--info" role="status" id="relayNote">You signed in with Apple and chose to hide your email. Tell us where to send your quote and receipts; your Apple sign-in keeps working.</div>' : '') +
+      '<form id="profileForm" class="card" novalidate><div class="pgrid">' + profileFields().map(profileField).join('') + '</div>' +
       '<div id="profileMsg"></div><div class="navbtns">' +
       (first ? '' : '<button type="button" class="btn btn--ghost" id="pCancel">Cancel</button>') +
       '<button type="submit" class="btn btn--primary" id="pSave">' + (first ? 'Save and continue' : 'Save') + '</button></div></form>';
@@ -180,22 +192,28 @@
       e.preventDefault();
       const box = S.$('#profileMsg'); setMsg(box, '');
       S.$$('.field--error').forEach(x => x.classList.remove('field--error'));
-      const row = {};
-      Q.PROFILE.forEach(f => { row[f.k] = (S.$('#p_' + f.k).value || '').trim() || null; });
-      const missing = Q.PROFILE.filter(f => f.req && !row[f.k]);
+      const row = {}, fields = profileFields();
+      fields.forEach(f => { row[f.k] = (S.$('#p_' + f.k).value || '').trim() || null; });
+      const missing = fields.filter(f => f.req && !row[f.k]);
       const bad = (k, text) => { const el = S.$('#p_' + k); el.closest('.field').classList.add('field--error'); el.setAttribute('aria-invalid', 'true'); setMsg(box, text); el.focus(); };
       if (missing.length) { bad(missing[0].k, 'Missing: ' + missing.map(f => f.label).join(', ') + '.'); return; }
+      if ('contact_email' in row && row.contact_email) {
+        row.contact_email = row.contact_email.toLowerCase();
+        if (!SI.validEmail(row.contact_email)) { bad('contact_email', 'That email address doesn’t look right.'); return; }
+        if (SI.isRelayEmail(row.contact_email)) { bad('contact_email', 'Please use an address you read, not the Apple relay address.'); return; }
+      }
       const digits = (row.phone || '').replace(/\D/g, '');
       if (!/^\+?[0-9()\-\s.]{7,24}$/.test(row.phone) || digits.length < 10 || digits.length > 15) { bad('phone', 'That phone number doesn’t look right.'); return; }
       if (!row.update_lang) row.update_lang = 'en';
       const btn = S.$('#pSave'); btn.disabled = true;
       try { profile = await B.saveProfile(row); }
       catch (err) { btn.disabled = false; setMsg(box, S.errText(err)); return; }
+      S.renderHeader(session, { email: SI.displayEmail(profile, session) });
       S.toast('Saved');
       if (first && await followIntent()) return;
       showPortal();
     });
-    if (first) { const f = Q.PROFILE.find(x => !S.$('#p_' + x.k).value); if (f && matchMedia('(pointer:fine)').matches) S.$('#p_' + f.k).focus(); }
+    if (first) { const f = profileFields().find(x => !S.$('#p_' + x.k).value); if (f && matchMedia('(pointer:fine)').matches) S.$('#p_' + f.k).focus(); }
   }
 
   // ------------------------------------------------------------ portal
@@ -395,8 +413,11 @@
     S.mockBanner();
     let s = null, err = null;
     const p = new URLSearchParams(location.search + '&' + location.hash.replace(/^#/, ''));
+    // a provider's "no" comes back in the URL (hash or query) before any session; read it, then the URL is cleaned
+    const oerr = SI.readOauthError(location.search, location.hash);
     try { s = await B.consumeLink(); } catch (e) { err = S.errText(e); }
-    if (!err && p.get('error_description')) err = p.get('error_description');
+    if (oerr) { err = SI.oauthErrorText(oerr, S.ss.get('start_login')); S.ss.del('start_login'); }
+    if (SI.urlHasTokens(location.href)) history.replaceState(null, '', location.pathname);
     // demo/test aid: /start/?mock=1&mock_seed=quote_sent moves the signed-in demo user forward
     if (s && B.mode === 'mock' && p.get('mock_seed') && window.StartMock) {
       try { window.StartMock.admin.seed(p.get('mock_seed'), S.PB); } catch (e) { /* unknown stage */ }

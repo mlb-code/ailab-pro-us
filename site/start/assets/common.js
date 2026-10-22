@@ -89,8 +89,9 @@
     offer_required: 'Please choose what you’d like a quote for (step 1).',
     too_many_questionnaires: 'You’ve reached the questionnaire limit. Email us and we’ll open more.',
     too_many_files: 'You can attach up to 5 files.',
+    invalid_contact_email: 'That email address doesn’t look right.',
+    provider_disabled: 'That sign-in method isn’t available yet. Please use your email.',
     invalid_timezone: 'Please pick a time zone from the list.',
-    provider_disabled: 'Google sign-in isn’t available yet. Use your email instead.',
     mock_no_file_storage: 'Demo mode keeps file names only, not the files.',
     not_authenticated: 'Your session ended. Please sign in again.',
     backend_off: 'The client portal is opening soon.'
@@ -113,7 +114,8 @@
     let h = '';
     if (session) {
       if (opts.portalLink) h += '<a href="/start/">Your portal</a>';
-      h += '<span class="who" title="' + esc(session.user.email) + '">' + esc(session.user.email) + '</span>';
+      const who = opts.email || session.user.email;
+      h += '<span class="who" title="' + esc(who) + '">' + esc(who) + '</span>';
       h += '<button type="button" class="btn btn--ghost btn--sm" id="logoutBtn">Sign out</button>';
     } else {
       h += '<a href="/">Back to site</a>';

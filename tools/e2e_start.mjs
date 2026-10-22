@@ -110,7 +110,7 @@ async function main() {
     await page.reload({ waitUntil: 'load' });
     await page.waitForSelector('#email');
     ok(await exists(page, '#mockBanner') && await page.evaluate(() => window.Backend.mode) === 'mock', 'mock backend + banner (forced per tab)');
-    ok(await page.$eval('#googleBtn', b => b.disabled), 'Google button present and disabled (not configured)');
+    ok(!(await exists(page, '.sbtn')) && !(await exists(page, '#trustLine')), 'no Google/Apple buttons when neither is configured (email only)');
     const brand = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8'));
     ok((await text(page, '.brandmark')).trim() === brand.name, 'brand name filled from brand.json');
     ok((await text(page, '#footer')).includes(brand.disclaimers.footer), 'footer disclaimer from brand.json');
