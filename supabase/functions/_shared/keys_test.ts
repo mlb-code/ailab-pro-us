@@ -8,8 +8,8 @@ import { keyFromJson, publicKey, resetKeyWarnings, serverEnv, serverKey, serverK
 const env = (m: Record<string, string>) => ({ get: (n: string) => m[n] });
 const logs: string[] = [];
 const log = (m: string) => logs.push(m);
-const SECRET = "sb_secret_default000000000000000000"; // test value, not a real key
-const CUSTOM = "sb_secret_custom0000000000000000000";
+const SECRET = "sb_secret_dflt_01"; // test shapes only (short on purpose: tools/check_secrets.py)
+const CUSTOM = "sb_secret_cstm_01";
 const LEGACY = "eyJhbGciOi.legacy.servicerole";
 
 Deno.test("keys: injected secret keys JSON wins (default entry, any shape)", () => {
