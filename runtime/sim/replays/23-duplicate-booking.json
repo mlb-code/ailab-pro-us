@@ -1,84 +1,5 @@
 {
- "3168ae15af2973b4ce3829d6": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": false, \"reason\": \"duplicate\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_01R7EK9oEEqLLwd5qc1ft6h4",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "It looks like this slot is already booked under your request. Let me confirm the status with the team.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01JNV1oGU3SxZMd8pBuU8Wgf",
-     "input": {
-      "name": "Dana Miller",
-      "summary": "Customer Dana Miller, 2100 Rice Blvd, Houston 77005, requested AC repair today Mon Oct 12 12 PM-4 PM. Booking returned a duplicate error; please confirm the appointment.",
-      "urgency": "normal"
-     },
-     "name": "take_message",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 727.1,
-    "first_text_ms": 727.2,
-    "total_ms": 1437.1
-   },
-   "usage": {
-    "cache_creation_input_tokens": 264,
-    "cache_read_input_tokens": 2723,
-    "input_tokens": 2,
-    "output_tokens": 201
-   }
-  }
- },
- "4403675057ed3c4eb003b20b": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01KREQo9NXhQgBtvypDRXkUi",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 769.5
-   },
-   "usage": {
-    "cache_creation_input_tokens": 145,
-    "cache_read_input_tokens": 3200,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
- "d767f5037ca57fa6e5f6e223": {
+ "2f66f02b5dac9b054a9874d5": {
   "request": {
    "last_message": {
     "content": [
@@ -129,7 +50,7 @@
    }
   }
  },
- "db87c36a6d03aaf7ec13285e": {
+ "3e4108f67d6f9640e4f6892b": {
   "request": {
    "last_message": {
     "content": [
@@ -175,7 +96,42 @@
    }
   }
  },
- "df2c11a1ef3421fd3a5e61b6": {
+ "89e902520079696fd3ae3fa4": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_014XusJZm2uEB5KkyCyz68VA",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I have two openings: today (Mon Oct 12) 12 PM to 4 PM, or Tue Oct 13 8 AM to 12 PM. Which works for you? Please also send your name and the service address.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 783.5,
+    "first_text_ms": 783.7,
+    "total_ms": 1090.6
+   },
+   "usage": {
+    "cache_creation_input_tokens": 322,
+    "cache_read_input_tokens": 2244,
+    "input_tokens": 2,
+    "output_tokens": 69
+   }
+  }
+ },
+ "9ec44d1df8d66f67c3eb1392": {
   "request": {
    "last_message": {
     "content": [
@@ -226,13 +182,14 @@
    }
   }
  },
- "ee275cdb36657cb25def1dca": {
+ "bfcf999a1e2666d6931f7836": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_014XusJZm2uEB5KkyCyz68VA",
+      "content": "{\"ok\": false, \"reason\": \"duplicate\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_01R7EK9oEEqLLwd5qc1ft6h4",
       "type": "tool_result"
      }
     ],
@@ -243,21 +200,64 @@
   "response": {
    "content": [
     {
-     "text": "I have two openings: today (Mon Oct 12) 12 PM to 4 PM, or Tue Oct 13 8 AM to 12 PM. Which works for you? Please also send your name and the service address.",
+     "text": "It looks like this slot is already booked under your request. Let me confirm the status with the team.",
      "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01JNV1oGU3SxZMd8pBuU8Wgf",
+     "input": {
+      "name": "Dana Miller",
+      "summary": "Customer Dana Miller, 2100 Rice Blvd, Houston 77005, requested AC repair today Mon Oct 12 12 PM-4 PM. Booking returned a duplicate error; please confirm the appointment.",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
+   "stop_reason": "tool_use",
    "timing": {
-    "first_block_ms": 783.5,
-    "first_text_ms": 783.7,
-    "total_ms": 1090.6
+    "first_block_ms": 727.1,
+    "first_text_ms": 727.2,
+    "total_ms": 1437.1
    },
    "usage": {
-    "cache_creation_input_tokens": 322,
-    "cache_read_input_tokens": 2244,
+    "cache_creation_input_tokens": 264,
+    "cache_read_input_tokens": 2723,
     "input_tokens": 2,
-    "output_tokens": 69
+    "output_tokens": 201
+   }
+  }
+ },
+ "d8428e0c827e16f892a28a8a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01KREQo9NXhQgBtvypDRXkUi",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 769.5
+   },
+   "usage": {
+    "cache_creation_input_tokens": 145,
+    "cache_read_input_tokens": 3200,
+    "input_tokens": 2,
+    "output_tokens": 1
    }
   }
  }

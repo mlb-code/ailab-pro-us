@@ -1,5 +1,5 @@
 {
- "074cfbb17cd2366629c128e4": {
+ "3bfdfefcf143647cdf3fd137": {
   "request": {
    "last_message": {
     "content": [
@@ -45,13 +45,59 @@
    }
   }
  },
- "0efac635509731e6522422bb": {
+ "448ca135d69b21f8a55a20e9": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_01GPyZ9JWHXz74xc5peRCE2m",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, Carlos. You're booked for a furnace repair today, Monday October 12, between 12 PM and 4 PM, at 45 Westheimer Rd. A technician will check the furnace then.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01T1CkJf2nB9mqU6JUa5LnNS",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 778.6,
+    "first_text_ms": 778.6,
+    "total_ms": 1071.8
+   },
+   "usage": {
+    "cache_creation_input_tokens": 285,
+    "cache_read_input_tokens": 2528,
+    "input_tokens": 2,
+    "output_tokens": 120
+   }
+  }
+ },
+ "570a772e519b5008a2911c5f": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_011kp9N875GaJdg4WWpjpunp",
+      "tool_use_id": "toolu_01T1CkJf2nB9mqU6JUa5LnNS",
       "type": "tool_result"
      }
     ],
@@ -65,17 +111,17 @@
    "timing": {
     "first_block_ms": null,
     "first_text_ms": null,
-    "total_ms": 742.9
+    "total_ms": 873.4
    },
    "usage": {
-    "cache_creation_input_tokens": 133,
-    "cache_read_input_tokens": 2821,
+    "cache_creation_input_tokens": 132,
+    "cache_read_input_tokens": 2813,
     "input_tokens": 2,
     "output_tokens": 1
    }
   }
  },
- "259b3cbe8edeef0844f1a33e": {
+ "5a09b63e3dc25236d7dbc23d": {
   "request": {
    "last_message": {
     "content": [
@@ -110,7 +156,37 @@
    }
   }
  },
- "30389b93f6d8bab6c64d6341": {
+ "6fd7b773ba5d1408ae17cde7": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_011kp9N875GaJdg4WWpjpunp",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 742.9
+   },
+   "usage": {
+    "cache_creation_input_tokens": 133,
+    "cache_read_input_tokens": 2821,
+    "input_tokens": 2,
+    "output_tokens": 1
+   }
+  }
+ },
+ "6fec5e2cfdb3b7d2a5126cd1": {
   "request": {
    "last_message": {
     "content": [
@@ -161,133 +237,6 @@
    }
   }
  },
- "448ca135d69b21f8a55a20e9": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_01GPyZ9JWHXz74xc5peRCE2m",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks, Carlos. You're booked for a furnace repair today, Monday October 12, between 12 PM and 4 PM, at 45 Westheimer Rd. A technician will check the furnace then.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01T1CkJf2nB9mqU6JUa5LnNS",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 778.6,
-    "first_text_ms": 778.6,
-    "total_ms": 1071.8
-   },
-   "usage": {
-    "cache_creation_input_tokens": 285,
-    "cache_read_input_tokens": 2528,
-    "input_tokens": 2,
-    "output_tokens": 120
-   }
-  }
- },
- "5705cd9c744c70625098b7b8": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01P8HzAuGgFt1NvuxeoMrj1i",
-     "input": {
-      "address": "45 Westheimer Rd, Houston, 77019",
-      "job_type": "Furnace repair",
-      "name": "Carlos Reyes",
-      "notes": "Furnace stopped working. Customer requested afternoon slot.",
-      "phone": null,
-      "slot_id": "2026-10-12T12:00-16:00",
-      "urgency": "normal"
-     },
-     "name": "book_slot",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 763.5,
-    "first_text_ms": null,
-    "total_ms": 1562.7
-   },
-   "usage": {
-    "cache_creation_input_tokens": 159,
-    "cache_read_input_tokens": 2377,
-    "input_tokens": 4,
-    "output_tokens": 246
-   }
-  }
- },
- "570a772e519b5008a2911c5f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01T1CkJf2nB9mqU6JUa5LnNS",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 873.4
-   },
-   "usage": {
-    "cache_creation_input_tokens": 132,
-    "cache_read_input_tokens": 2813,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
  "8f1927b740ff55b1242bad8a": {
   "request": {
    "last_message": {
@@ -334,6 +283,57 @@
    "usage": {
     "cache_creation_input_tokens": 161,
     "cache_read_input_tokens": 2367,
+    "input_tokens": 4,
+    "output_tokens": 246
+   }
+  }
+ },
+ "a530cf9a7432f768f3303c1f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01P8HzAuGgFt1NvuxeoMrj1i",
+     "input": {
+      "address": "45 Westheimer Rd, Houston, 77019",
+      "job_type": "Furnace repair",
+      "name": "Carlos Reyes",
+      "notes": "Furnace stopped working. Customer requested afternoon slot.",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 763.5,
+    "first_text_ms": null,
+    "total_ms": 1562.7
+   },
+   "usage": {
+    "cache_creation_input_tokens": 159,
+    "cache_read_input_tokens": 2377,
     "input_tokens": 4,
     "output_tokens": 246
    }

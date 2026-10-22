@@ -1,5 +1,212 @@
 {
- "3d8c8451d5f50a7bc4f11111": {
+ "061f094f2b8a3f1ab2cf5e97": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The first one works",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Great, I can book today 12 PM to 4 PM. To finish, please send your full name and the service street address (including ZIP 77005).",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 624.5,
+    "first_text_ms": 624.6,
+    "total_ms": 926.2
+   },
+   "usage": {
+    "cache_creation_input_tokens": 143,
+    "cache_read_input_tokens": 2621,
+    "input_tokens": 4,
+    "output_tokens": 45
+   }
+  }
+ },
+ "0e4261c137491e65bf50ae21": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_01DxyA8fztkhp96p4mYToAWM",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're booked, Dana: AC repair today, Mon Oct 12, 12 PM to 4 PM, at 2100 Rice Blvd. A technician will check the unit. Thanks for contacting Cool Breeze HVAC!",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01CUNPfjysw6RwQu92tzMuUa",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 755.8,
+    "first_text_ms": 756.0,
+    "total_ms": 1120.9
+   },
+   "usage": {
+    "cache_creation_input_tokens": 285,
+    "cache_read_input_tokens": 2981,
+    "input_tokens": 2,
+    "output_tokens": 131
+   }
+  }
+ },
+ "10fec8c25b88804543a9cdc8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 77005",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01RKbeicCZWLuAoNDBDdTnUf",
+     "input": {
+      "date_from": "2026-10-12",
+      "job_type": "AC repair",
+      "zip": "77005"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 731.6,
+    "first_text_ms": null,
+    "total_ms": 982.7
+   },
+   "usage": {
+    "cache_creation_input_tokens": 95,
+    "cache_read_input_tokens": 2248,
+    "input_tokens": 4,
+    "output_tokens": 104
+   }
+  }
+ },
+ "42beebc2b5b0df5b4d96089c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My name is Dana Miller",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, Dana. What is the service street address, including ZIP 77005?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 624.9,
+    "first_text_ms": 625.1,
+    "total_ms": 844.4
+   },
+   "usage": {
+    "cache_creation_input_tokens": 113,
+    "cache_read_input_tokens": 2764,
+    "input_tokens": 4,
+    "output_tokens": 27
+   }
+  }
+ },
+ "44623e54bacd249507b34c96": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, my AC is blowing warm air",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear your AC is blowing warm air. Which ZIP code is the service address in?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 1020.9,
+    "first_text_ms": 1021.1,
+    "total_ms": 1170.1
+   },
+   "usage": {
+    "cache_creation_input_tokens": 141,
+    "cache_read_input_tokens": 2107,
+    "input_tokens": 4,
+    "output_tokens": 33
+   }
+  }
+ },
+ "91a02a34b09d9110d6a2f7df": {
   "request": {
    "last_message": {
     "content": [
@@ -50,122 +257,7 @@
    }
   }
  },
- "466381fe20954043676ee738": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01CUNPfjysw6RwQu92tzMuUa",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 629.2
-   },
-   "usage": {
-    "cache_creation_input_tokens": 143,
-    "cache_read_input_tokens": 3266,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
- "4d297e836688a88ebd8229d9": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Hi, my AC is blowing warm air",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry to hear your AC is blowing warm air. Which ZIP code is the service address in?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 1020.9,
-    "first_text_ms": 1021.1,
-    "total_ms": 1170.1
-   },
-   "usage": {
-    "cache_creation_input_tokens": 141,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 33
-   }
-  }
- },
- "68b2d29a2279ee50e592468b": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: 77005",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01RKbeicCZWLuAoNDBDdTnUf",
-     "input": {
-      "date_from": "2026-10-12",
-      "job_type": "AC repair",
-      "zip": "77005"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 731.6,
-    "first_text_ms": null,
-    "total_ms": 982.7
-   },
-   "usage": {
-    "cache_creation_input_tokens": 95,
-    "cache_read_input_tokens": 2248,
-    "input_tokens": 4,
-    "output_tokens": 104
-   }
-  }
- },
- "7edb15878e292617c53b6737": {
+ "9b6220f3d4427427c1a9793d": {
   "request": {
    "last_message": {
     "content": [
@@ -203,7 +295,37 @@
    }
   }
  },
- "8239a541bf974d6af99d397f": {
+ "f06f86ef43fa105701c8faa6": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_01CUNPfjysw6RwQu92tzMuUa",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 629.2
+   },
+   "usage": {
+    "cache_creation_input_tokens": 143,
+    "cache_read_input_tokens": 3266,
+    "input_tokens": 2,
+    "output_tokens": 1
+   }
+  }
+ },
+ "f17831c5c274c60eab10f0a3": {
   "request": {
    "last_message": {
     "content": [
@@ -235,128 +357,6 @@
     "cache_read_input_tokens": 2343,
     "input_tokens": 2,
     "output_tokens": 82
-   }
-  }
- },
- "bccb50559064621ce7abe1e6": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My name is Dana Miller",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks, Dana. What is the service street address, including ZIP 77005?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 624.9,
-    "first_text_ms": 625.1,
-    "total_ms": 844.4
-   },
-   "usage": {
-    "cache_creation_input_tokens": 113,
-    "cache_read_input_tokens": 2764,
-    "input_tokens": 4,
-    "output_tokens": 27
-   }
-  }
- },
- "d2d5ce5b8780682de3c4b39f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: The first one works",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Great, I can book today 12 PM to 4 PM. To finish, please send your full name and the service street address (including ZIP 77005).",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 624.5,
-    "first_text_ms": 624.6,
-    "total_ms": 926.2
-   },
-   "usage": {
-    "cache_creation_input_tokens": 143,
-    "cache_read_input_tokens": 2621,
-    "input_tokens": 4,
-    "output_tokens": 45
-   }
-  }
- },
- "fbc8ae3b914e054d2c004fda": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_01DxyA8fztkhp96p4mYToAWM",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're booked, Dana: AC repair today, Mon Oct 12, 12 PM to 4 PM, at 2100 Rice Blvd. A technician will check the unit. Thanks for contacting Cool Breeze HVAC!",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01CUNPfjysw6RwQu92tzMuUa",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 755.8,
-    "first_text_ms": 756.0,
-    "total_ms": 1120.9
-   },
-   "usage": {
-    "cache_creation_input_tokens": 285,
-    "cache_read_input_tokens": 2981,
-    "input_tokens": 2,
-    "output_tokens": 131
    }
   }
  }

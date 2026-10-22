@@ -369,7 +369,11 @@ def summary(c: Convo) -> str:
     if c.booking:
         return f"Booked: {c.booking.get('job_type')} {c.booking.get('label') or c.booking.get('start')}"[:400]
     if c.message:
-        return f"Message ({c.message.get('urgency', 'normal')}): {c.message.get('summary', '')}"[:400]
+        details = [v for v in (c.message.get("name"), c.message.get("job_type"), c.message.get("address")) if v]
+        if not details and not c.meta.get("transcript_withheld"):
+            details = [c.collected.get(k) for k in ("name", "job_type", "address") if c.collected.get(k)]
+        tail = f" ({', '.join(details)})" if details else ""
+        return f"Message ({c.message.get('urgency', 'normal')}): {c.message.get('summary', '')}{tail}"[:400]
     said = next((t["text"] for t in c.transcript if t["who"] == "customer"), "")
     return (f"Caller said: {said}" if said else "No speech")[:400]
 
