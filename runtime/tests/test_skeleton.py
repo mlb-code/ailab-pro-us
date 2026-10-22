@@ -366,6 +366,27 @@ def test_from_settings_supabase():
     assert isinstance(from_settings(s), SupabaseStore)
 
 
+def test_supabase_accepts_new_style_secret_key():
+    """22.10.2026: SUPABASE_SERVICE_ROLE_KEY may hold a new-style sb_secret_... key (not a JWT). Nothing parses it;
+    it is sent as-is in both apikey and Authorization headers, and /health never shows it."""
+    from app.store import from_settings
+    key = "sb_secret_" + "x" * 30   # shape only, not a real key
+    s = settings_mod.load({"STORE_BACKEND": "supabase", "SUPABASE_URL": "https://x.supabase.co/",
+                           "SUPABASE_SERVICE_ROLE_KEY": key})
+    assert s.supabase_service_key == key and s.supabase_url == "https://x.supabase.co"
+    assert key not in repr(s) and key not in str(s.public())
+    seen = {}
+
+    def handler(req):
+        seen["apikey"] = req.headers.get("apikey")
+        seen["auth"] = req.headers.get("authorization")
+        return httpx.Response(200, json="ok")
+    st = SupabaseStore(s.supabase_url, s.supabase_service_key, transport=httpx.MockTransport(handler))
+    assert isinstance(from_settings(s), SupabaseStore)
+    assert st.ping() is True
+    assert seen == {"apikey": key, "auth": f"Bearer {key}"}
+
+
 def test_json_store_corrupt_file(tmp_path):
     (tmp_path / "calls.json").write_text("{oops")
     with pytest.raises(StoreError, match="not valid JSON"):
