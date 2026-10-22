@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import stat
 import sys
 import tempfile
@@ -498,6 +499,72 @@ class TestSetup(Base):
         self.assertNotIn('"DELETE"', src)
         for word in ("/pause", "/restore", "/remove", "vault.delete", "drop table", "cron.unschedule"):
             self.assertNotIn(word, src.lower())
+
+
+# ------------------------------------------------------------------ Sign in with Apple (--only apple,config; 22.10.2026)
+class TestApple(Base):
+    def fake(self):
+        return FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+
+    def p8(self):
+        path = os.path.join(self.tmp, "AuthKey_TEST000000.p8")
+        subprocess.run(["openssl", "ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", path], check=True, capture_output=True)
+        return path
+
+    def test_skipped_without_secrets_and_config_says_off(self):
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple,config"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("מדלג", out)
+        self.assertNotIn("external_apple_enabled", fake.auth_cfg)
+        self.assertIn("APPLE_ENABLED: false", S.read_text(S.CONFIG_JS))
+        self.assertIn("GOOGLE_ENABLED: false", S.read_text(S.CONFIG_JS))
+
+    def test_enables_apple_with_a_signed_secret_never_printed(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "APPLE_SERVICES_ID": "co.ailabpro.signin", "APPLE_TEAM_ID": "ABCDE12345",
+                      "APPLE_KEY_ID": "TEST000000", "APPLE_P8_PATH": self.p8()})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple,config"], fake)
+        self.assertEqual(rc, 0, out)
+        a = fake.auth_cfg
+        self.assertTrue(a["external_apple_enabled"])
+        self.assertEqual(a["external_apple_client_id"], "co.ailabpro.signin")
+        secret = a["external_apple_secret"]
+        self.assertEqual(secret.count("."), 2)
+        self.assertNotIn(secret, out)
+        self.assertNotIn(secret[:20], out)
+        hdr = json.loads(base64.urlsafe_b64decode(secret.split(".")[0] + "=="))
+        body = json.loads(base64.urlsafe_b64decode(secret.split(".")[1] + "=="))
+        self.assertEqual((hdr["alg"], hdr["kid"]), ("ES256", "TEST000000"))
+        self.assertEqual((body["iss"], body["sub"], body["aud"]), ("ABCDE12345", "co.ailabpro.signin", "https://appleid.apple.com"))
+        self.assertLessEqual(body["exp"] - body["iat"], 180 * 86400)
+        self.assertGreaterEqual(body["exp"] - body["iat"], 170 * 86400)
+        self.assertIn("APPLE_ENABLED: true", S.read_text(S.CONFIG_JS))
+        self.assertIn("תקף עד", out)
+
+    def test_bad_ids_or_missing_p8_stop_before_any_call(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "APPLE_SERVICES_ID": "co.ailabpro.signin", "APPLE_TEAM_ID": "short",
+                      "APPLE_KEY_ID": "TEST000000", "APPLE_P8_PATH": self.p8()})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple"], fake)
+        self.assertEqual(rc, 1)
+        self.assertNotIn("PATCH", fake.methods())
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "APPLE_SERVICES_ID": "co.ailabpro.signin", "APPLE_TEAM_ID": "ABCDE12345",
+                      "APPLE_KEY_ID": "TEST000000", "APPLE_P8_PATH": os.path.join(self.tmp, "missing.p8")})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple"], fake)
+        self.assertEqual(rc, 1)
+        self.assertIn(".p8", out)
+        self.assertNotIn("PATCH", fake.methods())
+
+    def test_config_reads_apple_flag_from_the_project(self):
+        fake = self.fake()
+        fake.auth_cfg["external_apple_enabled"] = True
+        rc, out = self.run_cli(["--only", "config"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("APPLE_ENABLED: true", S.read_text(S.CONFIG_JS))
+        self.assertIn("apple", S.STEPS)
+        self.assertEqual(S.STEPS.index("apple"), S.STEPS.index("google") + 1)
 
 
 # ------------------------------------------------------------------ --only supabase-keys (new key model, 22.10.2026)

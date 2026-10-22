@@ -11,6 +11,8 @@ What it does (every step is safe to re-run):
   auth       site URL + redirect allow-list, e-mail magic link + 6-digit code (30 min), English template,
              Resend SMTP when RESEND_API_KEY is set
   google     Google sign-in when GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET are set
+  apple      Sign in with Apple when APPLE_SERVICES_ID + APPLE_TEAM_ID + APPLE_KEY_ID + APPLE_P8_PATH are set: builds the
+             client secret (tools/apple_secret.py, ES256 JWT, 175 days) and sends it to Supabase; re-run before it expires
   storage    verify buckets client-files + videos-public (created by the storage migration)
   vault      Vault: ailab_us_project_url + ailab_us_service_role_key (A8 pg_net). Since 22.10.2026 the value is the
              new-style SECRET key from .secrets.env (SUPABASE_SECRET_KEY, see supabase-keys); the legacy service_role JWT
@@ -19,7 +21,8 @@ What it does (every step is safe to re-run):
              SUPABASE_SECRET_KEY when present; supabase/functions/_shared/keys.ts reads it)
   functions  deploy supabase/functions/<slug>/index.ts (Supabase CLI if installed, else Management API)
   cron       select private.install_email_jobs() (A8), then verify every pg_cron job named in the migrations
-  config     write site/assets/config.js (window.SITE_CONFIG: URL + publishable/anon key, BACKEND 'supabase')
+  config     write site/assets/config.js (window.SITE_CONFIG: URL + publishable/anon key, BACKEND 'supabase',
+             GOOGLE_ENABLED / APPLE_ENABLED from the project's auth config: the sign-in buttons follow them)
   ping       call public.ping() through the REST API with the public key
 then prints a Hebrew checklist of what is still manual.
 
@@ -90,8 +93,9 @@ SUPABASE_JS_DEFAULT = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.
 # from the quote page and portal (the quote token is the key) and PayPal's webhook (signature checked with PayPal).
 # pay-refund keeps verify_jwt: the admin's session JWT.
 NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe", "pay-create", "pay-capture", "pay-upwork", "paypal-webhook"}
-STEPS = ["migrate", "test", "settings", "auth", "google", "storage", "vault", "secrets",
+STEPS = ["migrate", "test", "settings", "auth", "google", "apple", "storage", "vault", "secrets",
          "functions", "cron", "config", "ping"]
+APPLE_KEYS = ("APPLE_SERVICES_ID", "APPLE_TEAM_ID", "APPLE_KEY_ID", "APPLE_P8_PATH")
 OPT_IN_STEPS = ["paypal", "supabase-keys"]   # only with --only (paypal writes config/brand.json; supabase-keys creates a key)
 SECRET_KEY_ENV = "SUPABASE_SECRET_KEY"       # .secrets.env: the named sb_secret_ key (never printed)
 EDGE_SECRET_NAME = "SB_SERVICE_KEY"          # Edge Function secret read by supabase/functions/_shared/keys.ts (SUPABASE_* is reserved)
@@ -274,6 +278,7 @@ class Ctx:
         self.ref = None
         self.report = []        # (ok: bool|None, text)
         self.google_on = None
+        self.apple_on = None
         self.public_key = None
         self.functions_skipped = []
         self.active_projects = []
@@ -499,6 +504,29 @@ def step_google(ctx):
         "external_google_enabled": True, "external_google_client_id": cid, "external_google_secret": csec})
     ctx.google_on = True
     ctx.ok("כניסה עם Google הופעלה")
+
+
+def step_apple(ctx):
+    vals = {k: ctx.sec.get(k, "") for k in APPLE_KEYS}
+    if not all(vals.values()):
+        ctx.apple_on = False
+        say("  Apple: חסרים " + ", ".join(k for k, v in vals.items() if not v) + " ב-.secrets.env, מדלג (כפתור Apple יישאר כבוי).")
+        return
+    sid, team, kid, p8 = (vals[k].strip() for k in APPLE_KEYS)
+    if not re.fullmatch(r"[A-Za-z0-9.\-]{3,100}", sid) or not re.fullmatch(r"[A-Z0-9]{10}", team) or not re.fullmatch(r"[A-Z0-9]{10}", kid):
+        raise SetupError("❌ APPLE_SERVICES_ID / APPLE_TEAM_ID / APPLE_KEY_ID נראים לא תקינים (Team ID ו-Key ID = 10 תווים גדולים/ספרות).")
+    p8 = os.path.expanduser(p8)
+    if not os.path.isfile(p8):
+        raise SetupError(f"❌ קובץ ה-.p8 לא נמצא בנתיב שב-APPLE_P8_PATH. להוריד שוב מ-developer.apple.com (Keys) ולעדכן את הנתיב.")
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from apple_secret import MAX_DAYS, make_secret
+    secret = make_secret(team, kid, sid, p8, MAX_DAYS)
+    ctx.api.redact.values.append(secret)
+    ctx.api.req("PATCH", f"/projects/{ctx.ref}/config/auth", {
+        "external_apple_enabled": True, "external_apple_client_id": sid, "external_apple_secret": secret})
+    ctx.apple_on = True
+    exp = time.strftime("%d.%m.%Y", time.localtime(time.time() + MAX_DAYS * 86400))
+    ctx.ok(f"כניסה עם Apple הופעלה (Services ID {sid}). הסוד תקף עד {exp}: לפני כן להריץ שוב --only apple")
 
 
 # ------------------------------------------------------------------ step: storage
@@ -731,7 +759,14 @@ def google_enabled(ctx):
     return bool(cfg.get("external_google_enabled"))
 
 
-def render_config(url, key, google_on, brand, supabase_js):
+def apple_enabled(ctx):
+    if ctx.apple_on is not None:
+        return ctx.apple_on
+    cfg = ctx.api.req("GET", f"/projects/{ctx.ref}/config/auth") or {}
+    return bool(cfg.get("external_apple_enabled"))
+
+
+def render_config(url, key, google_on, brand, supabase_js, apple_on=False):
     flags = {"show_founder_price": bool(brand.get("show_founder_price")), "legal_final": bool(brand.get("legal_final"))}
     return f"""/* Site-wide runtime config. PUBLIC values only (URL + publishable/anon key are public by design; never a service key).
    generated-by: tools/us_setup.py (task A2). Re-run `python3 tools/us_setup.py --only config` to refresh; do not edit by hand.
@@ -745,6 +780,7 @@ window.SITE_CONFIG = {{
   SUPABASE_ANON_KEY: {json.dumps(key)},
   SUPABASE_JS: {json.dumps(supabase_js)},
   GOOGLE_ENABLED: {'true' if google_on else 'false'},
+  APPLE_ENABLED: {'true' if apple_on else 'false'},
   ALLOW_MOCK_SWITCH: false,
   BUCKET: 'client-files',
   MAX_FILES: 5,
@@ -760,10 +796,10 @@ def step_config(ctx):
     cur = read_text(CONFIG_JS) if os.path.exists(CONFIG_JS) else ""
     m = re.search(r"SUPABASE_JS:\s*['\"](https://[^'\"]+)['\"]", cur)
     text = render_config(f"https://{ctx.ref}.supabase.co", key, google_enabled(ctx), ctx.brand,
-                         m.group(1) if m else SUPABASE_JS_DEFAULT)
+                         m.group(1) if m else SUPABASE_JS_DEFAULT, apple_enabled(ctx))
     with open(CONFIG_JS, "w", encoding="utf-8") as f:
         f.write(text)
-    ctx.ok(f"נכתב {os.path.relpath(CONFIG_JS, ROOT)} (BACKEND 'supabase', כתובת + מפתח ציבורי)")
+    ctx.ok(f"נכתב {os.path.relpath(CONFIG_JS, ROOT)} (BACKEND 'supabase', כתובת + מפתח ציבורי, Google {'פעיל' if 'GOOGLE_ENABLED: true' in text else 'כבוי'}, Apple {'פעיל' if 'APPLE_ENABLED: true' in text else 'כבוי'})")
 
 
 # ------------------------------------------------------------------ step: ping
@@ -947,6 +983,11 @@ def checklist(ctx):
             f"       https://{ref}.supabase.co/auth/v1/callback ; להדביק ID+Secret ב-.secrets.env ולהריץ --only google,config")
     else:
         add(f"Google Cloud → OAuth client: לוודא ש-https://{ref}.supabase.co/auth/v1/callback נמצא ב-Authorized redirect URIs.")
+    if not all(sec.get(k) for k in APPLE_KEYS):
+        add("Apple (לא חובה): Services ID + מפתח Sign in with Apple (.p8) ב-developer.apple.com, לפי docs/runbooks/social-signin-setup.md "
+            "(ריפו פרטי); להדביק APPLE_SERVICES_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_P8_PATH ב-.secrets.env ולהריץ --only apple,config")
+    else:
+        add("Apple: הסוד תקף 175 יום. תזכורת ביומן חודש לפני, ואז: python3 tools/us_setup.py --only apple")
     if ctx.functions_skipped or not function_slugs():
         add("Edge Functions: כשיהיו (A6/A8), להריץ --only functions. אם הפריסה דרך ה-API נכשלת:\n"
             "       brew install supabase/tap/supabase ואז שוב --only functions (הסקריפט משתמש ב-CLI אם הוא מותקן).")
@@ -965,7 +1006,7 @@ def dry_run(args, sec, brand):
         + ("ייווצר אם לא קיים (--create)" if args.create else "רק פרויקט קיים (בלי --create)"))
     say(f"  ארגון: {args.org or sec.get('SUPABASE_ORG_SLUG') or 'אוטומטי (אם יש יותר מאחד: חובה --org)'}")
     say(f"  סודות ב-.secrets.env (רק יש/אין): טוקן Supabase {have('SUPABASE_ACCESS_TOKEN')}, Resend {have('RESEND_API_KEY')}, "
-        f"Claude {have('ANTHROPIC_API_KEY')}, Google {have('GOOGLE_OAUTH_CLIENT_ID')}, "
+        f"Claude {have('ANTHROPIC_API_KEY')}, Google {have('GOOGLE_OAUTH_CLIENT_ID')}, Apple {have('APPLE_KEY_ID')}, "
         f"סיסמת DB {have('SUPABASE_DB_PASSWORD')}, מפתח סודי חדש {have(SECRET_KEY_ENV)}")
     plan = {
         "migrate": "מיגרציות לפי הסדר: " + ", ".join(migration_files()),
@@ -975,6 +1016,7 @@ def dry_run(args, sec, brand):
                 + (f"SMTP Resend משולח {parse_sender(smtp_sender(brand, args.smtp_from))[1]}" if sec.get("RESEND_API_KEY")
                    else "בלי SMTP (אין מפתח Resend)"),
         "google": "Google: " + ("יופעל" if sec.get("GOOGLE_OAUTH_CLIENT_ID") else "ידולג (אין פרטים)"),
+        "apple": "Apple: " + ("יופעל (סוד ל-175 יום)" if all(sec.get(k) for k in APPLE_KEYS) else "ידולג (חסרים APPLE_* ב-.secrets.env)"),
         "storage": "אחסון: " + ", ".join(BUCKETS),
         "vault": "Vault: ailab_us_project_url, ailab_us_service_role_key ("
                  + (f"המפתח הסודי החדש מ-{SECRET_KEY_ENV}" if sec.get(SECRET_KEY_ENV) else "service_role ישן מה-API, לא מודפס") + ")"
@@ -1027,7 +1069,7 @@ def parse_only(only):
 
 
 STEP_FUNCS = {"migrate": step_migrate, "test": step_test, "settings": step_settings, "auth": step_auth,
-              "google": step_google, "storage": step_storage, "vault": step_vault, "secrets": step_secrets,
+              "google": step_google, "apple": step_apple, "storage": step_storage, "vault": step_vault, "secrets": step_secrets,
               "functions": step_functions, "cron": step_cron, "config": step_config, "ping": step_ping,
               "paypal": step_paypal, "supabase-keys": step_supabase_keys}
 
