@@ -217,8 +217,15 @@ async function main() {
     const digits = tenant.twilio_number.slice(2);
     await page.select('#ob_car', 'verizon'); await sleep(80);
     ok((await page.$eval('#ob_carhow', e => e.innerText)).includes('*71' + digits), 'forwarding: Verizon code uses the AI line number');
+    // AT&T publishes no dial codes (att.com KM1011513): the portal sends the client to the phone's settings
     await page.select('#ob_car', 'att'); await sleep(80);
-    ok((await page.$eval('#ob_carhow', e => e.innerText)).includes('**61*1' + digits + '#'), 'forwarding: AT&T code');
+    const attHow = await page.$eval('#ob_carhow', e => e.innerText);
+    ok(/Phone app → Settings → Calling accounts/.test(attHow) && /When unanswered/.test(attHow) && !/\*\*61/.test(attHow) && attHow.includes(digits.slice(-4)), 'forwarding: AT&T = phone settings, no dial code');
+    // Comcast Business: VoiceEdge star codes from Comcast's sheet (SLS90624), not the unverified "Voice Manager" menu
+    await page.select('#ob_car', 'comcast'); await sleep(80);
+    const cbHow = await page.$eval('#ob_carhow', e => e.innerText);
+    ok(['*92', '*90', '*93', '*91', digits].every(s => cbHow.includes(s)) && !/Voice Manager/.test(cbHow), 'forwarding: Comcast = VoiceEdge codes *92/*90, off *93/*91');
+    await page.select('#ob_car', 'att'); await sleep(80);
     ok(/text-back message/.test(await page.$eval('#ob_textback', e => e.innerText)), 'test call: warns that hanging up silent sends a text-back');
     ok(/30 minutes/.test(await page.$eval('#ob-forward_calls', e => e.innerText)), 'test call: 30-minute window explained');
     await page.click('#ob_test'); await sleep(250);
@@ -227,12 +234,24 @@ async function main() {
     await page.click('#ob_testsim');
     ok(await page.waitForFunction(() => /Forwarding works/.test(document.body.innerText), { timeout: 4000 }).then(() => true).catch(() => false), 'simulated forwarded call marks the step done (poll)');
     ok((await db(page)).events.some(e => e.type === 'forwarding_test_passed'), 'forwarding_test_passed event');
+    // calendly: the saved link is not enough; the OAuth button + the "Job details" question note (mock runtime)
+    await openStep(page, 'calendar');
+    await page.$eval('input[name=ob_prov][value=calendly]', r => r.click()); await sleep(50);
+    const clyPanel = await page.$eval('#ob_cal_calendly', e => e.innerText);
+    ok(/Connect Calendly account/.test(clyPanel) && /Job details/.test(clyPanel) && /Invitee questions/.test(clyPanel), 'calendar: Calendly OAuth button + "Job details" question note');
+    await page.$eval('#ob_calendly', b => b.click());
+    await page.waitForSelector('#calReturn .notice', { timeout: 5000 });
+    ok(/Calendly account connected/.test(await page.$eval('#calReturn', e => e.innerText)), 'Calendly OAuth return: connected');
+    it = (await db(page)).onboarding_items.find(o => o.key === 'calendar');
+    ok(it.data.provider === 'calendly' && it.data.oauth_at && it.data.booking_link === 'https://calendly.com/coolbreeze/service-call', 'calendar: Calendly OAuth recorded, saved link kept');
+    ok(/Reconnect Calendly account/.test(await page.$eval('#ob_cal_calendly', e => e.innerText)) && /Connected — Calendly account/.test(await page.$eval('#ob_cal_calendly', e => e.innerText)), 'calendar: Calendly shows connected');
     // google calendar connect (mock runtime)
     await openStep(page, 'calendar');
     await page.$eval('input[name=ob_prov][value=google]', r => r.click());
     await page.$eval('#ob_google', b => b.click());
-    await page.waitForSelector('#calReturn .notice', { timeout: 5000 });
-    ok(/Google Calendar connected/.test(await page.$eval('#calReturn', e => e.innerText)) && await page.evaluate(() => location.search === ''), 'Google OAuth return: connected, URL cleaned');
+    // (the Calendly return notice is still on the page: wait for the Google one, not for any notice)
+    const gReturn = await page.waitForFunction(() => /Google Calendar connected/.test((document.querySelector('#calReturn') || {}).innerText || ''), { timeout: 5000 }).then(() => true).catch(() => false);
+    ok(gReturn && await page.evaluate(() => location.search === ''), 'Google OAuth return: connected, URL cleaned');
     it = (await db(page)).onboarding_items.find(o => o.key === 'calendar');
     ok(it.data.provider === 'google' && it.data.connected_at, 'calendar: Google connection recorded');
     // go-live
