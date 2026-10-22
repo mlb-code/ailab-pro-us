@@ -1,7 +1,9 @@
 // Data access for the quote functions, behind one interface:
-//   RestStore   -> Supabase PostgREST with the service-role key (env SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY,
-//                  injected by the Edge runtime; never logged, never returned)
+//   RestStore   -> Supabase PostgREST with the server (secret) key: env SUPABASE_URL + the key order in _shared/keys.ts
+//                  (new-style sb_secret_… first, legacy service_role JWT last); never logged, never returned
 //   MemoryStore -> in-process tables for tests; mirrors the DB guard rules that matter here (quotes_guard).
+
+import { serverEnv } from "./keys.ts";
 
 export interface QuoteRow {
   id: string;
@@ -192,9 +194,8 @@ export class MemoryStore implements Store {
 export class RestStore implements Store {
   constructor(protected url: string, protected key: string, protected fetchFn: typeof fetch = (...a) => fetch(...a)) {}
   static fromEnv(): RestStore {
-    const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!url || !key) throw new Error("supabase_env_missing");
-    return new RestStore(url.replace(/\/$/, ""), key);
+    const { url, key } = serverEnv();
+    return new RestStore(url, key);
   }
   protected async req(path: string, init: RequestInit = {}, prefer = "return=representation") {
     const r = await this.fetchFn(`${this.url}/rest/v1/${path}`, {

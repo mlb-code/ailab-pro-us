@@ -4,9 +4,11 @@
 //    no service key is used and nothing else about the tenant is returned;
 // 3. ticket: POST <RUNTIME_URL>/oauth/<provider>/ticket with the shared secret RUNTIME_ADMIN_TOKEN (runtime/app/calendar/routes.py),
 //    which answers {url: "<runtime>/oauth/<provider>/start?ticket=..."} (15 min, single use). The browser never sees the secret.
-// Env: SUPABASE_URL, SUPABASE_ANON_KEY (both set by Supabase), RUNTIME_URL, RUNTIME_ADMIN_TOKEN (Edge Function secrets; B9).
+// Env: SUPABASE_URL + the public key (_shared/keys.ts: SUPABASE_PUBLISHABLE_KEYS / SB_PUBLISHABLE_KEY / legacy SUPABASE_ANON_KEY),
+// RUNTIME_URL, RUNTIME_ADMIN_TOKEN (Edge Function secrets; B9).
 import { bearer, errorReply, json, readJson } from "../_shared/http.ts";
 import { QuoteError } from "../_shared/quote_engine.ts";
+import { publicKey, supabaseUrl } from "../_shared/keys.ts";
 
 export type Env = { supabaseUrl: string; anonKey: string; runtimeUrl: string; runtimeToken: string };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,7 +16,7 @@ const PROVIDERS = ["google", "calendly"];
 
 export function envFromDeno(): Env {
   const g = (k: string) => Deno.env.get(k) ?? "";
-  return { supabaseUrl: g("SUPABASE_URL"), anonKey: g("SUPABASE_ANON_KEY"), runtimeUrl: g("RUNTIME_URL"), runtimeToken: g("RUNTIME_ADMIN_TOKEN") };
+  return { supabaseUrl: supabaseUrl(), anonKey: publicKey(), runtimeUrl: g("RUNTIME_URL"), runtimeToken: g("RUNTIME_ADMIN_TOKEN") };
 }
 
 export function makeHandler(deps: { env: () => Env; fetch?: typeof fetch }) {

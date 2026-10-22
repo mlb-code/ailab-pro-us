@@ -493,6 +493,21 @@ Deno.test("events-dispatch: POST + service key only; routes email / storage_purg
   eq((await post({ task: "drop" }, "Bearer svc-key")).status, 400);
 });
 
+Deno.test("events-dispatch: any configured server key is accepted (named secret key in Vault vs default), apikey header too", async () => {
+  const db = new MemDb();
+  const h = dispatchHandler({ db: () => db, mailer: () => new FakeMailer(), supabaseUrl: () => "https://ref.supabase.co",
+    serviceKey: () => "sb_secret_default", serviceKeys: () => ["sb_secret_default", "sb_secret_runtime", "", "legacy.jwt.x"],
+    now: () => NOON_IL, fetchFn: (() => Promise.resolve(new Response("[]"))) as unknown as typeof fetch });
+  const post = (headers: Record<string, string>) => h(new Request("http://x/", { method: "POST", body: "{}", headers }));
+  eq((await post({ authorization: "Bearer sb_secret_default" })).status, 200);
+  eq((await post({ authorization: "Bearer sb_secret_runtime" })).status, 200);
+  eq((await post({ authorization: "Bearer legacy.jwt.x" })).status, 200);
+  eq((await post({ apikey: "sb_secret_runtime" })).status, 200);
+  eq((await post({ authorization: "Bearer sb_secret_other" })).status, 403);
+  eq((await post({ apikey: "" })).status, 403);
+  eq((await post({ authorization: "Bearer " })).status, 403);
+});
+
 Deno.test("email-unsubscribe: valid token opts out; any token gets the same plain-text answer", async () => {
   const db = new MemDb();
   await db.recipient("dani@example.com");

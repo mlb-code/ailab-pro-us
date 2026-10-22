@@ -1,13 +1,13 @@
-// EmailDb over PostgREST RPCs (service-role key; env SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY injected by the Edge
-// runtime, never logged). The outbox lives in schema private; only these service-role-only RPCs reach it.
+// EmailDb over PostgREST RPCs (server key from _shared/keys.ts: new-style secret key first, legacy service_role JWT last;
+// never logged). The outbox lives in schema private; only these service-role-only RPCs reach it.
 import type { EmailDb, EmailSettings, OutboxJob, Outcome } from "./dispatch.ts";
+import { serverEnv } from "../keys.ts";
 
 export class RestEmailDb implements EmailDb {
   constructor(readonly url: string, readonly key: string, private fetchFn: typeof fetch = fetch) {}
   static fromEnv(): RestEmailDb {
-    const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!url || !key) throw new Error("supabase_env_missing");
-    return new RestEmailDb(url.replace(/\/$/, ""), key);
+    const { url, key } = serverEnv();
+    return new RestEmailDb(url, key);
   }
   private async rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
     const r = await this.fetchFn(`${this.url}/rest/v1/rpc/${name}`, {

@@ -6,6 +6,7 @@
 // Writes public.leads (email, niche, source_page, utm, ip_hash) + public.events {entity:'lead', type:'lead_received'}.
 // The raw IP is never stored: ip_hash = SHA-256("lead|<UTC day>|<ip>"), so it only matches within a day.
 import { OFFERED_NICHES } from "./config.ts";
+import { serverEnv } from "./keys.ts";
 import { sha256Hex } from "./quote_engine.ts";
 
 export interface LeadRow { email: string; niche: string | null; source_page: string | null; utm: Record<string, string>; ip_hash: string }
@@ -67,9 +68,8 @@ export class MemoryLeadStore implements LeadStore {
 export class RestLeadStore implements LeadStore {
   constructor(private url: string, private key: string) {}
   static fromEnv() {
-    const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!url || !key) throw new Error("supabase_env_missing");
-    return new RestLeadStore(url.replace(/\/$/, ""), key);
+    const { url, key } = serverEnv();
+    return new RestLeadStore(url, key);
   }
   private async req(path: string, init: RequestInit = {}, prefer = "return=representation") {
     const r = await fetch(`${this.url}/rest/v1/${path}`, { ...init, headers: { apikey: this.key, Authorization: `Bearer ${this.key}`,
