@@ -93,6 +93,20 @@ begin
   ok := false;
   begin update public.profiles set timezone = 'Mars/Olympus' where id = ua; exception when others then ok := true; end;
   if not ok then raise exception 'FAIL invalid timezone accepted'; end if; c := c + 1;
+  -- contact e-mail (social sign-in, 22.10.2026): own row, normalised, validated, never a relay address
+  update public.profiles set contact_email = '  Dani@CoolBreeze.Test ' where id = ua;
+  select contact_email = 'dani@coolbreeze.test' into ok from public.profiles where id = ua;
+  if not ok then raise exception 'FAIL contact_email not stored normalised'; end if; c := c + 1;
+  ok := false;
+  begin update public.profiles set contact_email = 'nope' where id = ua; exception when others then ok := sqlerrm like '%invalid_contact_email%'; end;
+  if not ok then raise exception 'FAIL invalid contact_email accepted'; end if; c := c + 1;
+  ok := false;
+  begin update public.profiles set contact_email = 'x@privaterelay.appleid.com' where id = ua; exception when others then ok := sqlerrm like '%invalid_contact_email%'; end;
+  if not ok then raise exception 'FAIL relay contact_email accepted'; end if; c := c + 1;
+  update public.profiles set contact_email = '' where id = ua;
+  select contact_email is null into ok from public.profiles where id = ua;
+  if not ok then raise exception 'FAIL empty contact_email not null'; end if; c := c + 1;
+  update public.profiles set contact_email = 'dani@coolbreeze.test' where id = ua;
 
   -- questionnaires
   insert into public.questionnaires (niche, answers) values ('home_services', '{"a":1}') returning id into qa;
