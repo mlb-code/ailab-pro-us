@@ -1,0 +1,31 @@
+description: ADD-DISPATCH. Nobody accepts -> the waterfall tries the technician, then the manager (the 'still connecting' line between), then the caller hears the call-back promise (callback_minutes from the client's settings); the owner gets the urgent lead, the opted-in technician and manager get an alert call, repeated once after 5 minutes by the jobs tick.
+kind: flow
+channel: voice
+now: "2026-10-12T23:00:00-05:00"
+env: {PUBLIC_BASE_URL: "http://testserver"}
+patch:
+  config:
+    dispatch:
+      enabled: true
+      callback_minutes: 20
+      contacts:
+        - {id: dan, name: Dan, phone: "+17135550201", role: tech, alerts_opt_in_at: "2026-10-01T10:00:00+00:00"}
+        - {id: maria, name: Maria, phone: "+17135550203", role: manager, alerts_opt_in_at: "2026-10-01T10:00:00+00:00"}
+      schedule:
+        - {day: mon, start: "18:00", end: "07:00", contacts: [dan]}
+steps:
+  - call: {}
+  - say: "Water everywhere, a pipe burst"
+    expect: {reply_contains: ["first name", "ZIP"]}
+  - say: "Tess, 77005"
+    expect: {dial: "+17135550201"}
+  - dial: no-answer
+    advance_seconds: 20
+    expect: {reply_contains: ["Still connecting you"], dial: "+17135550203"}
+  - dial: no-answer
+    advance_seconds: 20
+    expect: {reply_contains: ["call you back within 20 minutes"], end: true}
+  - hangup: {}
+  - jobs: true
+    advance_minutes: 5
+expect: {outcome: emergency, alerts: [urgent, lead], dispatch: [no_answer, no_answer, alert_sent, alert_sent, alert_sent, alert_sent], alert_calls: 4}

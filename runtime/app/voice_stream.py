@@ -170,15 +170,16 @@ class RelaySession:
                 await asyncio.sleep(hold)
             turn = await run_in_threadpool(flow.turn, self.tenant, self.call_sid, self.caller,
                                            str(msg.get("voicePrompt") or ""), now(), self._sentence_sink())
-            ending = bool(turn.end or turn.dial)
+            ending = bool(turn.end or turn.dial or turn.dispatch)
             if turn.streamed:  # sentences already went out as they were ready; close this reply
                 await self.send({"type": "text", "token": "", "last": True, "interruptible": not ending})
             elif turn.reply:
                 await self.send({"type": "text", "token": turn.reply, "last": True, "interruptible": not ending})
             if ending:
                 await asyncio.sleep(speaking_seconds(self.rt, turn.reply))  # let the goodbye be heard
-                handoff = {"action": "dial", "number": turn.dial} if turn.dial else {"action": "hangup"}
-                if not turn.dial:  # close the call before the socket goes away (nothing runs after `end`)
+                handoff = ({"action": "dispatch"} if turn.dispatch else
+                           {"action": "dial", "number": turn.dial} if turn.dial else {"action": "hangup"})
+                if not (turn.dial or turn.dispatch):  # close the call before the socket goes away (nothing runs after `end`)
                     await run_in_threadpool(flow.finalize, self.tenant, self.call_sid, now())
                 await self.send({"type": "end", "handoffData": json.dumps(handoff)})
                 return
@@ -227,6 +228,8 @@ async def voice_relay_end(request: Request) -> Response:
         vr.dial(str(handoff["number"]), timeout=DIAL_TIMEOUT_S, action="/voice/dial-result", method="POST")
         return Response(str(vr), media_type=TWIML)
     call_sid = str(form.get("CallSid", ""))
+    if handoff.get("action") == "dispatch":  # ADD-DISPATCH: ring the on-call waterfall (app.dispatch)
+        return Response(await run_in_threadpool(rt.dispatcher.leg_twiml, tenant, call_sid, ""), media_type=TWIML)
     if handoff.get("action") != "hangup" and await run_in_threadpool(rt.flow.resume_gather, tenant, call_sid):
         # Session ended without our `end` (relay failure, socket closed) and the call is live:
         # continue the same conversation turn by turn - never hang up, never close the call here.

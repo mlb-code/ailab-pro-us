@@ -37,6 +37,7 @@ class Twiml:
     messages: list[str] = field(default_factory=list)
     redirect: str | None = None
     dial_action: str | None = None
+    dial_url: str | None = None  # <Number url> = the whisper document for the callee (ADD-DISPATCH)
     rejected: bool = False
     relay_url: str | None = None
     relay: dict[str, str] = field(default_factory=dict)
@@ -60,6 +61,7 @@ def parse_twiml(xml: str) -> Twiml:
         elif tag == "Dial":
             num = el.find("Number")
             out.dial = (num.text if num is not None else el.text or "").strip()
+            out.dial_url = num.get("url") if num is not None else None
             out.dial_action = el.get("action")
         elif tag == "Reject":
             out.rejected = True
@@ -150,12 +152,19 @@ class FakeTwilioClient:
         self.outbox: list[dict[str, Any]] = []
         self.landlines = set(landlines or ())
         self.messages = SimpleNamespace(create=self._create_message)
+        self.calls_out: list[dict[str, Any]] = []
+        self.calls = SimpleNamespace(create=self._create_call)
         self.lookups = SimpleNamespace(v2=SimpleNamespace(phone_numbers=self._lookup))
 
     def _create_message(self, to: str, from_: str, body: str, **kw: Any):
         msg = {"sid": sid("SM"), "to": to, "from": from_, "body": body, **kw}
         self.outbox.append(msg)
         return SimpleNamespace(**msg)
+
+    def _create_call(self, to: str, from_: str, url: str, **kw: Any):
+        call = {"sid": sid("CA"), "to": to, "from": from_, "url": url, **kw}
+        self.calls_out.append(call)
+        return SimpleNamespace(**call)
 
     def _lookup(self, number: str):
         kind = "landline" if number in self.landlines else "mobile"

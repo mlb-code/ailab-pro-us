@@ -9,14 +9,16 @@ Steps (one key each, optional `advance_minutes` / `advance_seconds` before the s
   call: {from?}          start a call            say: "text"      caller speaks
   silence: true          caller says nothing     hangup: {duration_s?}
   dial: no-answer|completed                      sms: "text" (inbound text)
+  whisper: "1"|"" (ADD-DISPATCH: the dialed technician hears the brief and presses a key, "" = nothing)
   jobs: true             POST /jobs/tick (cron)  restart: true (new app, same data)
   burst_calls: {count, within_s, say?}           many calls from one number
   if_open: true on a say/silence/dial step skips it when the call already ended (live model may close first)
 Step `expect`: reply_contains, reply_matches (regex), reply_not_matches, reply_starts_with, reply_empty, end, dial, rejected.
-Final `expect`: outcome, bookings, sms_sent, sms_sent_contains, sms_sent_max, alerts, no_alerts,
+Final `expect`: dispatch [event results in order], alert_calls (n), outcome, bookings, sms_sent, sms_sent_contains, sms_sent_max, alerts, no_alerts,
   events {type: n}, claude_calls_max, latency_p95_ms_max, opted_out, consent {type: decision},
   transcript_withheld, burst {answered_max, capped,
   rejected_min}, usage_voice_min, first_sentence {server_p95_ms_max, client_p95_ms_max, total_p95_ms_min}.
+Scenario `env: {NAME: value}`: extra runtime environment (e.g. PUBLIC_BASE_URL for outbound alert calls).
 Scenario `slow_model: {first_ms, rest_ms}`: the mock model streams like a live one (first text after
 first_ms, then rest_ms before the rest of the reply) in every mode; nothing is recorded or replayed.
 In stream mode `latency_p95_ms_max` measures the time to the first text frame (first spoken sentence).
@@ -97,7 +99,7 @@ def run_flow(sc: dict[str, Any], out, mode: str = "replay", source: str = "mock"
         llm = LLMClient(settings, namespace=sc["name"], script=script, mode=llm_mode, live_call=live_call)
         llms.append(llm)
         return harness.build(data_dir, clock=clock, llm=llm, calendar=calendar, twilio_client=twilio_client,
-                             seed=seed, VOICE_MODE=vm)
+                             seed=seed, VOICE_MODE=vm, **{k: str(v) for k, v in (sc.get("env") or {}).items()})
 
     alert_log: list[dict] = []
     sim = boot(seed=True)
@@ -137,6 +139,9 @@ def run_flow(sc: dict[str, Any], out, mode: str = "replay", source: str = "mock"
             turn = call.silence()
         elif "dial" in step:
             turn = call.dial(str(step["dial"]))
+        elif "whisper" in step:
+            reply = call.whisper(str(step["whisper"] or "")).text
+            out.transcript.append(("technician hears", reply))
         elif "hangup" in step:
             call.hangup((step.get("hangup") or {}).get("duration_s"))
         elif "sms" in step:
@@ -237,6 +242,13 @@ def _check_final(out, exp: dict[str, Any], sim, tenant, contact, latencies, burs
     for needle in exp.get("sms_sent_contains", []):
         if not any(_has(m["body"], needle) for m in sent):
             f.append(f"no outbound SMS contains {needle!r}: {[m['body'][:60] for m in sent]}")
+    sim.rt.drain(5)
+    if "dispatch" in exp:
+        got = [r["result"] for r in sim.store.select("dispatch_events")]
+        if got != list(exp["dispatch"]):
+            f.append(f"dispatch events {got} != {exp['dispatch']}")
+    if "alert_calls" in exp and len(sim.twilio_client.calls_out) != exp["alert_calls"]:
+        f.append(f"alert calls {len(sim.twilio_client.calls_out)} != {exp['alert_calls']}")
     events = sim.store.select("events")
     alerts = {a.get("kind") for a in alert_log}
     for k in exp.get("alerts", []):

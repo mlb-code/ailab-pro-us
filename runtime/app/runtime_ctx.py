@@ -35,6 +35,7 @@ class Runtime:
     outbound: Any  # app.sms_outbound.Outbound
     clock: Callable[[], datetime] = utcnow
     flow: Any = None  # app.voice.VoiceFlow
+    dispatcher: Any = None  # app.dispatch.Dispatcher (ADD-DISPATCH)
     alert_log: list[dict[str, Any]] | None = None  # simulator/tests: every alert handed to the notifier
     # Owner alerts and Zapier events never run inside a Twilio webhook: they go to this pool and the
     # webhook answers right away (Zapier retries / e-mail / SMS can take seconds; Twilio waits 15 s max).

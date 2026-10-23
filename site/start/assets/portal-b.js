@@ -49,6 +49,7 @@
     if (tenant && isRcp(d)) {
       const [usage, calls, sms, bookings] = await Promise.all([B.getUsage(tenant.id).catch(() => null), B.listCalls(tenant.id), B.listSms(tenant.id), B.listBookings(tenant.id)]);
       Object.assign(d, { usage, calls: calls || [], sms: sms || [], bookings: bookings || [] });
+      if (window.PortalDispatch) await window.PortalDispatch.load(d);   // ADD-DISPATCH (portal-dispatch.js)
     }
     return d;
   }
@@ -590,10 +591,12 @@
       '<details class="card set" id="setFaq"><summary>Frequently asked questions</summary>' + faqEditor('rxf', cfg.faq) + '<div id="rxMsg_faq" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="faq">Save FAQ</button></details>' +
       '<details class="card set" id="setNotify"><summary>Who gets alerts</summary>' + notifyEditor('rxn', cfg.notify) + '<div id="rxMsg_notify" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="notify">Save alerts</button></details>' +
       '<details class="card set" id="setAfter"><summary>After hours & on-call number</summary>' + afterHoursEditor('rxah', (cfg.after_hours || {}).mode) + onCallEditor('rxoc', (cfg.handoff || {}).number || (cfg.emergency || {}).dial) +
-      '<div id="rxMsg_after" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="after">Save</button></details>';
+      '<div id="rxMsg_after" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="after">Save</button></details>' +
+      (window.PortalDispatch ? window.PortalDispatch.html(d) : '');
   }
   function bindReceptionist(d, api) {
     bindHours('rxh'); bindFaq('rxf'); bindNotify('rxn');
+    if (window.PortalDispatch) window.PortalDispatch.bind(d, api);
     S.$('#rxPause').addEventListener('click', async e => {
       const b = e.currentTarget, next = b.getAttribute('aria-pressed') !== 'true';
       if (next && !confirm('Pause the AI assistant? It stops answering calls and texts until you resume.')) return;

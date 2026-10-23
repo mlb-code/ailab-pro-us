@@ -161,6 +161,12 @@
         return must(await sb.from('tenants').select('id,client_id,slug,status,twilio_number,config').order('created_at', { ascending: false }).limit(1).maybeSingle());
       },
       async updateTenantSettings(tenantId, patch) { return must(await sb.rpc('update_tenant_settings', { p_tenant_id: tenantId, p_patch: patch })); },
+      // ADD-DISPATCH: on-call editor + urgent call log (supabase/migrations/20261023100000_us_dispatch.sql)
+      async saveDispatch(tenantId, patch) { return must(await sb.rpc('update_dispatch_settings', { p_tenant_id: tenantId, p_patch: patch })); },
+      async listDispatchEvents(tenantId, limit) {
+        return must(await sb.from('dispatch_events').select('id,call_sid,leg,contact_name,result,wait_s,detail,at').eq('tenant_id', tenantId).order('at', { ascending: false }).limit(limit || 200));
+      },
+      async markDispatchHandled(tenantId, callSid) { return must(await sb.rpc('mark_dispatch_handled', { p_tenant_id: tenantId, p_call_sid: callSid })); },
       async listCalls(tenantId, limit) {
         return must(await sb.from('calls').select('id,call_sid,from_e164,started_at,duration_s,outcome,transcript,summary').eq('tenant_id', tenantId).order('started_at', { ascending: false }).limit(limit || 50));
       },
@@ -234,7 +240,8 @@
     // phase B (B7)
     'listOnboarding', 'updateOnboarding', 'startForwardingTest', 'calendarConnectUrl', 'getTenant', 'updateTenantSettings',
     'listCalls', 'listSms', 'listBookings', 'getUsage', 'listRequests', 'createRequest', 'saveRequest', 'cancelRequest',
-    'listRequestAttachments', 'uploadRequestAttachment', 'removeRequestAttachment'].forEach(fn => {
+    'listRequestAttachments', 'uploadRequestAttachment', 'removeRequestAttachment',
+    'saveDispatch', 'listDispatchEvents', 'markDispatchHandled'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
   });
   window.Backend = api;
