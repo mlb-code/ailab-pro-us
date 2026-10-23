@@ -94,6 +94,7 @@ class VoiceTurn:
     outcome: str | None = None
     actions: list[dict[str, Any]] = field(default_factory=list)
     streamed: bool = False  # the reply was already sent sentence by sentence (relay); only `last` remains
+    dispatch: bool = False  # ADD-DISPATCH: the call goes to the on-call waterfall (app.dispatch)
 
 
 def _first_sentence_stats(rows: list[list[float]]) -> dict[str, float]:
@@ -214,6 +215,7 @@ class VoiceFlow:
         dial = next((a["number"] for a in res.actions if a.get("type") == "dial"), None)
         if dial:
             c.meta["dialing"] = {"number": dial, "reason": next(a.get("reason") for a in res.actions if a.get("type") == "dial")}
+        dispatching = any(a.get("type") == "dispatch" for a in res.actions) and self.rt.dispatcher.start(tenant, c, now)
         reply, end = res.reply, res.end
         if not reply and not end:  # e.g. over the reply limit: never leave a caller in dead air
             reply, end = CALL_CAP_TEXT, True
@@ -227,7 +229,8 @@ class VoiceFlow:
                 [res.first_sentence_ms, res.first_sentence_llm_ms or 0.0]]
         self._persist(tenant, c)
         streamed = res.streamed and reply == res.reply
-        return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions, streamed=streamed)
+        return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions, streamed=streamed,
+                         dispatch=bool(dispatching))
 
     # --- relay socket lost (streaming mode) ---------------------------------------------------------
     def relay_lost(self, tenant: TenantRecord, call_sid: str, now: datetime) -> None:
@@ -492,8 +495,11 @@ async def voice_turn(request: Request) -> Response:
         return _xml(await _safe_voice(rt, form, "incoming"))
     if problem or not tenant:
         return _xml(twiml_say_hangup(UNAVAILABLE))
-    turn = await run_in_threadpool(rt.flow.turn, tenant, str(form.get("CallSid", "")), str(form.get("From", "")),
+    call_sid = str(form.get("CallSid", ""))
+    turn = await run_in_threadpool(rt.flow.turn, tenant, call_sid, str(form.get("From", "")),
                                    str(form.get("SpeechResult", "") or ""), rt.now())
+    if turn.dispatch:
+        return _xml(await run_in_threadpool(rt.dispatcher.leg_twiml, tenant, call_sid, turn.reply))
     return _xml(twiml_for(turn, tenant))
 
 
@@ -504,6 +510,10 @@ async def voice_dial_result(request: Request) -> Response:
     tenant, problem = rt.resolve_tenant(str(form.get("To", "")))
     if problem or not tenant:
         return _xml(twiml_say_hangup(""))
+    leg = request.query_params.get("leg")
+    if leg is not None and leg.isdigit():  # ADD-DISPATCH waterfall leg
+        return _xml(await run_in_threadpool(rt.dispatcher.leg_result, tenant, str(form.get("CallSid", "")), int(leg),
+                                            str(form.get("DialCallStatus", "")), rt.now()))
     turn = await run_in_threadpool(rt.flow.dial_result, tenant, str(form.get("CallSid", "")),
                                    str(form.get("DialCallStatus", "")), rt.now())
     return _xml(twiml_say_hangup(turn.reply, tenant.config.voice.tts_voice))
@@ -532,6 +542,7 @@ async def voice_status(request: Request, background: BackgroundTasks) -> Respons
         except ValueError:
             duration = 0
         await run_in_threadpool(rt.flow.finalize, tenant, call_sid, now)
+        await run_in_threadpool(rt.dispatcher.on_finalize, tenant, call_sid, now)
         await run_in_threadpool(rt.flow.record_minutes, tenant, call_sid, duration, now)
         background.add_task(rt.outbound.run_due, now, tenant)
     return Response(status_code=204)
