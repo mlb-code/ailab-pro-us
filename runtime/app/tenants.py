@@ -111,6 +111,11 @@ class Booking(_Strict):
     days_ahead: int = Field(default=7, ge=1, le=30)
     job_types: list[str] = Field(min_length=1, max_length=30)
     booking_link: str | None = Field(default=None, description="Public self-booking link used in text-back")
+    # Appointment manager (2026-10-23), off until switched on per tenant: callers move or cancel a booking the assistant
+    # made (only bookings made for the caller's own number), and a returning caller is greeted by name.
+    self_service: bool = Field(default=False, description="Callers can move or cancel a booking the assistant made")
+    recognize_callers: bool = Field(default=False, description="Greet a returning caller by name and mention their next "
+                                    "booking (bookings and calls of the last 90 days only)")
 
     @model_validator(mode="after")
     def _windows(self) -> "Booking":
@@ -158,6 +163,57 @@ class Handoff(_Strict):
         return self
 
 
+DISPATCH_MAX_CONTACTS = 5
+DISPATCH_MAX_LEGS = 3
+
+
+class DispatchContact(_Strict):
+    """A person on the client's own staff who can take urgent calls (ADD-DISPATCH)."""
+    id: Annotated[str, Field(pattern=r"^[a-z0-9_-]{1,20}$")]
+    name: str = Field(min_length=1, max_length=60)
+    phone: E164
+    role: Literal["tech", "manager"] = "tech"
+    # When the client confirmed in the portal that this person agreed to receive on-call alerts (written opt-in,
+    # also logged in sms_consent as consent_type 'staff_alerts'). None = no alerts (calls can still be transferred).
+    alerts_opt_in_at: str | None = Field(default=None, max_length=40)
+
+
+class DispatchShift(_Strict):
+    """One row of the weekly on-call grid: on `day`, from `start` to `end` (local time; end <= start = runs past
+    midnight into the next day), try `contacts` in this order."""
+    day: Literal["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    start: HHMM
+    end: HHMM
+    contacts: list[Annotated[str, Field(pattern=r"^[a-z0-9_-]{1,20}$")]] = Field(min_length=1, max_length=DISPATCH_MAX_CONTACTS)
+
+
+class Dispatch(_Strict):
+    """ADD-DISPATCH: warm transfer of urgent calls to the on-call technician, then alerts if nobody accepts."""
+    enabled: bool = False
+    daytime_too: bool = Field(default=False, description="Also for urgent calls while open (handoff.number first)")
+    callback_minutes: int = Field(default=15, ge=5, le=120, description="Promised call-back window when nobody accepts")
+    sms_alerts: bool = Field(default=False, description="Staff alerts by SMS (also needs DISPATCH_SMS_ALERTS=1); "
+                                                        "otherwise alerts are voice calls")
+    contacts: list[DispatchContact] = Field(default_factory=list, max_length=DISPATCH_MAX_CONTACTS)
+    schedule: list[DispatchShift] = Field(default_factory=list, max_length=28)
+
+    @model_validator(mode="after")
+    def _refs(self) -> "Dispatch":
+        ids = [c.id for c in self.contacts]
+        if len(set(ids)) != len(ids):
+            raise ValueError("dispatch.contacts: every contact needs a different id")
+        phones = [c.phone for c in self.contacts]
+        if len(set(phones)) != len(phones):
+            raise ValueError("dispatch.contacts: the same phone number is listed twice")
+        for i, s in enumerate(self.schedule):
+            for ref in s.contacts:
+                if ref not in ids:
+                    raise ValueError(f"dispatch.schedule[{i}]: unknown contact {ref!r}")
+        if self.enabled and not self.contacts:
+            raise ValueError("dispatch.enabled needs at least one contact")
+        return self
+
+
 class Notify(_Strict):
     sms: list[E164] = Field(default_factory=list, max_length=5)
     email: list[Annotated[str, Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]] = Field(default_factory=list, max_length=5)
@@ -172,7 +228,8 @@ class Notify(_Strict):
 
 class Zapier(_Strict):
     webhook_url: Annotated[str, Field(pattern=r"^https://")] | None = None
-    events: list[Literal["lead.created", "booking.created", "call.completed"]] = Field(
+    events: list[Literal["lead.created", "booking.created", "call.completed", "booking.rescheduled",
+                         "booking.cancelled"]] = Field(
         default_factory=lambda: ["lead.created", "booking.created"])
 
 
@@ -258,6 +315,7 @@ class TenantConfig(_Strict):
     faq: list[FaqItem] = Field(default_factory=list, max_length=25)
     emergency: Emergency = Field(default_factory=Emergency)
     handoff: Handoff = Field(default_factory=Handoff)
+    dispatch: Dispatch = Field(default_factory=Dispatch)
     notify: Notify
     zapier: Zapier = Field(default_factory=Zapier)
     guard: Guard = Field(default_factory=Guard)

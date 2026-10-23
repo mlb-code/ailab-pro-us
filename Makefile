@@ -63,10 +63,19 @@ qa-admin:
 	E2E_PORT=$(FREE) $(NODE) tools/overflow_admin.mjs
 
 # Portal phase B (B7): E2E + overflow on the mock backend, and the B7 SQL test (PGlite, offline).
+# ADD-DISPATCH portal section (on-call editor + urgent call log) on the mock backend
+qa-dispatch:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_dispatch.mjs
+
 qa-portal-b7:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_portal_b7.mjs
 	E2E_PORT=$(FREE) $(NODE) tools/overflow_portal_b7.mjs
 	$(DENO_RUN) supabase/tests/offline/portal_b7_run.ts
+
+# Appointment manager (2026-10-23): portal Results tab E2E on the mock backend + the SQL test (PGlite, offline).
+qa-appointments:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_appointments.mjs
+	$(DENO_RUN) supabase/tests/offline/appointments_run.ts
 
 # Phase-A gate (A10): the whole sale journey on the mock backend at 390 + 1280 (landing -> sign-in -> RCP questionnaire ->
 # admin draft/send -> quote page accept -> deposit -> checklist -> go-live), plus WEB and real-estate paths; quote page E2E.
@@ -88,8 +97,9 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/quote_engine_run.ts
 	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
 	$(DENO_RUN) supabase/tests/offline/paypal_run.ts
+	$(DENO_RUN) supabase/tests/offline/dispatch_run.ts
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-phase-a qa-paypal
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------

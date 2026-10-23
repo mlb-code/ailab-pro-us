@@ -104,6 +104,11 @@ class RE_LEAD:
         if m := re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", text):
             out["email"] = m.group(0)
         return out
+MOVE = re.compile(r"\b(move|reschedule|change|push)\b", re.I)
+CANCEL_APPT = re.compile(r"\bcancel\b", re.I)
+YES = re.compile(r"\b(yes|yeah|yep|sure|please do|go ahead|correct|that'?s right)\b", re.I)
+PHONE = re.compile(r"\(?\b(\d{3})\)?[-. ]?(\d{3})[-. ]?(\d{4})\b")
+FULL_NAME = re.compile(r"\b([A-Z][a-z]+ [A-Z][a-z]+)\b")
 
 
 def _texts(content: Any) -> list[str]:
@@ -198,10 +203,15 @@ class MockBrain:
             else:
                 customer.append(_customer_text(content))
 
+        manage_on = any(t.get("name") == "find_my_booking" for t in req.get("tools") or [])
+        ctx = " ".join(t for m in messages if m["role"] == "user" for t in _texts(m.get("content") or [])
+                       if t.startswith("[context]"))
         last = messages[-1]["content"] if messages else []
         if "LEAD SCREENING" in system:
             return self._real_estate(n, system, messages, results, customer, tool_names, job_types)
         if isinstance(last, list) and any(b.get("type") == "tool_result" for b in last):
+            if manage_on and (r := self._manage_after(n, results, customer)):
+                return r
             return self._after_tool(n, biz, results[-1], customer)
 
         text = customer[-1] if customer else ""
@@ -214,6 +224,8 @@ class MockBrain:
         if BYE.match(text):
             outcome = "booked" if booked else "message" if messaged else "no_action"
             return self._tool(n, "end_conversation", {"outcome": outcome})
+        if manage_on and (r := self._manage(n, messages, tool_names, results, customer, ctx)):
+            return r
         if DISCOUNT.search(text):
             return self._reply("I'm not able to offer discounts, but our team will give you an exact price on site.")
         if PRICE.search(text):
@@ -365,6 +377,77 @@ class MockBrain:
                 return self._reply(RE_LEAD.QUESTIONS[key])
         return self._tool(n, "qualify_lead", {k: lead.get(k) for k in ("intent", "area", "timeline", "price_range", "pre_approval",
                                                                        "property_address", "motivation", "has_agent", "name", "email")})
+    # --- appointment manager (find / move / cancel the caller's own booking; returning-caller greeting) ----------
+    def _manage(self, n: int, messages: list[dict[str, Any]], tool_names: dict[str, str], results: list[tuple[str, dict]],
+                customer: list[str], ctx: str) -> dict[str, Any] | None:
+        text = customer[-1] if customer else ""
+        everything = " ".join(customer)
+        if any(name in ("reschedule_booking", "cancel_booking") and r.get("ok") for name, r in results):
+            return None
+        cancel, move = CANCEL_APPT.search(everything), MOVE.search(everything) or "replied R" in ctx
+        if not (cancel or move):
+            m = re.search(r"Returning caller.*?first name (\w+)", ctx)
+            if m and len(customer) == 1 and not INTENT.search(text):
+                nxt = re.search(r"next visit (.+?)(?: \(|\.)", ctx)
+                return self._reply(f"Hi {m.group(1)}! Are you calling about your visit {nxt.group(1)}?" if nxt else
+                                   f"Hi {m.group(1)}, welcome back. What can we help with today?")
+            return None
+        found = [r for name, r in results if name == "find_my_booking"]
+        if not found or not found[-1].get("ok"):
+            phone = PHONE.search(text)
+            name = FULL_NAME.search(text)
+            if not found or phone:
+                return self._tool(n, "find_my_booking", {"phone": "".join(phone.groups()) if phone else None,
+                                                         "name": name.group(1) if name else None})
+            return None
+        bk = found[-1]["bookings"][0]
+        if cancel:
+            asked = any("cancel it?" in t for m in messages if m["role"] == "assistant"
+                        for t in _texts(m.get("content") or []))
+            if asked and YES.search(text):
+                return self._tool(n, "cancel_booking", {"booking_id": bk["booking_id"], "reason": None})
+            return self._reply(f"I found your {bk['job_type']} visit {bk['label']}. Do you want me to cancel it?")
+        avail = [r for name, r in results if name == "get_availability" and r.get("ok") and r.get("slots")]
+        if not avail:
+            return self._tool(n, "get_availability", {"job_type": bk["job_type"], "zip": bk["zip"], "date_from": None})
+        slots = avail[-1]["slots"]
+        after = self._customer_after_last_availability(messages, tool_names)
+        choice = None
+        for t in after:
+            if SECOND.search(t) and len(slots) > 1:
+                choice = slots[1]
+            elif FIRST.search(t):
+                choice = choice or slots[0]
+        if choice:
+            return self._tool(n, "reschedule_booking", {"booking_id": bk["booking_id"], "slot_id": choice["slot_id"]})
+        return self._reply(f"Which works better: {slots[0]['label']}" + (f" or {slots[1]['label']}?" if len(slots) > 1 else "?"))
+
+    def _manage_after(self, n: int, results: list[tuple[str, dict]], customer: list[str]) -> dict[str, Any] | None:
+        name, r = results[-1]
+        everything = " ".join(customer)  # an "R" reply has no cancel word: it is a move
+        if name == "find_my_booking":
+            if r.get("ok"):
+                bk = r["bookings"][0]
+                if CANCEL_APPT.search(everything):
+                    return self._reply(f"I found your {bk['job_type']} visit {bk['label']}. Do you want me to cancel it?")
+                return self._tool(n, "get_availability", {"job_type": bk["job_type"], "zip": bk["zip"], "date_from": None})
+            if sum(1 for nm, _ in results if nm == "find_my_booking") >= 2:
+                return self._tool(n, "take_message", {"summary": "Customer wants to change a booking we could not find",
+                                                      "urgency": "normal", "name": None})
+            return self._reply("I can't find a booking for this number. What phone number is the booking under, "
+                               "and what name is it under?")
+        if name == "get_availability" and r.get("ok") and r.get("slots") and \
+                any(nm == "find_my_booking" and rr.get("ok") for nm, rr in results):
+            s = r["slots"]
+            return self._reply(f"I can move it to {s[0]['label']}" + (f" or {s[1]['label']}" if len(s) > 1 else "") +
+                               ". Which works better?")
+        if name == "reschedule_booking":
+            return self._reply(f"Done. I moved your visit to {r['label']}." if r.get("ok") else
+                               "Sorry, that time is no longer open. Would another time work?")
+        if name == "cancel_booking":
+            return self._reply(f"Done. Your visit {r['label']} has been cancelled." if r.get("ok") else
+                               "Sorry, I couldn't cancel it from here. I've passed it to the team.")
+        return None
 
     @staticmethod
     def _customer_after_last_availability(messages: list[dict[str, Any]], tool_names: dict[str, str]) -> list[str]:

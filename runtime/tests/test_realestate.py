@@ -167,7 +167,8 @@ def test_lead_alert_and_zapier_payload_carry_the_screening_answers(tmp_path):
     assert "Lead type: seller" in text and "Property address: 4512 Berkman Dr" in text and "Working with an agent: no" in text
     assert "(Mueller, later this year, no)" in sms
     emitted = []
-    rt = type("RT", (), {"emit": lambda self, t, ev, data, key: emitted.append((ev, data)), "engine": eng, "outbound": None})()
+    rt = type("RT", (), {"emit": lambda self, t, ev, data, key: emitted.append((ev, data)), "engine": eng, "outbound": None,
+                         "store": store, "settings": eng.settings})()
     after_turn(rt, tenant, c, MON_10)
     ev, data = emitted[0]
     assert ev == "lead.created" and data["qualification"]["intent"] == "seller" and data["name"] == "Linda Torres"

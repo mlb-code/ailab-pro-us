@@ -53,6 +53,12 @@ class CalendarHub:
         p = self.provider(cfg)
         return p.cancel(tenant_id, cfg, event_id, reason, now) if p else {"ok": False, "reason": "calendar_unavailable"}
 
+    def reschedule(self, tenant_id: str, cfg: TenantConfig, now: datetime, event_id: str, slot_id: str,
+                   details: dict[str, Any]) -> dict[str, Any]:
+        p = self.provider(cfg)
+        return p.reschedule(tenant_id, cfg, now, event_id, slot_id, details) if p else \
+            {"ok": False, "reason": "calendar_unavailable"}
+
     def needs_reconnect(self, tenant_id: str, cfg: TenantConfig) -> bool:
         p = self.provider(cfg)
         return bool(p and p.needs_reconnect(tenant_id))

@@ -1,0 +1,195 @@
+{
+ "0fffb29661b689e3fad89954": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The second one please",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "booking_id": "B1",
+      "slot_id": "2026-10-13T12:00-16:00"
+     },
+     "name": "reschedule_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1367,
+    "output_tokens": 36
+   }
+  }
+ },
+ "416c38a3504d7ad03a905b25": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1453,
+    "output_tokens": 22
+   }
+  }
+ },
+ "ad698a03fe2bde74a8327601": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"Maintenance\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77019\"}], \"ok\": true}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "date_from": null,
+      "job_type": "Maintenance",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1137,
+    "output_tokens": 36
+   }
+  }
+ },
+ "cb641c469136a6fcd21cf81f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Yes, can we move it to another day?",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "name": null,
+      "phone": null
+     },
+     "name": "find_my_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1036,
+    "output_tokens": 28
+   }
+  }
+ },
+ "d08b0b98fa41a3812d04a532": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. Returning caller (our records of the last 90 days): first name Tess; next visit Monday Oct 12, 12 PM to 4 PM (Maintenance). You may greet them by first name and, if there is a next visit, ask whether they are calling about it. Do not mention any other detail; if they say they are someone else, ignore this.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi there",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Hi Tess! Are you calling about your visit Monday Oct 12, 12 PM to 4 PM?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 933,
+    "output_tokens": 25
+   }
+  }
+ },
+ "f89dabf6faf2591087435588": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can move it to Tuesday Oct 13, 8 AM to 12 PM or Tuesday Oct 13, 12 PM to 4 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1260,
+    "output_tokens": 32
+   }
+  }
+ }
+}

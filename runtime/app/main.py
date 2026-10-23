@@ -25,6 +25,8 @@ from . import settings as settings_mod
 from . import store as store_mod
 from ._stubs_b56 import TenantCalendars
 from .conversation import Engine
+from .dispatch import Dispatcher
+from .dispatch import router as dispatch_router
 from .llm import LLMClient
 from .runtime_ctx import Runtime, utcnow
 from .sms import router as sms_router
@@ -51,6 +53,7 @@ def create_app(settings: settings_mod.Settings | None = None, store: store_mod.S
     rt = Runtime(settings=settings, store=store, engine=engine, outbound=outbound, clock=clock or utcnow)
     outbound.rt = rt
     rt.flow = VoiceFlow(rt)
+    rt.dispatcher = Dispatcher(rt)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -94,6 +97,7 @@ def create_app(settings: settings_mod.Settings | None = None, store: store_mod.S
 
     app.include_router(voice_router)
     app.include_router(stream_router)
+    app.include_router(dispatch_router)
     app.include_router(sms_router)
     app.include_router(__import__("app.notify.routes", fromlist=["router"]).router)  # B5/B6: oauth, jobs/tick, reports, zapier, health/deep
     app.include_router(__import__("app.webchat", fromlist=["router"]).router)  # B8: live chat demo (/demo/*)

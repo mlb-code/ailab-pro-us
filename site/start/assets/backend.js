@@ -33,6 +33,10 @@
      listCalls(tenantId) / listSms(tenantId) / listBookings(tenantId) / getUsage(tenantId, month)   (client_tenant_usage RPC)
      listRequests() / createRequest({title, body}) / saveRequest(id, {title, body, position, paused}) / cancelRequest(id)
      listRequestAttachments(rid) / uploadRequestAttachment(rid, file, safeName, mime) / removeRequestAttachment(att)
+   Appointment manager (SQL in supabase/migrations/*_us_appointments.sql):
+     getResults(tenantId, month) -> Results panel numbers (client_results RPC)
+     markNoShow(bookingId, noShow) -> {id, status} (client_mark_no_show RPC: started visits only, undo allowed)
+     setAvgJobValue(tenantId, usd|null) -> {avg_job_value_usd} (client_set_avg_job_value RPC)
    Error messages carry the same codes the DB guards raise (questionnaire_locked, offer_required, too_many_files, ...). */
 (function () {
   const C = window.SITE_CONFIG || {};   // /assets/config.js (written by tools/us_setup.py, task A2)
@@ -161,6 +165,12 @@
         return must(await sb.from('tenants').select('id,client_id,slug,status,twilio_number,config').order('created_at', { ascending: false }).limit(1).maybeSingle());
       },
       async updateTenantSettings(tenantId, patch) { return must(await sb.rpc('update_tenant_settings', { p_tenant_id: tenantId, p_patch: patch })); },
+      // ADD-DISPATCH: on-call editor + urgent call log (supabase/migrations/20261023100000_us_dispatch.sql)
+      async saveDispatch(tenantId, patch) { return must(await sb.rpc('update_dispatch_settings', { p_tenant_id: tenantId, p_patch: patch })); },
+      async listDispatchEvents(tenantId, limit) {
+        return must(await sb.from('dispatch_events').select('id,call_sid,leg,contact_name,result,wait_s,detail,at').eq('tenant_id', tenantId).order('at', { ascending: false }).limit(limit || 200));
+      },
+      async markDispatchHandled(tenantId, callSid) { return must(await sb.rpc('mark_dispatch_handled', { p_tenant_id: tenantId, p_call_sid: callSid })); },
       async listCalls(tenantId, limit) {
         return must(await sb.from('calls').select('id,call_sid,from_e164,started_at,duration_s,outcome,transcript,summary').eq('tenant_id', tenantId).order('started_at', { ascending: false }).limit(limit || 50));
       },
@@ -168,9 +178,13 @@
         return must(await sb.from('sms_messages').select('id,contact_e164,direction,body,created_at').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(limit || 200));
       },
       async listBookings(tenantId, limit) {
-        return must(await sb.from('bookings').select('id,customer_name,contact_e164,address,job_type,urgency,start_at,end_at,status').eq('tenant_id', tenantId).order('start_at', { ascending: false }).limit(limit || 50));
+        return must(await sb.from('bookings').select('id,customer_name,contact_e164,address,job_type,urgency,start_at,end_at,status,created_at,confirmed_at,rescheduled_from_id').eq('tenant_id', tenantId).order('start_at', { ascending: false }).limit(limit || 50));
       },
       async getUsage(tenantId, month) { return must(await sb.rpc('client_tenant_usage', { p_tenant_id: tenantId, p_month: month || null })); },
+      // appointment manager (migration *_us_appointments.sql)
+      async getResults(tenantId, month) { return must(await sb.rpc('client_results', { p_tenant_id: tenantId, p_month: month || null })); },
+      async markNoShow(bookingId, noShow) { return must(await sb.rpc('client_mark_no_show', { p_booking_id: bookingId, p_no_show: noShow !== false })); },
+      async setAvgJobValue(tenantId, value) { return must(await sb.rpc('client_set_avg_job_value', { p_tenant_id: tenantId, p_value: value })); },
       async listRequests() { return must(await sb.from('requests').select('*').order('position')); },
       async createRequest(row) {
         const c = must(await sb.from('clients').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle());
@@ -234,7 +248,10 @@
     // phase B (B7)
     'listOnboarding', 'updateOnboarding', 'startForwardingTest', 'calendarConnectUrl', 'getTenant', 'updateTenantSettings',
     'listCalls', 'listSms', 'listBookings', 'getUsage', 'listRequests', 'createRequest', 'saveRequest', 'cancelRequest',
-    'listRequestAttachments', 'uploadRequestAttachment', 'removeRequestAttachment'].forEach(fn => {
+    'listRequestAttachments', 'uploadRequestAttachment', 'removeRequestAttachment',
+    'saveDispatch', 'listDispatchEvents', 'markDispatchHandled',
+    // appointment manager
+    'getResults', 'markNoShow', 'setAvgJobValue'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
   });
   window.Backend = api;

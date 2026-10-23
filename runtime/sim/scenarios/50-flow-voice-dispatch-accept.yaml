@@ -1,0 +1,26 @@
+description: ADD-DISPATCH. Monday 11 pm (closed), basement flooding -> the assistant asks for first name + ZIP -> warm transfer to the on-call technician; he hears the brief (no caller number), presses 1 and is connected. Logged as accepted; no staff alert needed.
+kind: flow
+channel: voice
+now: "2026-10-12T23:00:00-05:00"
+patch:
+  config:
+    dispatch:
+      enabled: true
+      callback_minutes: 15
+      contacts:
+        - {id: dan, name: Dan, phone: "+17135550201", role: tech, alerts_opt_in_at: "2026-10-01T10:00:00+00:00"}
+        - {id: maria, name: Maria, phone: "+17135550203", role: manager, alerts_opt_in_at: "2026-10-01T10:00:00+00:00"}
+      schedule:
+        - {day: mon, start: "18:00", end: "07:00", contacts: [dan]}
+steps:
+  - call: {}
+  - say: "My basement is flooding"
+    expect: {reply_contains: ["urgent", "first name", "ZIP"], end: false}
+  - say: "It's Tess, 77005"
+    expect: {reply_contains: ["connecting you", "Tess"], dial: "+17135550201"}
+  - whisper: "1"
+    expect: {reply_contains: ["Connecting you now"]}
+  - dial: completed
+    expect: {end: true}
+  - hangup: {}
+expect: {outcome: emergency, alerts: [urgent], no_alerts: [lead], dispatch: [accepted], alert_calls: 0}

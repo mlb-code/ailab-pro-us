@@ -20,6 +20,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from . import _stubs_b56 as hooks
 from . import guard
 from .runtime_ctx import Runtime
+from .dispatch import SMS_ACK_TEXT
 from .sms_outbound import after_turn, thread_id
 
 log = logging.getLogger("rt.sms")
@@ -53,7 +54,12 @@ def handle_inbound(rt: Runtime, form: dict[str, str]) -> str:
     now = rt.now()
     if form.get("OptOutType", "").upper() == "STOP":
         ts.opt_out(contact, "sms", body)  # Twilio Advanced Opt-Out already confirmed it: stay silent
+        rt.dispatcher.note_opt_out(tenant, contact, now)
         return ""
+    if body.strip() == "1" and rt.dispatcher.ack_sms(tenant, contact, now):  # staff: "I'm handling the alert"
+        hooks.record_sms(rt.store, rt.state, tenant, twilio_sid=None, contact_e164=contact, direction="outbound",
+                         body=SMS_ACK_TEXT, segments=guard.sms_segments(SMS_ACK_TEXT))
+        return SMS_ACK_TEXT
     try:
         num_media = int(form.get("NumMedia") or 0)
     except ValueError:
@@ -61,6 +67,8 @@ def handle_inbound(rt: Runtime, form: dict[str, str]) -> str:
     convo_id = thread_id(rt.state, tenant, contact, now)
     res = rt.engine.handle(tenant, "sms", contact, body, convo_id, now, num_media=num_media)
     rt.deliver(tenant, res.actions, convo_id)
+    if "stop" in res.guard:
+        rt.dispatcher.note_opt_out(tenant, contact, now)
     c = rt.engine.find_convo(tenant, "sms", convo_id)
     if c is not None:
         after_turn(rt, tenant, c, now)

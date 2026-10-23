@@ -1,6 +1,7 @@
 """Outgoing Zapier webhook (one per tenant, RCP includes 1). Task B6; payloads in docs/zapier-payloads.md.
 
-- Events: `lead.created`, `booking.created`, `call.completed` (tenant chooses in `zapier.events`),
+- Events: `lead.created`, `booking.created`, `call.completed`, `booking.rescheduled`, `booking.cancelled`
+  (tenant chooses in `zapier.events`),
   plus `test.ping` from the admin/portal "send test" button.
 - Body: JSON {id, event, created_at, tenant: {slug, business}, data}.
 - Signature: `X-Signature: sha256=<hex HMAC-SHA256(secret, "<X-Timestamp>.<raw body>")>`. The secret
@@ -34,7 +35,7 @@ from .tenants import TenantRecord
 
 log = logging.getLogger("rt.zapier")
 
-EVENTS = ("lead.created", "booking.created", "call.completed")
+EVENTS = ("lead.created", "booking.created", "call.completed", "booking.rescheduled", "booking.cancelled")
 TEST_EVENT = "test.ping"
 RETRIES = 3
 BACKOFF_S = (2.0, 8.0, 30.0)

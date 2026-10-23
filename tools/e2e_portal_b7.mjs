@@ -194,7 +194,7 @@ async function main() {
     await page.goto(BASE + '/start/?mock_seed=testing', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
     const tenant = await page.evaluate(() => window.StartMock.admin.seedTenant());
     await page.goto(BASE + '/start/?r=1#onboarding', { waitUntil: 'load' }); await page.waitForSelector('.obsteps');
-    ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Setup checklist,My receptionist,Requests,Quotes,Billing', 'testing + tenant: My receptionist tab');
+    ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Setup checklist,My receptionist,Results,Requests,Quotes,Billing', 'testing + tenant: My receptionist tab');
     // alerts -> notify + on_call_number through update_tenant_settings
     await openStep(page, 'alerts');
     await setVal(page, '#obn_sms', '713 555 01'); await setVal(page, '#obn_email', 'dani@coolbreeze.test'); await setVal(page, '#oboc', '(713) 555-0111'); await setVal(page, '#ob_kw', 'gas smell, flooding');
@@ -226,6 +226,27 @@ async function main() {
     await page.select('#ob_car', 'comcast'); await sleep(80);
     const cbHow = await page.$eval('#ob_carhow', e => e.innerText);
     ok(['*92', '*90', '*93', '*91', digits].every(s => cbHow.includes(s)) && !/Voice Manager/.test(cbHow), 'forwarding: Comcast = VoiceEdge codes *92/*90, off *93/*91');
+    // VoIP business phone systems (task 11, 23.10): app / portal menu paths from each vendor's help page, no dial codes, grouped <optgroup>
+    const groups = await page.$$eval('#ob_car optgroup', gs => gs.map(g => [g.label, g.querySelectorAll('option').length]));
+    ok(groups.length === 2 && groups[0][0] === 'Mobile & landline carriers' && groups[0][1] === 4 && /VoIP/.test(groups[1][0]) && groups[1][1] === 8, 'forwarding: provider list = 4 carriers + 8 VoIP systems in two groups');
+    ok((await page.$$eval('#ob_car option', os => os.map(o => o.value))).slice(-1)[0] === 'other', 'forwarding: "Other / not sure" stays last, outside the groups');
+    const last4 = digits.slice(-4);
+    const VOIP = [
+      ['ringcentral', /Incoming call rules/, /If no one answers/, /Forward the call/],
+      ['googlevoice', /Ring groups/, /Unanswered calls/, /30 seconds/, /Need help with this step/],
+      ['nextiva', /Voice Settings/, /Call forwarding \(unanswered\)/, /rings/],
+      ['grasshopper', /Call forwarding numbers/, /Ring in specific order/, /Direct connect/, /25 seconds/],
+      ['ooma', /Shared External Line/, /Ring for/, /Need help with this step/],
+      ['dialpad', /Main Line/, /Fallback Options/, /external number/, /support team/],
+      ['zoom', /Call Handling/, /Add Phone Number/, /Sequential/, /Ringing Duration/],
+      ['vonage', /Follow Me/, /10–60 seconds/, /Forward Calls/]];
+    for (const [key, ...rx] of VOIP) {
+      await page.select('#ob_car', key); await sleep(60);
+      const how = await page.$eval('#ob_carhow', e => e.innerText);
+      ok(rx.every(r => r.test(how)) && how.includes(last4) && !/\*7\d|\*\*6\d|\*9\d/.test(how) && /final word/.test(how), 'forwarding: ' + key + ' = app/portal path with the AI line number, no dial codes');
+      ok(/turn it off|Need help with this step/.test(how), 'forwarding: ' + key + ' says how to undo or points to Need help');
+    }
+    ok(((await db(page)).onboarding_items.find(o => o.key === 'forward_calls').data || {}).carrier === 'vonage', 'forwarding: VoIP provider choice is saved');
     await page.select('#ob_car', 'att'); await sleep(80);
     ok(/text-back message/.test(await page.$eval('#ob_textback', e => e.innerText)), 'test call: warns that hanging up silent sends a text-back');
     ok(/30 minutes/.test(await page.$eval('#ob-forward_calls', e => e.innerText)), 'test call: 30-minute window explained');

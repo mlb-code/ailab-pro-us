@@ -1,0 +1,12 @@
+description: Appointment manager. A returning caller with a visit we booked is greeted by name and asked about that visit, then moves it by phone; the old visit is marked moved, the new one stands, the owner is told.
+channel: voice
+patch: {config: {booking: {self_service: true, recognize_callers: true}}}
+setup: {existing_booking: {name: "Tess Brown", job_type: "Maintenance", address: "500 Elm St Houston 77019"}}
+turns:
+  - say: "Hi there"
+    expect: {reply_matches: ["Hi Tess", "calling about your visit"], tools: []}
+  - say: "Yes, can we move it to another day?"
+    expect: {tools: [find_my_booking, get_availability], reply_matches: ["[Ww]hich works better"]}
+  - say: "The second one please"
+    expect: {tools: [reschedule_booking], reply_matches: ["moved your visit"], reply_not_matches: ["can't make that change"]}
+expect: {outcome: booked, booking_statuses: {confirmed: 1, rescheduled: 1}, actions: [booking_change]}

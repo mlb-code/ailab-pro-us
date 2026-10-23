@@ -535,6 +535,7 @@ _BOOKING_CLAIM = re.compile(
 _ACTION_CLAIM = re.compile(
     r"\b((i|we)('ve| have)? (cancel+ed|changed|updated|rescheduled|moved|deleted|removed|refunded|modified|credited)|"
     r"(has|have) been (cancel+ed|changed|updated|rescheduled|moved|deleted|removed|refunded))\b", re.I)
+_NEVER_BACKED = re.compile(r"\b(refund\w*|credit(ed|s)?|delet\w*|remov\w*|modifi\w*)\b", re.I)
 _ADVICE = re.compile(r"\b(you should (take|turn off the breaker and|try (resetting|fixing))|"
                      r"(medical|legal|financial) advice is|i recommend (taking|medication)|safe to (stay|keep using))\b", re.I)
 
@@ -563,11 +564,12 @@ def _shorten(text: str, channel: str) -> str:
     return cut[:end + 1] if end > 80 else cut.rstrip() + "…"
 
 
-def check_reply(text: str, cfg: TenantConfig, channel: str, booked: bool = False) -> ReplyCheck:
+def check_reply(text: str, cfg: TenantConfig, channel: str, booked: bool = False, changed: bool = False) -> ReplyCheck:
     """Validate Claude's text. Violations are replaced by safe fixed sentences.
 
-    `booked` = a booking was really created in this conversation (only then may the reply
-    confirm a visit or an arrival time)."""
+    `booked` = a booking was really created (or moved) in this conversation (only then may the reply
+    confirm a visit or an arrival time). `changed` = a booking was really moved or cancelled by a tool in this
+    conversation (only then may the reply say so)."""
     out = ReplyCheck(text=text or "")
     allowed = _allowed_amounts(cfg)
     for m in _MONEY.finditer(out.text):
@@ -580,7 +582,8 @@ def check_reply(text: str, cfg: TenantConfig, channel: str, booked: bool = False
         out.violations.append("discount")
     if not booked and _BOOKING_CLAIM.search(out.text):
         out.violations.append("unbooked_commitment")
-    if _ACTION_CLAIM.search(out.text):
+    # A real move/cancel (tool succeeded) backs "moved / rescheduled / cancelled / changed"; never refunds or deletions.
+    if _ACTION_CLAIM.search(out.text) and (not changed or _NEVER_BACKED.search(out.text)):
         out.violations.append("unbacked_action")
     if CLAIMS_HUMAN.search(out.text):
         out.violations.append("claims_human")

@@ -211,3 +211,21 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:4px}
 .ppay__msg:empty{display:none}
 .ppay-card{min-width:0}
 .ppay-card>.ppay{margin-top:0;border:0;padding:0;background:none}
+/* ADD-DISPATCH on-call editor (portal-dispatch.js) */
+.dperson,.dshift{padding:12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:10px;min-width:0}
+.dperson .field{margin-bottom:10px}
+.dshift .row{flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.dshift select.input{width:auto;max-width:100%;min-width:0}
+
+/* Results tab (appointment manager, portal-results.js) */
+.rs__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:12px 0 16px}
+.rs__stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rs__l{font-size:.85rem;color:var(--fg-3)}
+.rs__v{font-size:1.5rem;line-height:1.2}
+.rs__avg{margin-top:12px}
+.rs__row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.rs__row input{max-width:160px}
+.rs__bk{display:flex;flex-direction:column;gap:4px}
+.pill--rescheduled{color:var(--acc)}
+.pill--cancelled,.pill--no_show{color:var(--fg-3)}
+.pill--confirmed{color:var(--ok)}

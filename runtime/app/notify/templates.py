@@ -95,7 +95,7 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
     q = dict(lead.get("qualification") or {})
     if q.get("intent"):  # real estate: "Buyer · Buyer consultation" / "Seller lead"
         job = f"{str(q['intent']).capitalize()} · {job}" if lead.get("job_type") else f"{str(q['intent']).capitalize()} lead"
-    subject = f"{PREFIX.get(kind, '')}New lead: {job} · {name} · {city}"
+    subject = f"{PREFIX.get(kind, '')}{'Booking change' if kind == 'booking_change' else 'New lead'}: {job} · {name} · {city}"
     channel = {"voice": "Phone call", "chat": "Website chat"}.get(lead.get("channel") or "", "Text message")
     pairs = [("Name", name), ("Phone", lead.get("phone") or "-"), ("Job", job),
              ("Urgency", lead.get("urgency") or "normal"), ("Address", lead.get("address") or "-"),
@@ -110,7 +110,8 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
     text = "\n".join([subject, ""] + [f"{k}: {v}" for k, v in pairs] + ["", f"Portal: {portal_url()}"])
     intro = {"urgent": "An urgent request just came in. Please call the customer back now.",
              "human_needed": "The customer asked for a person. Please call back.",
-             "booking": "The AI receptionist booked a job on your calendar."}.get(
+             "booking": "The AI receptionist booked a job on your calendar.",
+             "booking_change": "A customer moved or cancelled a visit the AI receptionist booked. Your calendar is updated."}.get(
         kind, "The AI receptionist took a new lead for you.")
     body = f"<p>{esc(intro)}</p>{_rows(pairs)}"
     if lead.get("transcript"):
@@ -118,7 +119,8 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
                         for t in lead["transcript"][-12:])
         body += f'<p style="margin-top:16px;color:#667">Transcript (last lines)</p>{lines}'
     html_ = _wrap(f"{business}: {subject}", body, "en", _footer_en())
-    head = {"urgent": "URGENT lead", "human_needed": "Call back requested", "booking": "New booking"}.get(kind, "New lead")
+    head = {"urgent": "URGENT lead", "human_needed": "Call back requested", "booking": "New booking",
+            "booking_change": "Booking change"}.get(kind, "New lead")
     sms = f"{head}: {name}, {lead.get('phone') or '-'}, {job}"
     if lead.get("booking_label"):
         sms += f", {lead['booking_label']}"
@@ -131,12 +133,25 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
     return subject, text, html_, sms
 
 
+def dispatch_rows(d: dict[str, Any]) -> list[tuple[str, Any]]:
+    """ADD-DISPATCH lines for the daily summary / monthly report (only when the add-on is on)."""
+    x = d.get("dispatch")
+    if not x:
+        return []
+    rows: list[tuple[str, Any]] = [("Urgent calls sent to your on-call team", x["urgent_transfers"]),
+                                   ("  connected to a technician", x["connected"])]
+    if x.get("avg_accept_s") is not None:
+        rows.append(("  average time to pick up", f"{x['avg_accept_s']} seconds"))
+    return rows
+
+
 # --- daily summary (owner) ----------------------------------------------------------------
 def daily_summary(business: str, d: dict[str, Any]) -> tuple[str, str, str]:
     subject = f"Today: {d['calls_answered']} calls answered, {d['booked']} booked"
     pairs = [("Calls answered", d["calls_answered"]), ("Jobs booked", d["booked"]),
              ("Messages taken", d["messages"]), ("Urgent", d["urgent"]),
              ("Text conversations", d["sms_threads"]), ("Missed callers texted back", d["text_backs"])]
+    pairs += dispatch_rows(d)
     leads = d.get("leads") or []
     text = "\n".join([subject, f"{business}, {d['date']}", ""] + [f"{k}: {v}" for k, v in pairs]
                      + ([""] + [f"- {x['when']} {x['name']} ({x['job_type']}): {x['outcome']}" for x in leads] if leads else [])
@@ -157,6 +172,7 @@ def monthly_roi(business: str, r: dict[str, Any]) -> tuple[str, str, str]:
              ("Urgent requests flagged", r["urgent"]), ("Missed callers texted back", r["text_backs"]),
              ("Voice minutes used", f"{r['usage']['voice_minutes']:g} of {r['included']['voice_minutes']:g}"),
              ("SMS segments used", f"{r['usage']['sms_segments']:g} of {r['included']['sms_segments']:g}")]
+    pairs[6:6] = dispatch_rows(r)
     if r.get("est_value_usd") is not None:
         pairs.insert(3, ("Estimated value of booked jobs", f"{money(r['est_value_usd'])} "
                                                            f"({r['booked']} x {money(r['avg_job_value_usd'])} average job)"))
@@ -168,6 +184,30 @@ def monthly_roi(business: str, r: dict[str, Any]) -> tuple[str, str, str]:
     text = "\n".join([subject, business, ""] + [f"{k.strip()}: {v}" for k, v in pairs] + ["", note, f"Portal: {portal_url()}"])
     body = _rows(pairs) + f'<p style="margin-top:14px;color:#667">{esc(note)}</p>'
     return subject, text, _wrap(f"{business} · {r['month_label']}", body, "en", _footer_en())
+
+
+def weekly_results(business: str, r: dict[str, Any]) -> tuple[str, str, str]:
+    """Weekly results e-mail (WEEKLY_REPORT=1): last week's numbers and the calls worth calling back."""
+    subject = f"Your week: {r['calls_answered']} calls answered, {r['booked']} booked"
+    prev = r.get("previous") or {}
+    pairs = [("Calls answered", f"{r['calls_answered']} (week before: {prev.get('calls_answered', 0)})"),
+             ("  of them after hours", r["after_hours_calls"]),
+             ("Jobs booked", f"{r['booked']} (week before: {prev.get('booked', 0)})"),
+             ("Messages taken", r["messages"]), ("Visits confirmed by the customer", r["confirmations"]),
+             ("Visits moved / cancelled by the customer", f"{r['reschedules']} / {r['cancellations']}")]
+    if r.get("est_value_usd") is not None:
+        pairs.insert(3, ("Estimated value of booked jobs", f"{money(r['est_value_usd'])} "
+                                                           f"({r['booked']} x {money(r['avg_job_value_usd'])} average job)"))
+    back = r.get("worth_calling_back") or []
+    lines = [f"{b['when']}: {b['phone']}, {b['job_type']}" for b in back]
+    text = "\n".join([subject, f"{business}, {r['period_label']}", ""] + [f"{k.strip()}: {v}" for k, v in pairs] +
+                     (["", "Worth calling back (message taken, no booking since):"] + lines if lines else []) +
+                     ["", f"Portal: {portal_url()}"])
+    body = _rows(pairs)
+    if back:
+        body += '<p style="margin-top:16px"><b>Worth calling back</b> (message taken, no booking since)</p>' + _rows(
+            [(b["when"], f"{b['phone']} · {b['job_type']}") for b in back])
+    return subject, text, _wrap(f"{business} · {r['period_label']}", body, "en", _footer_en())
 
 
 # --- usage alerts ---------------------------------------------------------------------------

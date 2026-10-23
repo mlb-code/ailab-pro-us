@@ -19,9 +19,15 @@ Env: `RUNTIME_MODE` (prod|sim), `STORE_BACKEND` (json|supabase), `DATA_DIR`, `SU
 **secret key**, `sb_secret_…`, made by `tools/us_setup.py --only supabase-keys`; the variable name is historical, the legacy service_role JWT is no longer used),
 `TWILIO_AUTH_TOKEN`, `PUBLIC_BASE_URL`, `CRED_KEY` (base64 32 bytes), `BRAIN_MODE` (mock|replay|record|live), `GLOBAL_DAILY_BUDGET_USD`,
 `VOICE_MODE` (stream = ConversationRelay, production default | gather = turn-based fallback), `VOICE_SILENCE_SECONDS` (7),
-`VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `VOICE_RELAY_GRACE_SECONDS` (20).
+`VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `SMS_BOOKING_REPLIES` (0 = off until 10DLC: booking texts ask for C/R/X replies, see `app/appointments.py`), `WEEKLY_REPORT` (0 = off: weekly results e-mail to owners), `VOICE_RELAY_GRACE_SECONDS` (20).
 
 Voice/SMS routes: `/voice/incoming|turn|dial-result|status|fallback|relay-end`, WebSocket `/voice/relay`, `/sms/incoming|status`; cron `/jobs/tick` (B6 routes).
+ADD-DISPATCH (on-call dispatcher, `app/dispatch.py`, tenant config `dispatch`): urgent call while closed (or `daytime_too`) ->
+first name + ZIP -> warm transfer `<Dial><Number url=/voice/dispatch/whisper>` (brief + press 1), up to 3 numbers, 75 s cap ->
+call-back promise + staff alerts (voice call `/voice/dispatch/alert`, press 1 = connect to the caller), repeated once after 5 min
+(Outbound job, needs `/jobs/tick` at least every 5 min or `JOBS_LOOP_SECONDS`). Staff SMS alerts only with `DISPATCH_SMS_ALERTS=1`
+(default off, waits for A2P 10DLC) AND `dispatch.sms_alerts`; "1" by SMS acknowledges. Log: table `dispatch_events`. Needs
+`PUBLIC_BASE_URL` for the alert calls. 911 line for life-safety words stays first.
 Claude models (brand.json `claude.*`): realtime turns (voice, SMS, web chat) use `claude.voice_model` (Haiku; env `CLAUDE_VOICE_MODEL`),
 quotes use `claude.quote_model` (Edge), `claude.model` is the general default. Voice/realtime knobs: `claude.voice.max_tokens`
 (`CLAUDE_VOICE_MAX_TOKENS`), `.thinking` disabled|adaptive (`CLAUDE_VOICE_THINKING`), `.prompt_cache` (`CLAUDE_PROMPT_CACHE`, also the

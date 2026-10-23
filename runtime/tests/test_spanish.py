@@ -108,8 +108,8 @@ def test_spanish_sms_templates_follow_the_number(tmp_path, demo_raw):
     booking = {"label": "Monday Oct 12, 1 PM to 3 PM", "start": "2026-10-12T13:00:00-05:00", "event_id": "e1"}
     assert textback_text(tenant) .startswith("Hi, this is") and "STOP" in textback_text(tenant)
     assert textback_text(tenant, "es").startswith("Hola, le habla Cool Breeze HVAC") and "PARAR" in textback_text(tenant, "es")
-    assert "su cita está confirmada para Monday Oct 12, 1 PM to 3 PM" in confirmation_text(tenant, booking, "es")
-    assert "recordatorio de su visita" in reminder_text(tenant, booking, "es") and guard.sms_segments(reminder_text(tenant, booking, "es")) <= 3
+    assert "su cita está confirmada para Monday Oct 12, 1 PM to 3 PM" in confirmation_text(tenant, booking, lang="es")
+    assert "recordatorio de su visita" in reminder_text(tenant, booking, lang="es") and guard.sms_segments(reminder_text(tenant, booking, lang="es")) <= 3
     sim.rt.state.put(f"lang:{tenant.id}:{sim.rt.engine._who(harness.CALLER)}", "es", tenant.id)
     assert sim.rt.outbound.contact_lang(tenant, harness.CALLER) == "es"
     res = sim.rt.outbound.confirm_booking(tenant, harness.CALLER, booking, MON_9)

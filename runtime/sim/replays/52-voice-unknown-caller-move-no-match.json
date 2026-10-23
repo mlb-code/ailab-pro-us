@@ -1,0 +1,166 @@
+{
+ "1c17fcdb0f1b11c47125ebd7": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "name": null,
+      "summary": "Customer wants to change a booking we could not find",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1145,
+    "output_tokens": 45
+   }
+  }
+ },
+ "2a40deeea4da0946f27a2cba": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: I need to move my appointment",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "name": null,
+      "phone": null
+     },
+     "name": "find_my_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 861,
+    "output_tokens": 28
+   }
+  }
+ },
+ "3c271d4a16a4f768ea5724b8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can't find a booking for this number. What phone number is the booking under, and what name is it under?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 939,
+    "output_tokens": 34
+   }
+  }
+ },
+ "6eda044fe132a221bca1f4bb": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: It's under [phone number the customer sent: 713-555-0177], the name is Paul Jones",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "name": "Paul Jones",
+      "phone": "7135550177"
+     },
+     "name": "find_my_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1063,
+    "output_tokens": 32
+   }
+  }
+ },
+ "9b57ecaf93283af15e7ad303": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1229,
+    "output_tokens": 28
+   }
+  }
+ }
+}

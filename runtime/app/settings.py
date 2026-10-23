@@ -95,6 +95,17 @@ class Settings:
     # ADD-REV kill switch (REVIEW_REQUESTS_ENABLED). Off by default: review texts need a 10DLC campaign that
     # covers them and consent collected for them; the tenant's `review_requests.enabled` must be on as well.
     review_requests_enabled: bool = False
+    # ADD-DISPATCH staff alerts by SMS: global switch, OFF by default until the A2P 10DLC campaign (and its use-case
+    # wording for internal staff alerts) is approved. Off = alerts go by voice call; the tenant flag
+    # dispatch.sms_alerts is needed as well.
+    dispatch_sms_alerts: bool = False
+    # Appointment manager (2026-10-23). OFF by default: texting is not live until A2P 10DLC is approved.
+    # SMS_BOOKING_REPLIES=1: confirmation/reminder texts ask "Reply C/R/X", the replies confirm / change / cancel, and a
+    # booking moved by phone gets a new confirmation + reminder (still only with the caller's texting yes).
+    sms_booking_replies: bool = False
+    # WEEKLY_REPORT=1: the weekly "Results" e-mail to owners (Mondays 09:00 tenant time; client e-mails still need
+    # CLIENT_EMAILS_ENABLED). Off until approved.
+    weekly_report: bool = False
 
     @property
     def is_sim(self) -> bool:
@@ -172,6 +183,9 @@ def load(env: dict[str, str] | None = None) -> Settings:
         jobs_loop_s=float(env.get("JOBS_LOOP_SECONDS", "0")),
         review_requests_enabled=(env.get("REVIEW_REQUESTS_ENABLED") or "0").strip().lower()
         in ("1", "true", "yes", "on"),
+        dispatch_sms_alerts=(env.get("DISPATCH_SMS_ALERTS") or "0").strip().lower() in ("1", "true", "yes", "on"),
+        sms_booking_replies=(env.get("SMS_BOOKING_REPLIES") or "0").strip().lower() in ("1", "true", "yes", "on"),
+        weekly_report=(env.get("WEEKLY_REPORT") or "0").strip().lower() in ("1", "true", "yes", "on"),
     )
     if env.get("REPLAY_DIR"):
         kwargs["replay_dir"] = Path(env["REPLAY_DIR"])

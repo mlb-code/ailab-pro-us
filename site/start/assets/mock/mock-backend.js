@@ -19,7 +19,7 @@
   };
   const TABLES = ['users', 'profiles', 'questionnaires', 'attachments', 'quotes', 'clients', 'payments', 'events', 'outbox', 'otps',
     'leads', 'onboarding_items', 'requests', 'tenants', 'runtime_state', 'admin_notes', 'quote_reviews',   // second row: admin (A7)
-    'calls', 'sms_messages', 'bookings'];   // third row: receptionist data written by the runtime (B7 reads it)
+    'calls', 'sms_messages', 'bookings', 'dispatch_events'];   // third row: receptionist data written by the runtime (B7 reads it)
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
   const ss = {
@@ -797,6 +797,49 @@
       claude_usd: Math.round(sum('spend:') * 10000) / 10000, twilio_usd: Math.round(sum('cost:twilio:') * 10000) / 10000,
       updated_at: rows.reduce((a, r) => (r.updated_at > a ? r.updated_at : a), '') || null };
   }
+  // public.client_results (migration *_us_appointments.sql): same numbers, bucketed by the tenant's local month
+  const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  function localOf(iso, tz) {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', weekday: 'short' });
+    const p = {}; f.formatToParts(new Date(iso)).forEach(x => { p[x.type] = x.value; });
+    return { ym: p.year + '-' + p.month, wd: DAY_KEYS[['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday)], hm: p.hour + ':' + p.minute };
+  }
+  function resultsMonth(db, t, m) {
+    const tz = ((t.config || {}).business || {}).timezone || 'UTC', hours = (t.config || {}).hours || {};
+    const inM = v => !!v && localOf(v, tz).ym === m;
+    const calls = db.calls.filter(c => c.tenant_id === t.id && inM(c.started_at));
+    const ans = calls.filter(c => ['booked', 'message', 'handoff', 'emergency'].indexOf(c.outcome) !== -1);
+    const bk = db.bookings.filter(b => b.tenant_id === t.id);
+    const ev = db.events.filter(e => e.entity === 'tenant' && e.entity_id === t.id && /^appointment\./.test(e.type || '') && inM(e.created_at));
+    return {
+      calls_answered: ans.length,
+      after_hours_calls: ans.filter(c => { const l = localOf(c.started_at, tz), sp = hours[l.wd]; return !Array.isArray(sp) || l.hm < sp[0] || l.hm >= sp[1]; }).length,
+      booked: bk.filter(b => inM(b.created_at) && !b.rescheduled_from_id && ['confirmed', 'completed', 'rescheduled', 'no_show'].indexOf(b.status) !== -1).length,
+      messages: calls.filter(c => c.outcome === 'message' || c.outcome === 'handoff').length,
+      confirmations: bk.filter(b => inM(b.confirmed_at)).length,
+      reschedules: ev.filter(e => e.type === 'appointment.rescheduled').length,
+      cancellations: ev.filter(e => e.type === 'appointment.cancelled').length,
+      no_shows: bk.filter(b => b.status === 'no_show' && inM(b.start_at)).length
+    };
+  }
+  function resultsOf(db, tid, month) {
+    const t = db.tenants.find(x => x.id === tid); if (!t) { const e = new Error('not_found'); e.code = 'not_found'; throw e; }
+    const tz = ((t.config || {}).business || {}).timezone || 'UTC';
+    const m = month || localOf(new Date().toISOString(), tz).ym;
+    if (!/^[0-9]{4}-[0-9]{2}$/.test(m)) { const e = new Error('bad_month'); e.code = 'bad_month'; throw e; }
+    const [y, mo] = m.split('-').map(Number), pm = mo === 1 ? (y - 1) + '-12' : y + '-' + String(mo - 1).padStart(2, '0');
+    const cur = resultsMonth(db, t, m), prev = resultsMonth(db, t, pm);
+    const avgRow = db.runtime_state.find(r => r.key === 'roi:' + tid + ':avg_job_value_usd'), avg = avgRow ? rsNum(avgRow.value) : null;
+    const seen = {}, back = [];
+    db.calls.filter(c => c.tenant_id === tid && c.outcome === 'message' && c.job_type && c.from_e164 && localOf(c.started_at, tz).ym === m)
+      .sort((a, b) => b.started_at.localeCompare(a.started_at)).forEach(c => {
+        if (seen[c.from_e164]) return; seen[c.from_e164] = 1;
+        if (db.bookings.some(b => b.tenant_id === tid && b.contact_e164 === c.from_e164 && b.created_at > c.started_at)) return;
+        if (back.length < 10) back.push({ at: c.started_at, phone: c.from_e164, job_type: c.job_type, summary: String(c.summary || '').slice(0, 200) });
+      });
+    return Object.assign(cur, { month: m, previous: Object.assign(prev, { month: pm }), avg_job_value_usd: avg,
+      est_value_usd: avg == null ? null : Math.round(cur.booked * avg * 100) / 100, worth_calling_back: back });
+  }
   // trigger calls_forwarding_test: a call within [start - 1 min, start + 30 min] marks forward_calls done
   function forwardingCheck(db, call) {
     const t = db.tenants.find(x => x.id === call.tenant_id); if (!t) return;
@@ -957,6 +1000,52 @@
           return clone(t.config);
         });
       },
+      // ---------------------------------------------------------- ADD-DISPATCH (mirrors 20261023100000_us_dispatch.sql)
+      saveDispatch(tenantId, patch) {
+        return run(x => {
+          if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
+          if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw err('patch_must_be_object');
+          const bad = Object.keys(patch).find(k => ['daytime_too', 'callback_minutes', 'contacts', 'schedule'].indexOf(k) === -1);
+          if (bad) throw err('field_not_allowed: ' + bad);
+          const t = x.db.tenants.find(tt => tt.id === tenantId), cur = clone((t.config || {}).dispatch || {});
+          if ('daytime_too' in patch && typeof patch.daytime_too !== 'boolean') throw err('invalid_setting:dispatch.daytime_too');
+          if ('callback_minutes' in patch && !(Number.isInteger(patch.callback_minutes) && patch.callback_minutes >= 5 && patch.callback_minutes <= 120)) throw err('invalid_setting:dispatch.callback_minutes');
+          let ids = (cur.contacts || []).map(c => c.id);
+          if ('contacts' in patch) {
+            if (!Array.isArray(patch.contacts) || patch.contacts.length > 5) throw err('invalid_setting:dispatch.contacts');
+            const phones = []; ids = [];
+            patch.contacts = patch.contacts.map((c, i) => {
+              if (!c || !/^[a-z0-9_-]{1,20}$/.test(c.id || '') || ids.indexOf(c.id) !== -1) throw err('invalid_setting:dispatch.contacts[' + i + '].id');
+              if (!String(c.name || '').trim() || String(c.name).trim().length > 60) throw err('invalid_setting:dispatch.contacts[' + i + '].name');
+              if (!/^\+1[2-9]\d{9}$/.test(c.phone || '') || phones.indexOf(c.phone) !== -1) throw err('invalid_setting:dispatch.contacts[' + i + '].phone');
+              ids.push(c.id); phones.push(c.phone);
+              const prev = (cur.contacts || []).find(o => o.phone === c.phone) || {};
+              return { id: c.id, name: String(c.name).trim(), phone: c.phone, role: c.role === 'manager' ? 'manager' : 'tech',
+                alerts_opt_in_at: c.opt_in ? (prev.alerts_opt_in_at || now()) : null };
+            });
+          }
+          const sched = 'schedule' in patch ? patch.schedule : (cur.schedule || []);
+          if (!Array.isArray(sched) || sched.length > 28) throw err('invalid_setting:dispatch.schedule');
+          sched.forEach((r, i) => {
+            if (!r || DAYS3.indexOf(r.day) === -1 || !HHMM.test(r.start || '') || !HHMM.test(r.end || '') || !Array.isArray(r.contacts) || !r.contacts.length || r.contacts.length > 5
+                || r.contacts.some(c => ids.indexOf(c) === -1)) throw err('invalid_setting:dispatch.schedule[' + i + ']');
+          });
+          t.config = Object.assign({}, t.config, { dispatch: Object.assign(cur, patch) }); t.updated_at = now();
+          return clone(t.config.dispatch);
+        });
+      },
+      listDispatchEvents(tenantId, limit) {
+        return run(x => ownsTenant(x, tenantId) || isAdmin(x) ? x.db.dispatch_events.filter(r => r.tenant_id === tenantId).sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit || 200) : []);
+      },
+      markDispatchHandled(tenantId, callSid) {
+        return run(x => {
+          if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
+          const rows = x.db.dispatch_events.filter(r => r.tenant_id === tenantId && r.call_sid === callSid);
+          if (!rows.length) throw err('not_found');
+          if (!rows.some(r => r.result === 'handled')) x.db.dispatch_events.push({ id: uuid(), tenant_id: tenantId, call_sid: callSid, leg: null, contact_name: 'Owner', result: 'handled', wait_s: null, detail: 'portal', at: now() });
+          return null;
+        });
+      },
       listCalls(tenantId, limit) {
         return run(x => ownsTenant(x, tenantId) ? x.db.calls.filter(c => c.tenant_id === tenantId).sort((a, b) => b.started_at.localeCompare(a.started_at)).slice(0, limit || 50) : []);
       },
@@ -965,6 +1054,37 @@
       },
       listBookings(tenantId, limit) {
         return run(x => ownsTenant(x, tenantId) ? x.db.bookings.filter(c => c.tenant_id === tenantId).sort((a, b) => (b.start_at || '').localeCompare(a.start_at || '')).slice(0, limit || 50) : []);
+      },
+      // appointment manager (migration *_us_appointments.sql): Results panel, no-show, average job value
+      getResults(tenantId, month) {
+        return run(x => {
+          if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
+          return resultsOf(x.db, tenantId, month || null);
+        });
+      },
+      markNoShow(bookingId, noShow) {
+        return run(x => {
+          const b = x.db.bookings.find(r => r.id === bookingId);
+          if (!b) throw err('not_found');
+          if (!(ownsTenant(x, b.tenant_id) || isAdmin(x))) throw err('not_your_tenant');
+          const on = noShow !== false;
+          if (on && b.status !== 'confirmed') throw err('bad_status');
+          if (on && (!b.start_at || Date.parse(b.start_at) > Date.now())) throw err('visit_not_started');
+          if (!on && b.status !== 'no_show') throw err('bad_status');
+          b.status = on ? 'no_show' : 'confirmed';
+          x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'tenant', entity_id: b.tenant_id, user_id: x.u.id, type: on ? 'booking_no_show' : 'booking_no_show_undone', payload: { booking_id: b.id }, client_visible: true, created_at: now() });
+          return { id: b.id, status: b.status };
+        });
+      },
+      setAvgJobValue(tenantId, value) {
+        return run(x => {
+          if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
+          if (value !== null && !(typeof value === 'number' && value > 0 && value <= 100000)) throw err('avg_job_value_range');
+          const k = 'roi:' + tenantId + ':avg_job_value_usd';
+          x.db.runtime_state = x.db.runtime_state.filter(r => r.key !== k);
+          if (value !== null) x.db.runtime_state.push({ id: uuid(), key: k, tenant_id: tenantId, value: Math.round(value * 100) / 100, updated_at: now() });
+          return { avg_job_value_usd: value };
+        });
       },
       getUsage(tenantId, month) {
         return run(x => {
@@ -1122,7 +1242,50 @@
     store(db);
     return tenantRow2(t);
   }
+  // ADD-DISPATCH demo: the add-on on the signed-in client's tenant, two urgent calls in the log, one STOP from staff
+  const DAYS3 = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  function seedDispatch(opts) {
+    const db = load(), u = me(db); if (!u) throw new Error('not_authenticated');
+    const client = db.clients.filter(c => c.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    const t = client && db.tenants.find(x => x.client_id === client.id); if (!t) throw new Error('no_tenant');
+    const ago = m => new Date(Date.now() - m * 60000).toISOString();
+    t.config = Object.assign({}, t.config, { dispatch: { enabled: !(opts && opts.off), daytime_too: false, callback_minutes: 15, sms_alerts: false,
+      contacts: [{ id: 'dan', name: 'Dan', phone: '+17135550201', role: 'tech', alerts_opt_in_at: ago(9000) },
+                 { id: 'maria', name: 'Maria', phone: '+17135550203', role: 'manager', alerts_opt_in_at: ago(9000) }],
+      schedule: DAYS3.map(d => ({ day: d, start: '18:00', end: '07:00', contacts: ['dan'] })) } });
+    const ev = (sid, m, leg, name, result, wait) => ({ id: uuid(), tenant_id: t.id, call_sid: sid, leg, contact_name: name, result, wait_s: wait == null ? null : wait, detail: null, at: ago(m) });
+    db.dispatch_events.push(ev('CAdispatch1', 600, 0, 'Dan', 'accepted', 18),
+      ev('CAdispatch2', 120, 0, 'Dan', 'no_answer'), ev('CAdispatch2', 119, 1, 'Maria', 'no_answer'), ev('CAdispatch2', 118, null, 'Dan', 'alert_sent'),
+      ev('CAdispatch2', 118, null, 'Maria', 'alert_sent'), ev('', 60, null, 'Maria', 'opted_out'));
+    store(db);
+    return t.id;
+  }
   const tenantRow2 = t => ({ id: t.id, slug: t.slug, twilio_number: t.twilio_number });
+  // Appointment manager demo/test data: calls worth calling back, a moved visit, a past visit (no-show button), confirmations
+  function seedResults() {
+    const db = load(), u = me(db); if (!u) throw new Error('not_authenticated');
+    const client = db.clients.filter(c => c.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    const t = client && db.tenants.find(x => x.client_id === client.id); if (!t) throw new Error('no_tenant');
+    if (db.calls.some(c => c.tenant_id === t.id && c.call_sid === 'CA-results-1')) return tenantRow2(t);
+    const ago = h => new Date(Date.now() - h * 3600000).toISOString();
+    db.calls.push({ id: uuid(), tenant_id: t.id, call_sid: 'CA-results-1', from_e164: '+18325550190', started_at: ago(5), duration_s: 70, outcome: 'message', job_type: 'AC repair',
+      summary: 'AC not cooling; wanted a price first. Call back.', transcript: [], created_at: ago(5) },
+    { id: uuid(), tenant_id: t.id, call_sid: 'CA-results-2', from_e164: '+18325550191', started_at: ago(7), duration_s: 50, outcome: 'message', job_type: 'Maintenance',
+      summary: 'Tune-up next week, will check the schedule.', transcript: [], created_at: ago(7) });
+    const past = new Date(Date.now() - 3 * 3600000); past.setMinutes(0, 0, 0);
+    const moved = { id: uuid(), tenant_id: t.id, call_id: null, customer_name: 'Tess Brown', contact_e164: '+18325550192', address: '500 Elm St, Houston, TX 77007', job_type: 'Maintenance', urgency: 'normal',
+      start_at: new Date(Date.now() + 30 * 3600000).toISOString(), end_at: new Date(Date.now() + 34 * 3600000).toISOString(), provider_event_id: 'fake-moved', status: 'rescheduled', created_at: ago(30) };
+    db.bookings.push(moved,
+      { id: uuid(), tenant_id: t.id, call_id: null, customer_name: 'Tess Brown', contact_e164: '+18325550192', address: '500 Elm St, Houston, TX 77007', job_type: 'Maintenance', urgency: 'normal',
+        start_at: new Date(Date.now() + 54 * 3600000).toISOString(), end_at: new Date(Date.now() + 58 * 3600000).toISOString(), provider_event_id: 'fake-new', status: 'confirmed', created_at: ago(1),
+        rescheduled_from_id: moved.id, confirmed_at: ago(0.5) },
+      { id: uuid(), tenant_id: t.id, call_id: null, customer_name: 'Sam Lee', contact_e164: '+18325550193', address: '12 Oak Ave, Houston, TX 77008', job_type: 'AC repair', urgency: 'normal',
+        start_at: past.toISOString(), end_at: new Date(past.getTime() + 2 * 3600000).toISOString(), provider_event_id: 'fake-past', status: 'confirmed', created_at: ago(20) });
+    db.events.push({ id: uuid(), actor: 'runtime', entity: 'tenant', entity_id: t.id, user_id: null, type: 'appointment.rescheduled', payload: { channel: 'voice' }, client_visible: false, created_at: ago(1) });
+    store(db);
+    return tenantRow2(t);
+  }
+
   // B7: the runtime logging a call to the tenant number (e.g. the client's forwarding test)
   function simulateCall(tid) {
     const db = load();
@@ -1146,7 +1309,9 @@
       seed,
       seedAdmin,   // A7: demo data for /start/admin/
       seedTenant: opts => seedTenant(opts),    // B7: tenant + receptionist demo data for the signed-in client ({niche:'real_estate'} = real-estate tenant)
-      simulateCall: tid => simulateCall(tid)   // B7: what the runtime does when a forwarded call arrives
+      seedResults: () => seedResults(),        // appointment manager: Results panel / no-show demo data
+      simulateCall: tid => simulateCall(tid),  // B7: what the runtime does when a forwarded call arrives
+      seedDispatch: opts => seedDispatch(opts) // ADD-DISPATCH demo data (tools/e2e_dispatch.mjs)
     }
   };
 })();

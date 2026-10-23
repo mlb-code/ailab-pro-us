@@ -22,18 +22,42 @@
   const CALENDLY_RX = /^https:\/\/calendly\.com\/[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)?\/?$/;
   const EIN_RX = /^[0-9]{2}-?[0-9]{7}$/;
   const EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic', 'heif', 'pdf', 'txt', 'csv', 'xls', 'xlsx', 'doc', 'docx', 'zip'];
-  // carrier instructions for "forward when busy / no answer". {n} = 10-digit forwarding number, {N} = 1 + number
+  // carrier instructions for "forward when busy / no answer". {n} = 10-digit forwarding number, {N} = 1 + number.
+  // [key, label, steps, optgroup?] — entries without a group are listed on their own ("Other / not sure").
+  const LINES = 'Mobile & landline carriers', VOIP = 'Business phone systems (VoIP)';
   const CARRIERS = [
-    ['verizon', 'Verizon', ['On your business phone, dial <b class="mono">*71{n}</b> and press Call. Wait for the confirmation tone, then hang up.', 'To turn it off later: dial <b class="mono">*73</b>.']],
+    ['verizon', 'Verizon', ['On your business phone, dial <b class="mono">*71{n}</b> and press Call. Wait for the confirmation tone, then hang up.', 'To turn it off later: dial <b class="mono">*73</b>.'], LINES],
     // AT&T publishes no dial codes: forwarding is set in the phone itself (att.com/support/article/wireless/KM1011513,
     // Android path from att.com/device-support/article/140337/Google/pixel-10). iOS has only "forward all calls".
-    ['att', 'AT&T', ['AT&T sets this in your phone, not with a dial code. <b>Android:</b> Phone app → Settings → Calling accounts → your SIM → Call forwarding. Turn on <b>When unanswered</b> and <b>When busy</b> (and <b>When unreachable</b>) and enter <b class="mono">{fmt}</b> for each.', 'Leave <b>Always forward</b> off, so your phone still rings first.', '<b>iPhone:</b> Settings → Phone → Call Forwarding forwards <i>every</i> call. For “busy / no answer” only, use “Need help with this step?” below and we’ll set it up with you.', 'To turn it off later: switch the same options off.']],
-    ['tmobile', 'T-Mobile', ['Dial <b class="mono">**61*{N}#</b> (no answer), then <b class="mono">**67*{N}#</b> (busy) and <b class="mono">**62*{N}#</b> (unreachable). Press Call after each.', 'To turn it off later: dial <b class="mono">##004#</b>.']],
+    ['att', 'AT&T', ['AT&T sets this in your phone, not with a dial code. <b>Android:</b> Phone app → Settings → Calling accounts → your SIM → Call forwarding. Turn on <b>When unanswered</b> and <b>When busy</b> (and <b>When unreachable</b>) and enter <b class="mono">{fmt}</b> for each.', 'Leave <b>Always forward</b> off, so your phone still rings first.', '<b>iPhone:</b> Settings → Phone → Call Forwarding forwards <i>every</i> call. For “busy / no answer” only, use “Need help with this step?” below and we’ll set it up with you.', 'To turn it off later: switch the same options off.'], LINES],
+    ['tmobile', 'T-Mobile', ['Dial <b class="mono">**61*{N}#</b> (no answer), then <b class="mono">**67*{N}#</b> (busy) and <b class="mono">**62*{N}#</b> (unreachable). Press Call after each.', 'To turn it off later: dial <b class="mono">##004#</b>.'], LINES],
     // Comcast Business VoiceEdge star codes (Comcast sheet SLS90624, 2018): busy *90 / off *91, no answer *92 / off *93.
-    ['comcast', 'Comcast Business', ['On your Comcast Business (VoiceEdge) phone, dial <b class="mono">*92</b>, then <b class="mono">{n}</b> (no answer). Then dial <b class="mono">*90</b>, then <b class="mono">{n}</b> (busy). Wait for the confirmation after each.', 'Or in the Comcast Business app / VoiceEdge portal: Call Forwarding → turn on <b>No Answer</b> and <b>Busy</b>, forward to <b class="mono">{fmt}</b>. Save.', 'To turn it off later: dial <b class="mono">*93</b> (no answer) and <b class="mono">*91</b> (busy).', 'Other Comcast Business phone products use their own guide: use “Need help with this step?” if these don’t match your phone.']],
-    ['ringcentral', 'RingCentral', ['In the RingCentral admin portal open your number → Call Handling & Forwarding.', 'Under “When no one answers”, forward to the external number <b class="mono">{fmt}</b>. Save.']],
-    ['googlevoice', 'Google Voice', ['Google Voice can’t pass unanswered calls to another number on every plan.', 'Use “Need help with this step?” below and we’ll work it out with you in writing.']],
-    ['other', 'Other / not sure', ['Look for “conditional call forwarding” or “forward when busy / no answer” in your phone provider’s settings or support pages.', 'Forward to <b class="mono">{fmt}</b>.']]];
+    ['comcast', 'Comcast Business', ['On your Comcast Business (VoiceEdge) phone, dial <b class="mono">*92</b>, then <b class="mono">{n}</b> (no answer). Then dial <b class="mono">*90</b>, then <b class="mono">{n}</b> (busy). Wait for the confirmation after each.', 'Or in the Comcast Business app / VoiceEdge portal: Call Forwarding → turn on <b>No Answer</b> and <b>Busy</b>, forward to <b class="mono">{fmt}</b>. Save.', 'To turn it off later: dial <b class="mono">*93</b> (no answer) and <b class="mono">*91</b> (busy).', 'Other Comcast Business phone products use their own guide: use “Need help with this step?” if these don’t match your phone.'], LINES],
+    // --- Business phone systems (VoIP): forwarding is set in the app / web portal, not with a dial code. 4th element = <optgroup>.
+    // Sources checked 23.10.2026 (official help pages only):
+    // RingCentral: support.ringcentral.com/s/article/4618 — Settings → Phone → Incoming call rules; "If no one answers" → "Forward the call"; ring settings 1–15 rings (5 s each).
+    ['ringcentral', 'RingCentral', ['In the RingCentral app: Settings → Phone → <b>Incoming call rules</b> → Incoming calls (with a custom schedule: Work hours, then After hours).', 'Under <b>Ring settings</b> choose how long your phones ring (4 rings ≈ 20 seconds). Under <b>If no one answers</b> choose <b>Forward the call</b> and enter <b class="mono">{fmt}</b>. Save.', 'Admins can set this for any user: Admin Portal → Users → the user → Phone → Incoming call rules.', 'To turn it off later: set “If no one answers” back to Send to voicemail.'], VOIP],
+    // Google Voice: support.google.com/voice/answer/165221 (linked numbers ring together; forwarding to an automated system unsupported);
+    // knowledge.workspace.google.com/admin/voice/set-up-google-voice-ring-groups (updated 2026-10-22): "Unanswered calls" after 30 s → "Forward the caller" → Phone number.
+    ['googlevoice', 'Google Voice', ['Personal and Starter Google Voice ring all your linked phones at once and can’t forward only the unanswered calls to an outside number.', '<b>Google Workspace Voice (Standard / Premier):</b> an admin opens Admin console → Apps → Google Workspace → Google Voice → <b>Ring groups</b> → Create. Add your people, and under <b>Unanswered calls</b> choose <b>Forward the caller</b> → <b>Phone number</b> and enter <b class="mono">{fmt}</b>. Calls forward after 30 seconds. Save.', 'Not sure which plan you have? Use “Need help with this step?” below and we’ll work it out with you in writing.'], VOIP],
+    // Nextiva: help.nextiva.com/article/call-forward-no-answer (updated Sep 29, 2025) — Users → Actions → Voice Settings → Forwarding → Call forwarding (unanswered), number of rings; direct calls only.
+    ['nextiva', 'Nextiva', ['In the Nextiva voice portal (admin): Users → hover your user → Actions → <b>Voice Settings</b> → <b>Forwarding</b> → <b>Call forwarding (unanswered)</b>.', 'Enter <b class="mono">{fmt}</b>, choose how many rings to wait (3–4 rings ≈ 15–20 seconds), Save.', 'This covers calls that come straight to your user, not call-center or call-group calls.', 'To turn it off later: switch the same option off.'], VOIP],
+    // Grasshopper: support.grasshopper.com/help/forward-incoming-calls-for-an-extension (Call forwarding numbers → Add call forwarding; ring order; Direct connect)
+    // and support.grasshopper.com/help/change-an-extensions-ring-time (default 25 s = lowest recommended; above 50 s not recommended).
+    ['grasshopper', 'Grasshopper', ['Grasshopper rings your forwarding numbers in the order you set. Admin portal → Call management → <b>Extensions</b> → edit your extension → <b>Call forwarding numbers</b> → <b>Add call forwarding</b>: enter <b class="mono">{fmt}</b>, Status <b>Active</b>, Save.', 'Under <b>Preferences</b> choose <b>Ring in specific order</b> with your own phone first and the receptionist’s number last. Keep your own number’s <b>Ring duration</b> at about 25 seconds (Grasshopper’s default).', 'For the receptionist’s number pick <b>Direct connect</b> as the call-handling option, so the call connects without an announcement.', 'To turn it off later: set that forwarding number to Inactive or delete it.'], VOIP],
+    // Ooma Office: ooma.ca/small-business-systems/how-to/how-to-direct-incoming-calls (updated Jan 6, 2026): "Then send to" = voicemail / extension / busy tone only;
+    // ooma.ca/small-business-phone-systems/how-to/how-to-add-a-new-shared-external-line (Pro Plus, updated Jan 6, 2026): one shared external line, appears in Call Handling.
+    ['ooma', 'Ooma Office', ['Ooma Office doesn’t forward one user’s unanswered calls to an outside number: the <b>Then send to</b> menu offers only voicemail, another extension or a busy tone.', '<b>Ooma Office Pro Plus:</b> sign in at office.ooma.com as admin → Settings → Add → <b>Shared External Line</b>, enter <b class="mono">{fmt}</b>, Save. Then in your ring group’s <b>Call Handling</b>: <b>Ring for</b> about 20 seconds, then send to the shared external line.', 'On other Ooma Office plans, use “Need help with this step?” below and we’ll set it up with you.'], VOIP],
+    // Dialpad: help.dialpad.com/docs/manage-a-main-line (updated Oct 2026) — Main Line → Business Hours & Call Routing → Edit Call Routing → Ring Duration (15 s ≈ 4 rings);
+    // Operators → Fallback Options → "To another team member, room phone or external number" (external numbers: Dialpad support must enable first).
+    ['dialpad', 'Dialpad', ['Dialpad forwards unanswered calls from your <b>Main Line</b> (not from a personal number): Admin Settings → Office → Main Line → Business Hours & Call Routing → <b>Edit Call Routing</b>.', 'Set <b>Ring Duration</b> (about 15 seconds ≈ 4 rings). Under <b>Operators → Fallback Options</b> choose <b>To another team member, room phone or external number</b> and enter <b class="mono">{fmt}</b>. Save. Repeat under Closed Hours Routing if you want after-hours calls answered too.', 'Dialpad switches on forwarding to an outside number only after you ask their support team, so send them that one message first.', 'To turn it off later: set the fallback back to voicemail.'], VOIP],
+    // Zoom Phone: support.zoom.com KB0069180 — Phone → Settings → Business Hours → Call Handling → Edit; "Add Phone Number" (external), Sequential / Ringing Duration for Each Device;
+    // external forwarding needs a direct (DID) number; options can be locked by the admin (KB0069338: Admin Center → Phone system → Users & Rooms).
+    ['zoom', 'Zoom Phone', ['Zoom web portal → Phone → Settings → Business Hours → <b>Call Handling</b> → Edit. Click <b>Add Phone Number</b> and enter <b class="mono">{fmt}</b>: Zoom treats an outside number as one more device.', 'Choose <b>Sequential</b> ring order with your own devices first and the receptionist’s number last, and set <b>Ringing Duration for Each Device</b> to about 20 seconds. Save. Repeat under Closed Hours if you want after-hours calls answered too.', 'Forwarding to an outside number needs a direct (DID) number on your Zoom Phone user. If the option is locked, your Zoom admin can change it (Admin Center → Phone system → Users &amp; Rooms).', 'To turn it off later: remove the added phone number.'], VOIP],
+    // Vonage Business Communications: businesssupport.vonage.com/articles/answer/Follow-Me-24816 (updated Oct 7, 2025) — up to 5 numbers in sequence, 10–60 s each;
+    // user: avatar → Settings → Call Forwarding → Follow Me; admin: Phone System → Extensions → pencil → Call Forwarding → Forward Calls on → Follow Me.
+    ['vonage', 'Vonage Business', ['Sign in to your Vonage Business online account → your avatar → Settings → <b>Call Forwarding</b> → <b>Follow Me</b>.', 'Add your own extension first with a ring time of about 20 seconds, then <b class="mono">{fmt}</b> as the next number with 60 seconds (each number rings 10–60 seconds). Choose the voicemail extension and the caller ID, Save.', 'Admins: Admin Portal → Phone System → Extensions → pencil icon → Call Forwarding → turn <b>Forward Calls</b> on → <b>Follow Me</b>.', 'Don’t add the phone that runs the Vonage mobile app: Vonage warns it would ring twice and drop to that phone’s voicemail.', 'To turn it off later: turn Forward Calls off.'], VOIP],
+    ['other', 'Other / not sure', ['Look for “conditional call forwarding” or “forward when busy / no answer” in your phone provider’s settings or support pages.', 'Forward to <b class="mono">{fmt}</b>.', 'Can’t find it? Use “Need help with this step?” below and we’ll set it up with you.']]];
   const SMS_CONSENT = 'I confirm that my business will text only people who contacted us first (a call or a text), to reply about their request, confirm a booking and send one reminder — no marketing. Every first message names my business and says “Reply STOP to opt out”, and anyone who replies STOP gets no more texts. I am responsible for my business’s use of text messages under the Service Agreement.';
 
   let state = { open: null, testPoll: null, calendarReturn: null };
@@ -49,6 +73,8 @@
     if (tenant && isRcp(d)) {
       const [usage, calls, sms, bookings] = await Promise.all([B.getUsage(tenant.id).catch(() => null), B.listCalls(tenant.id), B.listSms(tenant.id), B.listBookings(tenant.id)]);
       Object.assign(d, { usage, calls: calls || [], sms: sms || [], bookings: bookings || [] });
+      if (window.PortalDispatch) await window.PortalDispatch.load(d);   // ADD-DISPATCH (portal-dispatch.js)
+      if (window.PortalResults) await window.PortalResults.load(d);   // Results tab (portal-results.js)
     }
     return d;
   }
@@ -57,6 +83,7 @@
     const t = [];
     if (d.ob.length) t.push(['onboarding', d.client.status === 'live' ? 'Setup' : 'Setup checklist', onboardingHtml]);
     if (isRcp(d) && d.tenant && ['testing', 'live', 'paused'].indexOf(d.client.status) !== -1) t.push(['receptionist', 'My receptionist', receptionistHtml]);
+    if (isRcp(d) && d.tenant && window.PortalResults && ['testing', 'live', 'paused'].indexOf(d.client.status) !== -1) t.push(['results', 'Results', window.PortalResults.html]);
     t.push(['requests', 'Requests', requestsHtml]);
     return t;
   }
@@ -297,7 +324,7 @@
         const car = data.carrier || '';
         return '<p>Send the calls you miss to your receptionist. Your phone still rings first; only unanswered or busy calls are forwarded.</p>' +
           (num ? '<p>Your receptionist’s number: <b class="mono bignum" id="ob_fwdnum">' + esc(fmtPhone(num)) + '</b></p>' : S.msgHtml('Your receptionist’s number appears here when your receptionist is ready to test. We’ll email you. You can do the other steps first.', 'info')) +
-          '<div class="field"><label for="ob_car">Your phone provider</label><select class="select" id="ob_car"><option value="">Choose…</option>' + CARRIERS.map(c => '<option value="' + c[0] + '"' + (c[0] === car ? ' selected' : '') + '>' + esc(c[1]) + '</option>').join('') + '</select></div>' +
+          '<div class="field"><label for="ob_car">Your phone provider</label><select class="select" id="ob_car"><option value="">Choose…</option>' + carrierOptions(car) + '</select></div>' +
           '<div id="ob_carhow">' + carrierHow(car, num) + '</div>' +
           (num ? '<h3 class="h-sub">Test call</h3><p>Press “Test call”. You then have 30 minutes: call your business number from another phone, let it ring out, and say a few words to the receptionist. This step turns to Done when the call arrives.</p>' +
             '<p class="notice" role="note" id="ob_textback">Heads-up: if you hang up without speaking, the phone you called from gets our “Sorry we missed your call” text-back message. That’s expected during a test.</p>' +
@@ -365,11 +392,17 @@
         return saveBtn(it, 'Mark as done');
     }
   }
+  // <option>s grouped by CARRIERS[i][3] (optgroup label) in first-seen order; ungrouped entries stand alone
+  function carrierOptions(car) {
+    const opt = c => '<option value="' + c[0] + '"' + (c[0] === car ? ' selected' : '') + '>' + esc(c[1]) + '</option>';
+    const groups = [...new Set(CARRIERS.map(c => c[3]).filter(Boolean))];
+    return groups.map(g => '<optgroup label="' + esc(g) + '">' + CARRIERS.filter(c => c[3] === g).map(opt).join('') + '</optgroup>').join('') + CARRIERS.filter(c => !c[3]).map(opt).join('');
+  }
   function carrierHow(car, num) {
     const c = CARRIERS.find(x => x[0] === car); if (!c) return '';
     const digits = (num || '').replace(/^\+1/, '').replace(/\D/g, '');
     const fill = s => s.replace(/\{n\}/g, digits ? esc(digits) : 'your-forwarding-number').replace(/\{N\}/g, digits ? '1' + esc(digits) : 'your-forwarding-number').replace(/\{fmt\}/g, num ? esc(fmtPhone(num)) : 'your forwarding number');
-    return '<ol class="how">' + c[2].map(s => '<li>' + fill(s) + '</li>').join('') + '</ol><p class="muted small">Codes can differ by plan; your provider’s support page has the final word.</p>';
+    return '<ol class="how">' + c[2].map(s => '<li>' + fill(s) + '</li>').join('') + '</ol><p class="muted small">Codes and menu names can differ by plan and app version; your provider’s support page has the final word.</p>';
   }
 
   // save handlers per step -> {status, data, settings?} or {errs}
@@ -578,7 +611,7 @@
         ms.map(m => '<div class="bubble ' + (m.direction === 'inbound' ? 'bubble--in' : 'bubble--out') + '"><span class="sr-only">' + (m.direction === 'inbound' ? 'Customer: ' : 'Receptionist: ') + '</span>' + esc(m.body) + '</div>').join('') + '</div></details></li>';
     }).join('');
     const bookings = d.bookings.map(b => '<li class="bk"><div><b>' + esc(b.job_type || 'Job') + '</b> · ' + esc(b.customer_name || '') + '</div><div class="muted small">' + esc(when(b.start_at, d)) +
-      (b.address ? ' · ' + esc(b.address) : '') + (b.contact_e164 ? ' · <span class="mono">' + esc(fmtPhone(b.contact_e164)) + '</span>' : '') + '</div>' + (b.status !== 'confirmed' ? pill(b.status, b.status) : '') + '</li>').join('');
+      (b.address ? ' · ' + esc(b.address) : '') + (b.contact_e164 ? ' · <span class="mono">' + esc(fmtPhone(b.contact_e164)) + '</span>' : '') + '</div>' + (b.status !== 'confirmed' || b.confirmed_at ? pill.apply(null, window.PortalResults ? window.PortalResults.statusOf(b) : [b.status, b.status]) : '') + '</li>').join('');
     return '<section class="card rx"><div class="rx__h"><div><h2 class="h-card">Your receptionist</h2><p>' + pill(paused ? 'paused' : t.status, st) + (t.twilio_number ? ' <span class="mono">' + esc(fmtPhone(t.twilio_number)) + '</span>' : '') + '</p></div>' +
       '<button type="button" class="btn btn--sm ' + (paused ? 'btn--primary' : 'btn--ghost') + '" id="rxPause" aria-pressed="' + paused + '">' + (paused ? 'Resume AI' : 'Pause AI') + '</button></div>' +
       '<p class="muted small" id="rxPauseHint">While paused, the AI assistant doesn’t talk to callers or send texts. Resume any time.</p><div id="rxMsg" aria-live="polite"></div></section>' +
@@ -591,10 +624,12 @@
       '<details class="card set" id="setNotify"><summary>Who gets alerts</summary>' + notifyEditor('rxn', cfg.notify) + '<div id="rxMsg_notify" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="notify">Save alerts</button></details>' +
       '<details class="card set" id="setAfter"><summary>After hours & on-call number</summary>' + afterHoursEditor('rxah', (cfg.after_hours || {}).mode) + onCallEditor('rxoc', (cfg.handoff || {}).number || (cfg.emergency || {}).dial) +
       '<div id="rxMsg_after" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="after">Save</button></details>' +
-      (isRealEstate(cfg) ? screeningHtml(cfg) : '') + webchatHtml(t, cfg);
+      (isRealEstate(cfg) ? screeningHtml(cfg) : '') + webchatHtml(t, cfg) +
+      (window.PortalDispatch ? window.PortalDispatch.html(d) : '');
   }
   function bindReceptionist(d, api) {
     bindHours('rxh'); bindFaq('rxf'); bindNotify('rxn'); bindScreening(); bindWebchat();
+    if (window.PortalDispatch) window.PortalDispatch.bind(d, api);
     S.$('#rxPause').addEventListener('click', async e => {
       const b = e.currentTarget, next = b.getAttribute('aria-pressed') !== 'true';
       if (next && !confirm('Pause the AI assistant? It stops answering calls and texts until you resume.')) return;
@@ -814,6 +849,7 @@
     if (tab === 'onboarding') { bindOnboarding(d, api); return true; }
     if (tab === 'receptionist') { bindReceptionist(d, api); return true; }
     if (tab === 'requests') { bindRequests(d, api); return true; }
+    if (tab === 'results' && window.PortalResults) return window.PortalResults.bind(d, api);
     return false;
   }
   window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay };

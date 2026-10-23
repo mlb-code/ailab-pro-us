@@ -41,8 +41,8 @@ for _name in ("httpx", "httpx2", "httpcore"):
     logging.getLogger(_name).setLevel(logging.WARNING)
 
 TABLES = ("tenants", "calls", "sms_messages", "bookings", "opt_outs", "events", "tenant_credentials", "runtime_state",
-          "sms_consent")
-CONSENT_TYPES = ("text_back", "booking_texts", "opt_out", "opt_in")
+          "sms_consent", "dispatch_events")
+CONSENT_TYPES = ("text_back", "booking_texts", "opt_out", "opt_in", "staff_alerts")
 CONSENT_DECISIONS = ("yes", "no", "unclear", "no_answer", "notice", "revoked")
 CONSENT_CHANNELS = ("voice", "sms", "carrier", "manual")
 # Column that ties each table to a tenant (used by TenantStore).

@@ -67,7 +67,7 @@ def build_services(settings: Settings, store: Store, state: StateStore | None = 
     # One token for cron + admin/portal backend; JOBS_TOKEN (settings.jobs_token) is accepted as the same secret.
     token = (env.get("RUNTIME_ADMIN_TOKEN") or getattr(settings, "jobs_token", "")
              or (SIM_ADMIN_TOKEN if settings.is_sim else ""))
-    return Services(settings, store, state, notifier, calendar, zapier, Reporter(store, state, notifier), token)
+    return Services(settings, store, state, notifier, calendar, zapier, Reporter(store, state, notifier, weekly_enabled=settings.weekly_report), token)
 
 
 def services(app: FastAPI) -> Services:
