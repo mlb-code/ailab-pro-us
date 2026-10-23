@@ -19,10 +19,10 @@ status: draft, waiting for the owner's approval · narration in US English · ma
 
 | Carrier | Forward when not answered | Forward when busy | Turn off | Notes to verify |
 |---|---|---|---|---|
-| AT&T wireless (GSM codes) | `**61*1XXXXXXXXXX**20#` (rings 20 s first; 5–30) | `**67*1XXXXXXXXXX#` | `##61#` · `##67#` · all conditional: `##004#` | Also `**62*` (phone off / no signal). Some plans or business lines differ. |
+| AT&T wireless (phone menu, no dial code) | Android: Phone app → Settings → Calling accounts → your SIM → Call forwarding → **When unanswered** → AI line number | same menu → **When busy** (and **When unreachable**) | switch the same options off | AT&T publishes no dial codes and says forwarding is set from the phone ([KM1011513](https://www.att.com/support/article/wireless/KM1011513/), [Pixel 10 guide](https://www.att.com/device-support/article/140337/Google/pixel-10/)). iPhone has only “forward all calls” → Need help. Leave **Always forward** off. Same as the portal (22.10). |
 | T-Mobile (GSM codes) | `**61*1XXXXXXXXXX**20#` | `**67*1XXXXXXXXXX#` | `##61#` · `##67#` · `##004#` | Ring time in steps of 5 s, max 30. Prepaid may differ. |
 | Verizon wireless | `*71XXXXXXXXXX` → Call (busy + no answer together) | (same code) | `*73` | Ring time is set by Verizon. Check the plan for forwarding charges. |
-| Landlines (Comcast Business and most phone companies) | `*92` + number, or the provider's online portal | `*90` + number | `*93` (no answer) · `*91` (busy) | Many business voice services use their web portal instead of star codes. |
+| Landlines (Comcast Business VoiceEdge and most phone companies) | `*92` + number, or the provider's app / online portal (Comcast: Call Forwarding → **No Answer**) | `*90` + number (Comcast portal: **Busy**) | `*93` (no answer) · `*91` (busy) | Comcast codes per the official Business VoiceEdge star-code sheet (SLS90624); other Comcast phone products → Need help. Same as the portal (22.10). |
 | RingCentral | App/Admin Portal: Settings → Phone → Call handling → unanswered calls → forward to an external number | — | set unanswered calls back to voicemail | Menu names change; admin rights may be needed. |
 | Google Voice | No forward-on-no-answer to an outside number | — | — | Linked numbers ring at the same time, so the AI would answer first. → Need help. |
 
@@ -48,12 +48,13 @@ VO: Your AI line number is in step one of your checklist. Keep it on screen.
 VO: Turn forwarding on only after you've approved go-live. Until then, nothing changes.
 
 ### S4 · 0:45–1:25 · Carrier steps (one variant per cut)
-- **Visual (wireless cuts):** vertical phone mock (motion graphics, not a real phone), keypad, the code typed digit by digit, the code sheet line large on the right. Use the example number `7135550199`.
+- **Visual (AT&T):** no keypad: the Android menu path as animated breadcrumbs (Phone → Settings → Calling accounts → SIM → Call forwarding), then the When unanswered / When busy switches.
+- **Visual (other wireless cuts):** vertical phone mock (motion graphics, not a real phone), keypad, the code typed digit by digit, the code sheet line large on the right. Use the example number `7135550199`.
 - **Visual (RingCentral):** menu path as animated breadcrumbs. Do not record a real RingCentral account unless it is a test account with no customer data.
 
-VO[att]: On AT&T wireless, open your phone's keypad and type the first code on screen. Replace the X's with your AI line number, starting with a one. Press Call.
-VO[att]: The twenty near the end is how many seconds your phone rings first.
-VO[att]: Then type the second code, for busy calls, and press Call again. Your phone shows a confirmation.
+VO[att]: On AT&T, there's no code to dial. You set it in your phone. On Android, open the Phone app, then Settings, Calling accounts, your SIM, and Call forwarding.
+VO[att]: Turn on When unanswered and When busy, and enter your AI line number for each. Leave Always forward off, so your phone still rings first.
+VO[att]: On an iPhone, tap Need help with this step, and we'll set it up with you.
 
 VO[tmobile]: On T-Mobile, open your phone's keypad and type the first code on screen. Replace the X's with your AI line number, starting with a one. Press Call.
 VO[tmobile]: The twenty near the end is how many seconds your phone rings first.
