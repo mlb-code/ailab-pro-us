@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "The service call price is $89. Is there something going on with your AC or heating that you'd like us to look at? I can check availability for you.",
+     "text": "Our service call is $89. Want me to get you on the schedule?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 1666.6,
-    "first_text_ms": 1666.7,
-    "total_ms": 2051.5
-   },
    "usage": {
-    "cache_creation_input_tokens": 136,
-    "cache_read_input_tokens": 2096,
-    "input_tokens": 4,
-    "output_tokens": 41
+    "input_tokens": 836,
+    "output_tokens": 22
    }
   }
  }

@@ -82,6 +82,9 @@ def _footer_en() -> str:
 
 # --- lead alert (owner) -----------------------------------------------------------------
 PREFIX = {"urgent": "[URGENT] ", "human_needed": "[HUMAN NEEDED] "}
+QUALIFICATION_TITLES = (("intent", "Lead type"), ("area", "Area / property"), ("property_address", "Property address"),
+                        ("timeline", "Timeline"), ("price_range", "Price range"), ("pre_approval", "Pre-approval"),
+                        ("motivation", "Motivation"), ("has_agent", "Working with an agent"))
 
 
 def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str, str, str]:
@@ -89,13 +92,21 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
     job = lead.get("job_type") or "General inquiry"
     name = lead.get("name") or "Unknown caller"
     city = city_of(lead.get("address") or "")
+    q = dict(lead.get("qualification") or {})
+    if q.get("intent"):  # real estate: "Buyer · Buyer consultation" / "Seller lead"
+        job = f"{str(q['intent']).capitalize()} · {job}" if lead.get("job_type") else f"{str(q['intent']).capitalize()} lead"
     subject = f"{PREFIX.get(kind, '')}New lead: {job} · {name} · {city}"
+    channel = {"voice": "Phone call", "chat": "Website chat"}.get(lead.get("channel") or "", "Text message")
     pairs = [("Name", name), ("Phone", lead.get("phone") or "-"), ("Job", job),
              ("Urgency", lead.get("urgency") or "normal"), ("Address", lead.get("address") or "-"),
-             ("Channel", "Phone call" if lead.get("channel") == "voice" else "Text message"),
-             ("Summary", lead.get("summary") or "-")]
+             ("Channel", channel), ("Summary", lead.get("summary") or "-")]
+    if lead.get("email"):
+        pairs.insert(2, ("Email", lead["email"]))
     if lead.get("booking_label"):
         pairs.insert(3, ("Booked", lead["booking_label"]))
+    for key, title in QUALIFICATION_TITLES:  # real-estate screening answers
+        if q.get(key):
+            pairs.append((title, q[key]))
     text = "\n".join([subject, ""] + [f"{k}: {v}" for k, v in pairs] + ["", f"Portal: {portal_url()}"])
     intro = {"urgent": "An urgent request just came in. Please call the customer back now.",
              "human_needed": "The customer asked for a person. Please call back.",
@@ -111,6 +122,9 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
     sms = f"{head}: {name}, {lead.get('phone') or '-'}, {job}"
     if lead.get("booking_label"):
         sms += f", {lead['booking_label']}"
+    brief = [str(q[k]) for k in ("area", "timeline", "pre_approval", "has_agent") if q.get(k)]
+    if brief:
+        sms += " (" + ", ".join(brief) + ")"
     if lead.get("summary"):
         sms += f". {lead['summary']}"
     sms = sms[: SMS_MAX - 24].rstrip() + " Details: check your email."

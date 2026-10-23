@@ -505,8 +505,12 @@ def check_reply(text: str, cfg: TenantConfig, channel: str, booked: bool = False
         out.violations.append("claims_human")
     if _ADVICE.search(out.text):
         out.violations.append("advice")
+    if cfg.business.niche == "real_estate" and fair_housing_issue(out.text):
+        out.violations.append("fair_housing")
 
-    if "discount" in out.violations:
+    if "fair_housing" in out.violations:
+        out.text = FAIR_HOUSING_TEXT
+    elif "discount" in out.violations:
         out.text = NO_DISCOUNT_TEXT
     elif "unlisted_price" in out.violations:
         out.text = PRICE_TEXT
@@ -534,6 +538,50 @@ def sms_segments(text: str) -> int:
         return 0
     single, multi = (160, 153) if all(ord(ch) < 128 for ch in body) else (70, 67)
     return 1 if len(body) <= single else -(-len(body) // multi)
+
+
+# ---- fair housing (real-estate niche) -----------------------------------------------------------
+# The assistant may never ask about, mention or steer by a protected class (Fair Housing Act: race, color, religion,
+# national origin, sex, familial status, disability). The prompt forbids it; this is the code-level backstop on the
+# reply, applied for real-estate tenants only (home-services replies legitimately say "family-owned", "kids' room").
+FAIR_HOUSING = re.compile(
+    r"\b(race|racial|ethnic\w*|hispanic|latino|latina|black|white|asian|jewish|muslim|christian|catholic|church\w*|"
+    r"synagogue|mosque|national origin|immigrants?|citizenship|disab\w+|wheelchair|handicap\w*|"
+    r"(families|family|people|folks|couples|singles|professionals) (with|without) (kids|children)|"
+    r"(no|not for|not suited for|perfect for|great for|ideal for) (kids|children|families|singles|seniors|retirees|students)|"
+    r"(good|bad|safe|rough|nice|quiet|changing|up[- ]and[- ]coming|transitional) (neighborhood|area|part of town)|"
+    r"(kind|type|sort) of (people|residents|neighbors)|who lives (there|in the area)|demographics?|school (rating|ranking)s?|"
+    r"good schools)\b", re.I)
+FAIR_HOUSING_TEXT = ("I can share facts about listings and the area, and the agent can walk you through any area you like. "
+                     "What else can I help with?")
+
+
+def fair_housing_issue(text: str) -> bool:
+    return bool(FAIR_HOUSING.search(text or ""))
+
+
+# ---- contact details in free text (chat box: no caller id) -------------------------------------------
+
+_PHONE_DIGITS = re.compile(r"\+?1?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}\b")
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def find_phone(text: str) -> str | None:
+    """A US phone number in free text, normalized to E.164 (+1XXXXXXXXXX), else None."""
+    m = _PHONE_DIGITS.search(text or "")
+    if not m:
+        return None
+    digits = re.sub(r"\D", "", m.group(0))
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) != 10 or digits[0] in "01":
+        return None
+    return "+1" + digits
+
+
+def find_email(text: str) -> str | None:
+    m = _EMAIL.search(text or "")
+    return m.group(0).lower() if m else None
 
 
 # ---- ZIP / service area -----------------------------------------------------------------------

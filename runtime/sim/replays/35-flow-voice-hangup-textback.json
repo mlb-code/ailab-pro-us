@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear that! What ZIP code is the service address in?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 812.2,
-    "first_text_ms": 812.3,
-    "total_ms": 1201.2
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2305,
-    "input_tokens": 4,
-    "output_tokens": 23
+    "input_tokens": 881,
+    "output_tokens": 30
    }
   }
  }

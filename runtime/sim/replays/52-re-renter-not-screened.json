@@ -1,0 +1,203 @@
+{
+ "095e2094f6cc21a6b886c581": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "area": "Hyde Park",
+      "email": null,
+      "has_agent": "no",
+      "intent": "renter",
+      "motivation": null,
+      "name": null,
+      "pre_approval": null,
+      "price_range": "$1,800. ",
+      "property_address": null,
+      "timeline": "Next month"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1502,
+    "output_tokens": 72
+   }
+  }
+ },
+ "2b6d47b3d68f4260b487a37a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"note\": \"renters are not screened further: take_message for the team\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "address": "Hyde Park",
+      "job_type": null,
+      "name": null,
+      "summary": "Renter inquiry: renter, Hyde Park",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1653,
+    "output_tokens": 51
+   }
+  }
+ },
+ "650777f0e5e395a6efc1273e": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Next month",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Do you have a price range in mind?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1329,
+    "output_tokens": 16
+   }
+  }
+ },
+ "8fb1439274f44bee0973e1d2": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, I've passed your details to Jenna and the team will follow up.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1743,
+    "output_tokens": 25
+   }
+  }
+ },
+ "adeb5e414b8fd94c66e0f2c2": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, I'm looking for an apartment to rent in Hyde Park",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1236,
+    "output_tokens": 22
+   }
+  }
+ },
+ "af9376d3d200de3a626f9e3c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Around $1,800",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1416,
+    "output_tokens": 17
+   }
+  }
+ }
+}

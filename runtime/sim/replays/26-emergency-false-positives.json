@@ -19,25 +19,18 @@
   "response": {
    "content": [
     {
-     "text": "Sounds good, a tune-up it is. What ZIP code is the service address in?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 1498.9,
-    "first_text_ms": 1499.1,
-    "total_ms": 1904.6
-   },
    "usage": {
-    "cache_creation_input_tokens": 146,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 28
+    "input_tokens": 847,
+    "output_tokens": 30
    }
   }
  },
- "9d648e70e80298c273d927f6": {
+ "873b85587ca84f91dcc8cdbd": {
   "request": {
    "last_message": {
     "content": [
@@ -57,21 +50,14 @@
   "response": {
    "content": [
     {
-     "text": "For a smoke detector chirp, please check and replace the battery yourself, and if there's any smoke, fire, or danger, call 911. A technician can look at the detector during your tune-up.\n\nWhat ZIP code is the service address in?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 773.7,
-    "first_text_ms": 773.8,
-    "total_ms": 1335.3
-   },
    "usage": {
-    "cache_creation_input_tokens": 105,
-    "cache_read_input_tokens": 2253,
-    "input_tokens": 4,
-    "output_tokens": 74
+    "input_tokens": 959,
+    "output_tokens": 30
    }
   }
  }

@@ -19,44 +19,30 @@
   "response": {
    "content": [
     {
-     "text": "It's Sunday night and we're closed, so I can't book now. I'm passing your AC issue to the team, who will follow up.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_011X3YfRaMKYTWSVN2krENbE",
+     "id": "toolu_mock_001",
      "input": {
-      "name": null,
-      "summary": "Customer reports AC not working, ZIP 77002. Contacted after hours (Sunday 10:30 PM). Needs AC repair service visit; team to follow up.",
-      "urgency": "normal"
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77002"
      },
-     "name": "take_message",
+     "name": "get_availability",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 1309.7,
-    "first_text_ms": 1309.8,
-    "total_ms": 2228.7
-   },
    "usage": {
-    "cache_creation_input_tokens": 145,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 188
+    "input_tokens": 851,
+    "output_tokens": 36
    }
   }
  },
- "71e3571bc732985bf97986bd": {
+ "659cea47317e337d5c310c4e": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_011X3YfRaMKYTWSVN2krENbE",
+      "tool_use_id": "toolu_mock_003",
       "type": "tool_result"
      }
     ],
@@ -67,21 +53,49 @@
   "response": {
    "content": [
     {
-     "text": "Thanks! Your message has been passed to the Cool Breeze HVAC team, and they will follow up. We open Monday at 7:00 AM. Is there anything else?",
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 2135.9,
-    "first_text_ms": 2136.1,
-    "total_ms": 2492.0
-   },
    "usage": {
-    "cache_creation_input_tokens": 202,
-    "cache_read_input_tokens": 2252,
-    "input_tokens": 2,
-    "output_tokens": 57
+    "input_tokens": 1023,
+    "output_tokens": 28
+   }
+  }
+ },
+ "aa7b7702a1eb4fa255e13c3d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"after_hours_message_only\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "name": null,
+      "summary": "Customer needs service: AC not working, 77002",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 941,
+    "output_tokens": 44
    }
   }
  }

@@ -19,25 +19,18 @@
   "response": {
    "content": [
     {
-     "text": "I'm sorry to hear that. Let me help get a technician out to look at it. What ZIP code is the property in?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 588.4,
-    "first_text_ms": 588.6,
-    "total_ms": 871.8
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 4,
-    "output_tokens": 38
+    "input_tokens": 716,
+    "output_tokens": 30
    }
   }
  },
- "a3a786b1e145b15b8c18fe6e": {
+ "8b22ef2cece75f3c79a8a045": {
   "request": {
    "last_message": {
     "content": [
@@ -57,59 +50,14 @@
   "response": {
    "content": [
     {
-     "text": "I'm glad everyone is safe and outside. For your safety, if you ever smell gas or see smoke, please call 911 right away. Could you tell me the ZIP code where the AC is?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 558.1,
-    "first_text_ms": 558.2,
-    "total_ms": 1316.9
-   },
    "usage": {
-    "cache_creation_input_tokens": 124,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 4,
-    "output_tokens": 62
-   }
-  }
- },
- "eaf605db67b71bec6e621e71": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer reported an urgent issue; the owner was alerted. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: No, everyone went outside, we're fine",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm glad everyone is safe and outside. Since the AC is making a strange noise, a technician will check it. What ZIP code is the property in?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 605.7,
-    "first_text_ms": 605.8,
-    "total_ms": 849.6
-   },
-   "usage": {
-    "cache_creation_input_tokens": 130,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 4,
-    "output_tokens": 48
+    "input_tokens": 840,
+    "output_tokens": 30
    }
   }
  }

@@ -1,0 +1,145 @@
+{
+ "06c0cc4f6857efa7caedba57": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Looking to buy in 76101, moving in two months, around 400k, pre-approved, no agent",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "area": "76101",
+      "email": null,
+      "has_agent": "no",
+      "intent": "buyer",
+      "motivation": null,
+      "name": null,
+      "pre_approval": "pre_approved",
+      "price_range": "400k",
+      "property_address": null,
+      "timeline": "in two months"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1243,
+    "output_tokens": 73
+   }
+  }
+ },
+ "0b54dfccc3c8cf37cf5595dd": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"out_of_area\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "address": "76101",
+      "job_type": null,
+      "name": null,
+      "summary": "Lead outside the service area: buyer, 76101",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1479,
+    "output_tokens": 53
+   }
+  }
+ },
+ "88eeea3c5b5f448d868db137": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Buyer consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "date_from": null,
+      "job_type": "Buyer consultation",
+      "zip": "76101"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1390,
+    "output_tokens": 38
+   }
+  }
+ },
+ "9361fd5bd9d110d1b47fdb29": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, I've passed your details to Jenna and the team will follow up.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1578,
+    "output_tokens": 25
+   }
+  }
+ }
+}

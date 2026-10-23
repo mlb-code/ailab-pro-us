@@ -1,0 +1,208 @@
+{
+ "12524e8ffdb688dfe0b49597": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Buyer consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "date_from": null,
+      "job_type": "Buyer consultation",
+      "zip": "78702"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1377,
+    "output_tokens": 38
+   }
+  }
+ },
+ "28b0cc908a5afa452bffe871": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The first one, this is Alex Rivera",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "address": "East Austin",
+      "job_type": "Buyer consultation",
+      "name": "Alex Rivera",
+      "notes": "Hi, I want to buy a house in East Austin",
+      "phone": null,
+      "slot_id": "2026-10-12T13:00-15:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1632,
+    "output_tokens": 71
+   }
+  }
+ },
+ "49a4188522cebc0c3d8c5750": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, I want to buy a house in East Austin",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1115,
+    "output_tokens": 22
+   }
+  }
+ },
+ "af8f054206b92b4b4d6694aa": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1524,
+    "output_tokens": 31
+   }
+  }
+ },
+ "e04b100339a43c9b78dd00b3": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: In the next 3 months, around 500k, pre-approved, not working with an agent, zip 78702",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "area": "East Austin",
+      "email": null,
+      "has_agent": "no",
+      "intent": "buyer",
+      "motivation": null,
+      "name": null,
+      "pre_approval": "pre_approved",
+      "price_range": "500k",
+      "property_address": null,
+      "timeline": "the next 3 months"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1227,
+    "output_tokens": 76
+   }
+  }
+ },
+ "fc216615685b07dc872fefe8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1753,
+    "output_tokens": 25
+   }
+  }
+ }
+}

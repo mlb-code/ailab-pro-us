@@ -1,5 +1,5 @@
 {
- "403c56193b549346164ddfc5": {
+ "c744645ff3868d3a86cd821e": {
   "request": {
    "last_message": {
     "content": [
@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "Hello! This is Cool Breeze HVAC's virtual assistant. What service do you need: AC repair, furnace repair, maintenance, or a new install estimate?",
+     "text": "Thanks for reaching out to Cool Breeze HVAC. What can we help you with today?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 773.0,
-    "first_text_ms": 773.2,
-    "total_ms": 1218.6
-   },
    "usage": {
-    "cache_creation_input_tokens": 110,
-    "cache_read_input_tokens": 2236,
-    "input_tokens": 4,
-    "output_tokens": 57
+    "input_tokens": 935,
+    "output_tokens": 26
    }
   }
  },
@@ -57,21 +50,14 @@
   "response": {
    "content": [
     {
-     "text": "Hi, this is the virtual assistant for Cool Breeze HVAC. How can I help you today? Please tell me what's going on with your system.",
+     "text": "Thanks for reaching out to Cool Breeze HVAC. What can we help you with today?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 1495.1,
-    "first_text_ms": 1495.4,
-    "total_ms": 1900.7
-   },
    "usage": {
-    "cache_creation_input_tokens": 129,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 48
+    "input_tokens": 838,
+    "output_tokens": 26
    }
   }
  }

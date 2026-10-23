@@ -1,15 +1,12 @@
 {
- "24b3671bef55b619fd2e5f63": {
+ "0aa8d6cf4800a258dd92761a": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019",
-      "type": "text"
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
      }
     ],
     "role": "user"
@@ -19,34 +16,14 @@
   "response": {
    "content": [
     {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01AJAg4Lxthc3Gppv6TwhEQv",
-     "input": {
-      "address": "45 Westheimer Rd, Houston, 77019",
-      "job_type": "Furnace repair",
-      "name": "Carlos Reyes",
-      "notes": "Furnace stopped working. Customer requested the afternoon slot.",
-      "phone": null,
-      "slot_id": "2026-10-12T12:00-16:00",
-      "urgency": "normal"
-     },
-     "name": "book_slot",
-     "type": "tool_use"
+     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM.",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 784.6,
-    "first_text_ms": null,
-    "total_ms": 1525.5
-   },
+   "stop_reason": "end_turn",
    "usage": {
-    "cache_creation_input_tokens": 159,
-    "cache_read_input_tokens": 2377,
-    "input_tokens": 4,
-    "output_tokens": 247
+    "input_tokens": 1114,
+    "output_tokens": 19
    }
   }
  },
@@ -70,16 +47,9 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear your furnace stopped working. Let me check the schedule for a furnace repair visit in your area.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01QdwWkuGJYKkDZywPzyndh3",
+     "id": "toolu_mock_001",
      "input": {
-      "date_from": "2026-10-12",
+      "date_from": null,
       "job_type": "Furnace repair",
       "zip": "77019"
      },
@@ -88,27 +58,23 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 718.6,
-    "first_text_ms": 718.8,
-    "total_ms": 1282.1
-   },
    "usage": {
-    "cache_creation_input_tokens": 143,
-    "cache_read_input_tokens": 1916,
-    "input_tokens": 4,
-    "output_tokens": 144
+    "input_tokens": 719,
+    "output_tokens": 37
    }
   }
  },
- "718ad413740373c77372f240": {
+ "7c191d89a2dd52ea6dfb334e": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_01AJAg4Lxthc3Gppv6TwhEQv",
-      "type": "tool_result"
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The afternoon one please, this is Carlos Reyes at 45 Westheimer Rd Houston 77019",
+      "type": "text"
      }
     ],
     "role": "user"
@@ -118,42 +84,34 @@
   "response": {
    "content": [
     {
-     "text": "Thank you, Carlos. Your furnace repair is booked for today, Monday October 12, between 12 PM and 4 PM at 45 Westheimer Rd. A technician will check the furnace then.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_012j7tD7FjygdAzdL1VDhMGn",
+     "id": "toolu_mock_005",
      "input": {
-      "outcome": "booked"
+      "address": "45 Westheimer Rd Houston 77019",
+      "job_type": "Furnace repair",
+      "name": "Carlos Reyes",
+      "notes": "My furnace stopped working, I'm in 77019",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
      },
-     "name": "end_conversation",
+     "name": "book_slot",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 720.2,
-    "first_text_ms": 720.4,
-    "total_ms": 1068.2
-   },
    "usage": {
-    "cache_creation_input_tokens": 286,
-    "cache_read_input_tokens": 2536,
-    "input_tokens": 2,
-    "output_tokens": 119
+    "input_tokens": 988,
+    "output_tokens": 75
    }
   }
  },
- "763037b587f463f7853688fa": {
+ "f3c189d102655a3443b7e2ba": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_01QdwWkuGJYKkDZywPzyndh3",
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -164,51 +122,14 @@
   "response": {
    "content": [
     {
-     "text": "I have two openings: today, Monday October 12, from 12 PM to 4 PM, or tomorrow, Tuesday October 13, from 8 AM to 12 PM. Which one would you like?",
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 830.9,
-    "first_text_ms": 831.0,
-    "total_ms": 1049.1
-   },
    "usage": {
-    "cache_creation_input_tokens": 318,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 2,
-    "output_tokens": 66
-   }
-  }
- },
- "db53ab204771d7debbea3806": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_012j7tD7FjygdAzdL1VDhMGn",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 805.4
-   },
-   "usage": {
-    "cache_creation_input_tokens": 131,
-    "cache_read_input_tokens": 2822,
-    "input_tokens": 2,
-    "output_tokens": 1
+    "input_tokens": 864,
+    "output_tokens": 34
    }
   }
  }

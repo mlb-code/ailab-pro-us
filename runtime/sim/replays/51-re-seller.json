@@ -1,0 +1,270 @@
+{
+ "3a8d3dcd61ef62bc1a72f453": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Listing consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"motivation\", \"property_address\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "date_from": null,
+      "job_type": "Listing consultation",
+      "zip": "78723"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1674,
+    "output_tokens": 39
+   }
+  }
+ },
+ "58eac2e6713fd2986baa9c5f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_013",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 3 PM to 5 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2075,
+    "output_tokens": 25
+   }
+  }
+ },
+ "61053f48db5a328e1706e649": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: I'm thinking about selling my home in Mueller",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1234,
+    "output_tokens": 22
+   }
+  }
+ },
+ "62dc89603c2241405f2f86d8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 4512 Berkman Dr, Austin 78723",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1427,
+    "output_tokens": 17
+   }
+  }
+ },
+ "7ea5bea326809d3b2f6172a2": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1821,
+    "output_tokens": 31
+   }
+  }
+ },
+ "933a9fa86569891e4d2a83c4": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:04 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The second one please, my name is Linda Torres",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_013",
+     "input": {
+      "address": "4512 Berkman Dr, Austin 78723. No agent yet. The second one please, my name is Linda Torres",
+      "job_type": "Listing consultation",
+      "name": "Linda Torres",
+      "notes": "I'm thinking about selling my home in Mueller",
+      "phone": null,
+      "slot_id": "2026-10-12T15:00-17:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1932,
+    "output_tokens": 93
+   }
+  }
+ },
+ "b2c0947bd8233caa18dce43f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Later this year, we're relocating for work",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's the address of the property?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1335,
+    "output_tokens": 16
+   }
+  }
+ },
+ "da4381a58ebd9dfad641887b": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No agent yet",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "area": "Mueller",
+      "email": null,
+      "has_agent": "no",
+      "intent": "seller",
+      "motivation": "relocating",
+      "name": null,
+      "pre_approval": null,
+      "price_range": null,
+      "property_address": "4512 Berkman Dr, Austin 78723. No agent yet",
+      "timeline": "Later this year"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1515,
+    "output_tokens": 84
+   }
+  }
+ }
+}

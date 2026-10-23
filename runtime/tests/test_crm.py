@@ -418,7 +418,8 @@ def test_admin_stores_tests_and_deletes_a_credential_without_echoing_it(tmp_path
     api = Api({("GET", "/crm/v3/objects/contacts"): httpx.Response(200, json={"results": []})})
     client, store, t, auth = _app(tmp_path, demo_raw, api, hubspot={"enabled": True})
     assert client.get("/crm/demo-hvac", headers=auth).json() == {"hubspot": {"connected": False, "enabled": True},
-                                                                  "jobber": {"connected": False, "enabled": False}}
+                                                                  "jobber": {"connected": False, "enabled": False},
+                                                                  "follow_up_boss": {"connected": False, "enabled": False}}
     r = client.put("/crm/demo-hvac/hubspot", headers=auth, json={"token": TOKEN})
     assert r.status_code == 200 and r.json() == {"ok": True, "provider": "hubspot"} and TOKEN not in r.text
     cipher = store.get_credential(t.id, "hubspot")

@@ -45,3 +45,22 @@ The admin "send test" button sends `test.ping`.
 ```
 
 Follow Up Boss / Jobber / HubSpot via Zapier: "Webhooks by Zapier → Catch Hook", then map `data.*` fields.
+
+## Real-estate tenants: `qualification` (added 2026-10-23)
+When the business is a real-estate tenant, `lead.created` and `booking.created` carry the screening answers the
+assistant collected (`qualify_lead`), only the ones the caller gave:
+```json
+"data": {"channel": "voice", "convo_id": "CA91d...", "contact": "+15125550182", "outcome": "booked", "name": "Chris Kim",
+         "qualification": {"intent": "buyer", "area": "East Austin", "timeline": "next 3 months", "price_range": "450k to 700k",
+                           "pre_approval": "pre_approved", "has_agent": "no"}}
+```
+Keys: `intent` (buyer | seller | renter), `area`, `timeline`, `price_range`, `pre_approval` (pre_approved | cash | not_yet),
+`property_address`, `motivation`, `has_agent` (yes | no), `email`. `lead.created` also carries `name`, `address`,
+`job_type` and `email` when known. Web-chat visitors (ADD-CHAT) have no caller id: `contact` is the phone number (or
+e-mail) they typed, `channel` is `"chat"`.
+
+### Follow Up Boss through Zapier
+"Webhooks by Zapier -> Catch Hook", then "Follow Up Boss -> Create or Update Contact / Create Event": map
+`data.name` -> name, `data.contact` -> phone, `data.qualification.email` -> email, `data.qualification.intent` -> tag,
+`data.qualification.*` -> the event message/description, `data.start` (booking) -> appointment. The direct Follow Up
+Boss link (no Zapier) is described in docs/follow-up-boss.md.

@@ -1,0 +1,10 @@
+description: A scripted model reply that steers by familial status / "good schools" is blocked by the fair-housing guard (real-estate tenants only).
+tenant: demo-realty
+channel: sms
+from: "+15125550188"
+script:
+  - {content: [{type: text, text: "Mueller is great for families with kids and has good schools. Are you buying or selling?"}], stop_reason: end_turn}
+turns:
+  - say: "What's Mueller like?"
+    expect: {guard: ["reply:fair_housing"], reply_contains: ["facts about listings"], reply_not_matches: ["families with kids", "good schools"]}
+expect: {claude_calls_total: 1}

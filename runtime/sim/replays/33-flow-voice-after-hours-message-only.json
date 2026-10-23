@@ -1,80 +1,4 @@
 {
- "1e43c3a5de958320e69e54cf": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01455LBve7Ay64FYBY53a3r3",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "The team has your message about the AC blowing warm air, and they will call you back when we open Monday at 7 AM.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01LdK76mBkjwos3vQQGGVExa",
-     "input": {
-      "outcome": "message"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 541.2,
-    "first_text_ms": 541.4,
-    "total_ms": 940.7
-   },
-   "usage": {
-    "cache_creation_input_tokens": 199,
-    "cache_read_input_tokens": 2069,
-    "input_tokens": 2,
-    "output_tokens": 87
-   }
-  }
- },
- "468339fbe867001c4a307aaa": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01LdK76mBkjwos3vQQGGVExa",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 563.6
-   },
-   "usage": {
-    "cache_creation_input_tokens": 99,
-    "cache_read_input_tokens": 2268,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
  "56af5dcb07d4a6d8fb69ee84": {
   "request": {
    "last_message": {
@@ -95,44 +19,31 @@
   "response": {
    "content": [
     {
-     "text": "Sorry about the warm air. Our office is closed right now, so I'm taking a message for the team to call you back first thing.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_0162fux3Py3LQYuofvhe8ZiF",
+     "id": "toolu_mock_001",
      "input": {
-      "name": null,
-      "summary": "Customer reports AC blowing warm air, ZIP 77002. Called Sunday 10:30 PM, outside business hours. Needs AC repair; team to call back when open (Mon 07:00).",
-      "urgency": "normal"
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77002"
      },
-     "name": "take_message",
+     "name": "get_availability",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 565.1,
-    "first_text_ms": 565.2,
-    "total_ms": 1393.4
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2069,
-    "input_tokens": 4,
-    "output_tokens": 196
+    "input_tokens": 725,
+    "output_tokens": 36
    }
   }
  },
- "d5e49ebb03fc64648c8679fd": {
+ "bfc0dfcb7a8c9cde00040d0c": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
-      "tool_use_id": "toolu_0162fux3Py3LQYuofvhe8ZiF",
+      "content": "{\"ok\": false, \"reason\": \"after_hours_message_only\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -143,21 +54,48 @@
   "response": {
    "content": [
     {
-     "text": "The message went through, though the system flagged it as out of area. Our team has your message and will call you back when we open Monday at 7 AM. Thanks for your patience.",
+     "id": "toolu_mock_003",
+     "input": {
+      "name": null,
+      "summary": "Customer needs service: My AC is blowing warm air, zip 77002",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 815,
+    "output_tokens": 47
+   }
+  }
+ },
+ "d944b25fb6362c5d4da86d85": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 571.8,
-    "first_text_ms": 572.0,
-    "total_ms": 938.7
-   },
    "usage": {
-    "cache_creation_input_tokens": 222,
-    "cache_read_input_tokens": 2069,
-    "input_tokens": 2,
-    "output_tokens": 52
+    "input_tokens": 902,
+    "output_tokens": 28
    }
   }
  }

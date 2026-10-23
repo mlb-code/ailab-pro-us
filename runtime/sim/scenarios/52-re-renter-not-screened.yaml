@@ -1,0 +1,14 @@
+description: Renter while real_estate.renters is off -> message for the team, no booking (the agent chose not to take rentals).
+tenant: demo-realty
+channel: sms
+from: "+15125550184"
+turns:
+  - say: "Hi, I'm looking for an apartment to rent in Hyde Park"
+    expect: {reply_matches: ["timeline|when"]}
+  - say: "Next month"
+    expect: {reply_matches: ["price range"]}
+  - say: "Around $1,800"
+    expect: {reply_matches: ["working with an agent"]}
+  - say: "No"
+    expect: {tools: [qualify_lead, take_message], reply_matches: ["passed your details"]}
+expect: {outcome: message, bookings: 0, actions: [lead]}

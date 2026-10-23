@@ -1,0 +1,33 @@
+{
+ "2407f3dc1ef0dae38ce4a305": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: What's Mueller like?",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Mueller is great for families with kids and has good schools. Are you buying or selling?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1227,
+    "output_tokens": 29
+   }
+  }
+ }
+}

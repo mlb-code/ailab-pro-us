@@ -364,17 +364,24 @@ def after_turn(rt, tenant: TenantRecord, c, now: datetime) -> None:
             # Only the 24-hour reminder follows the 09-20 window (Sunday 12-20) in both time zones.
             rt.outbound.confirm_booking(tenant, c.contact, c.booking, now, c.convo_id)
         rt.outbound.enqueue_reminder(tenant, c.contact, c.booking, now)
+    # Real-estate screening answers (qualify_lead) ride along on both events. Chat visitors have no caller id, so the
+    # contact is the phone (or e-mail) they typed. Payloads: docs/zapier-payloads.md.
+    lead = {k: v for k, v in (c.meta.get("lead") or {}).items() if v}
+    extra = {"qualification": lead} if lead else {}
+    contact = c.contact if c.contact.startswith("+") else (c.collected.get("phone") or c.collected.get("email") or "")
     if c.booking and not c.meta.get("booking_followup"):
         c.meta["booking_followup"] = True
         changed = True
-        rt.emit(tenant, "booking.created", {"channel": c.channel, "convo_id": c.convo_id, "contact": c.contact,
+        rt.emit(tenant, "booking.created", {"channel": c.channel, "convo_id": c.convo_id,
+                                            "contact": c.booking.get("phone") or contact,
                                             **{k: c.booking.get(k) for k in ("name", "address", "job_type", "urgency",
-                                                                              "start", "end", "event_id")}},
+                                                                              "start", "end", "event_id")}, **extra},
                 str(c.booking.get("event_id")))
     if c.outcome in ("booked", "message", "handoff", "emergency") and not c.meta.get("lead_emitted"):
         c.meta["lead_emitted"] = True
         changed = True
-        rt.emit(tenant, "lead.created", {"channel": c.channel, "convo_id": c.convo_id, "contact": c.contact,
-                                         "outcome": c.outcome, "urgency": c.urgency}, c.convo_id)
+        details = {k: c.collected.get(k) for k in ("name", "address", "job_type", "email") if c.collected.get(k)}
+        rt.emit(tenant, "lead.created", {"channel": c.channel, "convo_id": c.convo_id, "contact": contact,
+                                         "outcome": c.outcome, "urgency": c.urgency, **details, **extra}, c.convo_id)
     if changed:
         rt.engine.save_convo(c)

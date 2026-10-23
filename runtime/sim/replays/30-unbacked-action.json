@@ -23,7 +23,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 888,
+    "input_tokens": 920,
     "output_tokens": 19
    }
   }
@@ -56,7 +56,7 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 820,
+    "input_tokens": 852,
     "output_tokens": 18
    }
   }

@@ -73,10 +73,17 @@ def lead_from(convo: Any, action: dict[str, Any] | None = None) -> dict[str, Any
     b = dict(getattr(convo, "booking", None) or {})
     m = dict(getattr(convo, "message", None) or {})
     k = dict(getattr(convo, "collected", None) or {})  # details from earlier tool calls (hang-up after a name/address)
-    if getattr(convo, "meta", None) and convo.meta.get("transcript_withheld"):
+    meta = dict(getattr(convo, "meta", None) or {})
+    if meta.get("transcript_withheld"):
         k = {}
-    lead = {"name": b.get("name") or m.get("name") or k.get("name") or "",
-            "phone": getattr(convo, "contact", "") or action.get("contact", ""),
+    contact = str(getattr(convo, "contact", "") or action.get("contact", "") or "")
+    if not contact.startswith("+"):  # chat box: the visitor id is not a phone number; use what they typed
+        contact = ""
+    q = dict(meta.get("lead") or {}) if not meta.get("transcript_withheld") else {}  # real-estate screening answers
+    lead = {"name": b.get("name") or m.get("name") or k.get("name") or q.get("name") or "",
+            "phone": b.get("phone") if b.get("phone") and str(b["phone"]).startswith("+") else (k.get("phone") or contact),
+            "email": k.get("email") or q.get("email") or "",
+            "qualification": {x: y for x, y in q.items() if x not in ("name", "email") and y},
             "address": b.get("address") or m.get("address") or k.get("address") or "",
             "job_type": b.get("job_type") or m.get("job_type") or k.get("job_type") or "",
             "urgency": b.get("urgency") or m.get("urgency") or getattr(convo, "urgency", "normal"),

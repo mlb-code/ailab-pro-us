@@ -1,0 +1,301 @@
+{
+ "14b50b066bb4ed8788096c05": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, we're starting to look for a house in East Austin",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1236,
+    "output_tokens": 22
+   }
+  }
+ },
+ "161f9f12e3b45d252f728278": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_015",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2148,
+    "output_tokens": 25
+   }
+  }
+ },
+ "1a20eaf3aefa0dcca6d2f971": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_011",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1915,
+    "output_tokens": 31
+   }
+  }
+ },
+ "1c324a2affd204fe9e34ae74": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:04 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No, not working with anyone yet, zip 78702",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "area": "East Austin",
+      "email": null,
+      "has_agent": "no",
+      "intent": "buyer",
+      "motivation": null,
+      "name": null,
+      "pre_approval": "pre_approved",
+      "price_range": "Between 450k and 700k",
+      "property_address": null,
+      "timeline": "the next 3 months"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1614,
+    "output_tokens": 80
+   }
+  }
+ },
+ "49f9450db0786ccb484f0c85": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: In the next 3 months",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Do you have a price range in mind?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1331,
+    "output_tokens": 16
+   }
+  }
+ },
+ "8ef8f0206656b94b323883f1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Buyer consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_011",
+     "input": {
+      "date_from": null,
+      "job_type": "Buyer consultation",
+      "zip": "78702"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1768,
+    "output_tokens": 38
+   }
+  }
+ },
+ "ac1fffc937c4fc8a7ce6219a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Between 450k and 700k",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you pre-approved for a mortgage, paying cash, or not there yet?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1421,
+    "output_tokens": 24
+   }
+  }
+ },
+ "af269116b7a21b506e6bf9ac": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: We're pre-approved",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1518,
+    "output_tokens": 17
+   }
+  }
+ },
+ "bccb29f9d106f9f40fc94359": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:05 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The first one works, this is Chris Kim",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_015",
+     "input": {
+      "address": "East Austin",
+      "job_type": "Buyer consultation",
+      "name": "Chris Kim",
+      "notes": "Hi, we're starting to look for a house in East Austin",
+      "phone": null,
+      "slot_id": "2026-10-12T13:00-15:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 2024,
+    "output_tokens": 74
+   }
+  }
+ }
+}

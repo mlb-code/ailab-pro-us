@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "This sounds urgent. If anyone in the home is in danger from the cold, please call 911. I'm sorry you're without heat. To book a furnace repair visit, what is the service ZIP code?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 1863.9,
-    "first_text_ms": 1864.0,
-    "total_ms": 2343.9
-   },
    "usage": {
-    "cache_creation_input_tokens": 162,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 64
+    "input_tokens": 865,
+    "output_tokens": 30
    }
   }
  }

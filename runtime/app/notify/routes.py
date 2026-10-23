@@ -325,7 +325,8 @@ def review_status(slug: str, request: Request):
 #     DELETE /crm/{slug}/{provider}                         -> {"ok": true, "provider": ...}
 #     GET    /crm/{slug}                                    -> {provider: {"connected": bool, "enabled": bool}}
 #     POST   /crm/{slug}/{provider}/test                    -> {"ok": bool, "status": ..., "reason"?: ...}
-from ..crm import PROVIDERS as CRM_PROVIDERS, CredentialBox, make_client  # noqa: E402
+from ..crm import CredentialBox, make_client  # noqa: E402
+from ..crm.base import ALL_PROVIDERS as CRM_PROVIDERS  # noqa: E402  (hubspot, jobber, follow_up_boss)
 
 CRM_TOKEN_MAX = 4096
 
@@ -364,8 +365,9 @@ def crm_status(slug: str, request: Request):
     svc, tenant = got
     box = _crm_box(svc)
     crm = getattr(tenant.config, "crm", None)
-    return {p: {"connected": box.connected(tenant.id, p), "enabled": bool(getattr(getattr(crm, p, None), "enabled", False))}
-            for p in CRM_PROVIDERS}
+    enabled = {p: bool(getattr(getattr(crm, p, None), "enabled", False)) for p in CRM_PROVIDERS}
+    enabled["follow_up_boss"] = bool(tenant.config.real_estate.follow_up_boss.enabled)
+    return {p: {"connected": box.connected(tenant.id, p), "enabled": enabled[p]} for p in CRM_PROVIDERS}
 
 
 @router.put("/crm/{slug}/{provider}")

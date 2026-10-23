@@ -1,0 +1,23 @@
+description: Voice call to a real-estate tenant -> the greeting names the agent and keeps the call notice; buyer screened and booked by phone.
+kind: flow
+tenant: demo-realty
+channel: voice
+from: "+15125550189"
+steps:
+  - call: {}
+    expect: {reply_contains: ["Jenna Harper's virtual assistant", "Maple & Main Realty", "transcribed"]}
+  - say: "Hi, I want to buy a house in East Austin"
+    advance_seconds: 10
+    expect: {reply_matches: ["timeline|when"]}
+  - say: "In the next 3 months, around 500k, pre-approved, not working with an agent, zip 78702"
+    advance_seconds: 20
+    expect: {reply_matches: ["Jenna can meet"]}
+  - say: "The first one, this is Alex Rivera"
+    advance_seconds: 20
+    expect: {reply_matches: ["all set"]}
+  - hangup: {}
+    advance_seconds: 5
+expect:
+  outcome: booked
+  bookings: 1
+  alerts: [booking]

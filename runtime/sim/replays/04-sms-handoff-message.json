@@ -1,4 +1,32 @@
 {
+ "3777a0d726fa375a99771127": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"message\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I've let the team know you'd like to talk to someone, and they'll call you back soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 920,
+    "output_tokens": 28
+   }
+  }
+ },
  "b091dcc104d35875a72307ab": {
   "request": {
    "last_message": {
@@ -19,67 +47,18 @@
   "response": {
    "content": [
     {
-     "text": "The customer asks for a manager, which calls for a handoff.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01EVMQ6LEECLrkkkVbh4z4T3",
+     "id": "toolu_mock_001",
      "input": {
-      "reason": "Customer asked to speak with the manager."
+      "reason": "Customer asked for a person"
      },
      "name": "handoff",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 1557.7,
-    "first_text_ms": 1557.9,
-    "total_ms": 1895.2
-   },
    "usage": {
-    "cache_creation_input_tokens": 136,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 80
-   }
-  }
- },
- "da6cb310ac08d79fb085a049": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"action\": \"message\", \"ok\": true}",
-      "tool_use_id": "toolu_01EVMQ6LEECLrkkkVbh4z4T3",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I've passed your request to our team. Someone will follow up with you as soon as possible. Is there anything I can help with in the meantime, like booking a visit?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 844.2,
-    "first_text_ms": 844.3,
-    "total_ms": 1231.3
-   },
-   "usage": {
-    "cache_creation_input_tokens": 100,
-    "cache_read_input_tokens": 2243,
-    "input_tokens": 2,
-    "output_tokens": 50
+    "input_tokens": 846,
+    "output_tokens": 29
    }
   }
  }

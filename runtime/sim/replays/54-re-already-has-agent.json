@@ -1,0 +1,203 @@
+{
+ "3c502f7055cfd6ecbd175bd7": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Under 500k",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you pre-approved for a mortgage, paying cash, or not there yet?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1427,
+    "output_tokens": 24
+   }
+  }
+ },
+ "5c0a319b741dec869b217d69": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Pre-approved",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "area": "Cedar Park",
+      "email": null,
+      "has_agent": "yes",
+      "intent": "buyer",
+      "motivation": null,
+      "name": null,
+      "pre_approval": "pre_approved",
+      "price_range": "Under 500k",
+      "property_address": null,
+      "timeline": "This summer"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1523,
+    "output_tokens": 76
+   }
+  }
+ },
+ "82029ddbc0040d9c21e25a2a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, I've passed your details to Jenna and the team will follow up.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1776,
+    "output_tokens": 25
+   }
+  }
+ },
+ "b451983106ec36bc9c8160d2": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: We're buying in Cedar Park, already working with an agent, just had a question about 1420 Oak Ridge",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1247,
+    "output_tokens": 22
+   }
+  }
+ },
+ "d2bd71c372e447bfed319275": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"note\": \"already working with an agent: take_message, do not book\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "address": "Cedar Park",
+      "job_type": null,
+      "name": null,
+      "summary": "Already working with another agent: buyer, Cedar Park",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1681,
+    "output_tokens": 56
+   }
+  }
+ },
+ "df300e8b428bb08fd011af96": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: This summer",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Do you have a price range in mind?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1340,
+    "output_tokens": 16
+   }
+  }
+ }
+}

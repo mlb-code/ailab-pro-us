@@ -1,41 +1,11 @@
 {
- "9b923be0ddb68ae44b9c1272": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01EGDQjnemfw97Kc9ANJGZUj",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 648.9
-   },
-   "usage": {
-    "cache_creation_input_tokens": 85,
-    "cache_read_input_tokens": 2152,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
- "9ed62d42748ef8bef49e8ed2": {
+ "42f5b79387210f3b746fa754": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_01AXMGEEPX1F5BwqEQFQfVHo",
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -46,67 +16,14 @@
   "response": {
    "content": [
     {
-     "text": "Please hold while I connect you to a member of our team.",
+     "text": "Let me connect you with someone from the team now.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 804.8,
-    "first_text_ms": 805.1,
-    "total_ms": 836.1
-   },
    "usage": {
-    "cache_creation_input_tokens": 96,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 2,
-    "output_tokens": 18
-   }
-  }
- },
- "bcdf190d9c33fe07cddfeb1f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_011MDuE6VijEE8h25Uvzz8Te",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm connecting you now. Please hold for just a moment.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01EGDQjnemfw97Kc9ANJGZUj",
-     "input": {
-      "outcome": "handoff"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 672.3,
-    "first_text_ms": 672.3,
-    "total_ms": 947.3
-   },
-   "usage": {
-    "cache_creation_input_tokens": 99,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 2,
-    "output_tokens": 73
+    "input_tokens": 790,
+    "output_tokens": 20
    }
   }
  },
@@ -130,32 +47,18 @@
   "response": {
    "content": [
     {
-     "text": "I'll connect you with a member of our team now.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01AXMGEEPX1F5BwqEQFQfVHo",
+     "id": "toolu_mock_001",
      "input": {
-      "reason": "Customer asked to speak with a real person."
+      "reason": "Customer asked for a person"
      },
      "name": "handoff",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 728.6,
-    "first_text_ms": 728.7,
-    "total_ms": 1197.4
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 4,
-    "output_tokens": 75
+    "input_tokens": 717,
+    "output_tokens": 29
    }
   }
  }

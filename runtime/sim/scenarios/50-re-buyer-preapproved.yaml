@@ -1,0 +1,18 @@
+description: Real estate buyer, pre-approved, no agent -> screened in the configured order, qualify_lead, buyer consultation booked.
+tenant: demo-realty
+channel: sms
+from: "+15125550182"
+turns:
+  - say: "Hi, we're starting to look for a house in East Austin"
+    expect: {reply_matches: ["timeline|when"], claude_calls: 1}
+  - say: "In the next 3 months"
+    expect: {reply_matches: ["price range"]}
+  - say: "Between 450k and 700k"
+    expect: {reply_matches: ["pre-approved"]}
+  - say: "We're pre-approved"
+    expect: {reply_matches: ["working with an agent"]}
+  - say: "No, not working with anyone yet, zip 78702"
+    expect: {tools: [qualify_lead, get_availability], reply_matches: ["Jenna can meet"]}
+  - say: "The first one works, this is Chris Kim"
+    expect: {tools: [book_slot], reply_matches: ["all set"]}
+expect: {outcome: booked, bookings: 1, actions: [booking]}

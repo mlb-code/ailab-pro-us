@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "Yes, we service all major brands, including Trane. Is there something going on with your unit that you'd like us to look at?",
+     "text": "Yes, all major brands.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 808.9,
-    "first_text_ms": 809.0,
-    "total_ms": 1130.9
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2052,
-    "input_tokens": 4,
-    "output_tokens": 38
+    "input_tokens": 715,
+    "output_tokens": 13
    }
   }
  }

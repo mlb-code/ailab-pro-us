@@ -1,11 +1,11 @@
 {
- "ca440c0d179b345945fc666b": {
+ "42f5b79387210f3b746fa754": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_014FNxSbGbqhqebmHcQegxmR",
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -16,21 +16,14 @@
   "response": {
    "content": [
     {
-     "text": "I'm connecting you now. Please hold for just a moment.",
+     "text": "Let me connect you with someone from the team now.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 678.7,
-    "first_text_ms": 679.0,
-    "total_ms": 857.6
-   },
    "usage": {
-    "cache_creation_input_tokens": 99,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 2,
-    "output_tokens": 21
+    "input_tokens": 790,
+    "output_tokens": 20
    }
   }
  },
@@ -54,32 +47,18 @@
   "response": {
    "content": [
     {
-     "text": "Of course. Let me connect you with someone from our team.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_014FNxSbGbqhqebmHcQegxmR",
+     "id": "toolu_mock_001",
      "input": {
-      "reason": "Customer asked to speak with a real person."
+      "reason": "Customer asked for a person"
      },
      "name": "handoff",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 719.8,
-    "first_text_ms": 720.0,
-    "total_ms": 1225.6
-   },
    "usage": {
-    "cache_creation_input_tokens": 137,
-    "cache_read_input_tokens": 1916,
-    "input_tokens": 4,
-    "output_tokens": 78
+    "input_tokens": 717,
+    "output_tokens": 29
    }
   }
  }

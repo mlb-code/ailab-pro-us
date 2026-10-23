@@ -25,7 +25,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 814,
+    "input_tokens": 846,
     "output_tokens": 24
    }
   }

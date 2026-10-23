@@ -1,11 +1,11 @@
 {
- "948b99ce904fae52312179e4": {
+ "2c88d49357b0157de883ca68": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"slot_id\": \"2026-10-12T08:00-12:00\"}, {\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}]}",
-      "tool_use_id": "toolu_015wyvJ19b2LEGe3zjeE9DPV",
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -16,21 +16,14 @@
   "response": {
    "content": [
     {
-     "text": "Our next AC repair openings in 77002 are:\n1. Mon Oct 12, 8 AM-12 PM\n2. Mon Oct 12, 12-4 PM\nWhich one works? Then I'll need your name and service address.",
+     "text": "I can get a technician out Monday Oct 12, 8 AM to 12 PM or Monday Oct 12, 12 PM to 4 PM. Which works better?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 808.3,
-    "first_text_ms": 808.4,
-    "total_ms": 1211.8
-   },
    "usage": {
-    "cache_creation_input_tokens": 309,
-    "cache_read_input_tokens": 2252,
-    "input_tokens": 2,
-    "output_tokens": 77
+    "input_tokens": 996,
+    "output_tokens": 34
    }
   }
  },
@@ -54,14 +47,7 @@
   "response": {
    "content": [
     {
-     "text": "It's Sunday night and we're closed, but I can check the next available AC repair slots for ZIP 77002 now.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_015wyvJ19b2LEGe3zjeE9DPV",
+     "id": "toolu_mock_001",
      "input": {
       "date_from": null,
       "job_type": "AC repair",
@@ -72,16 +58,9 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 871.8,
-    "first_text_ms": 872.1,
-    "total_ms": 1497.2
-   },
    "usage": {
-    "cache_creation_input_tokens": 145,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 137
+    "input_tokens": 852,
+    "output_tokens": 36
    }
   }
  }

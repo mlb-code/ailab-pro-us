@@ -19,16 +19,9 @@
   "response": {
    "content": [
     {
-     "text": "Let me check the schedule for a furnace repair visit in your area.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_015ZGgp1STu1USmhTzCY5L8Z",
+     "id": "toolu_mock_001",
      "input": {
-      "date_from": "2026-10-12",
+      "date_from": null,
       "job_type": "Furnace repair",
       "zip": "77005"
      },
@@ -37,26 +30,19 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 687.4,
-    "first_text_ms": 687.5,
-    "total_ms": 1236.0
-   },
    "usage": {
-    "cache_creation_input_tokens": 172,
-    "cache_read_input_tokens": 1916,
-    "input_tokens": 4,
-    "output_tokens": 128
+    "input_tokens": 742,
+    "output_tokens": 37
    }
   }
  },
- "ea17c7893439fb4dcac9111b": {
+ "dee4d28e4cf8850c6e99576d": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_015ZGgp1STu1USmhTzCY5L8Z",
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -67,21 +53,14 @@
   "response": {
    "content": [
     {
-     "text": "I have two openings: today, Monday October 12, from 12 PM to 4 PM, or tomorrow, Tuesday October 13, from 8 AM to 12 PM. Which one works better for you? Also, what is your name and the service address?",
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 746.6,
-    "first_text_ms": 746.7,
-    "total_ms": 1108.0
-   },
    "usage": {
-    "cache_creation_input_tokens": 302,
-    "cache_read_input_tokens": 2088,
-    "input_tokens": 2,
-    "output_tokens": 79
+    "input_tokens": 888,
+    "output_tokens": 34
    }
   }
  }

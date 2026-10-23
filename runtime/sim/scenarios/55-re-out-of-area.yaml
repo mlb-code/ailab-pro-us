@@ -1,0 +1,8 @@
+description: Buyer in a ZIP outside the agent's area -> no slots, message for the team.
+tenant: demo-realty
+channel: sms
+from: "+15125550187"
+turns:
+  - say: "Looking to buy in 76101, moving in two months, around 400k, pre-approved, no agent"
+    expect: {tools: [qualify_lead, get_availability, take_message], reply_matches: ["passed your details"]}
+expect: {outcome: message, bookings: 0, actions: [lead]}

@@ -1,0 +1,301 @@
+{
+ "15a363fad1440a18b5288df6": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Not yet, we haven't talked to a lender",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1519,
+    "output_tokens": 17
+   }
+  }
+ },
+ "1673110576ecb6335d0ba59c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Can I see 1420 Oak Ridge this weekend? Zip 78704",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1234,
+    "output_tokens": 22
+   }
+  }
+ },
+ "286017a29f1fb1fd4d0d8fd1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:04 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "area": "78704",
+      "email": null,
+      "has_agent": "no",
+      "intent": "buyer",
+      "motivation": null,
+      "name": null,
+      "pre_approval": "not_yet",
+      "price_range": "Up to 600k",
+      "property_address": null,
+      "timeline": "As soon as possible"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1605,
+    "output_tokens": 75
+   }
+  }
+ },
+ "3d196de929f52ec94ed073d3": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:05 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Sure, the first one. I'm Marcus Reed",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_015",
+     "input": {
+      "address": "78704",
+      "job_type": "Buyer consultation",
+      "name": "Marcus Reed",
+      "notes": "Can I see 1420 Oak Ridge this weekend? Zip 78704",
+      "phone": null,
+      "slot_id": "2026-10-12T13:00-15:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 2009,
+    "output_tokens": 72
+   }
+  }
+ },
+ "4c4b9370216617f65a76a707": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Buyer consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_011",
+     "input": {
+      "date_from": null,
+      "job_type": "Buyer consultation",
+      "zip": "78704"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1754,
+    "output_tokens": 38
+   }
+  }
+ },
+ "a53704106b90a1cd02c4f346": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Up to 600k",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you pre-approved for a mortgage, paying cash, or not there yet?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1417,
+    "output_tokens": 24
+   }
+  }
+ },
+ "ab7a78014d6b5d591d7d566b": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_015",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2131,
+    "output_tokens": 25
+   }
+  }
+ },
+ "ad6e0cb3539a71eda69dbe2e": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: As soon as possible",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Do you have a price range in mind?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1330,
+    "output_tokens": 16
+   }
+  }
+ },
+ "c603787bd8bd78c015b05867": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_011",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1900,
+    "output_tokens": 31
+   }
+  }
+ }
+}

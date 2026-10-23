@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "Our team will give you an exact price on site. Would you like to book a visit? If so, what's the issue and your service ZIP code?",
+     "text": "Our team will give you an exact price on site. Want me to get a technician out?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 1667.1,
-    "first_text_ms": 1667.3,
-    "total_ms": 2121.7
-   },
    "usage": {
-    "cache_creation_input_tokens": 138,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 42
+    "input_tokens": 848,
+    "output_tokens": 27
    }
   }
  }

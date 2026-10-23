@@ -1,0 +1,16 @@
+description: Real estate seller -> property address + motivation asked, no buyer questions, listing consultation booked.
+tenant: demo-realty
+channel: sms
+from: "+15125550183"
+turns:
+  - say: "I'm thinking about selling my home in Mueller"
+    expect: {reply_matches: ["timeline|when"]}
+  - say: "Later this year, we're relocating for work"
+    expect: {reply_matches: ["address"], reply_not_matches: ["pre-approved", "price range"]}
+  - say: "4512 Berkman Dr, Austin 78723"
+    expect: {reply_matches: ["working with an agent"]}
+  - say: "No agent yet"
+    expect: {tools: [qualify_lead, get_availability], reply_matches: ["Jenna can meet"]}
+  - say: "The second one please, my name is Linda Torres"
+    expect: {tools: [book_slot], reply_matches: ["all set"]}
+expect: {outcome: booked, bookings: 1, actions: [booking]}

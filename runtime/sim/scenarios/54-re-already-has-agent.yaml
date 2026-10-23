@@ -1,0 +1,14 @@
+description: Caller already working with another agent -> polite message for the team, no booking, no poaching.
+tenant: demo-realty
+channel: sms
+from: "+15125550186"
+turns:
+  - say: "We're buying in Cedar Park, already working with an agent, just had a question about 1420 Oak Ridge"
+    expect: {reply_matches: ["timeline|when"]}
+  - say: "This summer"
+    expect: {reply_matches: ["price range"]}
+  - say: "Under 500k"
+    expect: {reply_matches: ["pre-approved"]}
+  - say: "Pre-approved"
+    expect: {tools: [qualify_lead, take_message], reply_matches: ["passed your details"]}
+expect: {outcome: message, bookings: 0, actions: [lead]}

@@ -19,21 +19,14 @@
   "response": {
    "content": [
     {
-     "text": "Yes, we service all major brands, including Trane. Is something wrong with your unit that you'd like us to look at? If so, what's the issue and what's your service ZIP code?",
+     "text": "Yes, all major brands.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 825.1,
-    "first_text_ms": 825.1,
-    "total_ms": 1249.7
-   },
    "usage": {
-    "cache_creation_input_tokens": 136,
-    "cache_read_input_tokens": 2107,
-    "input_tokens": 4,
-    "output_tokens": 57
+    "input_tokens": 845,
+    "output_tokens": 13
    }
   }
  }

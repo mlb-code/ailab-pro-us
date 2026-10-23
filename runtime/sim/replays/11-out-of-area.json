@@ -1,4 +1,39 @@
 {
+ "6055d3182e835be712f6725f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"out_of_area\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "name": null,
+      "summary": "Customer outside the service area",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 931,
+    "output_tokens": 41
+   }
+  }
+ },
  "808c418aa7db1441987d4345": {
   "request": {
    "last_message": {
@@ -19,44 +54,30 @@
   "response": {
    "content": [
     {
-     "text": "ZIP 90210 is outside our service area, so I'm passing your request to the team, who will follow up.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_015MnSH1WHsmycR8jiHS9D1a",
+     "id": "toolu_mock_001",
      "input": {
-      "name": null,
-      "summary": "Customer needs AC repair but ZIP 90210 is outside the service area (service ZIPs: 77002, 77005, 77006, 77019, 77098). Customer may need follow-up.",
-      "urgency": "normal"
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "90210"
      },
-     "name": "take_message",
+     "name": "get_availability",
      "type": "tool_use"
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 1609.9,
-    "first_text_ms": 1610.2,
-    "total_ms": 2269.8
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2246,
-    "input_tokens": 4,
-    "output_tokens": 188
+    "input_tokens": 844,
+    "output_tokens": 36
    }
   }
  },
- "81ab846b5324093b419dc69d": {
+ "d96a7ccea17d5c2a462b1eaa": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
-      "tool_use_id": "toolu_015MnSH1WHsmycR8jiHS9D1a",
+      "tool_use_id": "toolu_mock_003",
       "type": "tool_result"
      }
     ],
@@ -67,67 +88,14 @@
   "response": {
    "content": [
     {
-     "text": "Thanks! Your request has been passed to the Cool Breeze HVAC team, and they will follow up with you.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01U7Y7hat8wTxHVsCTrGYcNY",
-     "input": {
-      "outcome": "message"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 727.3,
-    "first_text_ms": 727.4,
-    "total_ms": 1059.5
-   },
-   "usage": {
-    "cache_creation_input_tokens": 214,
-    "cache_read_input_tokens": 2246,
-    "input_tokens": 2,
-    "output_tokens": 88
-   }
-  }
- },
- "a4864db01ee9743eff380541": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01U7Y7hat8wTxHVsCTrGYcNY",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks! Your request has been passed to the Cool Breeze HVAC team, and they will follow up with you.",
+     "text": "Sorry, that address is outside our service area. I've passed your details to the team.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 702.6,
-    "first_text_ms": 702.7,
-    "total_ms": 802.7
-   },
    "usage": {
-    "cache_creation_input_tokens": 100,
-    "cache_read_input_tokens": 2460,
-    "input_tokens": 2,
-    "output_tokens": 38
+    "input_tokens": 1018,
+    "output_tokens": 29
    }
   }
  }

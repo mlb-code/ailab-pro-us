@@ -1,0 +1,52 @@
+{
+  "id": "00000000-0000-4000-8000-000000000002",
+  "slug": "demo-realty",
+  "status": "sandbox",
+  "twilio_number": "+15125550199",
+  "client_id": null,
+  "config": {
+    "business": {
+      "name": "Maple & Main Realty",
+      "niche": "real_estate",
+      "trade": "real estate",
+      "timezone": "America/Chicago",
+      "service_area_zips": ["78701", "78702", "78703", "78704", "78705", "78723", "78731", "78745", "78746", "78751"],
+      "main_phone": "+15125550180"
+    },
+    "voice": {"tts_voice": "Polly.Joanna-Neural", "greeting": "", "languages": ["en"]},
+    "hours": {
+      "mon": ["09:00", "18:00"], "tue": ["09:00", "18:00"], "wed": ["09:00", "18:00"],
+      "thu": ["09:00", "18:00"], "fri": ["09:00", "18:00"], "sat": ["10:00", "16:00"], "sun": null
+    },
+    "after_hours": {"mode": "book_next_day"},
+    "booking": {
+      "provider": "fake",
+      "calendar_id": "primary",
+      "windows": [["10:00", "12:00"], ["13:00", "15:00"], ["15:00", "17:00"]],
+      "lead_time_hours": 3,
+      "max_per_window": 2,
+      "days_ahead": 7,
+      "job_types": ["Home showing", "Buyer consultation", "Listing consultation", "Rental consultation"],
+      "booking_link": null
+    },
+    "pricing": {"mode": "none", "items": []},
+    "faq": [
+      {"q": "Is 1420 Oak Ridge Dr still available?", "a": "Yes, 1420 Oak Ridge Dr (ZIP 78704) is still active. Jenna can show it; I can book a showing."},
+      {"q": "Who will I meet?", "a": "Jenna Harper, a licensed agent with Maple & Main Realty."},
+      {"q": "Do you work with first-time buyers?", "a": "Yes, Jenna works with many first-time buyers."}
+    ],
+    "emergency": {"keywords": [], "dial": null},
+    "handoff": {"mode": "message", "number": null, "hours": "business"},
+    "notify": {"sms": ["+15125550111"], "email": ["jenna@example.com"], "daily_summary": "19:00"},
+    "zapier": {"webhook_url": null, "events": ["lead.created", "booking.created"]},
+    "guard": {"daily_budget_usd": 3, "blocklist": [], "max_replies_10min": 8, "max_replies_day": 30},
+    "paused": false,
+    "real_estate": {
+      "agent_name": "Jenna Harper",
+      "screening": ["intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation", "has_agent"],
+      "renters": false,
+      "meetings": {"buyer": "Buyer consultation", "seller": "Listing consultation", "showing": "Home showing", "renter": "Rental consultation"},
+      "follow_up_boss": {"enabled": false, "source": "", "assigned_to": ""}
+    }
+  }
+}

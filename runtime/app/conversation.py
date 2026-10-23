@@ -54,6 +54,9 @@ SILENT_END_TEXT = "Sorry, I can't hear you. Someone from our team will call you 
 CONFIRMED_DANGER_TEXT = guard.CONFIRMED_DANGER_TEXT
 URGENT_DIAL_TEXT = "This sounds urgent. I'm connecting you with our on-call technician now."
 OUTCOME_RANK = {"booked": 6, "emergency": 5, "handoff": 4, "message": 3, "spam": 2, "abandoned": 1}
+TEXT_CHANNELS = ("sms", "chat")  # "chat" = ADD-CHAT, the chat box on the client's website (app.chat_widget)
+LEAD_FIELDS = ("intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation", "has_agent",
+               "name", "email")  # real-estate screening answers (qualify_lead), kept in Convo.meta["lead"]
 
 
 @dataclass
@@ -261,6 +264,7 @@ class Engine:
         text = text or ""
         day = self.local_day(tenant, now)
         sms = channel == "sms"
+        typed = channel in TEXT_CHANNELS  # SMS and the website chat box share the text rules; only SMS is metered/keyworded
         if sms:
             self._usage(tenant, ts, "sms", guard.sms_segments(text) or (1 if num_media else 0), now, actions)
 
@@ -271,7 +275,7 @@ class Engine:
             c.ended = c.ended or end
             if reply:
                 c.transcript.append({"who": "assistant", "text": reply})
-                if counted and (sms or kw.get("claude_calls")):
+                if counted and (typed or kw.get("claude_calls")):
                     self.save_limit_state(tenant, contact, guard.record_reply(self.limit_state(tenant, contact), now, day))
                 if sms:
                     self._usage(tenant, ts, "sms", guard.sms_segments(reply), now, actions)
@@ -320,7 +324,7 @@ class Engine:
             notes.append("opted_out")
             return done("", end=True)
 
-        if sms and (blocked := gate()):
+        if typed and (blocked := gate()):
             return blocked
         if kw == "start":
             return done(guard.start_confirmation(sms_business_name(cfg)))
@@ -328,7 +332,7 @@ class Engine:
             notes.append("tenant_paused")
             return done(PAUSED_TEXT, end=True)
 
-        if sms:
+        if typed:
             if kw == "help":
                 notes.append("help")
                 return done(guard.help_text(sms_business_name(cfg), cfg.business.main_phone))
@@ -393,7 +397,7 @@ class Engine:
             return done(lang, outcome="message")
 
         # 5: per-number limit before any Claude call (voice too)
-        if not sms and (blocked := gate()):
+        if not typed and (blocked := gate()):
             return blocked
 
         # 6: budgets -> message-only mode, zero Claude calls
@@ -411,7 +415,7 @@ class Engine:
 
         # Claude
         policy = guard.after_hours_policy(cfg, now)
-        if not sms:
+        if not typed:
             return self._voice_claude(tenant, ts, c, channel, now, policy, actions, notes, text, day, done,
                                       on_sentence, t_start)
         result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c),
@@ -438,7 +442,7 @@ class Engine:
             c.set_outcome("message")
         dialing = any(a["type"] == "dial" for a in actions)
         reply = checked.text
-        if self._should_ask_consent(ts, c):  # by text the reply is the confirmation; ask only about the reminder
+        if sms and self._should_ask_consent(ts, c):  # by text the reply is the confirmation; ask only about the reminder
             notes.append("sms_consent:asked")
             c.meta["sms_consent"] = "asked"
             q = guard.SMS_CONSENT_Q_SMS
@@ -606,8 +610,11 @@ class Engine:
         }[policy]
         urgent = " The customer reported an urgent issue; the owner was alerted." if c.urgency == "urgent" else ""
         prior = f" Before this, we sent the customer: \"{c.prior}\"" if c.prior else ""
+        known = ("The visitor's phone number is not known." if channel == "chat"
+                 else "The customer's phone number is already known.")
+        lang = " The customer uses Spanish: reply in Spanish." if c.meta.get("lang") == "es" else ""
         ctx = (f"[context] Channel: {channel}. Local time: {local:%A %b} {local.day} {local.year}, {local:%I:%M %p}. "
-               f"{hours}{urgent} The customer's phone number is already known.{prior}")
+               f"{hours}{urgent} {known}{lang}{prior}")
         return [{"type": "text", "text": ctx}, {"type": "text", "text": "Customer: " + guard.as_data(text)}]
 
     def _execute(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
@@ -645,7 +652,14 @@ class Engine:
             if zip_code and not guard.zip_in_area(zip_code, cfg):
                 return {"ok": False, "reason": "out_of_area"}
             alt_phone = args.get("phone")
-            details = {"name": str(args.get("name") or "")[:80], "phone": c.contact, "address": address[:200],
+            phone = c.contact
+            if channel == "chat":  # the chat box has no caller id: the visitor's number is the booking's phone
+                given = guard.find_phone(str(alt_phone or ""))
+                if not given:
+                    return {"ok": False, "reason": "phone_required"}
+                phone, alt_phone = given, None
+                c.collect(phone=given)
+            details = {"name": str(args.get("name") or "")[:80], "phone": phone, "address": address[:200],
                        "job_type": args.get("job_type") if args.get("job_type") in cfg.booking.job_types
                        else cfg.booking.job_types[0],
                        "urgency": "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal",
@@ -664,7 +678,7 @@ class Engine:
             c.booking = {**details, "slot_id": slot_id, "start": res["start"], "end": res["end"],
                          "label": res["label"], "event_id": res["event_id"]}
             ts.insert("bookings", {
-                "call_id": c.meta.get("call_row_id"), "customer_name": details["name"], "contact_e164": c.contact,
+                "call_id": c.meta.get("call_row_id"), "customer_name": details["name"], "contact_e164": details["phone"],
                 "address": details["address"], "job_type": details["job_type"], "urgency": details["urgency"],
                 "start_at": res["start"], "end_at": res["end"], "provider_event_id": res["event_id"],
                 "status": "confirmed"})
@@ -672,10 +686,32 @@ class Engine:
             self._alert(c, actions, "booking", f"New booking: {details['job_type']} {res['label']}")
             return {"ok": True, "label": res["label"]}
 
+        if name == "qualify_lead":  # real estate: screening answers -> Convo.meta["lead"] (alerts, Zapier, Follow Up Boss)
+            lead = dict(c.meta.get("lead") or {})
+            for k in LEAD_FIELDS:
+                v = str(args.get(k) or "").strip()
+                if v and v.lower() not in ("unknown", "null", "none", "other"):
+                    lead[k] = v[:200]
+            c.meta["lead"] = lead
+            c.collect(name=args.get("name"), address=args.get("property_address"))
+            intent = lead.get("intent")
+            out = {"ok": True, "saved": sorted(lead)}
+            if intent == "renter" and not cfg.real_estate.renters:
+                out["note"] = "renters are not screened further: take_message for the team"
+            elif lead.get("has_agent") == "yes":
+                out["note"] = "already working with an agent: take_message, do not book"
+            elif intent:
+                from .brain import meeting_types
+                out["meeting_type"] = meeting_types(cfg).get(intent)
+            return out
+
         if name == "take_message":
             urgency = "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal"
             c.collect(name=args.get("name"), address=args.get("address"),
                       job_type=args.get("job_type") if args.get("job_type") in cfg.booking.job_types else "")
+            if channel == "chat":
+                c.collect(phone=guard.find_phone(str(args.get("contact") or "")) or "",
+                          email=guard.find_email(str(args.get("contact") or "")) or "")
             c.message = {"summary": str(args.get("summary") or "")[:300], "urgency": urgency, **self._details(c)}
             c.set_outcome("message")
             self._alert(c, actions, "lead", c.message["summary"])

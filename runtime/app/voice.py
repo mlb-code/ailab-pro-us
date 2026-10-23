@@ -79,10 +79,19 @@ def has_disclosure(text: str) -> bool:
     return all(p.search(text or "") for p in DISCLOSURE_PARTS)
 
 
+def default_greeting(cfg: Any) -> str:
+    """Generated greeting per niche (the call notice is added by `greeting`)."""
+    if cfg.business.niche == "real_estate":
+        agent = (cfg.real_estate.agent_name or "").strip()
+        who = f"{agent}'s virtual assistant at {cfg.business.name}" if agent else f"the virtual assistant for {cfg.business.name}"
+        missed = f"Sorry {agent.split()[0]} missed you! " if agent else "Sorry we missed your call! "
+        return f"Hi, this is {who}, an AI. {missed}{DISCLOSURE} What are you calling about?"
+    return f"Thanks for calling {cfg.business.name}. I'm the virtual assistant, an AI. {DISCLOSURE} How can I help?"
+
+
 def greeting(tenant: TenantRecord) -> str:
     cfg = tenant.config
-    text = (cfg.voice.greeting or "").strip() or (
-        f"Thanks for calling {cfg.business.name}. I'm the virtual assistant, an AI. {DISCLOSURE} How can I help?")
+    text = (cfg.voice.greeting or "").strip() or default_greeting(cfg)
     return text if has_disclosure(text) else f"{text} {DISCLOSURE}"
 
 

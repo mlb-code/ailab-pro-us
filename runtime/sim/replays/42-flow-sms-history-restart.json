@@ -1,5 +1,33 @@
 {
- "3320d7bbc10b2964c38fd6e2": {
+ "01c7695c2b32941b390533d1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_011",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1509,
+    "output_tokens": 19
+   }
+  }
+ },
+ "0f566f549673ae44761b4764": {
   "request": {
    "last_message": {
     "content": [
@@ -19,15 +47,12 @@
   "response": {
    "content": [
     {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01WKhgbNrKJzvu5DGeGY7UkU",
+     "id": "toolu_mock_011",
      "input": {
-      "address": "2100 Rice Blvd, Houston, TX 77005",
+      "address": "2100 Rice Blvd, Houston 77005",
       "job_type": "AC repair",
       "name": "Dana Miller",
-      "notes": "Customer reports AC blowing warm air.",
+      "notes": "Hi, my AC is blowing warm air",
       "phone": null,
       "slot_id": "2026-10-12T12:00-16:00",
       "urgency": "normal"
@@ -37,50 +62,13 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 637.5,
-    "first_text_ms": null,
-    "total_ms": 1226.3
-   },
    "usage": {
-    "cache_creation_input_tokens": 102,
-    "cache_read_input_tokens": 2861,
-    "input_tokens": 4,
-    "output_tokens": 237
+    "input_tokens": 1388,
+    "output_tokens": 71
    }
   }
  },
- "336cb2fb9afd7bf797cb1cae": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01S2AGmZuycaNJVT7fKwbf2R",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 639.5
-   },
-   "usage": {
-    "cache_creation_input_tokens": 141,
-    "cache_read_input_tokens": 3239,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
- "38702da0dd8ff3e3d13e5d77": {
+ "43637174dde2ed521f20a391": {
   "request": {
    "last_message": {
     "content": [
@@ -89,7 +77,7 @@
       "type": "text"
      },
      {
-      "text": "Customer: 77005",
+      "text": "Customer: My name is Dana Miller",
       "type": "text"
      }
     ],
@@ -100,30 +88,14 @@
   "response": {
    "content": [
     {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01SxmqcS8WCGh1Ei3rmHCce9",
-     "input": {
-      "date_from": "2026-10-12",
-      "job_type": "AC repair",
-      "zip": "77005"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
+     "text": "Thanks, Dana. What's the street address for the visit?",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 628.3,
-    "first_text_ms": null,
-    "total_ms": 929.4
-   },
+   "stop_reason": "end_turn",
    "usage": {
-    "cache_creation_input_tokens": 95,
-    "cache_read_input_tokens": 2248,
-    "input_tokens": 4,
-    "output_tokens": 104
+    "input_tokens": 1291,
+    "output_tokens": 21
    }
   }
  },
@@ -147,25 +119,46 @@
   "response": {
    "content": [
     {
-     "text": "Sorry to hear your AC is blowing warm air. What's the service ZIP code for the address?",
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 582.5,
-    "first_text_ms": 582.5,
-    "total_ms": 850.2
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2248,
-    "input_tokens": 4,
-    "output_tokens": 33
+    "input_tokens": 845,
+    "output_tokens": 30
    }
   }
  },
- "4643e52fcde1f8747ba6d76e": {
+ "92e76ba7551129c8fa547e1a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1090,
+    "output_tokens": 34
+   }
+  }
+ },
+ "caac92cca8bff857b05884a3": {
   "request": {
    "last_message": {
     "content": [
@@ -174,7 +167,7 @@
       "type": "text"
      },
      {
-      "text": "Customer: My name is Dana Miller",
+      "text": "Customer: 77005",
       "type": "text"
      }
     ],
@@ -185,25 +178,24 @@
   "response": {
    "content": [
     {
-     "text": "Thanks, Dana. What's the full service street address, including ZIP?",
-     "type": "text"
+     "id": "toolu_mock_003",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77005"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 596.2,
-    "first_text_ms": 596.3,
-    "total_ms": 819.0
-   },
+   "stop_reason": "tool_use",
    "usage": {
-    "cache_creation_input_tokens": 90,
-    "cache_read_input_tokens": 2771,
-    "input_tokens": 4,
-    "output_tokens": 25
+    "input_tokens": 945,
+    "output_tokens": 36
    }
   }
  },
- "a52a12353b026eacc4d47d09": {
+ "f55907947b4f4cd0414bb298": {
   "request": {
    "last_message": {
     "content": [
@@ -223,102 +215,14 @@
   "response": {
    "content": [
     {
-     "text": "Great. What's your name and the full service address (including ZIP)?",
+     "text": "Great. What name should I put the booking under?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 670.1,
-    "first_text_ms": 670.2,
-    "total_ms": 884.6
-   },
    "usage": {
-    "cache_creation_input_tokens": 150,
-    "cache_read_input_tokens": 2621,
-    "input_tokens": 4,
-    "output_tokens": 22
-   }
-  }
- },
- "b2f5e1ce4c39806e6902e782": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_01SxmqcS8WCGh1Ei3rmHCce9",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "ZIP 77005 is in our service area. Available AC repair windows:\n1. Today (Mon Oct 12), 12 PM to 4 PM\n2. Tomorrow (Tue Oct 13), 8 AM to 12 PM\n\nWhich one works for you?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 622.4,
-    "first_text_ms": 622.6,
-    "total_ms": 975.3
-   },
-   "usage": {
-    "cache_creation_input_tokens": 278,
-    "cache_read_input_tokens": 2343,
-    "input_tokens": 2,
-    "output_tokens": 89
-   }
-  }
- },
- "ce81772d727d17b7b09104bc": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_01WKhgbNrKJzvu5DGeGY7UkU",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Booked, Dana: AC repair at 2100 Rice Blvd today (Mon Oct 12), 12 PM to 4 PM. A technician will check the unit. Thanks for contacting Cool Breeze HVAC!",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01S2AGmZuycaNJVT7fKwbf2R",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 596.7,
-    "first_text_ms": 596.8,
-    "total_ms": 1048.6
-   },
-   "usage": {
-    "cache_creation_input_tokens": 276,
-    "cache_read_input_tokens": 2963,
-    "input_tokens": 2,
-    "output_tokens": 129
+    "input_tokens": 1198,
+    "output_tokens": 19
    }
   }
  }

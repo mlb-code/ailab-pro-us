@@ -1,5 +1,33 @@
 {
- "2f66f02b5dac9b054a9874d5": {
+ "1b9aecffb6dd6ae80fb77e3c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 989,
+    "output_tokens": 34
+   }
+  }
+ },
+ "30a5a230fe60c6966c0fd226": {
   "request": {
    "last_message": {
     "content": [
@@ -19,15 +47,12 @@
   "response": {
    "content": [
     {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01R7EK9oEEqLLwd5qc1ft6h4",
+     "id": "toolu_mock_005",
      "input": {
-      "address": "2100 Rice Blvd, Houston, TX 77005",
+      "address": "2100 Rice Blvd Houston 77005",
       "job_type": "AC repair",
       "name": "Dana Miller",
-      "notes": "Customer reports AC not working.",
+      "notes": "My AC is not working, 77005",
       "phone": null,
       "slot_id": "2026-10-12T12:00-16:00",
       "urgency": "normal"
@@ -37,26 +62,19 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 748.7,
-    "first_text_ms": null,
-    "total_ms": 1361.3
-   },
    "usage": {
-    "cache_creation_input_tokens": 157,
-    "cache_read_input_tokens": 2566,
-    "input_tokens": 4,
-    "output_tokens": 233
+    "input_tokens": 1107,
+    "output_tokens": 70
    }
   }
  },
- "3e4108f67d6f9640e4f6892b": {
+ "8fa36b934f526232df140584": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01JNV1oGU3SxZMd8pBuU8Wgf",
+      "tool_use_id": "toolu_mock_007",
       "type": "tool_result"
      }
     ],
@@ -67,67 +85,14 @@
   "response": {
    "content": [
     {
-     "text": "Thanks, Dana. Your request for today, Mon Oct 12, 12 PM to 4 PM, at 2100 Rice Blvd appears to already be on file. I've passed your details to the team to confirm it, and they'll follow up with you.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01KREQo9NXhQgBtvypDRXkUi",
-     "input": {
-      "outcome": "message"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 1650.4,
-    "first_text_ms": 1650.5,
-    "total_ms": 2197.2
-   },
-   "usage": {
-    "cache_creation_input_tokens": 213,
-    "cache_read_input_tokens": 2987,
-    "input_tokens": 2,
-    "output_tokens": 133
-   }
-  }
- },
- "89e902520079696fd3ae3fa4": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_014XusJZm2uEB5KkyCyz68VA",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I have two openings: today (Mon Oct 12) 12 PM to 4 PM, or Tue Oct 13 8 AM to 12 PM. Which works for you? Please also send your name and the service address.",
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 783.5,
-    "first_text_ms": 783.7,
-    "total_ms": 1090.6
-   },
    "usage": {
-    "cache_creation_input_tokens": 322,
-    "cache_read_input_tokens": 2244,
-    "input_tokens": 2,
-    "output_tokens": 69
+    "input_tokens": 1311,
+    "output_tokens": 28
    }
   }
  },
@@ -151,16 +116,9 @@
   "response": {
    "content": [
     {
-     "text": "I'm sorry your AC is out. ZIP 77005 is in our service area. I'll check the earliest available AC repair slots now.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_014XusJZm2uEB5KkyCyz68VA",
+     "id": "toolu_mock_001",
      "input": {
-      "date_from": "2026-10-12",
+      "date_from": null,
       "job_type": "AC repair",
       "zip": "77005"
      },
@@ -169,27 +127,20 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 1751.4,
-    "first_text_ms": 1751.5,
-    "total_ms": 2330.3
-   },
    "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2244,
-    "input_tokens": 4,
-    "output_tokens": 148
+    "input_tokens": 845,
+    "output_tokens": 36
    }
   }
  },
- "bfcf999a1e2666d6931f7836": {
+ "c7576d553289b5635b294a6b": {
   "request": {
    "last_message": {
     "content": [
      {
       "content": "{\"ok\": false, \"reason\": \"duplicate\"}",
       "is_error": true,
-      "tool_use_id": "toolu_01R7EK9oEEqLLwd5qc1ft6h4",
+      "tool_use_id": "toolu_mock_005",
       "type": "tool_result"
      }
     ],
@@ -200,17 +151,10 @@
   "response": {
    "content": [
     {
-     "text": "It looks like this slot is already booked under your request. Let me confirm the status with the team.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01JNV1oGU3SxZMd8pBuU8Wgf",
+     "id": "toolu_mock_007",
      "input": {
-      "name": "Dana Miller",
-      "summary": "Customer Dana Miller, 2100 Rice Blvd, Houston 77005, requested AC repair today Mon Oct 12 12 PM-4 PM. Booking returned a duplicate error; please confirm the appointment.",
+      "name": null,
+      "summary": "Customer already booked that day and called again",
       "urgency": "normal"
      },
      "name": "take_message",
@@ -218,46 +162,9 @@
     }
    ],
    "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 727.1,
-    "first_text_ms": 727.2,
-    "total_ms": 1437.1
-   },
    "usage": {
-    "cache_creation_input_tokens": 264,
-    "cache_read_input_tokens": 2723,
-    "input_tokens": 2,
-    "output_tokens": 201
-   }
-  }
- },
- "d8428e0c827e16f892a28a8a": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_01KREQo9NXhQgBtvypDRXkUi",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 769.5
-   },
-   "usage": {
-    "cache_creation_input_tokens": 145,
-    "cache_read_input_tokens": 3200,
-    "input_tokens": 2,
-    "output_tokens": 1
+    "input_tokens": 1228,
+    "output_tokens": 45
    }
   }
  }

@@ -1,0 +1,18 @@
+description: Buyer who is not pre-approved is still a lead and still gets booked; the answer is recorded for the agent.
+tenant: demo-realty
+channel: sms
+from: "+15125550185"
+turns:
+  - say: "Can I see 1420 Oak Ridge this weekend? Zip 78704"
+    expect: {reply_matches: ["timeline|when"]}
+  - say: "As soon as possible"
+    expect: {reply_matches: ["price range"]}
+  - say: "Up to 600k"
+    expect: {reply_matches: ["pre-approved"]}
+  - say: "Not yet, we haven't talked to a lender"
+    expect: {reply_matches: ["working with an agent"]}
+  - say: "No"
+    expect: {tools: [qualify_lead, get_availability]}
+  - say: "Sure, the first one. I'm Marcus Reed"
+    expect: {tools: [book_slot], reply_matches: ["all set"]}
+expect: {outcome: booked, bookings: 1, actions: [booking]}

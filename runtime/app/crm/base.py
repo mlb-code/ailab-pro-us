@@ -30,7 +30,8 @@ from ..store import StateStore, Store
 
 log = logging.getLogger("rt.crm")
 
-PROVIDERS = ("hubspot", "jobber")
+PROVIDERS = ("hubspot", "jobber")  # + "follow_up_boss" (real estate, configured under real_estate.follow_up_boss)
+ALL_PROVIDERS = PROVIDERS + ("follow_up_boss",)
 EVENTS = ("lead.created", "booking.created")
 BACKOFF_S = (2.0, 8.0, 30.0)  # same schedule as Zapier / the delivery queue
 TIMEOUT_S = 10.0
