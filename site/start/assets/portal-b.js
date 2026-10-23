@@ -585,15 +585,16 @@
       '<h2 class="h-sec">Recent calls</h2>' + (calls ? '<ul class="calls">' + calls + '</ul>' : '<div class="empty">No calls yet. Calls your receptionist answers show up here with a summary and transcript.</div>') +
       '<h2 class="h-sec">Text messages</h2>' + (sms ? '<ul class="calls">' + sms + '</ul>' : '<div class="empty">No text conversations yet.</div>') +
       '<h2 class="h-sec">Bookings</h2>' + (bookings ? '<ul class="calls">' + bookings + '</ul>' : '<div class="empty">No bookings yet.</div>') +
-      '<h2 class="h-sec">Settings</h2><p class="muted small">You can change hours, FAQ, who gets alerts, after-hours handling and the on-call number here. For anything else, send a Request.</p>' +
+      '<h2 class="h-sec">Settings</h2><p class="muted small">You can change hours, FAQ, who gets alerts, after-hours handling' + (isRealEstate(cfg) ? ', the on-call number and your lead screening questions' : ' and the on-call number') + ' here. For anything else, send a Request.</p>' +
       '<details class="card set" id="setHours"><summary>Opening hours</summary><p class="muted small">Time zone: ' + esc(tzLabel((cfg.business || {}).timezone)) + '</p>' + hoursEditor('rxh', cfg.hours) + '<div id="rxMsg_hours" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="hours">Save hours</button></details>' +
       '<details class="card set" id="setFaq"><summary>Frequently asked questions</summary>' + faqEditor('rxf', cfg.faq) + '<div id="rxMsg_faq" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="faq">Save FAQ</button></details>' +
       '<details class="card set" id="setNotify"><summary>Who gets alerts</summary>' + notifyEditor('rxn', cfg.notify) + '<div id="rxMsg_notify" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="notify">Save alerts</button></details>' +
       '<details class="card set" id="setAfter"><summary>After hours & on-call number</summary>' + afterHoursEditor('rxah', (cfg.after_hours || {}).mode) + onCallEditor('rxoc', (cfg.handoff || {}).number || (cfg.emergency || {}).dial) +
-      '<div id="rxMsg_after" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="after">Save</button></details>';
+      '<div id="rxMsg_after" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="after">Save</button></details>' +
+      (isRealEstate(cfg) ? screeningHtml(cfg) : '') + webchatHtml(t, cfg);
   }
   function bindReceptionist(d, api) {
-    bindHours('rxh'); bindFaq('rxf'); bindNotify('rxn');
+    bindHours('rxh'); bindFaq('rxf'); bindNotify('rxn'); bindScreening(); bindWebchat();
     S.$('#rxPause').addEventListener('click', async e => {
       const b = e.currentTarget, next = b.getAttribute('aria-pressed') !== 'true';
       if (next && !confirm('Pause the AI assistant? It stops answering calls and texts until you resume.')) return;
@@ -610,6 +611,8 @@
       if (k === 'after') {
         const ah = readAfterHours('rxah'), oc = readOnCall('rxoc');
         errs = ah.errs.concat(oc.errs); patch = { after_hours: ah.after_hours, on_call_number: oc.number };
+      } else if (k === 'screen') {
+        const r = readScreening(); errs = r.errs; patch = { real_estate: r.real_estate };   // never meetings / follow_up_boss
       } else {
         const r = k === 'hours' ? readHours('rxh') : k === 'faq' ? readFaq('rxf') : readNotify('rxn');
         errs = r.errs; patch[k] = r[k];
@@ -621,8 +624,88 @@
       if (e2.length) { errBox('rxMsg_' + k, e2); return; }
       b.disabled = true;
       try { await B.updateTenantSettings(d.tenant.id, patch); S.toast('Saved'); await api.refresh('receptionist', ['[data-rxsave="' + k + '"]'], true); }
-      catch (er) { b.disabled = false; errBox('rxMsg_' + k, [settingsErr(er)]); }
+      catch (er) { b.disabled = false; errBox('rxMsg_' + k, [k === 'screen' ? screeningErr(er) : settingsErr(er)]); }
     }));
+  }
+
+  // ------------------------------------------------------------ add-ons in "My receptionist": real-estate lead screening
+  // (config.real_estate, only when business.niche is real_estate) and the website chat box snippet (config.webchat, ADD-CHAT).
+  // The client edits agent_name / screening (order = the order asked) / renters; meetings and follow_up_boss are ours.
+  const RE_QUESTIONS = [['intent', 'Buying, selling or renting?'], ['area', 'Which area or property?'], ['timeline', 'Timeline'], ['price_range', 'Price range / budget'],
+    ['pre_approval', 'Pre-approved for a mortgage? (buyers)'], ['property_address', 'Property address (sellers)'], ['motivation', 'What’s prompting the move? (sellers)'], ['has_agent', 'Already working with an agent?']];
+  const FAIR_HOUSING = 'We never ask about race, religion, national origin, family status or disability, and the assistant never steers callers toward or away from an area (fair housing).';
+  const isRealEstate = cfg => !!(cfg && cfg.business && cfg.business.niche === 'real_estate');
+  const reLabel = k => (RE_QUESTIONS.find(q => q[0] === k) || [k, k])[1];
+  function screeningHtml(cfg) {
+    const re = cfg.real_estate || {};
+    const max = ((TS.schema && TS.schema.$defs && TS.schema.$defs.RealEstate && TS.schema.$defs.RealEstate.properties.agent_name) || {}).maxLength || 80;
+    const asked = Array.isArray(re.screening) ? re.screening.filter(k => RE_QUESTIONS.some(q => q[0] === k)) : RE_QUESTIONS.map(q => q[0]);
+    const order = asked.concat(RE_QUESTIONS.map(q => q[0]).filter(k => asked.indexOf(k) === -1));   // skipped questions sit at the bottom, unchecked
+    const rows = order.map((k, i) => '<li class="qreq" data-rek="' + esc(k) + '"><label class="check qreq__t"><input type="checkbox" id="rxre_q_' + esc(k) + '"' + (asked.indexOf(k) !== -1 ? ' checked' : '') + '> <span>' + esc(reLabel(k)) + '</span></label>' +
+      '<div class="qreq__a"><button type="button" class="btn btn--ghost btn--sm" data-reup="' + esc(k) + '"' + (i === 0 ? ' disabled' : '') + ' aria-label="Move up: ' + esc(reLabel(k)) + '">↑</button>' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-redown="' + esc(k) + '"' + (i === order.length - 1 ? ' disabled' : '') + ' aria-label="Move down: ' + esc(reLabel(k)) + '">↓</button></div></li>').join('');
+    return '<details class="card set" id="setScreen"><summary>Lead screening questions</summary>' +
+      '<p class="muted small">What your assistant asks a new lead, in this order. Uncheck a question to skip it. Use the arrows to change the order — the list order is the order the assistant asks.</p>' +
+      '<div class="field"><label for="rxre_agent">Agent name (optional)</label><span class="hint" id="rxre_agentH">The agent your assistant works for, e.g. “Jenna Harper”. Leave it empty to use your brokerage name only.</span>' +
+      '<input class="input" id="rxre_agent" maxlength="' + max + '" autocomplete="off" aria-describedby="rxre_agentH" value="' + esc(re.agent_name || '') + '"></div>' +
+      '<span class="label" id="rxre_listL">Questions, in the order asked</span><ol class="queue" id="rxre_list" aria-labelledby="rxre_listL">' + rows + '</ol>' +
+      '<label class="check spaced"><input type="checkbox" id="rxre_renters"' + (re.renters ? ' checked' : '') + '> <span>Also take rental leads (otherwise a renter gets a message to your team)</span></label>' +
+      '<p class="notice small" role="note" id="rxre_fair">' + esc(FAIR_HOUSING) + '</p>' +
+      '<div id="rxMsg_screen" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="screen">Save screening questions</button></details>';
+  }
+  function bindScreening() {
+    const box = S.$('#rxre_list'); if (!box) return;
+    const sync = () => { const rows = S.$$('.qreq', box); rows.forEach((r, i) => { S.$('[data-reup]', r).disabled = i === 0; S.$('[data-redown]', r).disabled = i === rows.length - 1; }); };
+    box.addEventListener('click', e => {
+      const b = e.target.closest('[data-reup],[data-redown]'); if (!b || b.disabled) return;
+      const row = b.closest('.qreq'), up = b.hasAttribute('data-reup');
+      const other = up ? row.previousElementSibling : row.nextElementSibling; if (!other) return;
+      box.insertBefore(up ? row : other, up ? other : row);   // move one step; checkbox states travel with the row
+      sync(); (b.disabled ? S.$(up ? '[data-redown]' : '[data-reup]', row) : b).focus();
+    });
+  }
+  function readScreening() {
+    const errs = [];
+    const screening = S.$$('#rxre_list .qreq').filter(r => S.$('input[type=checkbox]', r).checked).map(r => r.dataset.rek);
+    const agent_name = S.$('#rxre_agent').value.trim();
+    if (!screening.length) errs.push('Keep at least one question, so the assistant learns what the caller needs.');
+    if (agent_name.length > 80) errs.push('Agent name is too long (max 80 characters).');
+    const real_estate = { agent_name, screening, renters: S.$('#rxre_renters').checked };
+    return { real_estate, errs: errs.length ? errs : schemaErrs(real_estate, 'real_estate', 'Screening') };
+  }
+  function screeningErr(e) {
+    const m = (e && (e.code || e.message)) || '';
+    if (/invalid_setting:real_estate\.follow_up_boss|invalid_setting:real_estate\.meetings/.test(m)) return 'That part of the screening setup is managed by us. Send us a Request.';
+    if (/invalid_setting:real_estate\.agent_name/.test(m)) return 'Agent name wasn’t accepted (up to 80 characters). Please check it and save again.';
+    if (/invalid_setting:real_estate\.screening/.test(m)) return 'The question list wasn’t accepted (each question once, from the list above). Please reload and try again.';
+    if (/invalid_setting:real_estate\.renters/.test(m)) return 'The rental-leads choice wasn’t accepted. Please try again.';
+    if (/invalid_setting:real_estate/.test(m)) return 'Screening settings weren’t accepted. Please reload and try again.';
+    return settingsErr(e);
+  }
+  // Chat box for the client's website (ADD-CHAT). The snippet is <script src="<runtime>/chat/widget.js" data-tenant="<slug>" async>
+  // — the runtime URL comes from brand.json demo.runtime_url; allowed website addresses are set by us (Request).
+  function webchatHtml(t, cfg) {
+    const wc = cfg.webchat; if (!wc || !wc.enabled) return '';
+    const base = String((S.BRAND.demo && S.BRAND.demo.runtime_url) || '').replace(/\/+$/, '');
+    const snippet = '<script src="' + base + '/chat/widget.js" data-tenant="' + (t.slug || '') + '" async></' + 'script>';
+    const origins = Array.isArray(wc.allowed_origins) ? wc.allowed_origins : [];
+    return '<details class="card set" id="setChat"><summary>Chat box for your website</summary>' +
+      '<p class="muted small">Your assistant can also answer visitors on your website, with the same hours, FAQ and alerts. Add this one line to your site:</p>' +
+      '<div class="field"><label for="rxwc_snip">Code to copy</label><textarea class="textarea short mono" id="rxwc_snip" rows="3" readonly spellcheck="false">' + esc(snippet) + '</textarea></div>' +
+      '<div class="btn-row"><button type="button" class="btn btn--ghost btn--sm" id="rxwc_copy">Copy</button></div><div id="rxMsg_chat" aria-live="polite"></div>' +
+      '<p class="small">Paste this line right before the closing <code class="mono">&lt;/body&gt;</code> tag on your website. It works on any site builder that lets you add custom HTML.</p>' +
+      '<h3 class="h-sub">Allowed website addresses</h3>' + (origins.length ? '<ul class="small" id="rxwc_origins">' + origins.map(o => '<li class="mono">' + esc(o) + '</li>').join('') + '</ul>' : '<p class="muted small" id="rxwc_origins">No website address yet — send us a Request with your website address.</p>') +
+      '<p class="muted small">Chat only works on these addresses. To add one, send us a Request.</p></details>';
+  }
+  function bindWebchat() {
+    const cp = S.$('#rxwc_copy'), ta = S.$('#rxwc_snip'); if (!cp || !ta) return;
+    cp.addEventListener('click', async () => {
+      const done = () => okBox('rxMsg_chat', 'Copied. Now paste it into your website, just before </body>.');
+      try { await navigator.clipboard.writeText(ta.value); done(); return; } catch (e) { /* no clipboard permission: fall back to selecting */ }
+      ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+      let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; }
+      if (ok) done(); else errBox('rxMsg_chat', ['Copy didn’t work in this browser. The code is selected above — press Ctrl+C (or Cmd+C on a Mac) to copy it.']);
+    });
   }
 
   // ------------------------------------------------------------ Requests

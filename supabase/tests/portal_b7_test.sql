@@ -117,7 +117,19 @@ begin
     'notify.daily_summary|{"notify":{"email":["a@b.co"],"daily_summary":"7pm"}}',
     'after_hours.mode|{"after_hours":{"mode":"party"}}', 'after_hours|{"after_hours":{"mode":"message_only","x":1}}', 'after_hours.mode|{"after_hours":{}}',
     'on_call_number|{"on_call_number":"7135550111"}', 'on_call_number|{"on_call_number":"+447911123456"}', 'on_call_number|{"on_call_number":"+1713555011"}',
-    'on_call_number|{"on_call_number":17135550111}', 'paused|{"paused":"yes"}'] loop
+    'on_call_number|{"on_call_number":17135550111}', 'paused|{"paused":"yes"}',
+    -- real_estate (2026-10-23): the client edits agent_name / screening / renters / meetings; follow_up_boss is ours
+    'real_estate|{"real_estate":[]}', 'real_estate|{"real_estate":{"agent_name":"x","crm":1}}',
+    'real_estate.follow_up_boss|{"real_estate":{"follow_up_boss":{"enabled":true}}}',
+    'real_estate.follow_up_boss|{"real_estate":{"screening":["intent"],"follow_up_boss":{"enabled":false}}}',
+    'real_estate.agent_name|{"real_estate":{"agent_name":123}}',
+    'real_estate.agent_name' || '|' || jsonb_build_object('real_estate', jsonb_build_object('agent_name', repeat('a', (sch #>> '{$defs,RealEstate,properties,agent_name,maxLength}')::int + 1)))::text,
+    'real_estate.screening|{"real_estate":{"screening":"intent"}}', 'real_estate.screening|{"real_estate":{"screening":["intent","intent"]}}',
+    'real_estate.screening|{"real_estate":{"screening":["intent","zip_code"]}}', 'real_estate.screening|{"real_estate":{"screening":[1]}}',
+    'real_estate.screening|{"real_estate":{"screening":["intent","area","timeline","price_range","pre_approval","property_address","motivation","has_agent","intent"]}}',
+    'real_estate.renters|{"real_estate":{"renters":"yes"}}',
+    'real_estate.meetings|{"real_estate":{"meetings":[]}}', 'real_estate.meetings.landlord|{"real_estate":{"meetings":{"landlord":"x"}}}',
+    'real_estate.meetings.buyer|{"real_estate":{"meetings":{"buyer":""}}}', 'real_estate.meetings.seller|{"real_estate":{"meetings":{"seller":7}}}'] loop
     begin
       perform public.update_tenant_settings(ta, split_part(s1, '|', 2)::jsonb);
       raise exception 'FAIL accepted %', s1;
@@ -130,6 +142,26 @@ begin
   select config into j from public.tenants where id = ta;
   begin perform public.update_tenant_settings(ta, '{"paused":true,"faq":[{"q":"x"}]}'); exception when others then null; end;
   if (select config from public.tenants where id = ta) <> j then raise exception 'FAIL refused patch partially applied'; end if; c := c + 1;
+  -- real_estate (2026-10-23): accepted at the schema limits; the merge is one level deep so follow_up_boss (set by us) survives
+  perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);   -- admin plants the CRM link
+  perform public.update_tenant_settings(ta, '{"after_hours":{"mode":"book_next_day"}}');   -- (admin may call it too)
+  update public.tenants set config = config || '{"real_estate":{"agent_name":"Old Name","screening":["intent"],"renters":false,"meetings":{"buyer":"Buyer consultation"},"follow_up_boss":{"enabled":true,"source":"Web","assigned_to":"jenna@example.com"}}}'::jsonb where id = ta;
+  perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
+  j := public.update_tenant_settings(ta, jsonb_build_object('real_estate', jsonb_build_object(
+         'agent_name', repeat('n', (sch #>> '{$defs,RealEstate,properties,agent_name,maxLength}')::int),
+         'screening', (select jsonb_agg(x) from jsonb_array_elements(sch #> '{$defs,RealEstate,properties,screening,items,enum}') x), 'renters', true)));
+  if length(j #>> '{real_estate,agent_name}') <> (sch #>> '{$defs,RealEstate,properties,agent_name,maxLength}')::int
+     or jsonb_array_length(j #> '{real_estate,screening}') <> (sch #>> '{$defs,RealEstate,properties,screening,maxItems}')::int
+     or (j #>> '{real_estate,renters}') <> 'true' then raise exception 'FAIL real_estate at the schema limits refused %', j; end if; c := c + 1;
+  if j #> '{real_estate,follow_up_boss}' <> '{"enabled":true,"source":"Web","assigned_to":"jenna@example.com"}'::jsonb
+     or j #>> '{real_estate,meetings,buyer}' <> 'Buyer consultation' then raise exception 'FAIL real_estate merge dropped follow_up_boss / meetings %', j; end if; c := c + 1;
+  j := public.update_tenant_settings(ta, '{"real_estate":{"screening":["has_agent","intent"],"meetings":{"seller":"Listing consultation","showing":"Home showing"}}}');
+  if j #> '{real_estate,screening}' <> '["has_agent","intent"]'::jsonb or j #>> '{real_estate,agent_name}' not like 'nnn%'
+     or j #>> '{real_estate,meetings,seller}' <> 'Listing consultation' or j #> '{real_estate,meetings}' ? 'buyer'
+     or (j #>> '{real_estate,follow_up_boss,enabled}') <> 'true' then raise exception 'FAIL real_estate partial patch %', j; end if; c := c + 1;
+  j := public.update_tenant_settings(ta, '{"real_estate":{"agent_name":"","screening":[]}}');
+  if j #>> '{real_estate,agent_name}' <> '' or jsonb_array_length(j #> '{real_estate,screening}') <> 0 then raise exception 'FAIL real_estate empty values %', j; end if; c := c + 1;
+  if (select config -> 'after_hours' from public.tenants where id = ta) <> '{"mode":"book_next_day"}'::jsonb then raise exception 'FAIL real_estate patch touched other keys'; end if; c := c + 1;
   begin perform public.update_tenant_settings(tb, '{"after_hours":{"mode":"message_only"}}'); raise exception 'FAIL A wrote B settings';
   exception when insufficient_privilege then null; end; c := c + 1;
 

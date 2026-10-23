@@ -30,6 +30,7 @@ function serve() {
 }
 const BASE = `http://localhost:${PORT}`;
 const pb = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8'));
+const brand = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8'));   // demo.runtime_url -> chat snippet
 const schema = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/tenant_schema.json'), 'utf8'));
 // checklist titles as the onboarding videos say them (S3 on-screen list: "1 Title · 2 Title · ... (copy the exact titles ...)")
 const welcome = fs.readFileSync(path.resolve(HERE, '../videos/01-welcome/script.md'), 'utf8');
@@ -298,6 +299,81 @@ async function main() {
     ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { faq: [{ q: 'q', a: 'a'.repeat(601) }] }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:faq[0].a', 'FAQ answer over the schema limit refused (direct call)');
     ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { hours: { mon: ['18:00', '08:00'] } }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:hours.mon', 'reversed hours refused (direct call)');
     ok(await page.evaluate(tid => window.Backend.updateTenantSettings(tid, { notify: { sms: [], email: [] } }).then(() => 'ok', e => e.message), tenant.id) === 'invalid_setting:notify', 'alerts without any contact refused (direct call)');
+
+    // ---------------------------------------------------------------- My receptionist: real-estate add-ons (2026-10-23)
+    // Lead screening questions (config.real_estate through update_tenant_settings; follow_up_boss stays ours) + the
+    // website chat box snippet (config.webchat, ADD-CHAT). The HVAC tenant above has neither card.
+    console.log('receptionist: real estate + chat');
+    ok(await page.$('#setScreen') === null && await page.$('#setChat') === null, 'HVAC tenant: no screening card, no chat card');
+    const reT = await page.evaluate(() => window.StartMock.admin.seedTenant({ niche: 'real_estate' }));
+    ok(reT.id === tenant.id, 'seedTenant({niche: real_estate}) upgrades the client’s tenant');
+    await page.goto(BASE + '/start/?r=5#receptionist', { waitUntil: 'load' }); await page.waitForSelector('#rxPause');
+    await page.$eval('#setScreen', x => { x.open = true; });
+    ok((await page.$$('#rxre_list .qreq')).length === 8 && (await page.$$('#rxre_list input[type=checkbox]:checked')).length === 8, 'screening card: 8 questions, all asked');
+    const reLabels = await page.$eval('#setScreen', e => e.innerText);
+    ok(/Buying, selling or renting\?/.test(reLabels) && /Pre-approved for a mortgage\? \(buyers\)/.test(reLabels) && /Already working with an agent\?/.test(reLabels), 'screening card: plain-language labels');
+    ok(/race, religion, national origin, family status or disability/.test(reLabels) && /fair housing/.test(reLabels), 'screening card: fair-housing note');
+    ok(await page.$eval('#rxre_agent', e => e.value) === 'Jenna Harper' && await page.$eval('#rxre_agent', e => e.getAttribute('maxlength')) === String(schema.$defs.RealEstate.properties.agent_name.maxLength), 'agent name shown, max length from the schema');
+    ok(await page.$eval('[data-reup="intent"]', b => b.disabled) && await page.$eval('[data-redown="has_agent"]', b => b.disabled), 'first row cannot move up, last cannot move down');
+    // at least one question
+    await page.$$eval('#rxre_list input[type=checkbox]', cs => cs.forEach(c => { c.checked = false; }));
+    await page.$eval('[data-rxsave="screen"]', b => b.click()); await sleep(150);
+    ok(/Keep at least one question/.test(await page.$eval('#rxMsg_screen', e => e.innerText)), 'screening: at least one question required');
+    ok((await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate.screening.length === 8, 'screening: refused form saved nothing');
+    await page.$$eval('#rxre_list input[type=checkbox]', cs => cs.forEach(c => { c.checked = true; }));
+    // uncheck Timeline, move "Already working with an agent?" to the top (7 clicks), take rental leads
+    await page.$eval('#rxre_q_timeline', c => { c.checked = false; });
+    for (let i = 0; i < 7; i++) await page.click('[data-reup="has_agent"]');
+    ok((await page.$$eval('#rxre_list .qreq', rs => rs.map(r => r.dataset.rek))).join() === 'has_agent,intent,area,timeline,price_range,pre_approval,property_address,motivation', 'move up reorders the list');
+    ok(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-redown') === 'has_agent'), 'focus moves to the row’s other arrow when up is no longer possible');
+    ok(!(await page.$eval('#rxre_q_timeline', c => c.checked)), 'unchecked question stays unchecked after reordering');
+    await page.$eval('#rxre_renters', c => { c.checked = true; });
+    await setVal(page, '#rxre_agent', '  Jenna Harper  ');
+    await page.$eval('[data-rxsave="screen"]', b => b.click()); await sleep(300);
+    let re = (await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate;
+    ok(re.screening[0] === 'has_agent' && re.screening.indexOf('timeline') === -1 && re.screening.length === 7, 'screening saved: has_agent first, timeline skipped');
+    ok(re.renters === true && re.agent_name === 'Jenna Harper', 'renters + trimmed agent name saved');
+    ok(re.follow_up_boss && re.follow_up_boss.enabled === false && re.meetings && typeof re.meetings === 'object', 'follow_up_boss + meetings kept (one-level merge, never sent by the portal)');
+    ok((await db(page)).events.filter(e => e.type === 'settings_updated' && e.entity_id === tenant.id).pop().payload.fields.join() === 'real_estate', 'settings_updated logs only real_estate');
+    ok(await page.$eval('#setScreen', x => x.open) && (await page.$$eval('#rxre_list .qreq', rs => rs.map(r => r.dataset.rek)))[0] === 'has_agent' && !(await page.$eval('#rxre_q_timeline', c => c.checked)), 'after save: card stays open, order + skipped question shown from the config');
+    // renters off again
+    await page.$eval('#rxre_renters', c => { c.checked = false; }); await page.$eval('[data-rxsave="screen"]', b => b.click()); await sleep(300);
+    ok((await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate.renters === false, 'renters checkbox saves false too');
+    // chat box card
+    const runtimeUrl = brand.demo.runtime_url.replace(/\/+$/, '');
+    await page.$eval('#setChat', x => { x.open = true; });
+    const snip = await page.$eval('#rxwc_snip', e => e.value);
+    ok(snip === '<script src="' + runtimeUrl + '/chat/widget.js" data-tenant="' + tenant.slug + '" async></script>', 'chat card: exact embed snippet from brand.json demo.runtime_url + tenant slug');
+    ok(await page.$eval('#rxwc_snip', e => e.readOnly), 'chat card: snippet is read-only');
+    const chatTxt = await page.$eval('#setChat', e => e.innerText);
+    ok(/right before the closing <\/body> tag/.test(chatTxt) && /any site builder/.test(chatTxt), 'chat card: paste instruction');
+    ok(/https:\/\/example-realty\.test/.test(await page.$eval('#rxwc_origins', e => e.innerText)) && /Chat only works on these addresses\. To add one, send us a Request\./.test(chatTxt), 'chat card: allowed website addresses (read-only) + note');
+    await page.evaluate(() => { window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; });
+    await page.click('#rxwc_copy'); await sleep(100);
+    ok(await page.evaluate(() => window.__copied) === snip && /Copied/.test(await page.$eval('#rxMsg_chat', e => e.innerText)), 'Copy button copies the snippet');
+    await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error('denied')); });
+    await page.click('#rxwc_copy'); await sleep(100);
+    ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'rxwc_snip' && document.activeElement.selectionEnd > 10), 'Copy fallback selects the snippet text');
+    // webchat off -> no card
+    await page.evaluate(id => { const x = window.StartMock.admin.db(); x.tenants.find(t => t.id === id).config.webchat.enabled = false; localStorage.setItem('aplp_mock_db_v1', JSON.stringify(x)); }, tenant.id);
+    await page.goto(BASE + '/start/?r=6#receptionist', { waitUntil: 'load' }); await page.waitForSelector('#rxPause');
+    ok(await page.$('#setChat') === null && await page.$('#setScreen') !== null, 'webchat.enabled false: no chat card (screening card stays)');
+    await page.evaluate(id => { const x = window.StartMock.admin.db(); x.tenants.find(t => t.id === id).config.webchat.enabled = true; localStorage.setItem('aplp_mock_db_v1', JSON.stringify(x)); }, tenant.id);
+    // direct calls (same codes as the RPC)
+    const direct = patch => page.evaluate((tid, p) => window.Backend.updateTenantSettings(tid, p).then(() => 'ok', e => e.message), tenant.id, patch);
+    ok(await direct({ real_estate: { follow_up_boss: { enabled: true } } }) === 'invalid_setting:real_estate.follow_up_boss', 'client cannot set follow_up_boss');
+    ok(await direct({ real_estate: { screening: ['intent', 'intent'] } }) === 'invalid_setting:real_estate.screening', 'duplicate screening question refused');
+    ok(await direct({ real_estate: { screening: ['zip_code'] } }) === 'invalid_setting:real_estate.screening', 'unknown screening question refused');
+    ok(await direct({ real_estate: { agent_name: 'x'.repeat(81) } }) === 'invalid_setting:real_estate.agent_name', 'agent name over 80 refused');
+    ok(await direct({ real_estate: { meetings: { landlord: 'x' } } }) === 'invalid_setting:real_estate.meetings.landlord', 'unknown meeting key refused');
+    ok(await direct({ real_estate: { crm: 1 } }) === 'invalid_setting:real_estate', 'unknown real_estate key refused');
+    ok(await direct({ webchat: { enabled: false } }) === 'field_not_allowed: webchat', 'webchat is not client-editable');
+    ok(await direct({ real_estate: { meetings: { buyer: 'Buyer consultation' } } }) === 'ok', 'meetings accepted on a direct call (runtime checks job types)');
+    re = (await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate;
+    ok(re.meetings.buyer === 'Buyer consultation' && re.screening[0] === 'has_agent' && re.follow_up_boss.enabled === false, 'partial patch keeps screening + follow_up_boss');
+    await page.goto(BASE + '/start/?r=7#receptionist', { waitUntil: 'load' }); await page.waitForSelector('#rxPause');
+    await page.evaluate(() => document.querySelectorAll('details').forEach(d => { d.open = true; }));
+    ok((await overflow(page)).length === 0, 'receptionist with screening + chat cards: no overflow 375/390/414/1280');
 
     // ---------------------------------------------------------------- Requests
     console.log('requests');

@@ -722,7 +722,7 @@
     const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
     for (const k of Object.keys(patch)) {
       const v = patch[k];
-      if (['hours', 'faq', 'notify', 'paused', 'after_hours', 'on_call_number'].indexOf(k) === -1) return 'field_not_allowed: ' + k;
+      if (['hours', 'faq', 'notify', 'paused', 'after_hours', 'on_call_number', 'real_estate'].indexOf(k) === -1) return 'field_not_allowed: ' + k;
       if (k === 'paused' && typeof v !== 'boolean') return 'invalid_setting:paused';
       if (k === 'hours') {
         if (!isObj(v)) return 'invalid_setting:hours';
@@ -759,9 +759,29 @@
         if (['book_next_day', 'message_only', 'emergency_dial'].indexOf(v.mode) === -1) return 'invalid_setting:after_hours.mode';
       }
       if (k === 'on_call_number' && !(v === null || US_E164(v))) return 'invalid_setting:on_call_number';
+      if (k === 'real_estate') {   // 2026-10-23 (*_us_settings_real_estate.sql): the CRM link (follow_up_boss) is ours, the rest is the client's
+        if (!isObj(v)) return 'invalid_setting:real_estate';
+        if ('follow_up_boss' in v) return 'invalid_setting:real_estate.follow_up_boss';
+        if (Object.keys(v).some(x => ['agent_name', 'screening', 'renters', 'meetings'].indexOf(x) === -1)) return 'invalid_setting:real_estate';
+        if ('agent_name' in v && (typeof v.agent_name !== 'string' || v.agent_name.length > 80)) return 'invalid_setting:real_estate.agent_name';
+        if ('screening' in v) {
+          if (!Array.isArray(v.screening) || v.screening.length > 8) return 'invalid_setting:real_estate.screening';
+          if (v.screening.some(x => RE_SCREENING.indexOf(x) === -1)) return 'invalid_setting:real_estate.screening';
+          if (new Set(v.screening).size !== v.screening.length) return 'invalid_setting:real_estate.screening';
+        }
+        if ('renters' in v && typeof v.renters !== 'boolean') return 'invalid_setting:real_estate.renters';
+        if ('meetings' in v) {
+          if (!isObj(v.meetings)) return 'invalid_setting:real_estate.meetings';
+          for (const mk of Object.keys(v.meetings)) {
+            const mv = v.meetings[mk];
+            if (['buyer', 'seller', 'renter', 'showing'].indexOf(mk) === -1 || typeof mv !== 'string' || mv.length < 1 || mv.length > 80) return 'invalid_setting:real_estate.meetings.' + mk;
+          }
+        }
+      }
     }
     return null;
   }
+  const RE_SCREENING = ['intent', 'area', 'timeline', 'price_range', 'pre_approval', 'property_address', 'motivation', 'has_agent'];
   const rsNum = v => typeof v === 'number' ? v : (v && typeof v === 'object' && typeof v.usd === 'number' ? v.usd : null);
   const thisMonth = () => new Date().toISOString().slice(0, 7);
   // usage for one tenant+month from runtime_state; accepts the runtime key layout (usage:<t>:<m>:<kind>) and the
@@ -922,7 +942,11 @@
           const bad = checkSettingsPatch(patch); if (bad) throw err(bad);
           const t = x.db.tenants.find(tt => tt.id === tenantId);
           const p2 = clone(patch); delete p2.on_call_number;
+          const prevRe = (t.config || {}).real_estate;
           t.config = Object.assign({}, t.config || {}, p2); t.updated_at = now();
+          if ('real_estate' in patch) {   // one level deep, like the SQL: follow_up_boss + keys the patch leaves out are kept
+            t.config.real_estate = Object.assign({}, clone(prevRe || {}), patch.real_estate);
+          }
           if ('on_call_number' in patch) {   // same mapping as the SQL: handoff.number/mode + emergency.dial
             const n = patch.on_call_number;
             t.config.handoff = Object.assign({}, t.config.handoff || {}, { mode: n === null ? 'message' : 'dial', number: n });
@@ -1050,7 +1074,10 @@
   }
 
   // B7 demo/test helper: a valid tenant (runtime/app/tenant_schema.json) for the signed-in user's client + receptionist data.
-  function seedTenant() {
+  // seedTenant({niche: 'real_estate'}) seeds a real-estate tenant (screening questions + the ADD-CHAT website chat box);
+  // no argument = the HVAC tenant exactly as before.
+  function seedTenant(opts) {
+    const re = !!(opts && opts.niche === 'real_estate');
     const db = load(), u = me(db); if (!u) throw new Error('not_authenticated');
     const client = db.clients.filter(c => c.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
     if (!client) throw new Error('no_client');
@@ -1064,6 +1091,13 @@
           booking: { provider: 'calendly', windows: [['08:00', '12:00'], ['12:00', '16:00']], job_types: ['AC repair', 'Maintenance'] },
           faq: [], notify: { sms: [], email: [u.email], daily_summary: '19:00' }, paused: false } };
       db.tenants.push(t);
+    }
+    if (re) {   // also turns an existing demo tenant into the real-estate one (the e2e seeds the HVAC tenant first)
+      t.config.business = Object.assign({}, t.config.business, { niche: 'real_estate', trade: 'Real estate' });
+      t.config.booking = Object.assign({}, t.config.booking, { job_types: ['Home showing', 'Buyer consultation', 'Listing consultation'] });
+      t.config.real_estate = { agent_name: 'Jenna Harper', screening: RE_SCREENING.slice(), renters: false, meetings: {}, follow_up_boss: { enabled: false, source: '', assigned_to: '' } };
+      t.config.webchat = { enabled: true, allowed_origins: ['https://example-realty.test'], title: '', max_messages_per_session: 30 };
+      t.updated_at = now();
     }
     if (!db.calls.some(c => c.tenant_id === t.id)) {
       const ago = h => new Date(Date.now() - h * 3600000).toISOString();
@@ -1111,7 +1145,7 @@
       inbox: email => load().outbox.filter(m => !email || m.to === email),
       seed,
       seedAdmin,   // A7: demo data for /start/admin/
-      seedTenant: () => seedTenant(),          // B7: tenant + receptionist demo data for the signed-in client
+      seedTenant: opts => seedTenant(opts),    // B7: tenant + receptionist demo data for the signed-in client ({niche:'real_estate'} = real-estate tenant)
       simulateCall: tid => simulateCall(tid)   // B7: what the runtime does when a forwarded call arrives
     }
   };
