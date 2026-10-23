@@ -19,7 +19,7 @@ Env: `RUNTIME_MODE` (prod|sim), `STORE_BACKEND` (json|supabase), `DATA_DIR`, `SU
 **secret key**, `sb_secret_…`, made by `tools/us_setup.py --only supabase-keys`; the variable name is historical, the legacy service_role JWT is no longer used),
 `TWILIO_AUTH_TOKEN`, `PUBLIC_BASE_URL`, `CRED_KEY` (base64 32 bytes), `BRAIN_MODE` (mock|replay|record|live), `GLOBAL_DAILY_BUDGET_USD`,
 `VOICE_MODE` (stream = ConversationRelay, production default | gather = turn-based fallback), `VOICE_SILENCE_SECONDS` (7),
-`VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `VOICE_RELAY_GRACE_SECONDS` (20).
+`VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `SMS_BOOKING_REPLIES` (0 = off until 10DLC: booking texts ask for C/R/X replies, see `app/appointments.py`), `WEEKLY_REPORT` (0 = off: weekly results e-mail to owners), `VOICE_RELAY_GRACE_SECONDS` (20).
 
 Voice/SMS routes: `/voice/incoming|turn|dial-result|status|fallback|relay-end`, WebSocket `/voice/relay`, `/sms/incoming|status`; cron `/jobs/tick` (B6 routes).
 Claude models (brand.json `claude.*`): realtime turns (voice, SMS, web chat) use `claude.voice_model` (Haiku; env `CLAUDE_VOICE_MODEL`),

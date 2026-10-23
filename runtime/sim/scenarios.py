@@ -93,6 +93,16 @@ def run(path: Path, mode: str = "replay", source: str = "mock", data_dir: Path |
         slots = engine.calendar.availability(tenant.id, tenant.config, now)
         engine.calendar.book(tenant.id, tenant.config, now, slots[0]["slot_id"], {"phone": contact, "name": "Earlier"})
 
+    if setup.get("existing_booking"):  # appointment manager: a visit we booked earlier for this caller
+        eb = setup["existing_booking"]
+        slot = engine.calendar.availability(tenant.id, tenant.config, now, limit=10)[int(eb.get("slot", 0))]
+        who = eb.get("phone", contact)
+        res = engine.calendar.book(tenant.id, tenant.config, now, slot["slot_id"], {"phone": who, "name": eb["name"]})
+        store.for_tenant(tenant.id).insert("bookings", {
+            "customer_name": eb["name"], "contact_e164": who, "address": eb.get("address", ""), "job_type": eb.get("job_type"),
+            "urgency": "normal", "start_at": res["start"], "end_at": res["end"], "provider_event_id": res["event_id"],
+            "status": "confirmed"})
+
     channel = sc.get("channel", "sms")
     convo_id = sc.get("convo_id", f"{channel}-{out.name}")
     replies: list[str] = []
@@ -172,6 +182,16 @@ def _check_final(out: Outcome, exp: dict, replies: list[str], actions: list[dict
             f.append(f"bookings {n} != {exp['bookings']}")
     if "claude_calls_total" in exp and out.claude_calls != exp["claude_calls_total"]:
         f.append(f"claude calls {out.claude_calls} != {exp['claude_calls_total']}")
+    if "booking_statuses" in exp:
+        got: dict[str, int] = {}
+        for r in store.select("bookings", tenant_id=tenant.id):
+            got[r.get("status")] = got.get(r.get("status"), 0) + 1
+        if got != exp["booking_statuses"]:
+            f.append(f"booking statuses {got} != {exp['booking_statuses']}")
+    convo = next((c for c in engine.convos.values() if c.contact == contact), None)
+    for k in exp.get("meta_absent", []):
+        if convo is not None and k in convo.meta:
+            f.append(f"conversation meta has {k!r}")
     kinds = {a.get("kind") or a["type"] for a in actions}
     for k in exp.get("actions", []):
         if k not in kinds:

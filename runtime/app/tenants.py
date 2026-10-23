@@ -106,6 +106,11 @@ class Booking(_Strict):
     days_ahead: int = Field(default=7, ge=1, le=30)
     job_types: list[str] = Field(min_length=1, max_length=30)
     booking_link: str | None = Field(default=None, description="Public self-booking link used in text-back")
+    # Appointment manager (2026-10-23), off until switched on per tenant: callers move or cancel a booking the assistant
+    # made (only bookings made for the caller's own number), and a returning caller is greeted by name.
+    self_service: bool = Field(default=False, description="Callers can move or cancel a booking the assistant made")
+    recognize_callers: bool = Field(default=False, description="Greet a returning caller by name and mention their next "
+                                    "booking (bookings and calls of the last 90 days only)")
 
     @model_validator(mode="after")
     def _windows(self) -> "Booking":
@@ -167,7 +172,8 @@ class Notify(_Strict):
 
 class Zapier(_Strict):
     webhook_url: Annotated[str, Field(pattern=r"^https://")] | None = None
-    events: list[Literal["lead.created", "booking.created", "call.completed"]] = Field(
+    events: list[Literal["lead.created", "booking.created", "call.completed", "booking.rescheduled",
+                         "booking.cancelled"]] = Field(
         default_factory=lambda: ["lead.created", "booking.created"])
 
 

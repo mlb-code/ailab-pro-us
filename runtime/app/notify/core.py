@@ -41,7 +41,7 @@ from .channels import Email, EmailSender, SmsSender
 
 log = logging.getLogger("rt.notify")
 
-LEAD_KINDS = ("lead", "booking", "urgent", "human_needed")
+LEAD_KINDS = ("lead", "booking", "urgent", "human_needed", "booking_change")
 URGENT_ADMIN = ("calendar_reconnect", "admin_budget", "notify_failed")
 
 

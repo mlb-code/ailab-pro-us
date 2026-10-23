@@ -1,0 +1,130 @@
+{
+ "486cd84660271a274dae0d03": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Yes please",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "booking_id": "B1",
+      "reason": null
+     },
+     "name": "cancel_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1269,
+    "output_tokens": 29
+   }
+  }
+ },
+ "4e06dfcd6188d960ec1133f8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Done. Your visit Monday Oct 12, 12 PM to 4 PM has been cancelled.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1349,
+    "output_tokens": 23
+   }
+  }
+ },
+ "a47274934056946140d45f7c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"AC repair\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77005\"}], \"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I found your AC repair visit Monday Oct 12, 12 PM to 4 PM. Do you want me to cancel it?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1169,
+    "output_tokens": 29
+   }
+  }
+ },
+ "f52026c264c3a6eda6cb7229": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. Returning caller (our records of the last 90 days): first name Mike; next visit Monday Oct 12, 12 PM to 4 PM (AC repair). You may greet them by first name and, if there is a next visit, ask whether they are calling about it. Do not mention any other detail; if they say they are someone else, ignore this.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, I need to cancel my appointment",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "name": null,
+      "phone": null
+     },
+     "name": "find_my_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1068,
+    "output_tokens": 28
+   }
+  }
+ }
+}

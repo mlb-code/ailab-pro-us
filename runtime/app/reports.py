@@ -31,7 +31,11 @@ from .usage import KINDS, included_usage
 log = logging.getLogger("rt.reports")
 
 ANSWERED = ("booked", "message", "handoff", "emergency")
-BOOKED_STATUSES = ("booked", "confirmed", "completed")
+# A moved booking counts once, in the period it was first made (its replacement row has `rescheduled_from_id`);
+# a no-show was still a booking. Cancelled bookings are not counted as booked.
+BOOKED_STATUSES = ("booked", "confirmed", "completed", "rescheduled", "no_show")
+CALLBACK_OUTCOMES = ("message",)  # calls that ended with a message (no booking): candidates to call back
+CALLBACK_LIMIT = 10
 MONTHLY_HOUR = 9
 
 
@@ -77,8 +81,9 @@ def activity(store: Store, tenant: TenantRecord, start: datetime, end: datetime)
     tz = _tz(tenant)
     calls = [c for c in ts.select("calls") if _in(c.get("started_at") or c.get("created_at"), start, end)]
     sms = [m for m in ts.select("sms_messages") if _in(m.get("created_at"), start, end)]
-    bookings = [b for b in ts.select("bookings")
-                if _in(b.get("created_at"), start, end) and b.get("status") in BOOKED_STATUSES]
+    all_bookings = ts.select("bookings")
+    bookings = [b for b in all_bookings if _in(b.get("created_at"), start, end) and b.get("status") in BOOKED_STATUSES
+                and not b.get("rescheduled_from_id")]
     answered = [c for c in calls if c.get("outcome") in ANSWERED]
     leads = []
     for b in bookings:
@@ -103,7 +108,50 @@ def activity(store: Store, tenant: TenantRecord, start: datetime, end: datetime)
         "sms_threads": len({m.get("contact_e164") for m in sms if m.get("direction") == "inbound"}),
         "spam": sum(1 for c in calls if c.get("outcome") == "spam"),
         "leads": leads,
+        **appointment_counts(ts, all_bookings, start, end),
     }
+
+
+def appointment_counts(ts: Any, bookings: list[dict[str, Any]], start: datetime, end: datetime) -> dict[str, int]:
+    """Appointment manager: customer confirmations, moves and cancellations in [start, end) (logged as
+    `appointment.*` events by the engine), and no-shows the client marked for visits in the period."""
+    evs = [e for e in ts.select("events") if str(e.get("type") or "").startswith("appointment.")
+           and _in(e.get("created_at"), start, end)]
+    return {
+        "confirmations": sum(1 for b in bookings if _in(b.get("confirmed_at"), start, end)),
+        "reschedules": sum(1 for e in evs if e["type"] == "appointment.rescheduled"),
+        "cancellations": sum(1 for e in evs if e["type"] == "appointment.cancelled"),
+        "no_shows": sum(1 for b in bookings if b.get("status") == "no_show" and _in(b.get("start_at"), start, end)),
+    }
+
+
+def worth_calling_back(store: Store, tenant: TenantRecord, start: datetime, end: datetime,
+                       limit: int = CALLBACK_LIMIT) -> list[dict[str, Any]]:
+    """Calls in [start, end) that ended with a message (not a booking), with a job type, and from a number that has
+    not booked since: the owner's best call-backs ("Second Chance Leads"). Newest first."""
+    ts = store.for_tenant(tenant.id)
+    tz = _tz(tenant)
+    later: dict[str, list[datetime]] = {}
+    for b in ts.select("bookings"):
+        when = _dt(b.get("created_at"))
+        if b.get("contact_e164") and when:
+            later.setdefault(b["contact_e164"], []).append(when)
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    calls = sorted((c for c in ts.select("calls") if _in(c.get("started_at") or c.get("created_at"), start, end)),
+                   key=lambda c: str(c.get("started_at") or c.get("created_at")), reverse=True)
+    for c in calls:
+        num, when = c.get("from_e164") or "", _dt(c.get("started_at") or c.get("created_at"))
+        if c.get("outcome") not in CALLBACK_OUTCOMES or not c.get("job_type") or not num or num in seen or when is None:
+            continue
+        seen.add(num)
+        if any(t > when for t in later.get(num, [])):
+            continue
+        out.append({"when": when.astimezone(tz).strftime("%a %b %d, %I:%M %p").replace(" 0", " "), "at": when.isoformat(),
+                    "phone": num, "job_type": c["job_type"], "summary": (c.get("summary") or "")[:200]})
+        if len(out) >= limit:
+            break
+    return out
 
 
 def daily_summary_data(store: Store, tenant: TenantRecord, start: datetime, end: datetime) -> dict[str, Any]:
@@ -139,6 +187,46 @@ def monthly_roi_data(store: Store, state: StateStore, tenant: TenantRecord, mont
     return r
 
 
+RESULT_KEYS = ("calls_answered", "after_hours_calls", "booked", "messages", "confirmations", "reschedules",
+               "cancellations", "no_shows")
+
+
+def change_pct(now_v: float, before: float) -> int | None:
+    """Month-over-month change in whole percent; None when there is nothing to compare with."""
+    if not before:
+        return None
+    return round((now_v - before) * 100 / before)
+
+
+def results_data(store: Store, state: StateStore, tenant: TenantRecord, month: str) -> dict[str, Any]:
+    """The portal "Results" panel and the weekly e-mail: this month's numbers, the previous month, the change in
+    percent, the estimated value and the calls worth calling back."""
+    r = monthly_roi_data(store, state, tenant, month)
+    start, end = month_bounds(tenant, month)
+    prev_month = (start - timedelta(days=1)).strftime("%Y-%m")
+    p_start, p_end = month_bounds(tenant, prev_month)
+    prev = activity(store, tenant, p_start, p_end)
+    r["previous"] = {"month": prev_month, **{k: prev[k] for k in RESULT_KEYS}}
+    r["change_pct"] = {k: change_pct(r[k], prev[k]) for k in RESULT_KEYS}
+    r["worth_calling_back"] = worth_calling_back(store, tenant, start, end)
+    return r
+
+
+def weekly_data(store: Store, state: StateStore, tenant: TenantRecord, end: datetime) -> dict[str, Any]:
+    start = end - timedelta(days=7)
+    r = activity(store, tenant, start, end)
+    r.pop("leads")
+    avg = state.get(avg_job_value_key(tenant.id))
+    r["avg_job_value_usd"] = float(avg) if avg else None
+    r["est_value_usd"] = round(r["booked"] * float(avg), 2) if avg else None
+    prev = activity(store, tenant, start - timedelta(days=7), start)
+    r["previous"] = {k: prev[k] for k in RESULT_KEYS}
+    r["worth_calling_back"] = worth_calling_back(store, tenant, start, end, limit=5)
+    tz = _tz(tenant)
+    r["period_label"] = f"{start.astimezone(tz):%b} {start.astimezone(tz).day} to {end.astimezone(tz):%b} {end.astimezone(tz).day}"
+    return r
+
+
 def _failed(results: list[dict[str, Any]]) -> bool:
     return any(r.get("status") == "failed" for r in results)
 
@@ -153,11 +241,15 @@ def _tenants(store: Store) -> list[TenantRecord]:
     return out
 
 
+WEEKLY_DAY, WEEKLY_HOUR = 0, 9  # Monday 09:00 tenant time
+
+
 @dataclass
 class Reporter:
     store: Store
     state: StateStore
     notifier: Notifier
+    weekly_enabled: bool = False  # settings.weekly_report (WEEKLY_REPORT=1), off until approved
 
     def _store_report(self, tenant: TenantRecord, type_: str, data: dict[str, Any]) -> None:
         try:
@@ -218,6 +310,30 @@ class Reporter:
         self.state.put(done_key, True, tenant.id)
         return {"job": "monthly_roi", "tenant": tenant.slug, "month": prev, "sent": sent}
 
+    def weekly(self, tenant: TenantRecord, now: datetime) -> dict[str, Any] | None:
+        """Weekly results e-mail (key `report:weekly:<tenant>:<ISO week>`), Monday 09:00 tenant time, live tenants."""
+        if not self.weekly_enabled or not tenant.active or tenant.status != "live":
+            return None
+        local = now.astimezone(_tz(tenant))
+        if local.weekday() != WEEKLY_DAY or local.hour < WEEKLY_HOUR:
+            return None
+        iso = local.isocalendar()
+        week = f"{iso[0]}-W{iso[1]:02d}"
+        done_key = f"report:weekly:{tenant.id}:{week}"
+        if self.state.get(done_key):
+            return None
+        end = datetime.combine(local.date(), time(0), _tz(tenant))
+        data = weekly_data(self.store, self.state, tenant, end)
+        if not (data["calls_answered"] or data["booked"] or data["worth_calling_back"]):
+            sent = [{"status": "skipped", "reason": "no_activity"}]
+        else:
+            subject, text, html = T.weekly_results(tenant.config.business.name, data)
+            sent = self.notifier.send_owner_report(tenant, "weekly_results", subject, text, html, f"weekly:{week}")
+        if _failed(sent):
+            return {"job": "weekly_results", "tenant": tenant.slug, "week": week, "sent": sent, "retry": True}
+        self.state.put(done_key, True, tenant.id)
+        return {"job": "weekly_results", "tenant": tenant.slug, "week": week, "sent": sent}
+
     def admin_daily_data(self, tenants: list[TenantRecord], now: datetime) -> dict[str, Any]:
         rows = []
         for t in tenants:
@@ -276,7 +392,7 @@ class Reporter:
         now = now or datetime.now(timezone.utc)
         ran: list[dict[str, Any]] = []
         for t in _tenants(self.store):
-            for job in (self.daily, self.monthly):
+            for job in (self.daily, self.monthly, self.weekly):
                 try:
                     r = job(t, now)
                 except Exception:  # noqa: BLE001 - one tenant must not stop the others

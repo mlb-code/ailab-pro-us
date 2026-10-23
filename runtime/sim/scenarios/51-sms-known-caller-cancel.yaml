@@ -1,0 +1,10 @@
+description: Appointment manager by text. The caller asks to cancel; the assistant names the visit and asks once; on yes it cancels it on the calendar and tells the owner. CANCEL inside a sentence is not an opt-out.
+channel: sms
+patch: {config: {booking: {self_service: true, recognize_callers: true}}}
+setup: {existing_booking: {name: "Mike Smith", job_type: "AC repair", address: "12 Oak Ave Houston 77005"}}
+turns:
+  - say: "Hi, I need to cancel my appointment"
+    expect: {tools: [find_my_booking], reply_matches: ["cancel it\\?"]}
+  - say: "Yes please"
+    expect: {tools: [cancel_booking], reply_matches: ["has been cancelled"], reply_not_matches: ["can't make that change"]}
+expect: {outcome: message, booking_statuses: {cancelled: 1}, actions: [booking_change], opted_out: false}

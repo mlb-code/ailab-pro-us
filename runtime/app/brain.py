@@ -55,6 +55,19 @@ def _hours_compact(cfg: TenantConfig) -> str:
     return "; ".join(f"{a.capitalize()}{'' if a == z else '-' + z.capitalize()} {label}" for a, z, label in groups)
 
 
+def _manage_text(cfg: TenantConfig) -> str:
+    """Appointment-manager instructions (2026-10-23), only for tenants with `booking.self_service`; "" otherwise,
+    so every other tenant's prompt stays byte-identical (prompt cache, recorded replays)."""
+    if not cfg.booking.self_service:
+        return ""
+    return ("\nExisting bookings: if the customer wants to check, move or cancel a visit, call find_my_booking (it uses "
+            "the number they contact us from; only if they say the booking is under another number, pass that number and "
+            "the name on the booking). To move it: get_availability with the booking's job type and ZIP, offer at most two "
+            "returned slots, then reschedule_booking with the booking_id and the chosen slot_id. To cancel: ask once to be "
+            "sure, then cancel_booking. Never say a visit was moved or cancelled unless the tool succeeded. If nothing is "
+            "found, say so and offer take_message.")
+
+
 def _voice_prompt(cfg: TenantConfig) -> str:
     """Short prompt for the phone (latency): same facts and every hard rule, fewer words."""
     b = cfg.business
@@ -72,7 +85,7 @@ FAQ (answer only from these; otherwise offer to take a message):
 
 Flow: ask what is wrong, then the ZIP, one question at a time. get_availability, offer at most two returned slots by label. Once one is picked, get name and service address, then book_slot with that slot_id (phone is known; another number only if offered). Confirm in one sentence, then end_conversation. Say goodbye once, in the same reply as end_conversation; after it returns, write nothing.
 A ZIP not in the service area list means you cannot book: call take_message in that same reply, without asking first.
-Cannot book (out of area, no slots, after-hours message mode, or caller prefers): take_message right away with a short summary plus any name, address and job type the caller already gave (don't ask permission or wait), then say the team has the message. Wants a person, upset, or outside these facts: handoff.
+Cannot book (out of area, no slots, after-hours message mode, or caller prefers): take_message right away with a short summary plus any name, address and job type the caller already gave (don't ask permission or wait), then say the team has the message. Wants a person, upset, or outside these facts: handoff.{_manage_text(cfg)}
 
 Hard rules:
 - You are a virtual assistant; never say or imply you are human. If asked, say you are the virtual assistant for {b.name}.
@@ -122,7 +135,7 @@ FAQ (answer only from these; if the answer is not here, offer to take a message)
 3. When the customer picks one, get their name and the service address, then call book_slot with that slot_id. The caller's phone number is already known; only ask for another number if they offer one.
 4. Confirm the booking in one sentence. Then call end_conversation. Say goodbye once, in the same reply as end_conversation; after it returns, write nothing.
 A ZIP code that is not in the service area list means you cannot book: call take_message in that same reply, without asking first (example: ZIP 90210 is not listed -> take_message, then say the team will follow up).
-If you cannot book (outside the service area, no slots, after-hours message mode, or the customer prefers it), call take_message right away with a short summary plus any name, address and job type the customer already gave (do not ask permission or wait for more details first), then tell the customer you passed their message to the team. If the customer asks for a person, is upset, or asks something outside the facts above, call handoff.
+If you cannot book (outside the service area, no slots, after-hours message mode, or the customer prefers it), call take_message right away with a short summary plus any name, address and job type the customer already gave (do not ask permission or wait for more details first), then tell the customer you passed their message to the team. If the customer asks for a person, is upset, or asks something outside the facts above, call handoff.{_manage_text(cfg)}
 
 ## Hard rules
 - You are a virtual assistant. Never say or imply you are human. If asked, say you are the virtual assistant for {b.name}.
@@ -149,6 +162,9 @@ _VOICE_TOOL_TEXT = {  # voice: shorter tool descriptions (same names and schemas
     "take_message": "Message for the team when not booking.",
     "handoff": "Hand the caller to a person.",
     "end_conversation": "End after the need is handled.",
+    "find_my_booking": "The caller's own upcoming bookings.",
+    "reschedule_booking": "Move a found booking to a slot from get_availability.",
+    "cancel_booking": "Cancel a found booking.",
 }
 
 
@@ -187,6 +203,23 @@ def tools(cfg: TenantConfig, channel: str = "sms") -> list[dict[str, Any]]:
         tool("handoff", "Hand the customer to a person on the team.", {"reason": {"type": "string"}}),
         tool("end_conversation", "End the conversation after the customer's need is handled.", {
             "outcome": {"type": "string", "enum": ["booked", "message", "handoff", "no_action"]}}),
+        *(_manage_tools(tool, nullable) if cfg.booking.self_service else []),
+    ]
+
+
+def _manage_tools(tool: Callable[..., dict[str, Any]], nullable: dict[str, Any]) -> list[dict[str, Any]]:
+    """Appointment manager tools (only for `booking.self_service` tenants; checked again by the tool executor)."""
+    return [
+        tool("find_my_booking", "Find the customer's own upcoming bookings (made by us for the number they contact us "
+             "from). Returns booking_id, label, job type and ZIP for each.", {
+                 "phone": {**nullable, "description": "Only if the customer says the booking is under another number"},
+                 "name": {**nullable, "description": "Name on the booking (required together with another number)"}}),
+        tool("reschedule_booking", "Move a booking from find_my_booking to a slot returned by get_availability.", {
+            "booking_id": {"type": "string"},
+            "slot_id": {"type": "string"}}),
+        tool("cancel_booking", "Cancel a booking from find_my_booking, after the customer confirmed they want that.", {
+            "booking_id": {"type": "string"},
+            "reason": nullable}),
     ]
 
 

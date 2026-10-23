@@ -1,7 +1,8 @@
 # Zapier webhook payloads (runtime, task B6)
 
 One outgoing webhook per tenant (`config.zapier.webhook_url`, https only, no private/loopback IPs).
-The tenant picks events in `config.zapier.events`: `lead.created`, `booking.created`, `call.completed`.
+The tenant picks events in `config.zapier.events`: `lead.created`, `booking.created`, `call.completed`,
+`booking.rescheduled`, `booking.cancelled` (the last two only happen with `booking.self_service` on).
 The admin "send test" button sends `test.ping`.
 
 ## Delivery
@@ -32,6 +33,19 @@ The admin "send test" button sends `test.ping`.
          "event_id": "https://api.calendly.com/scheduled_events/ABC123"}
 ```
 `start`/`end` = the arrival window the customer was told.
+
+## `booking.rescheduled` / `booking.cancelled` (once per change; appointment manager, 2026-10-23)
+The customer moved or cancelled a visit we booked (by phone or text). Key: `<bookings row id>:<kind>`.
+```json
+"data": {"channel": "voice", "convo_id": "CA91d...", "contact": "+17135550123", "name": "Tess Brown",
+         "job_type": "Maintenance",
+         "previous": {"start": "2026-10-13T08:00:00-05:00", "end": "2026-10-13T12:00:00-05:00",
+                      "label": "Tuesday Oct 13, 8 AM to 12 PM"},
+         "new": {"start": "2026-10-16T12:00:00-05:00", "end": "2026-10-16T16:00:00-05:00",
+                 "label": "Friday Oct 16, 12 PM to 4 PM", "event_id": "https://api.calendly.com/scheduled_events/DEF456"}}
+```
+`new` is `null` for `booking.cancelled`. Calendly: a move is a new invitee + cancellation of the old event, so
+`event_id` changes and Calendly sends its own notices to the invitee e-mail (the owner's).
 
 ## `call.completed` (once per call SID)
 ```json

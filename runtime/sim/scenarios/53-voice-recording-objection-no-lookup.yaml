@@ -1,0 +1,8 @@
+description: Appointment manager. A returning caller who objects to recording gets the fixed reply and a call-back; no Claude call and no returning-caller lookup at all.
+channel: voice
+patch: {config: {booking: {self_service: true, recognize_callers: true}}}
+setup: {existing_booking: {name: "Tess Brown", job_type: "Maintenance", address: "500 Elm St Houston 77019"}}
+turns:
+  - say: "Please don't record this call"
+    expect: {guard: [recording_objection], claude_calls: 0, end: true}
+expect: {outcome: message, meta_absent: [known_caller], booking_statuses: {confirmed: 1}}

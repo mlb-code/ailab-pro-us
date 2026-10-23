@@ -49,14 +49,28 @@ def textback_text(tenant: TenantRecord) -> str:
             "Reply STOP to opt out.")
 
 
-def confirmation_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
+# Appointment manager (SMS_BOOKING_REPLIES=1 and booking.self_service): one-letter replies, still 1 segment with a 44-char
+# SMS name and the longest slot label. CANCEL is a carrier opt-out word, so cancelling is X.
+REPLY_LINE = "Reply C=confirm, R=change, X=cancel, STOP=opt out."
+
+
+def confirmation_text(tenant: TenantRecord, booking: dict[str, Any], replies: bool = False) -> str:
+    if replies:
+        return f"{sms_business_name(tenant)}: you're booked for {booking.get('label') or booking.get('start')}. {REPLY_LINE}"
     return (f"{sms_business_name(tenant)}: you're booked for {booking.get('label') or booking.get('start')}. "
             "Reply here if you need anything. Reply STOP to opt out.")
 
 
-def reminder_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
+def reminder_text(tenant: TenantRecord, booking: dict[str, Any], replies: bool = False) -> str:
+    if replies:
+        return f"{sms_business_name(tenant)}: reminder of your visit {booking.get('label') or booking.get('start')}. {REPLY_LINE}"
     return (f"{sms_business_name(tenant)}: reminder of your visit {booking.get('label') or booking.get('start')}. "
             "Reply here to change it. Reply STOP to opt out.")  # short: 1 segment with a 44-char SMS name
+
+
+def booking_replies(settings: Any, tenant: TenantRecord) -> bool:
+    """Two-way booking texts: global switch (off until 10DLC) AND the tenant's appointment manager."""
+    return bool(getattr(settings, "sms_booking_replies", False)) and tenant.config.booking.self_service
 
 
 WINDOW_OF = {"textback": "textback", "confirmation": "scheduled", "reminder": "scheduled"}
@@ -183,7 +197,23 @@ class Outbound:
         """Booking confirmation after a call: sent right away, at any hour. It is the direct response to the yes the
         caller has just given on the call (SA §8 item 5), so the 09:00-20:00 window does not apply to it; opt-out,
         blocklist and the landline check still do (`send`). Only the 24-hour reminder is bound by the window."""
-        return self.send(tenant, contact, confirmation_text(tenant, booking), "confirmation", now, direct_reply=True)
+        replies = booking_replies(self.settings, tenant)
+        res = self.send(tenant, contact, confirmation_text(tenant, booking, replies), "confirmation", now, direct_reply=True)
+        if replies and res.get("sent"):
+            self._open_reply_thread(tenant, contact, booking, confirmation_text(tenant, booking, replies), now)
+        return res
+
+    def _open_reply_thread(self, tenant: TenantRecord, contact: str, booking: dict[str, Any], body: str,
+                           now: datetime) -> None:
+        """The text asked for C/R/X: remember in its SMS thread which booking a reply is about."""
+        rows = self.store.for_tenant(tenant.id).select("bookings", provider_event_id=booking.get("event_id")) \
+            if booking.get("event_id") else []
+        if not rows:
+            return
+        tid = thread_id(self.state, tenant, contact, now)
+        c = self.rt.engine.note_outbound(tenant, "sms", contact, tid, body)
+        c.meta["booking_prompt"] = {"booking_id": rows[-1]["id"], "at": now.isoformat()}
+        self.rt.engine.save_convo(c)
 
     def enqueue_reminder(self, tenant: TenantRecord, contact: str, booking: dict[str, Any], now: datetime) -> dict[str, Any]:
         start = datetime.fromisoformat(booking["start"])
@@ -265,8 +295,11 @@ class Outbound:
         # confirmation / reminder: only if the booking still stands
         b = job["booking"]
         live = [r for r in ts.select("bookings", provider_event_id=b.get("event_id")) if r.get("status") == "confirmed"]
-        text = confirmation_text(tenant, b) if job["kind"] == "confirmation" else reminder_text(tenant, b)
+        replies = booking_replies(self.settings, tenant)
+        text = confirmation_text(tenant, b, replies) if job["kind"] == "confirmation" else reminder_text(tenant, b, replies)
         res = self.send(tenant, contact, text, job["kind"], now) if live else {"sent": False, "reason": "booking_gone"}
+        if replies and res.get("sent"):
+            self._open_reply_thread(tenant, contact, b, text, now)
         ts.log_event(f"sms.{job['kind']}", {k: v for k, v in res.items() if k != "sid"})
         return res
 
@@ -296,5 +329,45 @@ def after_turn(rt, tenant: TenantRecord, c, now: datetime) -> None:
         changed = True
         rt.emit(tenant, "lead.created", {"channel": c.channel, "convo_id": c.convo_id, "contact": c.contact,
                                          "outcome": c.outcome, "urgency": c.urgency}, c.convo_id)
+    changed = _appointment_followups(rt, tenant, c, now) or changed
     if changed:
         rt.engine.save_convo(c)
+
+
+def _has_text_consent(ts, c, contact: str) -> bool:
+    if contact == c.contact and c.meta.get("sms_consent") in ("yes", "no"):
+        return c.meta["sms_consent"] == "yes"
+    rows = sorted(ts.consent(contact, "booking_texts"), key=lambda r: str(r.get("created_at") or ""))
+    return bool(rows) and rows[-1].get("decision") == "yes"
+
+
+def _appointment_followups(rt, tenant: TenantRecord, c, now: datetime) -> bool:
+    """Appointment manager: Zapier `booking.rescheduled` / `booking.cancelled` once per change; a moved booking gets a
+    new confirmation (voice) + reminder only with SMS_BOOKING_REPLIES and the customer's texting yes on record; the
+    call row keeps the job type (for "worth calling back") and whether the caller was known."""
+    changed = False
+    ts = rt.store.for_tenant(tenant.id)
+    for ev in c.meta.get("appt_events") or []:
+        if ev.get("emitted"):
+            continue
+        ev["emitted"] = changed = True
+        rt.emit(tenant, f"booking.{ev['kind']}", {"channel": c.channel, "convo_id": c.convo_id, "contact": ev["contact"],
+                                                  "name": ev.get("name"), "job_type": ev.get("job_type"),
+                                                  "previous": ev.get("old"), "new": ev.get("new")}, ev["key"])
+        new = ev.get("new")
+        if ev["kind"] == "rescheduled" and new and booking_replies(rt.settings, tenant) \
+                and _has_text_consent(ts, c, ev["contact"]):
+            if c.channel == "voice":
+                rt.outbound.confirm_booking(tenant, ev["contact"], new, now, c.convo_id)
+            rt.outbound.enqueue_reminder(tenant, ev["contact"], new, now)
+    row_id = c.meta.get("call_row_id")
+    job = (c.message or {}).get("job_type") or (c.booking or {}).get("job_type") or (c.collected or {}).get("job_type")
+    if c.channel == "voice" and row_id and job and c.meta.get("call_job_type") != job \
+            and not c.meta.get("transcript_withheld"):
+        c.meta["call_job_type"] = job
+        changed = True
+        try:
+            ts.update("calls", row_id, {"job_type": str(job)[:200]})
+        except Exception:  # noqa: BLE001 - reporting detail; never break a call (column added by the 2026-10-23 migration)
+            log.warning("could not store the call's job type")
+    return changed

@@ -76,6 +76,33 @@ class FakeCalendar:
             self._db.commit()
             return {"ok": True, "event_id": event_id, "start": slot["start"], "end": slot["end"], "label": slot["label"]}
 
+    def cancel(self, tenant_id: str, cfg: TenantConfig, event_id: str, reason: str = "", now: datetime | None = None) -> dict:
+        with self._lock:
+            n = self._db.execute("delete from events where tenant_id=? and id=?", (tenant_id, event_id)).rowcount
+            self._db.commit()
+        return {"ok": True} if n else {"ok": False, "reason": "not_found"}
+
+    def reschedule(self, tenant_id: str, cfg: TenantConfig, now: datetime, event_id: str, slot_id: str,
+                   details: dict) -> dict:
+        """Same contract as `app.calendar.base.CalendarProvider.reschedule`: book the new slot, then drop the old one."""
+        with self._lock:
+            old = self._db.execute("select slot_id, phone, local_day from events where tenant_id=? and id=?",
+                                   (tenant_id, event_id)).fetchone()
+        if not old:
+            return {"ok": False, "reason": "not_found"}
+        if old[0] == slot_id:
+            return {"ok": False, "reason": "same_slot"}
+        with self._lock:  # the old visit must not trip the one-per-day guard: park it while booking
+            self._db.execute("update events set local_day='moving' where id=?", (event_id,))
+        res = self.book(tenant_id, cfg, now, slot_id, details)
+        with self._lock:
+            if res.get("ok"):
+                self._db.execute("delete from events where id=?", (event_id,))
+            else:
+                self._db.execute("update events set local_day=? where id=?", (old[2], event_id))
+            self._db.commit()
+        return res
+
     def events(self, tenant_id: str) -> list[dict]:
         rows = self._db.execute("select id, slot_id, start_at, end_at, phone, details from events where tenant_id=? "
                                 "order by start_at", (tenant_id,)).fetchall()

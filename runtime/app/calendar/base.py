@@ -6,6 +6,7 @@ conversation engine already uses:
     availability(tenant_id, cfg, now, date_from=None, limit=6) -> [slot]
     book(tenant_id, cfg, now, slot_id, details)               -> {"ok", "event_id", "start", "end", "label"} | {"ok": False, "reason"}
     cancel(tenant_id, cfg, event_id, reason="")               -> {"ok": True} | {"ok": False, "reason"}
+    reschedule(tenant_id, cfg, now, event_id, slot_id, details) -> like book (new event), old event removed
 
 The booking rules live here, once, so every provider enforces them the same way:
 - slots are the tenant's arrival windows (`booking.windows`) on open days, in the tenant's
@@ -14,7 +15,7 @@ The booking rules live here, once, so every provider enforces them the same way:
   an owner event that covers the whole window blocks it;
 - a booking must use a slot that availability returns *right now* (re-checked under a lock);
 - one booking per phone number per local day (duplicate guard);
-- only events we created can be cancelled (the AI never deletes the owner's events).
+- only events we created can be cancelled or moved (the AI never deletes or moves the owner's events).
 
 Our bookings are kept in a small per-tenant ledger in `runtime_state` (phone numbers hashed),
 so the rules hold across restarts and do not depend on who writes the `bookings` row.
@@ -227,32 +228,79 @@ class CalendarProvider(ABC):
     def book(self, tenant_id: str, cfg: TenantConfig, now: datetime, slot_id: str,
              details: dict[str, Any]) -> dict[str, Any]:
         with self._lock(tenant_id):
-            found, problem = self._slots(tenant_id, cfg, now, None, 500)
-            if problem:
-                return {"ok": False, "reason": "calendar_unavailable"}
-            slot = {s["slot_id"]: s for s in found}.get(slot_id)
-            if not slot:
-                return {"ok": False, "reason": "slot_unavailable"}
-            phone = str(details.get("phone") or "")
+            return self._book_locked(tenant_id, cfg, now, slot_id, details)
+
+    def _book_locked(self, tenant_id: str, cfg: TenantConfig, now: datetime, slot_id: str,
+                     details: dict[str, Any], replaces: str | None = None) -> dict[str, Any]:
+        """`replaces`: the event a reschedule moves away from (not counted by the one-per-day duplicate guard)."""
+        found, problem = self._slots(tenant_id, cfg, now, None, 500)
+        if problem:
+            return {"ok": False, "reason": "calendar_unavailable"}
+        slot = {s["slot_id"]: s for s in found}.get(slot_id)
+        if not slot:
+            return {"ok": False, "reason": "slot_unavailable"}
+        phone = str(details.get("phone") or "")
+        rows = self.ledger(tenant_id)
+        who = phone_hash(phone)
+        if phone and any(r["phone"] == who and r["local_day"] == slot_id[:10] and r.get("status") == "booked"
+                         and r["event_id"] != replaces for r in rows):
+            return {"ok": False, "reason": "duplicate"}
+        try:
+            event_id = self._create_event(tenant_id, cfg, slot, dict(details, booked_by=BOOKED_BY))
+        except CalendarAuthError as exc:
+            self.flag_reconnect(tenant_id, str(exc))
+            return {"ok": False, "reason": "calendar_unavailable"}
+        except CalendarError as exc:
+            log.warning("calendar %s booking failed: %s", self.name, str(exc)[:120])
+            return {"ok": False, "reason": "calendar_unavailable"}
+        rows.append({"event_id": event_id, "slot_id": slot_id, "local_day": slot_id[:10], "phone": who,
+                     "start": slot["start"], "end": slot["end"], "status": "booked"})
+        self._save_ledger(tenant_id, rows, now)
+        log.info("calendar %s booked slot %s (tenant %s)", self.name, slot_id, tenant_id[:8])
+        return {"ok": True, "event_id": event_id, "start": slot["start"], "end": slot["end"],
+                "label": slot["label"]}
+
+    def reschedule(self, tenant_id: str, cfg: TenantConfig, now: datetime, event_id: str, slot_id: str,
+                   details: dict[str, Any]) -> dict[str, Any]:
+        """Move one of OUR bookings to `slot_id` (a slot availability returns now) in one locked operation.
+
+        Book first, then remove the old event, so the customer never ends up with no visit: if the new slot fails,
+        nothing changed; if removing the old event fails, the new event is removed again (rollback) and the old one
+        stands. Every provider gets it from the same two hooks (Google: new event + delete; Calendly: new invitee +
+        cancellation of the old scheduled event, so the event link changes and Calendly sends its own notices).
+        Only events in our ledger can be moved; the owner's own events never."""
+        with self._lock(tenant_id):
             rows = self.ledger(tenant_id)
-            who = phone_hash(phone)
-            if phone and any(r["phone"] == who and r["local_day"] == slot_id[:10] and r.get("status") == "booked"
-                             for r in rows):
-                return {"ok": False, "reason": "duplicate"}
+            old = next((r for r in rows if r["event_id"] == event_id and r.get("status") == "booked"), None)
+            if not old:
+                return {"ok": False, "reason": "not_found"}
+            if old["slot_id"] == slot_id:
+                return {"ok": False, "reason": "same_slot"}
+            res = self._book_locked(tenant_id, cfg, now, slot_id, details, replaces=event_id)
+            if not res.get("ok"):
+                return res
             try:
-                event_id = self._create_event(tenant_id, cfg, slot, dict(details, booked_by=BOOKED_BY))
-            except CalendarAuthError as exc:
-                self.flag_reconnect(tenant_id, str(exc))
+                self._delete_event(tenant_id, cfg, event_id, "Moved to another time by the customer")
+            except CalendarError as exc:  # includes auth errors: undo the new booking, keep the old one
+                log.warning("calendar %s reschedule rollback: %s", self.name, str(exc)[:120])
+                try:
+                    self._delete_event(tenant_id, cfg, res["event_id"], "Reschedule rolled back")
+                except CalendarError:
+                    log.exception("calendar %s rollback could not remove the new event", self.name)
+                rows = self.ledger(tenant_id)
+                rows = [r for r in rows if r["event_id"] != res["event_id"]]
+                self._save_ledger(tenant_id, rows, now)
+                if isinstance(exc, CalendarAuthError):
+                    self.flag_reconnect(tenant_id, str(exc))
                 return {"ok": False, "reason": "calendar_unavailable"}
-            except CalendarError as exc:
-                log.warning("calendar %s booking failed: %s", self.name, str(exc)[:120])
-                return {"ok": False, "reason": "calendar_unavailable"}
-            rows.append({"event_id": event_id, "slot_id": slot_id, "local_day": slot_id[:10], "phone": who,
-                         "start": slot["start"], "end": slot["end"], "status": "booked"})
+            rows = self.ledger(tenant_id)
+            for r in rows:
+                if r["event_id"] == event_id:
+                    r["status"] = "rescheduled"
             self._save_ledger(tenant_id, rows, now)
-            log.info("calendar %s booked slot %s (tenant %s)", self.name, slot_id, tenant_id[:8])
-            return {"ok": True, "event_id": event_id, "start": slot["start"], "end": slot["end"],
-                    "label": slot["label"]}
+        self.store.for_tenant(tenant_id).log_event("booking.rescheduled", {"provider": self.name, "from": old["slot_id"],
+                                                                         "to": slot_id})
+        return res
 
     def cancel(self, tenant_id: str, cfg: TenantConfig, event_id: str, reason: str = "",
                now: datetime | None = None) -> dict[str, Any]:

@@ -95,7 +95,7 @@ def get_provider(tenant_id: str, cfg: Any, settings: Any) -> Any:
 
 
 class TenantCalendars:
-    """Engine-facing dispatcher (same surface as the stub, plus cancel)."""
+    """Engine-facing dispatcher (same surface as the stub, plus cancel and reschedule)."""
 
     def __init__(self, settings: Any, resolve=None):
         self.settings = settings
@@ -112,6 +112,12 @@ class TenantCalendars:
         if not hasattr(p, "cancel"):
             return {"ok": False, "reason": "not_supported"}
         return p.cancel(tenant_id, cfg, event_id, reason, now)
+
+    def reschedule(self, tenant_id, cfg, now, event_id, slot_id, details):
+        p = self.resolve(tenant_id, cfg)
+        if not hasattr(p, "reschedule"):
+            return {"ok": False, "reason": "not_supported"}
+        return p.reschedule(tenant_id, cfg, now, event_id, slot_id, details)
 
 
 def _convo_from_store(store: Store, tenant: Any, alert: dict[str, Any]) -> Any:

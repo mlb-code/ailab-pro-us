@@ -1,0 +1,10 @@
+description: Appointment manager. A caller with no booking under their number asks to move "my appointment" -> asked for the booking's number and name; another number with no matching booking -> nothing is changed, a message goes to the team.
+channel: voice
+patch: {config: {booking: {self_service: true, recognize_callers: true}}}
+setup: {existing_booking: {name: "Dana Miller", job_type: "AC repair", address: "2100 Rice Blvd Houston 77005", phone: "+17135550177"}}
+turns:
+  - say: "I need to move my appointment"
+    expect: {tools: [find_my_booking], reply_matches: ["phone number is the booking under"]}
+  - say: "It's under 713-555-0177, the name is Paul Jones"
+    expect: {tools: [find_my_booking, take_message], reply_not_matches: ["moved|rescheduled"]}
+expect: {outcome: message, booking_statuses: {confirmed: 1}, actions: [lead], no_actions: [booking_change], reply_never_matches: ["Dana", "Rice Blvd"]}

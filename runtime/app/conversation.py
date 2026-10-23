@@ -22,12 +22,13 @@ from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from . import appointments as appt
 from . import guard
 from .brain import run_turn
 from .llm import LLMClient
 from .settings import Settings
 from .speech import TOOL_FILLERS, Speaker
-from .store import StateStore, Store, TenantStore
+from .store import StateStore, Store, StoreError, TenantStore
 from .tenants import TenantRecord, sms_business_name
 from .usage import UsageMeter
 
@@ -103,6 +104,15 @@ class Convo:
         c = cls(**{k: v for k, v in d.items() if k in names})
         c.alerted = set(c.alerted or ())
         return c
+
+
+def _backing(c: "Convo") -> dict[str, bool]:
+    """What the reply check may let through: a booking made or moved here, a move/cancel a tool really did."""
+    change = (c.meta or {}).get("appt") or {}
+    out = {"booked": c.booking is not None or change.get("kind") == "rescheduled"}
+    if change:  # passed only when true: callers of check_reply that predate it keep working
+        out["changed"] = True
+    return out
 
 
 @dataclass
@@ -336,6 +346,12 @@ class Engine:
             if fixed:
                 notes.append(reason)
                 return done(fixed)
+            if c.meta.get("booking_prompt") and self.settings.sms_booking_replies and cfg.booking.self_service:
+                fixed = self._booking_text_reply(tenant, ts, c, text, now, actions, notes)
+                if fixed:
+                    c.ever_spoke = True
+                    c.transcript.append({"who": "customer", "text": text})
+                    return done(fixed)
         elif not text.strip():
             c.silent_in_a_row += 1
             policy = guard.silence_policy(c.silent_in_a_row, c.ever_spoke)
@@ -411,10 +427,11 @@ class Engine:
 
         # Claude
         policy = guard.after_hours_policy(cfg, now)
+        caller_ctx = self._caller_context(tenant, ts, c, now)
         if not sms:
             return self._voice_claude(tenant, ts, c, channel, now, policy, actions, notes, text, day, done,
-                                      on_sentence, t_start)
-        result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c),
+                                      on_sentence, t_start, caller_ctx)
+        result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c, caller_ctx),
                           lambda name, args: self._execute(tenant, ts, c, channel, now, policy, actions, name, args))
         c.claude_calls += result.claude_calls
         c.cost_usd += result.cost_usd
@@ -431,7 +448,7 @@ class Engine:
 
         c.messages = result.messages
         self._out_of_area_lead(c, actions, notes, text, cfg)
-        checked = guard.check_reply(result.text, cfg, channel, booked=c.booking is not None)
+        checked = guard.check_reply(result.text, cfg, channel, **_backing(c))
         notes.extend(f"reply:{v}" for v in checked.violations)
         if "unbacked_action" in checked.violations:
             self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
@@ -500,12 +517,12 @@ class Engine:
 
     def _voice_claude(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
                       actions: list, notes: list[str], text: str, day: str, done: Any, on_sentence: Any,
-                      t_start: float) -> TurnResult:
+                      t_start: float, caller_ctx: str = "") -> TurnResult:
         """Voice: stream Claude's text, guard and speak it sentence by sentence (see app.speech)."""
         cfg = tenant.config
         llm_done = [0.0]   # Claude seconds of finished calls (for the server share of time-to-first-sentence)
         call_start = [0.0]
-        speaker = Speaker(lambda s: guard.check_reply(s, cfg, channel, booked=c.booking is not None), on_sentence,
+        speaker = Speaker(lambda s: guard.check_reply(s, cfg, channel, **_backing(c)), on_sentence,
                           fillers=TOOL_FILLERS if self.settings.voice_fillers else None)
         first_llm: list[float] = []
 
@@ -532,7 +549,7 @@ class Engine:
         def execute(name: str, args: dict[str, Any]) -> dict[str, Any]:
             return self._execute(tenant, ts, c, channel, now, policy, actions, name, args)
 
-        result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c),
+        result = run_turn(self.llm, cfg, channel, c.messages, self._user_content(tenant, channel, text, now, policy, c, caller_ctx),
                           execute, on_text=on_text, on_response=on_response, on_call=on_call,
                           on_tool=on_tool)
         c.claude_calls += result.claude_calls
@@ -562,11 +579,11 @@ class Engine:
         c.messages = result.messages
         self._out_of_area_lead(c, actions, notes, text, cfg)
         if not speaker.spoken:  # Claude said nothing (e.g. only a tool call): same fixed line as before
-            checked = guard.check_reply("", cfg, channel, booked=c.booking is not None)
+            checked = guard.check_reply("", cfg, channel, **_backing(c))
             notes.extend(f"reply:{v}" for v in checked.violations)
             speaker.say(checked.text)
         elif not speaker.blocked:  # final pass over the whole reply: rules that span two sentences
-            late = [v for v in guard.check_reply(speaker.text, cfg, channel, booked=c.booking is not None).violations]
+            late = [v for v in guard.check_reply(speaker.text, cfg, channel, **_backing(c)).violations]
             notes.extend(f"reply_late:{v}" for v in late)
             if "unbacked_action" in late:
                 self._alert(c, actions, "lead", "Customer asked for a change the assistant cannot make")
@@ -596,7 +613,8 @@ class Engine:
 
     # ------------------------------------------------------------------------------------------
     @staticmethod
-    def _user_content(tenant: TenantRecord, channel: str, text: str, now: datetime, policy: str, c: Convo) -> list:
+    def _user_content(tenant: TenantRecord, channel: str, text: str, now: datetime, policy: str, c: Convo,
+                      extra: str = "") -> list:
         local = now.astimezone(ZoneInfo(tenant.config.business.timezone))
         hours = {
             "open": "The business is open now.",
@@ -607,8 +625,143 @@ class Engine:
         urgent = " The customer reported an urgent issue; the owner was alerted." if c.urgency == "urgent" else ""
         prior = f" Before this, we sent the customer: \"{c.prior}\"" if c.prior else ""
         ctx = (f"[context] Channel: {channel}. Local time: {local:%A %b} {local.day} {local.year}, {local:%I:%M %p}. "
-               f"{hours}{urgent} The customer's phone number is already known.{prior}")
+               f"{hours}{urgent} The customer's phone number is already known.{prior}{extra}")
         return [{"type": "text", "text": ctx}, {"type": "text", "text": "Customer: " + guard.as_data(text)}]
+
+    # --- appointment manager (2026-10-23; booking.self_service / booking.recognize_callers) ------------------
+    def _caller_context(self, tenant: TenantRecord, ts: TenantStore, c: Convo, now: datetime) -> str:
+        """Extra context for this Claude turn: the returning-caller fact (once per conversation, first Claude turn
+        only) and the note left by an R reply. Never after a recording objection; never for blocked/opted-out numbers."""
+        note = str(c.meta.pop("booking_note", "") or "")
+        cfg = tenant.config
+        if not cfg.booking.recognize_callers or "known_caller" in c.meta or c.meta.get("transcript_withheld"):
+            return note
+        info = appt.known_caller(ts, cfg, c.contact, now, c.convo_id if c.channel == "voice" else None)
+        c.meta["known_caller"] = bool(info)
+        if info and c.meta.get("call_row_id"):
+            try:
+                ts.update("calls", c.meta["call_row_id"], {"known_caller": True})
+            except StoreError:
+                log.warning("could not flag the call as a known caller")
+        return appt.caller_fact(info) + note
+
+    def _note_change(self, ts: TenantStore, c: Convo, kind: str, row: dict, new: dict | None, actions: list,
+                     other_number: bool, cfg: Any) -> None:
+        old_label = appt.row_label(row, cfg)
+        job, name = row.get("job_type") or "Job", row.get("customer_name") or "Customer"
+        what = f"moved from {old_label} to {new['label']}" if new else f"cancelled ({old_label})"
+        summary = f"Booking {what} by the customer: {job}, {name}" + \
+            (". Asked from a different number than the booking's" if other_number else "")
+        c.meta["appt"] = {"kind": kind, "label": (new or {}).get("label") or old_label}
+        c.meta.setdefault("appt_events", []).append({
+            "kind": kind, "key": f"{row.get('id')}:{kind}", "contact": row.get("contact_e164") or c.contact,
+            "name": name, "job_type": job, "old": {"start": row.get("start_at"), "end": row.get("end_at"), "label": old_label},
+            "new": {k: (new or {}).get(k) for k in ("start", "end", "label", "event_id")} if new else None})
+        c.collect(name=name, job_type=job if job in cfg.booking.job_types else "")
+        ts.log_event(f"appointment.{kind}", {"channel": c.channel, "other_number": other_number})
+        self._alert(c, actions, "booking_change", summary)
+
+    def _cancel_row(self, tenant: TenantRecord, ts: TenantStore, c: Convo, row: dict, reason: str, now: datetime,
+                    actions: list, other_number: bool = False) -> dict[str, Any]:
+        if not hasattr(self.calendar, "cancel"):
+            return {"ok": False, "reason": "not_supported"}
+        res = self.calendar.cancel(tenant.id, tenant.config, row["provider_event_id"], reason, now)
+        if not res.get("ok"):
+            return {"ok": False, "reason": res.get("reason", "cancel_failed")}
+        appt.update_row(ts, row["id"], {"status": "cancelled"})
+        self._note_change(ts, c, "cancelled", row, None, actions, other_number, tenant.config)
+        return {"ok": True, "label": appt.row_label(row, tenant.config)}
+
+    def _booking_text_reply(self, tenant: TenantRecord, ts: TenantStore, c: Convo, text: str, now: datetime,
+                            actions: list, notes: list[str]) -> str | None:
+        """C / R / X to a confirmation or reminder text (SMS_BOOKING_REPLIES). R returns None: the conversation goes on
+        with Claude, which is told which booking to change."""
+        kind = appt.parse_reply(text)
+        if not kind:
+            return None
+        cfg = tenant.config
+        biz = sms_business_name(cfg)
+        prompt = c.meta.pop("booking_prompt", None) or {}
+        row = appt.booking_row(ts, prompt.get("booking_id", ""))
+        notes.append(f"booking_reply:{kind}")
+        if not row or row.get("status") != "confirmed" or row.get("contact_e164") != c.contact:
+            return f"{biz}: that visit is no longer on the schedule. Reply here if you need a new time."
+        label = appt.row_label(row, cfg)
+        if kind == "confirm":
+            appt.update_row(ts, row["id"], {"confirmed_at": now.isoformat()})
+            ts.log_event("appointment.confirmed", {"channel": "sms"})
+            return f"{biz}: thanks, your visit {label} is confirmed."
+        if kind == "cancel":
+            res = self._cancel_row(tenant, ts, c, row, "Cancelled by text reply", now, actions)
+            if not res.get("ok"):
+                self._alert(c, actions, "lead", f"Customer replied X to cancel {label}; the calendar could not be updated")
+                return f"{biz}: got it. Our team will confirm the cancellation."
+            c.set_outcome("message")
+            return f"{biz}: your visit {label} is cancelled. Reply here if you'd like a new time."
+        c.meta["booking_note"] = (f" The customer replied R to their booking text: they want to change the visit {label} "
+                                  f"({row.get('job_type') or 'job'}). Call find_my_booking, then offer new times.")
+        return None
+
+    def _manage(self, tenant: TenantRecord, ts: TenantStore, c: Convo, now: datetime, actions: list, name: str,
+                args: dict[str, Any]) -> dict[str, Any]:
+        """find_my_booking / reschedule_booking / cancel_booking. Only the caller's own bookings that we made."""
+        cfg = tenant.config
+        if name == "find_my_booking":
+            raw = str(args.get("phone") or "").strip()
+            other = appt.e164(raw) if raw else None
+            if raw and not other:
+                return {"ok": False, "reason": "bad_phone"}
+            if other and other != c.contact:
+                if not str(args.get("name") or "").strip():
+                    return {"ok": False, "reason": "name_needed"}
+                rows = [r for r in appt.upcoming(ts, other, now) if appt.names_match(r.get("customer_name"), args.get("name"))]
+            else:
+                other, rows = None, appt.upcoming(ts, c.contact, now)
+            if not rows:
+                return {"ok": False, "reason": "no_booking"}
+            c.meta["my_bookings"] = {f"B{i}": {"row": r["id"], "other": bool(other)} for i, r in enumerate(rows, 1)}
+            c.collect(name=rows[0].get("customer_name"))
+            return {"ok": True, "bookings": [{"booking_id": f"B{i}", "label": appt.row_label(r, cfg),
+                                              "job_type": r.get("job_type") or "",
+                                              "zip": guard.find_zip(r.get("address") or "") or ""}
+                                             for i, r in enumerate(rows, 1)]}
+        ref = (c.meta.get("my_bookings") or {}).get(str(args.get("booking_id") or "").strip().upper())
+        if not ref:
+            return {"ok": False, "reason": "unknown_booking"}
+        row = appt.booking_row(ts, ref["row"])
+        if not row or row.get("status") != "confirmed" or not row.get("provider_event_id"):
+            return {"ok": False, "reason": "booking_gone"}
+        if name == "cancel_booking":
+            res = self._cancel_row(tenant, ts, c, row, str(args.get("reason") or "Cancelled by the customer")[:200], now,
+                                   actions, ref["other"])
+            if res.get("ok"):
+                c.set_outcome("message")
+            return res
+        slot_id = str(args.get("slot_id") or "")
+        if slot_id not in c.offered:
+            return {"ok": False, "reason": "unknown_slot"}
+        if not hasattr(self.calendar, "reschedule"):
+            return {"ok": False, "reason": "not_supported"}
+        old_label = appt.row_label(row, cfg)
+        details = {"name": str(row.get("customer_name") or "")[:80], "phone": row.get("contact_e164") or c.contact,
+                   "address": str(row.get("address") or "")[:200], "job_type": row.get("job_type") or cfg.booking.job_types[0],
+                   "urgency": row.get("urgency") or "normal", "notes": f"Moved by the customer from {old_label}"}
+        res = self.calendar.reschedule(tenant.id, cfg, now, row["provider_event_id"], slot_id, details)
+        if not res.get("ok"):
+            return {"ok": False, "reason": res.get("reason", "reschedule_failed")}
+        new = ts.insert("bookings", {
+            "call_id": c.meta.get("call_row_id"), "customer_name": row.get("customer_name"), "contact_e164": row.get("contact_e164"),
+            "address": row.get("address"), "job_type": row.get("job_type"), "urgency": row.get("urgency"),
+            "start_at": res["start"], "end_at": res["end"], "provider_event_id": res["event_id"], "status": "confirmed",
+            "rescheduled_from_id": row["id"]})
+        appt.update_row(ts, row["id"], {"status": "rescheduled"})
+        ref["row"] = new.get("id") or ref["row"]
+        if c.booking and c.booking.get("event_id") == row.get("provider_event_id"):
+            c.booking.update({"slot_id": slot_id, "start": res["start"], "end": res["end"], "label": res["label"],
+                              "event_id": res["event_id"]})
+        self._note_change(ts, c, "rescheduled", row, res, actions, ref["other"], cfg)
+        c.set_outcome("booked")
+        return {"ok": True, "label": res["label"]}
 
     def _execute(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
                  actions: list, name: str, args: dict[str, Any]) -> dict[str, Any]:
@@ -628,6 +781,8 @@ class Engine:
             except ValueError:
                 date_from = None
             slots = self.calendar.availability(tenant.id, cfg, now, date_from=date_from, limit=3)
+            if c.meta.get("my_bookings"):  # moving a visit: never offer the time it already has
+                slots = appt.without_own(slots, ts, c.meta["my_bookings"])
             for s in slots:
                 c.offered[s["slot_id"]] = s
             return {"ok": True, "slots": [{"slot_id": s["slot_id"], "label": s["label"]} for s in slots]}
@@ -696,5 +851,8 @@ class Engine:
         if name == "end_conversation":
             c.ended = True
             return {"ok": True}
+
+        if name in ("find_my_booking", "reschedule_booking", "cancel_booking") and cfg.booking.self_service:
+            return self._manage(tenant, ts, c, now, actions, name, args)
 
         return {"ok": False, "reason": "unknown_tool"}
