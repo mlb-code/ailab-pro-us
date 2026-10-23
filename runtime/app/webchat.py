@@ -151,6 +151,8 @@ def _tenant(niche: str, budget: float, max_session: int) -> TenantRecord:
                 {"q": "Do you work with first-time buyers?", "a": "Yes, Jenna works with many first-time buyers."},
             ],
             "emergency": {"keywords": [], "dial": None},
+            "real_estate": {"agent_name": "Jenna Harper", "meetings": {"buyer": "Buyer consultation", "seller": "Home value consultation",
+                                                                       "showing": "Home showing", "renter": "Buyer consultation"}},
         }
     slug = "demo-" + niche.replace("_", "-")
     tid = "00000000-0000-4000-8000-00000000d0" + ("01" if niche == "home_services" else "02")
@@ -161,7 +163,8 @@ def _tenant(niche: str, budget: float, max_session: int) -> TenantRecord:
 def greeting(tenant: TenantRecord) -> str:
     b = tenant.config.business
     if b.niche == "real_estate":
-        return (f"Hi, this is Jenna Harper's assistant at {b.name}. Sorry Jenna missed you! "
+        agent = tenant.config.real_estate.agent_name or "the agent"
+        return (f"Hi, this is {agent}'s assistant at {b.name}. Sorry {agent.split()[0]} missed you! "
                 "I'm the virtual assistant and I can help right now. What are you calling about?")
     return (f"Hi, this is {b.name}. Sorry we missed your call! I'm the virtual assistant and I can get you booked. "
             "What's going on?")
