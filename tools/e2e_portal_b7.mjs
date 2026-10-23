@@ -193,7 +193,7 @@ async function main() {
     await page.goto(BASE + '/start/?mock_seed=testing', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
     const tenant = await page.evaluate(() => window.StartMock.admin.seedTenant());
     await page.goto(BASE + '/start/?r=1#onboarding', { waitUntil: 'load' }); await page.waitForSelector('.obsteps');
-    ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Setup checklist,My receptionist,Requests,Quotes,Billing', 'testing + tenant: My receptionist tab');
+    ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Setup checklist,My receptionist,Results,Requests,Quotes,Billing', 'testing + tenant: My receptionist tab');
     // alerts -> notify + on_call_number through update_tenant_settings
     await openStep(page, 'alerts');
     await setVal(page, '#obn_sms', '713 555 01'); await setVal(page, '#obn_email', 'dani@coolbreeze.test'); await setVal(page, '#oboc', '(713) 555-0111'); await setVal(page, '#ob_kw', 'gas smell, flooding');

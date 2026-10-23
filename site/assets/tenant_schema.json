@@ -101,6 +101,18 @@
           "default": null,
           "description": "Public self-booking link used in text-back",
           "title": "Booking Link"
+        },
+        "self_service": {
+          "default": false,
+          "description": "Callers can move or cancel a booking the assistant made",
+          "title": "Self Service",
+          "type": "boolean"
+        },
+        "recognize_callers": {
+          "default": false,
+          "description": "Greet a returning caller by name and mention their next booking (bookings and calls of the last 90 days only)",
+          "title": "Recognize Callers",
+          "type": "boolean"
         }
       },
       "required": [
@@ -642,7 +654,9 @@
             "enum": [
               "lead.created",
               "booking.created",
-              "call.completed"
+              "call.completed",
+              "booking.rescheduled",
+              "booking.cancelled"
             ],
             "type": "string"
           },

@@ -49,6 +49,7 @@
     if (tenant && isRcp(d)) {
       const [usage, calls, sms, bookings] = await Promise.all([B.getUsage(tenant.id).catch(() => null), B.listCalls(tenant.id), B.listSms(tenant.id), B.listBookings(tenant.id)]);
       Object.assign(d, { usage, calls: calls || [], sms: sms || [], bookings: bookings || [] });
+      if (window.PortalResults) await window.PortalResults.load(d);   // Results tab (portal-results.js)
     }
     return d;
   }
@@ -57,6 +58,7 @@
     const t = [];
     if (d.ob.length) t.push(['onboarding', d.client.status === 'live' ? 'Setup' : 'Setup checklist', onboardingHtml]);
     if (isRcp(d) && d.tenant && ['testing', 'live', 'paused'].indexOf(d.client.status) !== -1) t.push(['receptionist', 'My receptionist', receptionistHtml]);
+    if (isRcp(d) && d.tenant && window.PortalResults && ['testing', 'live', 'paused'].indexOf(d.client.status) !== -1) t.push(['results', 'Results', window.PortalResults.html]);
     t.push(['requests', 'Requests', requestsHtml]);
     return t;
   }
@@ -578,7 +580,7 @@
         ms.map(m => '<div class="bubble ' + (m.direction === 'inbound' ? 'bubble--in' : 'bubble--out') + '"><span class="sr-only">' + (m.direction === 'inbound' ? 'Customer: ' : 'Receptionist: ') + '</span>' + esc(m.body) + '</div>').join('') + '</div></details></li>';
     }).join('');
     const bookings = d.bookings.map(b => '<li class="bk"><div><b>' + esc(b.job_type || 'Job') + '</b> · ' + esc(b.customer_name || '') + '</div><div class="muted small">' + esc(when(b.start_at, d)) +
-      (b.address ? ' · ' + esc(b.address) : '') + (b.contact_e164 ? ' · <span class="mono">' + esc(fmtPhone(b.contact_e164)) + '</span>' : '') + '</div>' + (b.status !== 'confirmed' ? pill(b.status, b.status) : '') + '</li>').join('');
+      (b.address ? ' · ' + esc(b.address) : '') + (b.contact_e164 ? ' · <span class="mono">' + esc(fmtPhone(b.contact_e164)) + '</span>' : '') + '</div>' + (b.status !== 'confirmed' || b.confirmed_at ? pill.apply(null, window.PortalResults ? window.PortalResults.statusOf(b) : [b.status, b.status]) : '') + '</li>').join('');
     return '<section class="card rx"><div class="rx__h"><div><h2 class="h-card">Your receptionist</h2><p>' + pill(paused ? 'paused' : t.status, st) + (t.twilio_number ? ' <span class="mono">' + esc(fmtPhone(t.twilio_number)) + '</span>' : '') + '</p></div>' +
       '<button type="button" class="btn btn--sm ' + (paused ? 'btn--primary' : 'btn--ghost') + '" id="rxPause" aria-pressed="' + paused + '">' + (paused ? 'Resume AI' : 'Pause AI') + '</button></div>' +
       '<p class="muted small" id="rxPauseHint">While paused, the AI assistant doesn’t talk to callers or send texts. Resume any time.</p><div id="rxMsg" aria-live="polite"></div></section>' +
@@ -731,6 +733,7 @@
     if (tab === 'onboarding') { bindOnboarding(d, api); return true; }
     if (tab === 'receptionist') { bindReceptionist(d, api); return true; }
     if (tab === 'requests') { bindRequests(d, api); return true; }
+    if (tab === 'results' && window.PortalResults) return window.PortalResults.bind(d, api);
     return false;
   }
   window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay };
