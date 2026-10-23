@@ -1,0 +1,167 @@
+{
+ "05d1e086734dd08c222b0358": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Listo, su cita quedó para Monday Oct 12, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1403,
+    "output_tokens": 22
+   }
+  }
+ },
+ "464528abdb73af12ce9672a0": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 77005",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77005"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 990,
+    "output_tokens": 36
+   }
+  }
+ },
+ "58cfc554a47b5545f3729d19": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Puedo enviar a un técnico Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. ¿Cuál le conviene más?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1135,
+    "output_tokens": 40
+   }
+  }
+ },
+ "ab23db132408dde9b08dadda": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: La primera, por favor. Mi nombre es Carlos Reyes, 45 Westheimer Rd Houston 77005",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "address": "45 Westheimer Rd Houston 77005",
+      "job_type": "AC repair",
+      "name": "Carlos Reyes",
+      "notes": "Hola, necesito ayuda, el aire acondicionado no funciona",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1275,
+    "output_tokens": 78
+   }
+  }
+ },
+ "d455660727a826d2765726dc": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hola, necesito ayuda, el aire acondicionado no funciona",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Lamento escuchar eso. Puedo enviar a un técnico. ¿Cuál es el código postal de la dirección?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 873,
+    "output_tokens": 36
+   }
+  }
+ }
+}

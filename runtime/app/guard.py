@@ -123,19 +123,20 @@ _STOP_LEAD = re.compile(r"^\W*(stop|stopall|unsubscribe|cancel|end|quit|revoke)\
 
 
 def wants_no_texts(text: str) -> bool:
-    """A sentence (SMS or speech) that asks us not to text this number."""
-    return bool(NO_TEXTS.search(text or ""))
+    """A sentence (SMS or speech) that asks us not to text this number (English or Spanish)."""
+    return bool(NO_TEXTS.search(text or "")) or bool(NO_TEXTS_ES.search(text or ""))
 
 
 def sms_keyword(text: str) -> str | None:
     """'stop' | 'start' | 'help' | None. START/HELP only as the whole message; an opt-out also counts when it is a
-    short message that starts with a stop word ("Stop please") or a sentence that asks not to be texted."""
-    word = re.sub(r"[^A-Za-z]", "", (text or "").strip()).upper()
-    if word in STOP_WORDS:
+    short message that starts with a stop word ("Stop please") or a sentence that asks not to be texted.
+    Spanish keywords (PARAR / INICIAR / AYUDA, ...) count the same way (ADD-ES, and carriers honour them too)."""
+    word = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", (text or "").strip()).upper()
+    if word in STOP_WORDS or word in STOP_WORDS_ES:
         return "stop"
-    if word in START_WORDS:
+    if word in START_WORDS or word in START_WORDS_ES:
         return "start"
-    if word in HELP_WORDS:
+    if word in HELP_WORDS or word in HELP_WORDS_ES:
         return "help"
     if wants_no_texts(text) or (_STOP_LEAD.match(text or "") and len((text or "").split()) <= 4):
         return "stop"
@@ -269,7 +270,26 @@ def is_robot_question(text: str) -> bool:
 # ---- 9: language -------------------------------------------------------------------------
 
 SPANISH = re.compile(r"\b(hola|necesito|ayuda|gracias|por favor|aire acondicionado|no funciona|"
-                     r"buenos d[ií]as|buenas tardes|quiero|cita|calefacci[oó]n|se descompuso)\b", re.I)
+                     r"buenos d[ií]as|buenas tardes|buenas noches|buenas|quiero|quisiera|cita|calefacci[oó]n|se descompuso|"
+                     r"espa[ñn]ol|habla|hablo|puedo|puede|tengo|tiene|casa|ma[ñn]ana|hoy|problema|llamar|llame|favor|"
+                     r"vender|comprar|alquilar|rentar|agente|precio|cu[aá]nto|cuando|d[oó]nde|s[ií]|no s[eé]|est[aá]|"
+                     r"caliente|fr[ií]o|agua|fuga|t[eé]cnico|servicio|direcci[oó]n|nombre|tel[eé]fono|mensaje)\b", re.I)
+ENGLISH = re.compile(r"\b(the|my|is|and|you|your|can|need|please|what|when|where|how|yes|thanks|hi|hello|broken|"
+                     r"working|appointment|schedule|house|home|sell|buy|rent)\b", re.I)
+SPANISH_LANG = "es-US"
+ENGLISH_LANG = "en-US"
+
+
+def detect_language(text: str) -> str | None:
+    """'es' when the customer clearly uses Spanish, 'en' when clearly English, None when unsure (keep the current one).
+    Mixed messages count as whichever language has more markers; ties keep the current language."""
+    t = text or ""
+    es, en = len(SPANISH.findall(t)), len(ENGLISH.findall(t))
+    if es and es > en:
+        return "es"
+    if en and en > es:
+        return "en"
+    return None
 
 
 def language_fixed_reply(text: str, cfg: TenantConfig) -> str:
@@ -277,6 +297,67 @@ def language_fixed_reply(text: str, cfg: TenantConfig) -> str:
     if "es" in cfg.voice.languages:
         return ""
     return SPANISH_TEXT if len(SPANISH.findall(text or "")) >= 1 and not re.search(r"\b(the|my|is|and|you)\b", text or "", re.I) else ""
+
+
+# ---- ADD-ES: Spanish line (voice + SMS). English stays the default; these apply once a caller uses Spanish -----
+DISCLOSURE_ES = ("Esta llamada puede ser grabada y transcrita por nosotros y nuestros proveedores de servicio, y podemos "
+                 "enviarle mensajes de texto.")
+SPANISH_INVITE = "Para español, hable en español."
+STOP_WORDS_ES = {"PARAR", "ALTO", "CANCELAR", "DETENER", "BAJA", "NOMAS", "NOMÁS"}
+START_WORDS_ES = {"INICIAR", "EMPEZAR", "COMENZAR", "SI", "SÍ", "ACTIVAR"}
+HELP_WORDS_ES = {"AYUDA", "INFORMACION", "INFORMACIÓN"}
+NO_TEXTS_ES = re.compile(r"\b(no (me )?(env[ií]e|mande|manden|env[ií]en|escriba|escriban) (m[aá]s )?(mensajes|textos)|"
+                         r"no quiero (m[aá]s )?(mensajes|textos)|dejen? de (enviar|mandar|escribir)|d[eé]jenme en paz|n[uú]mero equivocado)\b", re.I)
+SMS_CONSENT_Q_VOICE_ES = "¿Puedo enviarle la confirmación y un recordatorio por mensaje de texto a este número?"
+SMS_CONSENT_Q_SMS_ES = "¿Le envío un recordatorio por texto antes de la visita? Responda SÍ o NO."
+CONSENT_YES_SMS_ES = "Perfecto, le enviaremos un recordatorio antes de la visita. Responda PARAR para no recibir más mensajes."
+CONSENT_NO_SMS_ES = "Sin problema, no enviaremos recordatorios. Escríbanos aquí si necesita algo."
+CONSENT_BYE_ES = "Gracias por llamar. Hasta luego."
+VOICE_NO_TEXT_TEXT_ES = "Entendido, no le enviaremos mensajes. ¿En qué más puedo ayudarle?"
+REPROMPT_TEXT_ES = "Perdón, no le escuché. ¿Puede repetirlo?"
+_YES_ES = re.compile(r"^\W*(s[ií]|claro|est[aá] bien|de acuerdo|por supuesto|perfecto|ok)\b", re.I)
+_NO_ES = re.compile(r"^\W*(no|mejor no|prefiero que no)\b|\bno me (env[ií]e|mande|escriba)\b", re.I)
+
+
+def keyword_lang(text: str) -> str:
+    """'es' when the whole message is a Spanish compliance keyword, else 'en'."""
+    word = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", (text or "").strip()).upper()
+    return "es" if word in STOP_WORDS_ES | START_WORDS_ES | HELP_WORDS_ES or NO_TEXTS_ES.search(text or "") else "en"
+
+
+def consent_yes_voice_es(bye: bool = False) -> str:
+    return "Perfecto, le enviaré la confirmación a este número. " + (CONSENT_BYE_ES if bye else "¿Algo más en que pueda ayudarle?")
+
+
+def consent_no_voice_es(label: str | None, bye: bool = False) -> str:
+    head = f"Sin problema, no le enviaré mensajes. Su visita es {label}." if label else "Sin problema, no le enviaré mensajes."
+    return f"{head} {CONSENT_BYE_ES if bye else '¿Algo más en que pueda ayudarle?'}"
+
+
+def robot_answer_es(business: str) -> str:
+    return f"Soy el asistente virtual de {business}. Puedo agendar su visita o tomar un mensaje para el equipo."
+
+
+def stop_confirmation_es(business: str, phone: str = "") -> str:
+    call = f" Para cambiar o cancelar una cita, llame al {phone}." if phone else ""
+    return f"{business}: se ha dado de baja y no recibirá más mensajes nuestros.{call} Responda INICIAR para volver a suscribirse."
+
+
+def start_confirmation_es(business: str) -> str:
+    return f"{business}: se ha vuelto a suscribir. Responda PARAR para darse de baja."
+
+
+def help_text_es(business: str, phone: str) -> str:
+    return f"Asistente virtual de {business}. Para ayuda llame al {phone}. Responda PARAR para darse de baja."
+
+
+def consent_answer_es(text: str) -> str | None:
+    t = text or ""
+    if NO_TEXTS_ES.search(t) or _NO_ES.search(t):
+        return "no"
+    if _YES_ES.search(t):
+        return "yes"
+    return None
 
 
 # ---- 3: hours ------------------------------------------------------------------------------

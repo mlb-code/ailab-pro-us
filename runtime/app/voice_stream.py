@@ -38,7 +38,7 @@ from starlette.websockets import WebSocketDisconnect
 from twilio.request_validator import RequestValidator
 from twilio.twiml.voice_response import VoiceResponse
 
-from . import crypto
+from . import crypto, guard
 from .runtime_ctx import Runtime
 from .tenants import TenantConfigError, TenantRecord, load_record
 from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, twiml_gather, twiml_say_hangup)
@@ -57,8 +57,8 @@ def ws_base(rt: Runtime, request_or_ws: Any) -> str:
     return base.replace("https://", "wss://", 1).replace("http://", "ws://", 1)
 
 
-def tts(tenant: TenantRecord) -> tuple[str, str]:
-    voice = tenant.config.voice.tts_voice
+def tts(tenant: TenantRecord, lang: str | None = None) -> tuple[str, str]:
+    voice = tenant.config.voice.tts_voice_es if lang == "es" else tenant.config.voice.tts_voice
     if voice.startswith("Polly."):
         return "Amazon", voice.removeprefix("Polly.")
     return "ElevenLabs", voice
@@ -69,10 +69,13 @@ def relay_twiml(rt: Runtime, request: Request, tenant: TenantRecord, call_sid: s
     provider, voice = tts(tenant)
     vr = VoiceResponse()
     connect = vr.connect(action="/voice/relay-end", method="POST")
-    connect.conversation_relay(
+    relay = connect.conversation_relay(
         url=f"{ws_base(rt, request)}/voice/relay?t={token}", welcome_greeting=greeting(tenant),
-        welcome_greeting_interruptible="none", interruptible="speech", language="en-US",
+        welcome_greeting_interruptible="none", interruptible="speech", language=guard.ENGLISH_LANG,
         tts_provider=provider, voice=voice, transcription_provider="Deepgram", dtmf_detection=False)
+    if "es" in tenant.config.voice.languages:  # ADD-ES: the Spanish voice + STT, switched per turn with a `language` frame
+        es_provider, es_voice = tts(tenant, "es")
+        relay.language(code=guard.SPANISH_LANG, tts_provider=es_provider, voice=es_voice, transcription_provider="Deepgram")
     return str(vr)
 
 
@@ -115,6 +118,7 @@ class RelaySession:
         self.rt, self.tenant, self.call_sid, self.ws = rt, tenant, call_sid, ws
         self.queue: asyncio.Queue = asyncio.Queue()
         self.caller = ""
+        self.lang = guard.ENGLISH_LANG
 
     async def _reader(self) -> None:
         try:
@@ -171,6 +175,13 @@ class RelaySession:
             turn = await run_in_threadpool(flow.turn, self.tenant, self.call_sid, self.caller,
                                            str(msg.get("voicePrompt") or ""), now(), self._sentence_sink())
             ending = bool(turn.end or turn.dial)
+            want = guard.SPANISH_LANG if turn.lang == "es" and "es" in self.tenant.config.voice.languages else guard.ENGLISH_LANG
+            if want != self.lang and not turn.streamed:  # ADD-ES: switch TTS + STT before the reply is spoken
+                self.lang = want
+                await self.send({"type": "language", "ttsLanguage": want, "transcriptionLanguage": want})
+            elif want != self.lang:  # sentences already went out in the old voice; switch for the next turn
+                self.lang = want
+                await self.send({"type": "language", "ttsLanguage": want, "transcriptionLanguage": want})
             if turn.streamed:  # sentences already went out as they were ready; close this reply
                 await self.send({"type": "text", "token": "", "last": True, "interruptible": not ending})
             elif turn.reply:
@@ -232,5 +243,7 @@ async def voice_relay_end(request: Request) -> Response:
         # continue the same conversation turn by turn - never hang up, never close the call here.
         rt.store.for_tenant(tenant.id).log_event("voice.relay_failed", {
             "call_sid": call_sid, "status": str(form.get("SessionStatus", "")), "error": str(form.get("ErrorCode", ""))})
-        return Response(twiml_gather(REPEAT_TEXT, tenant.config.voice.tts_voice), media_type=TWIML)
+        c = rt.engine.find_convo(tenant, "voice", call_sid)
+        from .voice import voice_for
+        return Response(twiml_gather(REPEAT_TEXT, *voice_for(tenant, (c.meta.get("lang") if c else None))), media_type=TWIML)
     return Response(twiml_say_hangup(""), media_type=TWIML)

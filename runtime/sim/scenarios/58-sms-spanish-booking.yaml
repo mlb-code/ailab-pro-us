@@ -1,0 +1,13 @@
+description: ADD-ES on -> a Spanish text is detected (lang:es), the brain is told to reply in Spanish, booking works, the texting-consent question is in Spanish.
+channel: sms
+patch: {config: {voice: {languages: [en, es]}}}
+turns:
+  - say: "Hola, necesito ayuda, el aire acondicionado no funciona"
+    expect: {guard: ["lang:es"], reply_contains: ["código postal"], claude_calls: 1}
+  - say: "77005"
+    expect: {reply_contains: ["Puedo enviar a un técnico"]}
+  - say: "La primera, por favor. Mi nombre es Carlos Reyes, 45 Westheimer Rd Houston 77005"
+    expect: {tools: [book_slot], reply_contains: ["su cita quedó", "Responda SÍ o NO"]}
+  - say: "Sí"
+    expect: {reply_contains: ["recordatorio antes de la visita", "PARAR"], claude_calls: 0}
+expect: {outcome: booked, bookings: 1, actions: [booking]}

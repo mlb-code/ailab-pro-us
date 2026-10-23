@@ -26,7 +26,7 @@ from . import guard
 from .brain import run_turn
 from .llm import LLMClient
 from .settings import Settings
-from .speech import TOOL_FILLERS, Speaker
+from .speech import TOOL_FILLERS, TOOL_FILLERS_ES, Speaker
 from .store import StateStore, Store, TenantStore
 from .tenants import TenantRecord, sms_business_name
 from .usage import UsageMeter
@@ -123,6 +123,7 @@ class TurnResult:
     first_sentence_ms: float | None = None   # voice: turn start -> first sentence handed to TTS
     first_sentence_llm_ms: float | None = None  # ... of which Claude time (server time = the difference)
     timings: list[dict[str, Any]] = field(default_factory=list)
+    lang: str | None = None            # "es" once the customer used Spanish (ADD-ES): the voice layer switches TTS/STT
 
 
 MEMORY_CONVOS = 500  # in-process cache size; the state store is the source of truth
@@ -265,6 +266,11 @@ class Engine:
         day = self.local_day(tenant, now)
         sms = channel == "sms"
         typed = channel in TEXT_CHANNELS  # SMS and the website chat box share the text rules; only SMS is metered/keyworded
+        es_on = "es" in cfg.voice.languages  # ADD-ES
+
+        def es(extra: bool = False) -> bool:
+            """Spanish wording for a fixed reply: the caller already used Spanish (or this message is a Spanish keyword)."""
+            return es_on and (c.meta.get("lang") == "es" or extra)
         if sms:
             self._usage(tenant, ts, "sms", guard.sms_segments(text) or (1 if num_media else 0), now, actions)
 
@@ -282,7 +288,8 @@ class Engine:
             if notes:
                 ts.log_event("guard", {"convo_id": convo_id, "channel": channel, "rules": notes})
             self.save_convo(c)
-            return TurnResult(reply=reply, end=c.ended, outcome=c.outcome, actions=actions, guard=notes, **kw)
+            return TurnResult(reply=reply, end=c.ended, outcome=c.outcome, actions=actions, guard=notes,
+                              lang=c.meta.get("lang"), **kw)
 
         def gate() -> TurnResult | None:
             """Per-number cap on replies (every reply on SMS; Claude replies on voice)."""
@@ -315,8 +322,8 @@ class Engine:
             if c.meta.get("sms_consent") == "asked":
                 c.meta["sms_consent"] = "no"
             # exactly one confirmation (47 C.F.R. 64.1200(a)(12)); a repeat STOP gets nothing
-            return done(guard.stop_confirmation(sms_business_name(cfg), cfg.business.main_phone) if new else "", end=True,
-                        counted=False)
+            confirm = (guard.stop_confirmation_es if es(guard.keyword_lang(text) == "es") else guard.stop_confirmation)
+            return done(confirm(sms_business_name(cfg), cfg.business.main_phone) if new else "", end=True, counted=False)
         if kw == "start":
             notes.append("start")
             ts.opt_in(contact, "sms", text)
@@ -327,7 +334,8 @@ class Engine:
         if typed and (blocked := gate()):
             return blocked
         if kw == "start":
-            return done(guard.start_confirmation(sms_business_name(cfg)))
+            return done((guard.start_confirmation_es if es(guard.keyword_lang(text) == "es") else guard.start_confirmation)(
+                sms_business_name(cfg)))
         if not tenant.active:
             notes.append("tenant_paused")
             return done(PAUSED_TEXT, end=True)
@@ -335,7 +343,8 @@ class Engine:
         if typed:
             if kw == "help":
                 notes.append("help")
-                return done(guard.help_text(sms_business_name(cfg), cfg.business.main_phone))
+                return done((guard.help_text_es if es(guard.keyword_lang(text) == "es") else guard.help_text)(
+                    sms_business_name(cfg), cfg.business.main_phone))
             fixed, reason = guard.inbound_fixed_reply(text, num_media)
             if fixed:
                 notes.append(reason)
@@ -345,7 +354,7 @@ class Engine:
             policy = guard.silence_policy(c.silent_in_a_row, c.ever_spoke)
             notes.append(f"silence:{policy}")
             if policy == "reprompt":
-                return done(reprompt_for(c.transcript))
+                return done(guard.REPROMPT_TEXT_ES if es() else reprompt_for(c.transcript))
             if policy == "end_spam":
                 return done("", end=True, outcome="spam")
             self._alert(c, actions, "lead", "Caller went silent before finishing")
@@ -355,6 +364,12 @@ class Engine:
 
         c.ever_spoke = True
         c.transcript.append({"who": "customer", "text": text})
+        if es_on:  # ADD-ES: detect the language at the start and on every switch; remembered per number for later texts
+            det = guard.detect_language(text)
+            if det and det != c.meta.get("lang", "en"):
+                c.meta["lang"] = det
+                notes.append(f"lang:{det}")
+                self.state.put(f"lang:{tenant.id}:{self._who(contact)}", det, tenant.id)
 
         # emergencies: 911 first, then the conversation continues unless danger is confirmed
         if c.awaiting_safety:
@@ -387,7 +402,7 @@ class Engine:
         # 10: honest about being an AI, no Claude needed
         if guard.is_robot_question(text):
             notes.append("robot_question")
-            return done(guard.robot_answer(sms_business_name(cfg) if sms else cfg.business.name))
+            return done((guard.robot_answer_es if es() else guard.robot_answer)(sms_business_name(cfg) if sms else cfg.business.name))
 
         # 9: language
         lang = guard.language_fixed_reply(text, cfg)
@@ -445,7 +460,7 @@ class Engine:
         if sms and self._should_ask_consent(ts, c):  # by text the reply is the confirmation; ask only about the reminder
             notes.append("sms_consent:asked")
             c.meta["sms_consent"] = "asked"
-            q = guard.SMS_CONSENT_Q_SMS
+            q = guard.SMS_CONSENT_Q_SMS_ES if es() else guard.SMS_CONSENT_Q_SMS
             if len(reply) + 1 + len(q) > guard.SMS_REPLY_MAX:
                 reply = reply[:guard.SMS_REPLY_MAX - len(q) - 2].rstrip() + "…"
             reply = f"{reply} {q}"
@@ -478,8 +493,9 @@ class Engine:
                              "address": None, "job_type": None}  # nothing collected is kept either
             self._alert(c, actions, "lead", "Caller asked not to be recorded; please call them back")
             return guard.RECORDING_OBJECTION_TEXT, True, "message"
+        spanish = "es" in tenant.config.voice.languages and c.meta.get("lang") == "es"
         if c.meta.get("sms_consent") == "asked":
-            ans = guard.consent_answer(text)
+            ans = guard.consent_answer(text) or (guard.consent_answer_es(text) if spanish else None)
             c.meta["sms_consent"] = ans or "unclear"
             ts.record_consent(c.contact, channel, "booking_texts", ans or "unclear", text, call_sid,
                               guard.CONSENT_PROMPT_VERSION)
@@ -488,18 +504,21 @@ class Engine:
                 ts.opt_out(c.contact, "voice", text, call_sid)
             bye = voice and bool(c.meta.pop("end_after_consent", False))
             if ans == "yes":
+                if spanish:
+                    return (guard.consent_yes_voice_es(bye) if voice else guard.CONSENT_YES_SMS_ES), bye, None
                 return (guard.consent_yes_voice(bye) if voice else guard.CONSENT_YES_SMS), bye, None
             if ans == "no":
                 if not voice:
-                    return guard.CONSENT_NO_SMS, False, None
-                return guard.consent_no_voice((c.booking or {}).get("label"), bye), bye, None
+                    return (guard.CONSENT_NO_SMS_ES if spanish else guard.CONSENT_NO_SMS), False, None
+                label = (c.booking or {}).get("label")
+                return (guard.consent_no_voice_es(label, bye) if spanish else guard.consent_no_voice(label, bye)), bye, None
             # unclear: no texts; the turn goes on as a normal turn
         if voice and guard.wants_no_texts(text):
             ts.opt_out(c.contact, "voice", text, call_sid)
             notes.append("voice_opt_out")
             if c.meta.get("sms_consent") in (None, "asked"):
                 c.meta["sms_consent"] = "no"
-            return guard.VOICE_NO_TEXT_TEXT, False, None
+            return (guard.VOICE_NO_TEXT_TEXT_ES if spanish else guard.VOICE_NO_TEXT_TEXT), False, None
         return None
 
     def _voice_claude(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, now: datetime, policy: str,
@@ -509,8 +528,9 @@ class Engine:
         cfg = tenant.config
         llm_done = [0.0]   # Claude seconds of finished calls (for the server share of time-to-first-sentence)
         call_start = [0.0]
+        fillers = TOOL_FILLERS_ES if "es" in cfg.voice.languages and c.meta.get("lang") == "es" else TOOL_FILLERS
         speaker = Speaker(lambda s: guard.check_reply(s, cfg, channel, booked=c.booking is not None), on_sentence,
-                          fillers=TOOL_FILLERS if self.settings.voice_fillers else None)
+                          fillers=fillers if self.settings.voice_fillers else None)
         first_llm: list[float] = []
 
         def on_call() -> None:
@@ -583,7 +603,8 @@ class Engine:
             c.meta["sms_consent"] = "asked"
             c.meta["end_after_consent"] = c.ended  # Claude had closed the call: close it after the answer
             c.ended = False
-            speaker.say(guard.SMS_CONSENT_Q_VOICE)
+            speaker.say(guard.SMS_CONSENT_Q_VOICE_ES if "es" in cfg.voice.languages and c.meta.get("lang") == "es"
+                        else guard.SMS_CONSENT_Q_VOICE)
         return finish(end=c.ended or dialing)
 
     def _out_of_area_lead(self, c: Convo, actions: list, notes: list[str], text: str, cfg: Any) -> None:

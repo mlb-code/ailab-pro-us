@@ -1,0 +1,136 @@
+{
+ "1768cc6942d367db31dbadbc": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Puedo enviar a un técnico Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. ¿Cuál le conviene más?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 887,
+    "output_tokens": 40
+   }
+  }
+ },
+ "2aa7d4e977200baafdeeed12": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: La primera, por favor. Mi nombre es Carlos Reyes, 45 Westheimer Rd Houston 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "address": "45 Westheimer Rd Houston 77019",
+      "job_type": "AC repair",
+      "name": "Carlos Reyes",
+      "notes": "Hola, mi calefacción no funciona, estoy en 77019",
+      "phone": null,
+      "slot_id": "2026-10-12T12:00-16:00",
+      "urgency": "normal"
+     },
+     "name": "book_slot",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1028,
+    "output_tokens": 77
+   }
+  }
+ },
+ "b23ea326fe9a9f43024f536d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Listo, su cita quedó para Monday Oct 12, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1155,
+    "output_tokens": 22
+   }
+  }
+ },
+ "cd6f241336be36ca9a137a6c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hola, mi calefacción no funciona, estoy en 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 743,
+    "output_tokens": 36
+   }
+  }
+ }
+}

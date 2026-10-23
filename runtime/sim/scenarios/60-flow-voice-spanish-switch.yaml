@@ -1,0 +1,25 @@
+description: ADD-ES voice call -> the greeting carries the Spanish notice; the caller speaks Spanish -> TTS/STT switch to es-US (gather attr / relay language frame), Spanish consent question, Spanish confirmation SMS.
+kind: flow
+channel: voice
+patch: {config: {voice: {languages: [en, es]}}}
+steps:
+  - call: {}
+    expect: {reply_contains: ["transcribed", "grabada y transcrita", "Para español"], lang: en-US}
+  - say: "Hola, mi calefacción no funciona, estoy en 77019"
+    advance_seconds: 20
+    expect: {reply_contains: ["Puedo enviar a un técnico"], lang: es-US}
+  - say: "La primera, por favor. Mi nombre es Carlos Reyes, 45 Westheimer Rd Houston 77019"
+    advance_seconds: 25
+    expect: {reply_contains: ["su cita quedó", "¿Puedo enviarle la confirmación"], lang: es-US}
+  - say: "Sí, claro"
+    advance_seconds: 5
+    if_open: true
+    expect: {reply_contains: ["le enviaré la confirmación"]}
+  - hangup: {}
+    advance_seconds: 5
+expect:
+  outcome: booked
+  bookings: 1
+  sms_sent: 1
+  sms_sent_contains: ["su cita está confirmada", "PARAR"]
+  consent: {booking_texts: "yes"}

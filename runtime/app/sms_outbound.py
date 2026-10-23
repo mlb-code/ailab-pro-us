@@ -44,19 +44,30 @@ REMINDER_BEFORE = timedelta(hours=24)
 # Locked templates (SA §8 item 3): only the business name varies (`sms_business_name`: business.sms_display_name,
 # else business.name). No links, prices, offers or review requests:
 # one promotional sentence would turn an informational text into telemarketing (memo 02, A.2).
-def textback_text(tenant: TenantRecord) -> str:
+# ADD-ES: the same locked templates in Spanish, used for a number that spoke/wrote Spanish (`contact_lang`); the slot
+# label stays as the calendar wrote it.
+def textback_text(tenant: TenantRecord, lang: str = "en") -> str:
+    if lang == "es":
+        return (f"Hola, le habla {sms_business_name(tenant)}. ¡Lamentamos no haber contestado su llamada! ¿En qué podemos "
+                "ayudarle? Responda PARAR para no recibir más mensajes.")
     return (f"Hi, this is {sms_business_name(tenant)}. Sorry we missed your call! What can we help with? "
             "Reply STOP to opt out.")
 
 
-def confirmation_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
-    return (f"{sms_business_name(tenant)}: you're booked for {booking.get('label') or booking.get('start')}. "
-            "Reply here if you need anything. Reply STOP to opt out.")
+def confirmation_text(tenant: TenantRecord, booking: dict[str, Any], lang: str = "en") -> str:
+    when = booking.get('label') or booking.get('start')
+    if lang == "es":
+        return (f"{sms_business_name(tenant)}: su cita está confirmada para {when}. Escríbanos aquí si necesita algo. "
+                "Responda PARAR para no recibir más mensajes.")
+    return f"{sms_business_name(tenant)}: you're booked for {when}. Reply here if you need anything. Reply STOP to opt out."
 
 
-def reminder_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
-    return (f"{sms_business_name(tenant)}: reminder of your visit {booking.get('label') or booking.get('start')}. "
-            "Reply here to change it. Reply STOP to opt out.")  # short: 1 segment with a 44-char SMS name
+def reminder_text(tenant: TenantRecord, booking: dict[str, Any], lang: str = "en") -> str:
+    when = booking.get('label') or booking.get('start')
+    if lang == "es":
+        return (f"{sms_business_name(tenant)}: recordatorio de su visita {when}. Escríbanos aquí para cambiarla. "
+                "Responda PARAR para no recibir más mensajes.")
+    return f"{sms_business_name(tenant)}: reminder of your visit {when}. Reply here to change it. Reply STOP to opt out."  # short: 1 segment with a 44-char SMS name
 
 
 def review_text(tenant: TenantRecord, url: str) -> str:
@@ -109,6 +120,12 @@ class Outbound:
     @property
     def state(self):
         return self.rt.state
+
+    def contact_lang(self, tenant: TenantRecord, contact: str) -> str:
+        """'es' when this number used Spanish on a call or by text and the tenant has ADD-ES, else 'en'."""
+        if "es" not in tenant.config.voice.languages:
+            return "en"
+        return "es" if self.state.get(f"lang:{tenant.id}:{who(contact)}") == "es" else "en"
 
     # --- sending ----------------------------------------------------------------------------
     def send(self, tenant: TenantRecord, to: str, body: str, kind: str, now: datetime,
@@ -192,7 +209,8 @@ class Outbound:
         """Booking confirmation after a call: sent right away, at any hour. It is the direct response to the yes the
         caller has just given on the call (SA §8 item 5), so the 09:00-20:00 window does not apply to it; opt-out,
         blocklist and the landline check still do (`send`). Only the 24-hour reminder is bound by the window."""
-        return self.send(tenant, contact, confirmation_text(tenant, booking), "confirmation", now, direct_reply=True)
+        return self.send(tenant, contact, confirmation_text(tenant, booking, self.contact_lang(tenant, contact)), "confirmation",
+                         now, direct_reply=True)
 
     def enqueue_reminder(self, tenant: TenantRecord, contact: str, booking: dict[str, Any], now: datetime) -> dict[str, Any]:
         start = datetime.fromisoformat(booking["start"])
@@ -329,7 +347,7 @@ class Outbound:
             elif (line := self.line_type(tenant, contact, now)) in NO_TEXT_LINE_TYPES:
                 res = {"sent": False, "reason": f"line_type:{line}"}
             else:
-                body = textback_text(tenant)
+                body = textback_text(tenant, self.contact_lang(tenant, contact))
                 res = self.send(tenant, contact, body, "textback", now)
                 if res["sent"]:
                     self.state.put(day_flag, now.isoformat(), tenant.id)
@@ -345,7 +363,8 @@ class Outbound:
         # confirmation / reminder: only if the booking still stands
         b = job["booking"]
         live = [r for r in ts.select("bookings", provider_event_id=b.get("event_id")) if r.get("status") == "confirmed"]
-        text = confirmation_text(tenant, b) if job["kind"] == "confirmation" else reminder_text(tenant, b)
+        lang = self.contact_lang(tenant, contact)
+        text = confirmation_text(tenant, b, lang) if job["kind"] == "confirmation" else reminder_text(tenant, b, lang)
         res = self.send(tenant, contact, text, job["kind"], now) if live else {"sent": False, "reason": "booking_gone"}
         ts.log_event(f"sms.{job['kind']}", {k: v for k, v in res.items() if k != "sid"})
         return res

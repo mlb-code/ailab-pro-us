@@ -92,7 +92,20 @@ def default_greeting(cfg: Any) -> str:
 def greeting(tenant: TenantRecord) -> str:
     cfg = tenant.config
     text = (cfg.voice.greeting or "").strip() or default_greeting(cfg)
-    return text if has_disclosure(text) else f"{text} {DISCLOSURE}"
+    text = text if has_disclosure(text) else f"{text} {DISCLOSURE}"
+    if "es" in cfg.voice.languages:  # ADD-ES: the notice (and an invitation) in Spanish too, never removable
+        es = (cfg.voice.greeting_es or "").strip() or guard.SPANISH_INVITE
+        if guard.DISCLOSURE_ES not in es:
+            es = f"{es} {guard.DISCLOSURE_ES}"
+        text = f"{text} {es}"
+    return text
+
+
+def voice_for(tenant: TenantRecord, lang: str | None) -> tuple[str, str]:
+    """(TTS voice, BCP-47 language) for a turn: the Spanish voice once the caller used Spanish (ADD-ES)."""
+    if lang == "es" and "es" in tenant.config.voice.languages:
+        return tenant.config.voice.tts_voice_es, guard.SPANISH_LANG
+    return tenant.config.voice.tts_voice, guard.ENGLISH_LANG
 
 
 @dataclass
@@ -103,6 +116,7 @@ class VoiceTurn:
     outcome: str | None = None
     actions: list[dict[str, Any]] = field(default_factory=list)
     streamed: bool = False  # the reply was already sent sentence by sentence (relay); only `last` remains
+    lang: str | None = None  # "es" once the caller used Spanish (ADD-ES): TTS voice + STT language follow
 
 
 def _first_sentence_stats(rows: list[list[float]]) -> dict[str, float]:
@@ -236,7 +250,8 @@ class VoiceFlow:
                 [res.first_sentence_ms, res.first_sentence_llm_ms or 0.0]]
         self._persist(tenant, c)
         streamed = res.streamed and reply == res.reply
-        return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions, streamed=streamed)
+        return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions, streamed=streamed,
+                         lang=res.lang or c.meta.get("lang"))
 
     # --- relay socket lost (streaming mode) ---------------------------------------------------------
     def relay_lost(self, tenant: TenantRecord, call_sid: str, now: datetime) -> None:
@@ -293,7 +308,7 @@ class VoiceFlow:
             c.transcript.append({"who": "assistant", "text": DIAL_NO_ANSWER_TEXT})
             self._persist(tenant, c)
             self.rt.deliver(tenant, actions, call_sid)
-            return VoiceTurn(DIAL_NO_ANSWER_TEXT, end=True, outcome=c.outcome, actions=actions)
+            return VoiceTurn(DIAL_NO_ANSWER_TEXT, end=True, outcome=c.outcome, actions=actions, lang=c.meta.get("lang"))
 
     def finalize(self, tenant: TenantRecord, call_sid: str, now: datetime) -> dict[str, Any]:
         """Call is over (caller hung up, we hung up, or Twilio reports a terminal status). Idempotent."""
@@ -389,42 +404,50 @@ def summary(c: Convo) -> str:
 
 # --- TwiML ---------------------------------------------------------------------------------------
 
-def twiml_say_hangup(text: str, voice: str | None = None) -> str:
+def _say(vr: Any, text: str, voice: str | None, lang: str) -> None:
+    kw = {"voice": voice} if voice else {}
+    if lang != guard.ENGLISH_LANG:
+        kw["language"] = lang
+    vr.say(text, **kw)
+
+
+def twiml_say_hangup(text: str, voice: str | None = None, lang: str = guard.ENGLISH_LANG) -> str:
     vr = VoiceResponse()
     if text:
-        vr.say(text, voice=voice) if voice else vr.say(text)
+        _say(vr, text, voice, lang)
     vr.hangup()
     return str(vr)
 
 
-def twiml_gather(text: str, voice: str, barge_in: bool = True) -> str:
+def twiml_gather(text: str, voice: str, barge_in: bool = True, lang: str = guard.ENGLISH_LANG) -> str:
     """Speak `text` and listen. `barge_in=False` (the greeting with the call notice): <Say> before <Gather>, so the
-    caller cannot cut the notice off and nothing they say is processed before it ends."""
+    caller cannot cut the notice off and nothing they say is processed before it ends. `lang` = the STT language and
+    the <Say> language of this turn (es-US once the caller used Spanish)."""
     vr = VoiceResponse()
     if not barge_in:
-        vr.say(text, voice=voice)
+        _say(vr, text, voice, lang)
     g = vr.gather(input="speech", action="/voice/turn", method="POST", speech_model="phone_call", enhanced=True,
-                  speech_timeout="auto", action_on_empty_result=True, language="en-US")
+                  speech_timeout="auto", action_on_empty_result=True, language=lang)
     if barge_in:
-        g.say(text, voice=voice)
+        _say(g, text, voice, lang)
     return str(vr)
 
 
-def twiml_dial(text: str, voice: str, number: str) -> str:
+def twiml_dial(text: str, voice: str, number: str, lang: str = guard.ENGLISH_LANG) -> str:
     vr = VoiceResponse()
     if text:
-        vr.say(text, voice=voice)
+        _say(vr, text, voice, lang)
     vr.dial(number, timeout=DIAL_TIMEOUT_S, action="/voice/dial-result", method="POST")
     return str(vr)
 
 
 def twiml_for(turn: VoiceTurn, tenant: TenantRecord) -> str:
-    voice = tenant.config.voice.tts_voice
+    voice, lang = voice_for(tenant, turn.lang)
     if turn.dial:
-        return twiml_dial(turn.reply, voice, turn.dial)
+        return twiml_dial(turn.reply, voice, turn.dial, lang)
     if turn.end:
-        return twiml_say_hangup(turn.reply, voice)
-    return twiml_gather(turn.reply, voice)
+        return twiml_say_hangup(turn.reply, voice, lang)
+    return twiml_gather(turn.reply, voice, lang=lang)
 
 
 def twiml_reject() -> str:
@@ -515,7 +538,7 @@ async def voice_dial_result(request: Request) -> Response:
         return _xml(twiml_say_hangup(""))
     turn = await run_in_threadpool(rt.flow.dial_result, tenant, str(form.get("CallSid", "")),
                                    str(form.get("DialCallStatus", "")), rt.now())
-    return _xml(twiml_say_hangup(turn.reply, tenant.config.voice.tts_voice))
+    return _xml(twiml_say_hangup(turn.reply, *voice_for(tenant, turn.lang)))
 
 
 @router.post("/voice/status")

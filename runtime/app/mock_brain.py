@@ -18,10 +18,12 @@ PRICE = re.compile(r"\b(how much|price|cost|charge|fee|rate)\b", re.I)
 DISCOUNT = re.compile(r"\b(discount|% off|percent off|coupon|deal)\b", re.I)
 INTENT = re.compile(r"\b(broken|broke|not working|isn'?t working|stopped|repair|fix|leak\w*|warm air|no (cool|cold|heat)|"
                     r"book|appointment|schedule|come out|send someone|tune.?up|maintenance|install|estimate|noise|"
-                    r"blowing|furnace|heater|ac\b|a/c|air condition\w*)", re.I)
-FIRST = re.compile(r"\b(first|earlier|morning|1st|the 1|option 1|sooner|yes|yeah|sure|works|ok(ay)?|perfect|great)\b", re.I)
+                    r"blowing|furnace|heater|ac\b|a/c|air condition\w*|"
+                    r"no funciona|descompu\w+|calefacci[oó]n|aire acondicionado|roto|fuga|t[eé]cnico|cita|calentador)", re.I)
+FIRST = re.compile(r"\b(first|earlier|morning|1st|the 1|option 1|sooner|yes|yeah|sure|works|ok(ay)?|perfect|great|"
+                   r"primer[ao]|s[ií]|claro|la ma[ñn]ana)\b", re.I)
 SECOND = re.compile(r"\b(second|later|afternoon|2nd|option 2|other one)\b", re.I)
-NAME = re.compile(r"\b(?i:my name is|name is|this is|i'?m|i am|it'?s|under)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)")
+NAME = re.compile(r"\b(?i:my name is|name is|this is|i'?m|i am|it'?s|under|mi nombre es|me llamo|soy)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)")
 ADDRESS = re.compile(r"\b\d{1,6}\s+[A-Za-z0-9 .]+?\s(?:st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|way|ct|court|pl|place|pkwy)\b[^\n]*", re.I)
 ZIP = re.compile(r"\b(\d{5})\b")
 JOB_HINTS = [("install", "New install estimate"), ("estimate", "New install estimate"), ("tune", "Maintenance"),
@@ -129,8 +131,42 @@ class MockBrain:
         return {"content": [{"type": "tool_use", "id": f"toolu_mock_{n:03d}", "name": name, "input": args}],
                 "stop_reason": "tool_use"}
 
+    # ADD-ES: a Spanish-speaking customer (the per-turn context says "reply in Spanish") gets the same decisions with the
+    # fixed sentences translated, so Spanish flows are exercised end to end (TTS language, templates, consent) offline.
+    ES = {
+        "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?":
+            "Lamento escuchar eso. Puedo enviar a un técnico. ¿Cuál es el código postal de la dirección?",
+        "Great. What name should I put the booking under?": "Perfecto. ¿A nombre de quién hago la cita?",
+        "Got it. I've passed your message to the team and someone will get back to you soon.":
+            "Entendido. Pasé su mensaje al equipo y alguien se comunicará con usted pronto.",
+        "You're all set. Anything else I can help with?": "Listo, su cita está agendada. ¿Algo más en que pueda ayudarle?",
+    }
+    ES_PATTERNS = [(re.compile(r"^I can get a technician out (.+?)\. Which works better\?$"), "Puedo enviar a un técnico {0}. ¿Cuál le conviene más?"),
+                   (re.compile(r"^Thanks, (\w+)\. What's the street address for the visit\?$"), "Gracias, {0}. ¿Cuál es la dirección de la visita?"),
+                   (re.compile(r"^You're all set for (.+)\.$"), "Listo, su cita quedó para {0}."),
+                   (re.compile(r"^Thanks for reaching out to (.+)\. What can we help you with today\?$"), "Gracias por comunicarse con {0}. ¿En qué podemos ayudarle hoy?")]
+
+    def _translate(self, resp: dict[str, Any]) -> dict[str, Any]:
+        for block in resp.get("content") or []:
+            if block.get("type") != "text":
+                continue
+            text = block.get("text", "")
+            if text in self.ES:
+                block["text"] = self.ES[text]
+                continue
+            for rx, out in self.ES_PATTERNS:
+                if m := rx.match(text):
+                    block["text"] = out.format(*m.groups())
+                    break
+        return resp
+
     def respond(self, request: dict[str, Any]) -> dict[str, Any]:
         resp = self.script.pop(0) if self.script else self._decide(request)
+        ctx = next((b.get("text") or "" for m in reversed(request.get("messages") or []) if m.get("role") == "user"
+                    for b in (m.get("content") if isinstance(m.get("content"), list) else [])
+                    if b.get("type") == "text" and (b.get("text") or "").startswith("[context]")), "")
+        if "reply in Spanish" in ctx:
+            resp = self._translate(json.loads(json.dumps(resp)))
         resp = json.loads(json.dumps(resp))
         size_in = len(request.get("system", "")) + len(json.dumps(request.get("messages", [])))
         resp["usage"] = resp.get("usage") or {"input_tokens": size_in // 4,

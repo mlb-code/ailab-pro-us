@@ -12,7 +12,8 @@ Steps (one key each, optional `advance_minutes` / `advance_seconds` before the s
   jobs: true             POST /jobs/tick (cron)  restart: true (new app, same data)
   burst_calls: {count, within_s, say?}           many calls from one number
   if_open: true on a say/silence/dial step skips it when the call already ended (live model may close first)
-Step `expect`: reply_contains, reply_matches (regex), reply_not_matches, reply_starts_with, reply_empty, end, dial, rejected.
+Step `expect`: reply_contains, reply_matches (regex), reply_not_matches, reply_starts_with, reply_empty, end, dial, rejected,
+  lang (TTS/STT language Twilio would use for the turn, e.g. es-US).
 Final `expect`: outcome, bookings, sms_sent, sms_sent_contains, sms_sent_max, alerts, no_alerts,
   events {type: n}, claude_calls_max, latency_p95_ms_max, opted_out, consent {type: decision},
   transcript_withheld, burst {answered_max, capped,
@@ -219,6 +220,8 @@ def _check_step(out, i: int, exp: dict[str, Any], reply: str | None, turn: CallT
             f.append(f"step {i}: dial {turn.dial!r} != {exp['dial']!r}")
         if "rejected" in exp and turn.rejected != bool(exp["rejected"]):
             f.append(f"step {i}: rejected {turn.rejected} != {exp['rejected']}")
+        if "lang" in exp and turn.lang != exp["lang"]:
+            f.append(f"step {i}: language {turn.lang!r} != {exp['lang']!r}")
 
 
 def _check_final(out, exp: dict[str, Any], sim, tenant, contact, latencies, burst, clock, alert_log) -> None:

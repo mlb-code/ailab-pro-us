@@ -38,6 +38,8 @@ def _norm(sentence: str) -> str:
     return _NORM.sub(" ", sentence.lower()).strip()
 TOOL_FILLERS = {"get_availability": "Let me check the schedule.", "book_slot": "One moment.",
                 "take_message": "One moment.", "handoff": "One moment."}
+TOOL_FILLERS_ES = {"get_availability": "Déjeme revisar la agenda.", "book_slot": "Un momento.",
+                   "take_message": "Un momento.", "handoff": "Un momento."}  # ADD-ES
 
 
 class Speaker:

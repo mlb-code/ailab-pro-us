@@ -41,6 +41,8 @@ class Twiml:
     relay_url: str | None = None
     relay: dict[str, str] = field(default_factory=dict)
     connect_action: str | None = None
+    lang: str | None = None          # <Gather language> / <Say language> of this TwiML (ADD-ES)
+    relay_langs: list[str] = field(default_factory=list)  # <Language code> children of <ConversationRelay>
 
     @property
     def text(self) -> str:
@@ -54,9 +56,13 @@ def parse_twiml(xml: str) -> Twiml:
         tag = el.tag
         if tag == "Say":
             out.says.append((el.text or "").strip())
+            out.lang = el.get("language") or out.lang
         elif tag == "Gather":
             out.gather = True
             out.gather_action = el.get("action")
+            out.lang = el.get("language") or out.lang
+        elif tag == "Language":
+            out.relay_langs.append(el.get("code") or "")
         elif tag == "Dial":
             num = el.find("Number")
             out.dial = (num.text if num is not None else el.text or "").strip()

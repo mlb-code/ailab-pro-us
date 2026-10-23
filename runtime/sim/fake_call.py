@@ -37,6 +37,7 @@ class CallTurn:
     rejected: bool = False
     latency_ms: float = 0.0
     mode: str = ""
+    lang: str | None = None  # TTS/STT language of this turn as Twilio would apply it (gather attr / relay `language` frame)
 
 
 class FakeCall:
@@ -57,6 +58,7 @@ class FakeCall:
         self._ws = None
         self._frames: queue.Queue = queue.Queue()
         self.turns: list[CallTurn] = []
+        self.lang: str | None = None  # stream mode: last `language` frame
 
     # --- helpers -----------------------------------------------------------------------------
     def _from_twiml(self, tw: Twiml, latency_ms: float = 0.0) -> CallTurn:
@@ -67,7 +69,7 @@ class FakeCall:
             self.mode = "stream"
             self.connect_action = tw.connect_action
             self._open(tw.relay_url)
-            return self._keep(CallTurn(text=tw.text, mode="stream"))
+            return self._keep(CallTurn(text=tw.text, mode="stream", lang=tw.relay.get("language") or "en-US"))
         if tw.gather:
             self.mode = self.mode if self.mode == "gather-fallback" else "gather"
             self.action = tw.gather_action
@@ -76,7 +78,7 @@ class FakeCall:
         end = bool(tw.hangup) or (not tw.gather and not tw.dial)
         self.ended = end
         return self._keep(CallTurn(text=tw.text, end=end, dial=tw.dial or None, latency_ms=latency_ms,
-                                   mode=self.mode))
+                                   mode=self.mode, lang=tw.lang or "en-US"))
 
     def _keep(self, turn: CallTurn) -> CallTurn:
         self.turns.append(turn)
@@ -114,12 +116,16 @@ class FakeCall:
                 self.ended = True
                 self._close_ws()
                 return self._keep(CallTurn(text="".join(texts), end=True, mode="stream"))
+            if frame.get("type") == "language":
+                self.lang = frame.get("ttsLanguage")
+                continue
             if frame.get("type") == "text":
                 latency = latency or (time.perf_counter() - t0) * 1000
                 texts.append(frame.get("token", ""))
                 if frame.get("last") and frame.get("interruptible", True):
                     # tokens are concatenated as sent (like Twilio TTS): streamed sentences carry their own spaces
-                    return self._keep(CallTurn(text="".join(texts).strip(), latency_ms=latency, mode="stream"))
+                    return self._keep(CallTurn(text="".join(texts).strip(), latency_ms=latency, mode="stream",
+                                               lang=self.lang or "en-US"))
             elif frame.get("type") == "end":
                 latency = latency or (time.perf_counter() - t0) * 1000
                 handoff = frame.get("handoffData")
@@ -129,7 +135,7 @@ class FakeCall:
                 after = self._from_twiml(parse_twiml(resp.text))
                 self.turns.pop()
                 turn = CallTurn(text=" ".join(["".join(texts), after.text]).strip(), end=after.end, dial=after.dial,
-                                latency_ms=latency, mode="stream")
+                                latency_ms=latency, mode="stream", lang=self.lang or "en-US")
                 return self._keep(turn)
 
     # --- the caller's actions -------------------------------------------------------------------

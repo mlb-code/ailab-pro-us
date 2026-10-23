@@ -1,0 +1,15 @@
+description: Spanish compliance keywords (AYUDA, PARAR, INICIAR) are answered in Spanish without Claude; STOP/HELP keep working in English.
+channel: sms
+patch: {config: {voice: {languages: [en, es]}}}
+turns:
+  - say: "AYUDA"
+    expect: {guard: [help], reply_contains: ["Asistente virtual de Cool Breeze HVAC", "+17135550100", "PARAR"], claude_calls: 0}
+  - say: "PARAR"
+    expect: {guard: [stop], reply_contains: ["se ha dado de baja", "INICIAR"], claude_calls: 0}
+  - say: "hola, necesito una cita"
+    expect: {reply_empty: true, guard: [opted_out], claude_calls: 0}
+  - say: "INICIAR"
+    expect: {guard: [start], reply_contains: ["se ha vuelto a suscribir"], claude_calls: 0}
+  - say: "HELP"
+    expect: {reply_contains: ["Reply STOP"], claude_calls: 0}
+expect: {opted_out: false, claude_calls_total: 0}
