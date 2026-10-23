@@ -1,121 +1,5 @@
 {
- "2b86fab00027f9ae8ea04cc4": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_012j7tD7FjygdAzdL1VDhMGn",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": null,
-    "first_text_ms": null,
-    "total_ms": 805.4
-   },
-   "usage": {
-    "cache_creation_input_tokens": 131,
-    "cache_read_input_tokens": 2822,
-    "input_tokens": 2,
-    "output_tokens": 1
-   }
-  }
- },
- "30389b93f6d8bab6c64d6341": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My furnace stopped working, I'm in 77019",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry to hear your furnace stopped working. Let me check the schedule for a furnace repair visit in your area.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01QdwWkuGJYKkDZywPzyndh3",
-     "input": {
-      "date_from": "2026-10-12",
-      "job_type": "Furnace repair",
-      "zip": "77019"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 718.6,
-    "first_text_ms": 718.8,
-    "total_ms": 1282.1
-   },
-   "usage": {
-    "cache_creation_input_tokens": 143,
-    "cache_read_input_tokens": 1916,
-    "input_tokens": 4,
-    "output_tokens": 144
-   }
-  }
- },
- "71bfa0f89205cbdebb954d72": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_01QdwWkuGJYKkDZywPzyndh3",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I have two openings: today, Monday October 12, from 12 PM to 4 PM, or tomorrow, Tuesday October 13, from 8 AM to 12 PM. Which one would you like?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 830.9,
-    "first_text_ms": 831.0,
-    "total_ms": 1049.1
-   },
-   "usage": {
-    "cache_creation_input_tokens": 318,
-    "cache_read_input_tokens": 2059,
-    "input_tokens": 2,
-    "output_tokens": 66
-   }
-  }
- },
- "721030cf338e60bd6caf33bf": {
+ "24b3671bef55b619fd2e5f63": {
   "request": {
    "last_message": {
     "content": [
@@ -166,7 +50,58 @@
    }
   }
  },
- "e451f0962b6e6d4e05c4da12": {
+ "6fec5e2cfdb3b7d2a5126cd1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My furnace stopped working, I'm in 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear your furnace stopped working. Let me check the schedule for a furnace repair visit in your area.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01QdwWkuGJYKkDZywPzyndh3",
+     "input": {
+      "date_from": "2026-10-12",
+      "job_type": "Furnace repair",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 718.6,
+    "first_text_ms": 718.8,
+    "total_ms": 1282.1
+   },
+   "usage": {
+    "cache_creation_input_tokens": 143,
+    "cache_read_input_tokens": 1916,
+    "input_tokens": 4,
+    "output_tokens": 144
+   }
+  }
+ },
+ "718ad413740373c77372f240": {
   "request": {
    "last_message": {
     "content": [
@@ -209,6 +144,71 @@
     "cache_read_input_tokens": 2536,
     "input_tokens": 2,
     "output_tokens": 119
+   }
+  }
+ },
+ "763037b587f463f7853688fa": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_01QdwWkuGJYKkDZywPzyndh3",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I have two openings: today, Monday October 12, from 12 PM to 4 PM, or tomorrow, Tuesday October 13, from 8 AM to 12 PM. Which one would you like?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 830.9,
+    "first_text_ms": 831.0,
+    "total_ms": 1049.1
+   },
+   "usage": {
+    "cache_creation_input_tokens": 318,
+    "cache_read_input_tokens": 2059,
+    "input_tokens": 2,
+    "output_tokens": 66
+   }
+  }
+ },
+ "db53ab204771d7debbea3806": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_012j7tD7FjygdAzdL1VDhMGn",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": null,
+    "first_text_ms": null,
+    "total_ms": 805.4
+   },
+   "usage": {
+    "cache_creation_input_tokens": 131,
+    "cache_read_input_tokens": 2822,
+    "input_tokens": 2,
+    "output_tokens": 1
    }
   }
  }

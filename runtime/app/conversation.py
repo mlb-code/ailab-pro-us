@@ -78,6 +78,15 @@ class Convo:
     claude_calls: int = 0
     prior: str = ""          # what we sent before the customer wrote (e.g. the missed-call text-back)
     meta: dict[str, Any] = field(default_factory=dict)  # channel data: call row id, turn timings, flags
+    collected: dict[str, str] = field(default_factory=dict)  # name/address/job_type/zip seen in any tool call so far
+
+    def collect(self, **details: Any) -> None:
+        """Remember customer details from a tool call (even one that failed), so a hang-up or a message
+        after them still reaches the owner with the name, address and job type already given."""
+        for k, v in details.items():
+            v = str(v or "").strip()
+            if v:
+                self.collected[k] = v[:200]
 
     def set_outcome(self, outcome: str) -> None:
         if OUTCOME_RANK.get(outcome, 0) > OUTCOME_RANK.get(self.outcome or "", 0):
@@ -196,7 +205,7 @@ class Engine:
             c.set_outcome(outcome)
         if alert_kind:
             if outcome == "message" and not c.message and not c.booking:
-                c.message = {"summary": summary[:300], "urgency": c.urgency}
+                c.message = {"summary": summary[:300], "urgency": c.urgency, **self._details(c)}
             self._alert(c, actions, alert_kind, summary)
         c.ended = True
         self.save_convo(c)
@@ -215,6 +224,15 @@ class Engine:
     @staticmethod
     def local_day(tenant: TenantRecord, now: datetime) -> str:
         return now.astimezone(ZoneInfo(tenant.config.business.timezone)).date().isoformat()
+
+    @staticmethod
+    def _details(c: Convo, **given: Any) -> dict[str, str | None]:
+        """name / address / job_type for a message: what this tool call gave, else what earlier calls collected."""
+        out: dict[str, str | None] = {}
+        for k in ("name", "address", "job_type"):
+            v = str(given.get(k) or "").strip() or c.collected.get(k) or ""
+            out[k] = v[:200] or None
+        return out
 
     def _alert(self, c: Convo, actions: list, kind: str, summary: str) -> None:
         if kind in c.alerted:
@@ -452,7 +470,8 @@ class Engine:
             notes.append("recording_objection")
             self._withhold_transcript(c)
             if not c.message and not c.booking:
-                c.message = {"summary": "Caller objected to recording; call them back", "urgency": c.urgency, "name": None}
+                c.message = {"summary": "Caller objected to recording; call them back", "urgency": c.urgency, "name": None,
+                             "address": None, "job_type": None}  # nothing collected is kept either
             self._alert(c, actions, "lead", "Caller asked not to be recorded; please call them back")
             return guard.RECORDING_OBJECTION_TEXT, True, "message"
         if c.meta.get("sms_consent") == "asked":
@@ -570,7 +589,7 @@ class Engine:
         if not zip_code or guard.zip_in_area(zip_code, cfg) or c.booking or c.message:
             return
         c.message = {"summary": f"Customer outside the service area (ZIP {zip_code})", "urgency": c.urgency,
-                     "name": None}
+                     **self._details(c)}
         c.set_outcome("message")
         notes.append("out_of_area_lead")
         self._alert(c, actions, "lead", c.message["summary"])
@@ -595,6 +614,9 @@ class Engine:
                  actions: list, name: str, args: dict[str, Any]) -> dict[str, Any]:
         cfg = tenant.config
         if name == "get_availability":
+            if args.get("job_type") in cfg.booking.job_types:
+                c.collect(job_type=args.get("job_type"))
+            c.collect(zip=guard.find_zip(str(args.get("zip") or "")))
             if args.get("job_type") not in cfg.booking.job_types:
                 return {"ok": False, "reason": "unknown_job_type", "job_types": list(cfg.booking.job_types)}
             if not guard.zip_in_area(str(args.get("zip") or ""), cfg):
@@ -612,6 +634,8 @@ class Engine:
 
         if name == "book_slot":
             slot_id = str(args.get("slot_id") or "")
+            c.collect(name=args.get("name"), address=args.get("address"),
+                      job_type=args.get("job_type") if args.get("job_type") in cfg.booking.job_types else "")
             if slot_id not in c.offered:
                 return {"ok": False, "reason": "unknown_slot"}
             if c.booking:
@@ -633,7 +657,7 @@ class Engine:
                     # Same number already booked that day: never a second booking, always a lead for the team
                     # (enforced here; the model may not call take_message on its own).
                     c.message = {"summary": "Customer already booked that day and called again", "urgency": c.urgency,
-                                 "name": details["name"] or None}
+                                 **self._details(c, **details)}
                     c.set_outcome("message")
                     self._alert(c, actions, "lead", c.message["summary"])
                 return {"ok": False, "reason": res.get("reason", "booking_failed")}
@@ -650,9 +674,9 @@ class Engine:
 
         if name == "take_message":
             urgency = "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal"
-            name_arg = args.get("name")
-            c.message = {"summary": str(args.get("summary") or "")[:300], "urgency": urgency,
-                         "name": str(name_arg)[:80] if name_arg else None}
+            c.collect(name=args.get("name"), address=args.get("address"),
+                      job_type=args.get("job_type") if args.get("job_type") in cfg.booking.job_types else "")
+            c.message = {"summary": str(args.get("summary") or "")[:300], "urgency": urgency, **self._details(c)}
             c.set_outcome("message")
             self._alert(c, actions, "lead", c.message["summary"])
             out = {"ok": True}

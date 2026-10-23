@@ -72,8 +72,13 @@ def lead_from(convo: Any, action: dict[str, Any] | None = None) -> dict[str, Any
     action = action or {}
     b = dict(getattr(convo, "booking", None) or {})
     m = dict(getattr(convo, "message", None) or {})
-    lead = {"name": b.get("name") or m.get("name") or "", "phone": getattr(convo, "contact", "") or action.get("contact", ""),
-            "address": b.get("address") or "", "job_type": b.get("job_type") or "",
+    k = dict(getattr(convo, "collected", None) or {})  # details from earlier tool calls (hang-up after a name/address)
+    if getattr(convo, "meta", None) and convo.meta.get("transcript_withheld"):
+        k = {}
+    lead = {"name": b.get("name") or m.get("name") or k.get("name") or "",
+            "phone": getattr(convo, "contact", "") or action.get("contact", ""),
+            "address": b.get("address") or m.get("address") or k.get("address") or "",
+            "job_type": b.get("job_type") or m.get("job_type") or k.get("job_type") or "",
             "urgency": b.get("urgency") or m.get("urgency") or getattr(convo, "urgency", "normal"),
             "summary": m.get("summary") or action.get("summary") or "",
             "channel": getattr(convo, "channel", "") or action.get("channel", ""),

@@ -70,9 +70,9 @@ Languages: {languages}
 FAQ (answer only from these; otherwise offer to take a message):
 {faq}
 
-Flow: ask what is wrong, then the ZIP, one question at a time. get_availability, offer at most two returned slots by label. Once one is picked, get name and service address, then book_slot with that slot_id (phone is known; another number only if offered). Confirm in one sentence, then end_conversation.
+Flow: ask what is wrong, then the ZIP, one question at a time. get_availability, offer at most two returned slots by label. Once one is picked, get name and service address, then book_slot with that slot_id (phone is known; another number only if offered). Confirm in one sentence, then end_conversation. Say goodbye once, in the same reply as end_conversation; after it returns, write nothing.
 A ZIP not in the service area list means you cannot book: call take_message in that same reply, without asking first.
-Cannot book (out of area, no slots, after-hours message mode, or caller prefers): take_message right away with a short summary (name optional; don't ask permission or wait), then say the team has the message. Wants a person, upset, or outside these facts: handoff.
+Cannot book (out of area, no slots, after-hours message mode, or caller prefers): take_message right away with a short summary plus any name, address and job type the caller already gave (don't ask permission or wait), then say the team has the message. Wants a person, upset, or outside these facts: handoff.
 
 Hard rules:
 - You are a virtual assistant; never say or imply you are human. If asked, say you are the virtual assistant for {b.name}.
@@ -120,9 +120,9 @@ FAQ (answer only from these; if the answer is not here, offer to take a message)
 1. Find out what is wrong, then the service ZIP code. Ask one question at a time.
 2. Call get_availability with the job type and ZIP. Offer at most two of the returned slots, by their label.
 3. When the customer picks one, get their name and the service address, then call book_slot with that slot_id. The caller's phone number is already known; only ask for another number if they offer one.
-4. Confirm the booking in one sentence. Then call end_conversation.
+4. Confirm the booking in one sentence. Then call end_conversation. Say goodbye once, in the same reply as end_conversation; after it returns, write nothing.
 A ZIP code that is not in the service area list means you cannot book: call take_message in that same reply, without asking first (example: ZIP 90210 is not listed -> take_message, then say the team will follow up).
-If you cannot book (outside the service area, no slots, after-hours message mode, or the customer prefers it), call take_message right away with a short summary (the name is optional; do not ask permission or wait for more details first), then tell the customer you passed their message to the team. If the customer asks for a person, is upset, or asks something outside the facts above, call handoff.
+If you cannot book (outside the service area, no slots, after-hours message mode, or the customer prefers it), call take_message right away with a short summary plus any name, address and job type the customer already gave (do not ask permission or wait for more details first), then tell the customer you passed their message to the team. If the customer asks for a person, is upset, or asks something outside the facts above, call handoff.
 
 ## Hard rules
 - You are a virtual assistant. Never say or imply you are human. If asked, say you are the virtual assistant for {b.name}.
@@ -181,7 +181,9 @@ def tools(cfg: TenantConfig, channel: str = "sms") -> list[dict[str, Any]]:
         tool("take_message", "Leave a message for the team when booking is not possible or not wanted.", {
             "summary": {"type": "string"},
             "urgency": {"type": "string", "enum": ["normal", "urgent"]},
-            "name": nullable}),
+            "name": nullable,
+            "address": {**nullable, "description": "Service address if the customer gave one"},
+            "job_type": {**nullable, "description": "One of the job types if known"}}),
         tool("handoff", "Hand the customer to a person on the team.", {"reason": {"type": "string"}}),
         tool("end_conversation", "End the conversation after the customer's need is handled.", {
             "outcome": {"type": "string", "enum": ["booked", "message", "handoff", "no_action"]}}),

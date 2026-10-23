@@ -1,51 +1,5 @@
 {
- "0d5c57e837bfacb57c9d4b21": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
-      "tool_use_id": "toolu_015MnSH1WHsmycR8jiHS9D1a",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks! Your request has been passed to the Cool Breeze HVAC team, and they will follow up with you.",
-     "type": "text"
-    },
-    {
-     "caller": {
-      "type": "direct"
-     },
-     "id": "toolu_01U7Y7hat8wTxHVsCTrGYcNY",
-     "input": {
-      "outcome": "message"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "timing": {
-    "first_block_ms": 727.3,
-    "first_text_ms": 727.4,
-    "total_ms": 1059.5
-   },
-   "usage": {
-    "cache_creation_input_tokens": 214,
-    "cache_read_input_tokens": 2246,
-    "input_tokens": 2,
-    "output_tokens": 88
-   }
-  }
- },
- "539e14c6d98d8fc45428f11f": {
+ "808c418aa7db1441987d4345": {
   "request": {
    "last_message": {
     "content": [
@@ -96,7 +50,53 @@
    }
   }
  },
- "fe38ed1298f9ccd2edde1c32": {
+ "81ab846b5324093b419dc69d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
+      "tool_use_id": "toolu_015MnSH1WHsmycR8jiHS9D1a",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks! Your request has been passed to the Cool Breeze HVAC team, and they will follow up with you.",
+     "type": "text"
+    },
+    {
+     "caller": {
+      "type": "direct"
+     },
+     "id": "toolu_01U7Y7hat8wTxHVsCTrGYcNY",
+     "input": {
+      "outcome": "message"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "timing": {
+    "first_block_ms": 727.3,
+    "first_text_ms": 727.4,
+    "total_ms": 1059.5
+   },
+   "usage": {
+    "cache_creation_input_tokens": 214,
+    "cache_read_input_tokens": 2246,
+    "input_tokens": 2,
+    "output_tokens": 88
+   }
+  }
+ },
+ "a4864db01ee9743eff380541": {
   "request": {
    "last_message": {
     "content": [

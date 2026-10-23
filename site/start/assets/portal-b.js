@@ -25,9 +25,12 @@
   // carrier instructions for "forward when busy / no answer". {n} = 10-digit forwarding number, {N} = 1 + number
   const CARRIERS = [
     ['verizon', 'Verizon', ['On your business phone, dial <b class="mono">*71{n}</b> and press Call. Wait for the confirmation tone, then hang up.', 'To turn it off later: dial <b class="mono">*73</b>.']],
-    ['att', 'AT&T', ['Dial <b class="mono">**61*{N}#</b> (no answer), then <b class="mono">**67*{N}#</b> (busy) and <b class="mono">**62*{N}#</b> (unreachable). Press Call after each.', 'To turn it off later: dial <b class="mono">##004#</b>.']],
+    // AT&T publishes no dial codes: forwarding is set in the phone itself (att.com/support/article/wireless/KM1011513,
+    // Android path from att.com/device-support/article/140337/Google/pixel-10). iOS has only "forward all calls".
+    ['att', 'AT&T', ['AT&T sets this in your phone, not with a dial code. <b>Android:</b> Phone app → Settings → Calling accounts → your SIM → Call forwarding. Turn on <b>When unanswered</b> and <b>When busy</b> (and <b>When unreachable</b>) and enter <b class="mono">{fmt}</b> for each.', 'Leave <b>Always forward</b> off, so your phone still rings first.', '<b>iPhone:</b> Settings → Phone → Call Forwarding forwards <i>every</i> call. For “busy / no answer” only, use “Need help with this step?” below and we’ll set it up with you.', 'To turn it off later: switch the same options off.']],
     ['tmobile', 'T-Mobile', ['Dial <b class="mono">**61*{N}#</b> (no answer), then <b class="mono">**67*{N}#</b> (busy) and <b class="mono">**62*{N}#</b> (unreachable). Press Call after each.', 'To turn it off later: dial <b class="mono">##004#</b>.']],
-    ['comcast', 'Comcast Business', ['Sign in to Comcast Business Voice Manager → Call Forwarding.', 'Choose “Forward when busy or no answer” and enter <b class="mono">{fmt}</b>. Save.']],
+    // Comcast Business VoiceEdge star codes (Comcast sheet SLS90624, 2018): busy *90 / off *91, no answer *92 / off *93.
+    ['comcast', 'Comcast Business', ['On your Comcast Business (VoiceEdge) phone, dial <b class="mono">*92</b>, then <b class="mono">{n}</b> (no answer). Then dial <b class="mono">*90</b>, then <b class="mono">{n}</b> (busy). Wait for the confirmation after each.', 'Or in the Comcast Business app / VoiceEdge portal: Call Forwarding → turn on <b>No Answer</b> and <b>Busy</b>, forward to <b class="mono">{fmt}</b>. Save.', 'To turn it off later: dial <b class="mono">*93</b> (no answer) and <b class="mono">*91</b> (busy).', 'Other Comcast Business phone products use their own guide: use “Need help with this step?” if these don’t match your phone.']],
     ['ringcentral', 'RingCentral', ['In the RingCentral admin portal open your number → Call Handling & Forwarding.', 'Under “When no one answers”, forward to the external number <b class="mono">{fmt}</b>. Save.']],
     ['googlevoice', 'Google Voice', ['Google Voice can’t pass unanswered calls to another number on every plan.', 'Use “Need help with this step?” below and we’ll work it out with you in writing.']],
     ['other', 'Other / not sure', ['Look for “conditional call forwarding” or “forward when busy / no answer” in your phone provider’s settings or support pages.', 'Forward to <b class="mono">{fmt}</b>.']]];
@@ -305,11 +308,16 @@
       case 'calendar': {
         const prov = data.provider || '';
         const g = data.provider === 'google' && data.connected_at;
+        const cly = data.provider === 'calendly' && data.connected_at && data.oauth_at;  // OAuth done (not just the link)
         return '<p>Your receptionist books into your calendar: <b>Calendly (paid plan) or Google Calendar (free)</b>. Calendly’s booking connection needs a paid Calendly plan on your account.</p>' +
           '<fieldset class="field"><legend class="label">Your calendar</legend><div class="choices choices--compact" role="radiogroup" aria-label="Your calendar">' +
           ['calendly', 'google'].map(v => '<label class="choice"><input type="radio" name="ob_prov" value="' + v + '"' + (prov === v ? ' checked' : '') + '><span class="choice__t">' + (v === 'calendly' ? 'Calendly (paid plan)' : 'Google Calendar (free)') + '</span></label>').join('') + '</div></fieldset>' +
           '<div id="ob_cal_calendly"' + (prov === 'calendly' ? '' : ' hidden') + '><div class="field"><label for="ob_cly">Your Calendly booking link</label><span class="hint" id="ob_clyH">Looks like https://calendly.com/your-name/service-call</span>' +
-          '<input class="input" id="ob_cly" inputmode="url" aria-describedby="ob_clyH" value="' + esc(data.booking_link || '') + '"></div>' + saveBtn(it, 'Connect Calendly') + '</div>' +
+          '<input class="input" id="ob_cly" inputmode="url" aria-describedby="ob_clyH" value="' + esc(data.booking_link || '') + '"></div>' + saveBtn(it, 'Save Calendly link') +
+          '<h3 class="h-sub">Allow booking</h3>' + (cly ? S.msgHtml('Connected — Calendly account, ' + S.fmtDate(data.oauth_at) + '.', 'ok') : '') +
+          (d.tenant ? '<p>The link alone isn’t enough: to book visits, your receptionist needs permission from your Calendly account. You’ll sign in with Calendly and allow it. We never see your password.</p><div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_calendly">' + (cly ? 'Reconnect Calendly account' : 'Connect Calendly account') + '</button></div><div id="msg_calendly" aria-live="polite"></div>'
+            : '<p class="muted">The “Connect Calendly account” button turns on once we’ve set up your receptionist — we’ll email you. Save your link now.</p>') +
+          '<p class="notice" role="note" id="ob_clyq">One more thing in Calendly: open your event type → <b>Invitee questions</b> and add a question named exactly <b class="mono">Job details</b> (optional, one line). Your receptionist writes the caller’s phone, job and address into it, so they show on every booking.</p></div>' +
           '<div id="ob_cal_google"' + (prov === 'google' ? '' : ' hidden') + '>' + (g ? S.msgHtml('Connected — Google Calendar, ' + S.fmtDate(data.connected_at) + '.', 'ok') : '') +
           (d.tenant ? '<p>You’ll sign in with Google and allow access to calendar events only. We never see your password.</p><div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_google">' + (g ? 'Reconnect Google Calendar' : 'Connect Google Calendar') + '</button></div><div id="msg_google" aria-live="polite"></div>'
             : '<p class="muted">This button turns on once we’ve set up your receptionist — we’ll email you. You can pick Calendly now instead.</p>') + '</div>';
@@ -475,6 +483,12 @@
       try { const r = await B.calendarConnectUrl(d.tenant.id, 'google'); location.assign(r.url); }
       catch (e) { gb.disabled = false; errBox('msg_google', [/not configured|503/.test(String(e && e.message)) ? 'Google Calendar connection isn’t available yet. Choose Calendly or use “Need help”.' : settingsErr(e)]); }
     });
+    const cb = S.$('#ob_calendly');
+    if (cb) cb.addEventListener('click', async () => {
+      cb.disabled = true;
+      try { const r = await B.calendarConnectUrl(d.tenant.id, 'calendly'); location.assign(r.url); }
+      catch (e) { cb.disabled = false; errBox('msg_calendly', [/not configured|503/.test(String(e && e.message)) ? 'Calendly connection isn’t available yet. Save your link and use “Need help” and we’ll connect it with you.' : settingsErr(e)]); }
+    });
     const car = S.$('#ob_car');
     if (car) car.addEventListener('change', async () => {
       S.$('#ob_carhow').innerHTML = carrierHow(car.value, d.tenant && d.tenant.twilio_number);
@@ -538,8 +552,9 @@
     history.replaceState(null, '', '/start/#onboarding');
     const it = d.ob.find(o => o.key === 'calendar');
     if (res === 'connected' && it && ['google', 'calendly'].indexOf(prov) !== -1) {
-      try { await B.updateOnboarding(it.id, 'done', { provider: prov, connected_at: new Date().toISOString() }); } catch (e) { /* shown below */ }
-      state.calendarReturn = { text: (prov === 'google' ? 'Google Calendar' : 'Calendly') + ' connected. Thank you!', kind: 'ok' };
+      const at = new Date().toISOString();  // data is merged server-side: the saved Calendly link stays
+      try { await B.updateOnboarding(it.id, 'done', Object.assign({ provider: prov, connected_at: at }, prov === 'calendly' ? { oauth_at: at } : {})); } catch (e) { /* shown below */ }
+      state.calendarReturn = { text: (prov === 'google' ? 'Google Calendar' : 'Calendly account') + ' connected. Thank you!' + (prov === 'calendly' ? ' Remember the “Job details” question in Calendly.' : ''), kind: 'ok' };
     } else state.calendarReturn = { text: res === 'cancelled' ? 'Calendar connection was cancelled. You can try again any time.' : 'The calendar didn’t connect. Please try again or use “Need help”.', kind: res === 'cancelled' ? 'info' : 'err' };
     state.open = 'calendar';
     return true;

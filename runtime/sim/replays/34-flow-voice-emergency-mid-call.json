@@ -1,4 +1,42 @@
 {
+ "5a6e7bba30a7d1ec7dce80c3": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My AC is making a weird noise",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I'm sorry to hear that. Let me help get a technician out to look at it. What ZIP code is the property in?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "timing": {
+    "first_block_ms": 588.4,
+    "first_text_ms": 588.6,
+    "total_ms": 871.8
+   },
+   "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2053,
+    "input_tokens": 4,
+    "output_tokens": 38
+   }
+  }
+ },
  "a3a786b1e145b15b8c18fe6e": {
   "request": {
    "last_message": {
@@ -37,45 +75,7 @@
    }
   }
  },
- "d2826629f41731e61d3d0e7f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My AC is making a weird noise",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I'm sorry to hear that. Let me help get a technician out to look at it. What ZIP code is the property in?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "timing": {
-    "first_block_ms": 588.4,
-    "first_text_ms": 588.6,
-    "total_ms": 871.8
-   },
-   "usage": {
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 2053,
-    "input_tokens": 4,
-    "output_tokens": 38
-   }
-  }
- },
- "fcf9036960b99d936e47a131": {
+ "eaf605db67b71bec6e621e71": {
   "request": {
    "last_message": {
     "content": [

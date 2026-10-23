@@ -13,6 +13,8 @@ sentence before it is handed to the sink (ConversationRelay `text` token). Guard
 - Tool fillers: when Claude starts a tool call before anything was said in this turn, a fixed,
   guard-safe line ("Let me check the schedule." / "One moment.") is spoken at once, so the caller
   hears something while the tool and the next Claude call run (one per turn; `claude.voice.tool_fillers`).
+- A sentence already spoken in this turn is dropped (`Speaker.repeated`): in the live runs Claude
+  wrote the goodbye next to `end_conversation` and once more after the tool result.
 - A final pass over the full spoken reply catches anything spanning two sentences. It can no
   longer stop the audio; it is logged (`reply_late:<rule>`) and its side effects (alerts) apply.
   Trade-off accepted for latency; every single-sentence rule still blocks before speaking.
@@ -28,6 +30,12 @@ from typing import Callable
 from .guard import VOICE_MAX_SENTENCES, ReplyCheck
 
 _BOUNDARY = re.compile(r"(?<=[.!?])\s+")
+_NORM = re.compile(r"[^a-z0-9]+")
+
+
+def _norm(sentence: str) -> str:
+    """Comparison key for the repeat guard: letters and digits only, lower case."""
+    return _NORM.sub(" ", sentence.lower()).strip()
 TOOL_FILLERS = {"get_availability": "Let me check the schedule.", "book_slot": "One moment.",
                 "take_message": "One moment.", "handoff": "One moment."}
 
@@ -46,6 +54,8 @@ class Speaker:
         self.first_at: float | None = None  # perf_counter when the first sentence was handed to the sink
         self._buf = ""
         self._count = 0  # sentences of the current Claude response
+        self._said: set[str] = set()  # normalized sentences already spoken this turn (repeat guard)
+        self.repeated: list[str] = []  # Claude sentences dropped because they were already spoken
 
     # --- streaming input ---------------------------------------------------------------------
     def feed(self, delta: str) -> None:
@@ -78,6 +88,7 @@ class Speaker:
         if not text:
             return
         self.spoken.append(text)
+        self._said.add(_norm(text))
         if self.first_at is None:
             self.first_at = time.perf_counter()
         if self.sink is not None:
@@ -90,6 +101,12 @@ class Speaker:
     def _sentence(self, sentence: str) -> None:
         sentence = sentence.strip()
         if not sentence or self.blocked or self._count >= self.max_sentences:
+            return
+        if _norm(sentence) in self._said:
+            # Live run 22.10: Claude wrote the goodbye next to end_conversation and again after the tool result,
+            # so the caller heard "Thanks for calling... Goodbye." twice. A sentence already spoken in this
+            # turn is never spoken (or transcribed) again.
+            self.repeated.append(sentence)
             return
         self._count += 1
         checked = self.check(sentence)
