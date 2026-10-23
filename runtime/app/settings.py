@@ -92,6 +92,10 @@ class Settings:
     twilio_account_sid: str = ""
     jobs_token: str = field(default="", repr=False)  # accepted by /jobs/tick as RUNTIME_ADMIN_TOKEN alias
     jobs_loop_s: float = 0.0  # optional; the cron is POST /jobs/tick. > 0: also run SMS jobs in-process
+    # ADD-DISPATCH staff alerts by SMS: global switch, OFF by default until the A2P 10DLC campaign (and its use-case
+    # wording for internal staff alerts) is approved. Off = alerts go by voice call; the tenant flag
+    # dispatch.sms_alerts is needed as well.
+    dispatch_sms_alerts: bool = False
     # Appointment manager (2026-10-23). OFF by default: texting is not live until A2P 10DLC is approved.
     # SMS_BOOKING_REPLIES=1: confirmation/reminder texts ask "Reply C/R/X", the replies confirm / change / cancel, and a
     # booking moved by phone gets a new confirmation + reminder (still only with the caller's texting yes).
@@ -173,6 +177,7 @@ def load(env: dict[str, str] | None = None) -> Settings:
         twilio_account_sid=env.get("TWILIO_ACCOUNT_SID", ""),
         jobs_token=env.get("JOBS_TOKEN", ""),
         jobs_loop_s=float(env.get("JOBS_LOOP_SECONDS", "0")),
+        dispatch_sms_alerts=(env.get("DISPATCH_SMS_ALERTS") or "0").strip().lower() in ("1", "true", "yes", "on"),
         sms_booking_replies=(env.get("SMS_BOOKING_REPLIES") or "0").strip().lower() in ("1", "true", "yes", "on"),
         weekly_report=(env.get("WEEKLY_REPORT") or "0").strip().lower() in ("1", "true", "yes", "on"),
     )

@@ -49,6 +49,8 @@ class FakeCall:
         self.mode = ""
         self.action: str | None = None
         self.dial_action: str | None = None
+        self.dial_url: str | None = None
+        self.dialed: str | None = None
         self.connect_action: str | None = None
         self.started_at: datetime | None = None
         self.ended = False
@@ -73,6 +75,8 @@ class FakeCall:
             self.action = tw.gather_action
         if tw.dial:
             self.dial_action = tw.dial_action
+            self.dial_url = tw.dial_url
+            self.dialed = tw.dial
         end = bool(tw.hangup) or (not tw.gather and not tw.dial)
         self.ended = end
         return self._keep(CallTurn(text=tw.text, end=end, dial=tw.dial or None, latency_ms=latency_ms,
@@ -159,6 +163,18 @@ class FakeCall:
         resp = self.twilio.dial_result(self.to, self.caller, self.call_sid, status,
                                        path=self.dial_action or "/voice/dial-result")
         return self._from_twiml(parse_twiml(resp.text))
+
+    def whisper(self, digits: str = "1") -> Twiml:
+        """The dialed person answers: Twilio fetches the <Number url> (whisper) on their leg, then posts the
+        <Gather> digits ("" = they pressed nothing: the document falls through to <Hangup>)."""
+        assert self.dial_url, "no whisper on this dial"
+        leg_sid = sid("CA")
+        params = self.twilio.call_params(self.dialed or "", self.caller, leg_sid, ParentCallSid=self.call_sid,
+                                         Direction="outbound-api")
+        tw = parse_twiml(self.twilio.post(self.dial_url, params).text)
+        if not digits or not tw.gather_action:
+            return tw
+        return parse_twiml(self.twilio.post(tw.gather_action, {**params, "Digits": digits}).text)
 
     def _twilio_closes_socket(self) -> None:
         """Twilio's side closes the socket; wait until the runtime has handled it (no task cancellation)."""

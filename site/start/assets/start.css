@@ -211,6 +211,11 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:4px}
 .ppay__msg:empty{display:none}
 .ppay-card{min-width:0}
 .ppay-card>.ppay{margin-top:0;border:0;padding:0;background:none}
+/* ADD-DISPATCH on-call editor (portal-dispatch.js) */
+.dperson,.dshift{padding:12px;border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:10px;min-width:0}
+.dperson .field{margin-bottom:10px}
+.dshift .row{flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.dshift select.input{width:auto;max-width:100%;min-width:0}
 
 /* Results tab (appointment manager, portal-results.js) */
 .rs__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:12px 0 16px}

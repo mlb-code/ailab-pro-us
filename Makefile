@@ -63,6 +63,10 @@ qa-admin:
 	E2E_PORT=$(FREE) $(NODE) tools/overflow_admin.mjs
 
 # Portal phase B (B7): E2E + overflow on the mock backend, and the B7 SQL test (PGlite, offline).
+# ADD-DISPATCH portal section (on-call editor + urgent call log) on the mock backend
+qa-dispatch:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_dispatch.mjs
+
 qa-portal-b7:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_portal_b7.mjs
 	E2E_PORT=$(FREE) $(NODE) tools/overflow_portal_b7.mjs
@@ -93,8 +97,9 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/quote_engine_run.ts
 	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
 	$(DENO_RUN) supabase/tests/offline/paypal_run.ts
+	$(DENO_RUN) supabase/tests/offline/dispatch_run.ts
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-appointments qa-phase-a qa-paypal
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------

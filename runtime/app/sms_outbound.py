@@ -127,7 +127,7 @@ class Outbound:
             reason = "opted_out"
         elif not tenant.active:
             reason = "tenant_paused"
-        elif not direct_reply and not guard.send_window_ok(cfg, now, to, WINDOW_OF.get(kind, "scheduled")):
+        elif not direct_reply and kind != "staff_alert" and not guard.send_window_ok(cfg, now, to, WINDOW_OF.get(kind, "scheduled")):
             reason = "quiet_hours"
         elif self.client is None or not tenant.twilio_number:
             reason = "no_twilio_client"
@@ -257,6 +257,8 @@ class Outbound:
                    for r in ts.select("calls", from_e164=job["contact"]))
 
     def _run(self, tenant: TenantRecord, job: dict[str, Any], now: datetime) -> dict[str, Any]:
+        if job["kind"] == "dispatch_alert":  # ADD-DISPATCH: the one repeat of the on-call alert (app.dispatch)
+            return self.rt.dispatcher.run_job(tenant, job, now)
         cfg = tenant.config
         contact = job["contact"]
         ts = self.store.for_tenant(tenant.id)

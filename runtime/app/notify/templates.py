@@ -119,12 +119,25 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
     return subject, text, html_, sms
 
 
+def dispatch_rows(d: dict[str, Any]) -> list[tuple[str, Any]]:
+    """ADD-DISPATCH lines for the daily summary / monthly report (only when the add-on is on)."""
+    x = d.get("dispatch")
+    if not x:
+        return []
+    rows: list[tuple[str, Any]] = [("Urgent calls sent to your on-call team", x["urgent_transfers"]),
+                                   ("  connected to a technician", x["connected"])]
+    if x.get("avg_accept_s") is not None:
+        rows.append(("  average time to pick up", f"{x['avg_accept_s']} seconds"))
+    return rows
+
+
 # --- daily summary (owner) ----------------------------------------------------------------
 def daily_summary(business: str, d: dict[str, Any]) -> tuple[str, str, str]:
     subject = f"Today: {d['calls_answered']} calls answered, {d['booked']} booked"
     pairs = [("Calls answered", d["calls_answered"]), ("Jobs booked", d["booked"]),
              ("Messages taken", d["messages"]), ("Urgent", d["urgent"]),
              ("Text conversations", d["sms_threads"]), ("Missed callers texted back", d["text_backs"])]
+    pairs += dispatch_rows(d)
     leads = d.get("leads") or []
     text = "\n".join([subject, f"{business}, {d['date']}", ""] + [f"{k}: {v}" for k, v in pairs]
                      + ([""] + [f"- {x['when']} {x['name']} ({x['job_type']}): {x['outcome']}" for x in leads] if leads else [])
@@ -145,6 +158,7 @@ def monthly_roi(business: str, r: dict[str, Any]) -> tuple[str, str, str]:
              ("Urgent requests flagged", r["urgent"]), ("Missed callers texted back", r["text_backs"]),
              ("Voice minutes used", f"{r['usage']['voice_minutes']:g} of {r['included']['voice_minutes']:g}"),
              ("SMS segments used", f"{r['usage']['sms_segments']:g} of {r['included']['sms_segments']:g}")]
+    pairs[6:6] = dispatch_rows(r)
     if r.get("est_value_usd") is not None:
         pairs.insert(3, ("Estimated value of booked jobs", f"{money(r['est_value_usd'])} "
                                                            f"({r['booked']} x {money(r['avg_job_value_usd'])} average job)"))

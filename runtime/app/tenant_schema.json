@@ -191,6 +191,156 @@
       "title": "Business",
       "type": "object"
     },
+    "Dispatch": {
+      "additionalProperties": false,
+      "description": "ADD-DISPATCH: warm transfer of urgent calls to the on-call technician, then alerts if nobody accepts.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "daytime_too": {
+          "default": false,
+          "description": "Also for urgent calls while open (handoff.number first)",
+          "title": "Daytime Too",
+          "type": "boolean"
+        },
+        "callback_minutes": {
+          "default": 15,
+          "description": "Promised call-back window when nobody accepts",
+          "maximum": 120,
+          "minimum": 5,
+          "title": "Callback Minutes",
+          "type": "integer"
+        },
+        "sms_alerts": {
+          "default": false,
+          "description": "Staff alerts by SMS (also needs DISPATCH_SMS_ALERTS=1); otherwise alerts are voice calls",
+          "title": "Sms Alerts",
+          "type": "boolean"
+        },
+        "contacts": {
+          "items": {
+            "$ref": "#/$defs/DispatchContact"
+          },
+          "maxItems": 5,
+          "title": "Contacts",
+          "type": "array"
+        },
+        "schedule": {
+          "items": {
+            "$ref": "#/$defs/DispatchShift"
+          },
+          "maxItems": 28,
+          "title": "Schedule",
+          "type": "array"
+        }
+      },
+      "title": "Dispatch",
+      "type": "object"
+    },
+    "DispatchContact": {
+      "additionalProperties": false,
+      "description": "A person on the client's own staff who can take urgent calls (ADD-DISPATCH).",
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9_-]{1,20}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "phone": {
+          "description": "Phone number in E.164, e.g. +17135550100",
+          "pattern": "^\\+[1-9]\\d{7,14}$",
+          "title": "Phone",
+          "type": "string"
+        },
+        "role": {
+          "default": "tech",
+          "enum": [
+            "tech",
+            "manager"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "alerts_opt_in_at": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alerts Opt In At"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone"
+      ],
+      "title": "DispatchContact",
+      "type": "object"
+    },
+    "DispatchShift": {
+      "additionalProperties": false,
+      "description": "One row of the weekly on-call grid: on `day`, from `start` to `end` (local time; end <= start = runs past\nmidnight into the next day), try `contacts` in this order.",
+      "properties": {
+        "day": {
+          "enum": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri",
+            "sat",
+            "sun"
+          ],
+          "title": "Day",
+          "type": "string"
+        },
+        "start": {
+          "description": "24h time HH:MM",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "title": "Start",
+          "type": "string"
+        },
+        "end": {
+          "description": "24h time HH:MM",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "title": "End",
+          "type": "string"
+        },
+        "contacts": {
+          "items": {
+            "pattern": "^[a-z0-9_-]{1,20}$",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Contacts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "day",
+        "start",
+        "end",
+        "contacts"
+      ],
+      "title": "DispatchShift",
+      "type": "object"
+    },
     "Emergency": {
       "additionalProperties": false,
       "properties": {
@@ -702,6 +852,9 @@
     },
     "handoff": {
       "$ref": "#/$defs/Handoff"
+    },
+    "dispatch": {
+      "$ref": "#/$defs/Dispatch"
     },
     "notify": {
       "$ref": "#/$defs/Notify"

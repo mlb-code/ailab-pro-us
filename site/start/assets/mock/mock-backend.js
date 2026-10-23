@@ -19,7 +19,7 @@
   };
   const TABLES = ['users', 'profiles', 'questionnaires', 'attachments', 'quotes', 'clients', 'payments', 'events', 'outbox', 'otps',
     'leads', 'onboarding_items', 'requests', 'tenants', 'runtime_state', 'admin_notes', 'quote_reviews',   // second row: admin (A7)
-    'calls', 'sms_messages', 'bookings'];   // third row: receptionist data written by the runtime (B7 reads it)
+    'calls', 'sms_messages', 'bookings', 'dispatch_events'];   // third row: receptionist data written by the runtime (B7 reads it)
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
   const ss = {
@@ -976,6 +976,52 @@
           return clone(t.config);
         });
       },
+      // ---------------------------------------------------------- ADD-DISPATCH (mirrors 20261023100000_us_dispatch.sql)
+      saveDispatch(tenantId, patch) {
+        return run(x => {
+          if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
+          if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw err('patch_must_be_object');
+          const bad = Object.keys(patch).find(k => ['daytime_too', 'callback_minutes', 'contacts', 'schedule'].indexOf(k) === -1);
+          if (bad) throw err('field_not_allowed: ' + bad);
+          const t = x.db.tenants.find(tt => tt.id === tenantId), cur = clone((t.config || {}).dispatch || {});
+          if ('daytime_too' in patch && typeof patch.daytime_too !== 'boolean') throw err('invalid_setting:dispatch.daytime_too');
+          if ('callback_minutes' in patch && !(Number.isInteger(patch.callback_minutes) && patch.callback_minutes >= 5 && patch.callback_minutes <= 120)) throw err('invalid_setting:dispatch.callback_minutes');
+          let ids = (cur.contacts || []).map(c => c.id);
+          if ('contacts' in patch) {
+            if (!Array.isArray(patch.contacts) || patch.contacts.length > 5) throw err('invalid_setting:dispatch.contacts');
+            const phones = []; ids = [];
+            patch.contacts = patch.contacts.map((c, i) => {
+              if (!c || !/^[a-z0-9_-]{1,20}$/.test(c.id || '') || ids.indexOf(c.id) !== -1) throw err('invalid_setting:dispatch.contacts[' + i + '].id');
+              if (!String(c.name || '').trim() || String(c.name).trim().length > 60) throw err('invalid_setting:dispatch.contacts[' + i + '].name');
+              if (!/^\+1[2-9]\d{9}$/.test(c.phone || '') || phones.indexOf(c.phone) !== -1) throw err('invalid_setting:dispatch.contacts[' + i + '].phone');
+              ids.push(c.id); phones.push(c.phone);
+              const prev = (cur.contacts || []).find(o => o.phone === c.phone) || {};
+              return { id: c.id, name: String(c.name).trim(), phone: c.phone, role: c.role === 'manager' ? 'manager' : 'tech',
+                alerts_opt_in_at: c.opt_in ? (prev.alerts_opt_in_at || now()) : null };
+            });
+          }
+          const sched = 'schedule' in patch ? patch.schedule : (cur.schedule || []);
+          if (!Array.isArray(sched) || sched.length > 28) throw err('invalid_setting:dispatch.schedule');
+          sched.forEach((r, i) => {
+            if (!r || DAYS3.indexOf(r.day) === -1 || !HHMM.test(r.start || '') || !HHMM.test(r.end || '') || !Array.isArray(r.contacts) || !r.contacts.length || r.contacts.length > 5
+                || r.contacts.some(c => ids.indexOf(c) === -1)) throw err('invalid_setting:dispatch.schedule[' + i + ']');
+          });
+          t.config = Object.assign({}, t.config, { dispatch: Object.assign(cur, patch) }); t.updated_at = now();
+          return clone(t.config.dispatch);
+        });
+      },
+      listDispatchEvents(tenantId, limit) {
+        return run(x => ownsTenant(x, tenantId) || isAdmin(x) ? x.db.dispatch_events.filter(r => r.tenant_id === tenantId).sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit || 200) : []);
+      },
+      markDispatchHandled(tenantId, callSid) {
+        return run(x => {
+          if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
+          const rows = x.db.dispatch_events.filter(r => r.tenant_id === tenantId && r.call_sid === callSid);
+          if (!rows.length) throw err('not_found');
+          if (!rows.some(r => r.result === 'handled')) x.db.dispatch_events.push({ id: uuid(), tenant_id: tenantId, call_sid: callSid, leg: null, contact_name: 'Owner', result: 'handled', wait_s: null, detail: 'portal', at: now() });
+          return null;
+        });
+      },
       listCalls(tenantId, limit) {
         return run(x => ownsTenant(x, tenantId) ? x.db.calls.filter(c => c.tenant_id === tenantId).sort((a, b) => b.started_at.localeCompare(a.started_at)).slice(0, limit || 50) : []);
       },
@@ -1162,6 +1208,24 @@
     store(db);
     return tenantRow2(t);
   }
+  // ADD-DISPATCH demo: the add-on on the signed-in client's tenant, two urgent calls in the log, one STOP from staff
+  const DAYS3 = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  function seedDispatch(opts) {
+    const db = load(), u = me(db); if (!u) throw new Error('not_authenticated');
+    const client = db.clients.filter(c => c.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    const t = client && db.tenants.find(x => x.client_id === client.id); if (!t) throw new Error('no_tenant');
+    const ago = m => new Date(Date.now() - m * 60000).toISOString();
+    t.config = Object.assign({}, t.config, { dispatch: { enabled: !(opts && opts.off), daytime_too: false, callback_minutes: 15, sms_alerts: false,
+      contacts: [{ id: 'dan', name: 'Dan', phone: '+17135550201', role: 'tech', alerts_opt_in_at: ago(9000) },
+                 { id: 'maria', name: 'Maria', phone: '+17135550203', role: 'manager', alerts_opt_in_at: ago(9000) }],
+      schedule: DAYS3.map(d => ({ day: d, start: '18:00', end: '07:00', contacts: ['dan'] })) } });
+    const ev = (sid, m, leg, name, result, wait) => ({ id: uuid(), tenant_id: t.id, call_sid: sid, leg, contact_name: name, result, wait_s: wait == null ? null : wait, detail: null, at: ago(m) });
+    db.dispatch_events.push(ev('CAdispatch1', 600, 0, 'Dan', 'accepted', 18),
+      ev('CAdispatch2', 120, 0, 'Dan', 'no_answer'), ev('CAdispatch2', 119, 1, 'Maria', 'no_answer'), ev('CAdispatch2', 118, null, 'Dan', 'alert_sent'),
+      ev('CAdispatch2', 118, null, 'Maria', 'alert_sent'), ev('', 60, null, 'Maria', 'opted_out'));
+    store(db);
+    return t.id;
+  }
   const tenantRow2 = t => ({ id: t.id, slug: t.slug, twilio_number: t.twilio_number });
   // Appointment manager demo/test data: calls worth calling back, a moved visit, a past visit (no-show button), confirmations
   function seedResults() {
@@ -1212,7 +1276,8 @@
       seedAdmin,   // A7: demo data for /start/admin/
       seedTenant: () => seedTenant(),          // B7: tenant + receptionist demo data for the signed-in client
       seedResults: () => seedResults(),        // appointment manager: Results panel / no-show demo data
-      simulateCall: tid => simulateCall(tid)   // B7: what the runtime does when a forwarded call arrives
+      simulateCall: tid => simulateCall(tid),  // B7: what the runtime does when a forwarded call arrives
+      seedDispatch: opts => seedDispatch(opts) // ADD-DISPATCH demo data (tools/e2e_dispatch.mjs)
     }
   };
 })();

@@ -98,7 +98,7 @@ def activity(store: Store, tenant: TenantRecord, start: datetime, end: datetime)
                       "name": f"Caller ending {tail}" if tail else "Caller", "job_type": "-",
                       "outcome": {"message": "message taken", "handoff": "transferred",
                                   "emergency": "urgent"}.get(c["outcome"], c["outcome"])})
-    return {
+    out = {
         "calls_answered": len(answered),
         "after_hours_calls": sum(1 for c in answered if is_after_hours(tenant, _dt(c.get("started_at")) or start)),
         "booked": len(bookings),
@@ -110,6 +110,22 @@ def activity(store: Store, tenant: TenantRecord, start: datetime, end: datetime)
         "leads": leads,
         **appointment_counts(ts, all_bookings, start, end),
     }
+    if tenant.config.dispatch.enabled:  # ADD-DISPATCH: urgent calls sent to the on-call waterfall
+        out["dispatch"] = dispatch_stats(ts, start, end)
+    return out
+
+
+def dispatch_stats(ts: Any, start: datetime, end: datetime) -> dict[str, Any]:
+    try:
+        rows = [r for r in ts.select("dispatch_events") if _in(r.get("at"), start, end)]
+    except StoreError:
+        rows = []
+    accepted = [r for r in rows if r.get("result") == "accepted"]
+    waits = [int(r["wait_s"]) for r in accepted if r.get("wait_s") is not None]
+    return {"urgent_transfers": len({r.get("call_sid") for r in rows if r.get("leg") is not None}),
+            "connected": len(accepted),
+            "avg_accept_s": round(sum(waits) / len(waits)) if waits else None,
+            "alerts_sent": sum(1 for r in rows if r.get("result") == "alert_sent")}
 
 
 def appointment_counts(ts: Any, bookings: list[dict[str, Any]], start: datetime, end: datetime) -> dict[str, int]:

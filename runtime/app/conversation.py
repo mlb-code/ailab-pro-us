@@ -23,7 +23,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from . import appointments as appt
-from . import guard
+from . import dispatch, guard
 from .brain import run_turn
 from .llm import LLMClient
 from .settings import Settings
@@ -386,7 +386,19 @@ class Engine:
             notes.append("urgent")
             c.set_outcome("emergency")
             self._alert(c, actions, "urgent", "Urgent issue reported")
-            if channel == "voice" and cfg.emergency.dial:
+            if channel == "voice" and "dispatch_collect" not in c.meta and (legs := dispatch.plan(cfg, now)):
+                # ADD-DISPATCH: warm transfer to the on-call technician; first the caller's first name + ZIP
+                pend = {"legs": legs, "issue": dispatch.issue_label(text, cfg),
+                        "zip": guard.find_zip(text) or c.collected.get("zip") or "",
+                        "name": (c.collected.get("name") or "").split(" ")[0]}
+                c.meta["dispatch_collect"] = pend
+                notes.append("dispatch:collect")
+                if not (pend["zip"] and pend["name"]):
+                    return done(dispatch.ask_text(not pend["name"], not pend["zip"]))
+                pend["started"] = True
+                actions.append({"type": "dispatch"})
+                return done(dispatch.URGENT_CONNECT_TEXT, end=True)
+            if channel == "voice" and "dispatch_collect" not in c.meta and cfg.emergency.dial:
                 actions.append({"type": "dial", "number": cfg.emergency.dial, "reason": "urgent"})
                 return done(URGENT_DIAL_TEXT, end=True)
 
@@ -395,6 +407,18 @@ class Engine:
         if consent is not None:
             reply, end, outcome = consent
             return done(reply, end=end, outcome=outcome)
+
+        # ADD-DISPATCH: the answer to "first name and ZIP" -> hand the call to the on-call technician
+        pend = c.meta.get("dispatch_collect")
+        if channel == "voice" and pend and not pend.get("started"):
+            pend["zip"] = pend.get("zip") or guard.find_zip(text) or ""
+            pend["name"] = pend.get("name") or dispatch.parse_name(text)
+            pend["started"] = True
+            c.collect(zip=pend["zip"], name=pend["name"])
+            notes.append("dispatch:connect")
+            actions.append({"type": "dispatch"})
+            name = f", {pend['name']}" if pend["name"] else ""
+            return done(dispatch.CONNECTING_TEXT.format(name=name), end=True)
 
         # 10: honest about being an AI, no Claude needed
         if guard.is_robot_question(text):
