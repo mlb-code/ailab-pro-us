@@ -82,6 +82,8 @@ async function runEngine(name, type) {
   await page.evaluate(() => document.querySelectorAll('details').forEach(d => { d.open = true; }));
   await page.selectOption('#ob_car', 'att'); await page.waitForTimeout(80);
   await measure('checklist carrier codes');
+  await page.selectOption('#ob_car', 'zoom'); await page.waitForTimeout(80);
+  await measure('checklist VoIP menu path (Zoom Phone, longest entry)');
   await fresh('/start/?r=2#receptionist', '#rxPause');
   await page.evaluate(() => document.querySelectorAll('details').forEach(d => { d.open = true; }));
   await measure('receptionist all open');
