@@ -179,6 +179,42 @@
       "title": "Business",
       "type": "object"
     },
+    "Crm": {
+      "additionalProperties": false,
+      "properties": {
+        "hubspot": {
+          "$ref": "#/$defs/CrmLink"
+        },
+        "jobber": {
+          "$ref": "#/$defs/CrmLink"
+        }
+      },
+      "title": "Crm",
+      "type": "object"
+    },
+    "CrmLink": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "events": {
+          "items": {
+            "enum": [
+              "lead.created",
+              "booking.created"
+            ],
+            "type": "string"
+          },
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "title": "CrmLink",
+      "type": "object"
+    },
     "Emergency": {
       "additionalProperties": false,
       "properties": {
@@ -229,6 +265,33 @@
         "a"
       ],
       "title": "FaqItem",
+      "type": "object"
+    },
+    "FollowUpBoss": {
+      "additionalProperties": false,
+      "description": "Direct Follow Up Boss \"Events\" API (optional; the Zapier webhook works without it). The API key is stored\nencrypted like calendar tokens (credential provider `follow_up_boss`), never in this config.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "default": "",
+          "description": "Lead source shown in Follow Up Boss (empty = our brand name)",
+          "maxLength": 60,
+          "title": "Source",
+          "type": "string"
+        },
+        "assigned_to": {
+          "default": "",
+          "description": "Optional agent e-mail or name to assign the lead to",
+          "maxLength": 120,
+          "title": "Assigned To",
+          "type": "string"
+        }
+      },
+      "title": "FollowUpBoss",
       "type": "object"
     },
     "Guard": {
@@ -590,6 +653,91 @@
       "title": "Pricing",
       "type": "object"
     },
+    "RealEstate": {
+      "additionalProperties": false,
+      "description": "Niche settings used only when business.niche == \"real_estate\".",
+      "properties": {
+        "agent_name": {
+          "default": "",
+          "description": "The agent the assistant works for ('Jenna Harper'); empty = the brokerage only",
+          "maxLength": 80,
+          "title": "Agent Name",
+          "type": "string"
+        },
+        "screening": {
+          "description": "Screening questions in the order to ask them (subset allowed)",
+          "items": {
+            "enum": [
+              "intent",
+              "area",
+              "timeline",
+              "price_range",
+              "pre_approval",
+              "property_address",
+              "motivation",
+              "has_agent"
+            ],
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Screening",
+          "type": "array"
+        },
+        "renters": {
+          "default": false,
+          "description": "Also screen renters as leads (otherwise a renter gets a message to the team)",
+          "title": "Renters",
+          "type": "boolean"
+        },
+        "meetings": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Meeting type (one of booking.job_types) per lead intent; empty = matched by name",
+          "title": "Meetings",
+          "type": "object"
+        },
+        "follow_up_boss": {
+          "$ref": "#/$defs/FollowUpBoss"
+        }
+      },
+      "title": "RealEstate",
+      "type": "object"
+    },
+    "ReviewRequests": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Off until the 10DLC campaign covers review requests and the client confirmed consent wording",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "google_review_url": {
+          "anyOf": [
+            {
+              "pattern": "^https://",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Google Review Url"
+        },
+        "delay_hours": {
+          "default": 2,
+          "description": "Hours after 'job completed' before the one review text",
+          "maximum": 72,
+          "minimum": 0,
+          "title": "Delay Hours",
+          "type": "number"
+        }
+      },
+      "title": "ReviewRequests",
+      "type": "object"
+    },
     "Voice": {
       "additionalProperties": false,
       "properties": {
@@ -616,9 +764,58 @@
           "minItems": 1,
           "title": "Languages",
           "type": "array"
+        },
+        "tts_voice_es": {
+          "default": "Polly.Lupe-Neural",
+          "description": "TTS voice for Spanish turns (ADD-ES)",
+          "title": "Tts Voice Es",
+          "type": "string"
+        },
+        "greeting_es": {
+          "default": "",
+          "description": "Spanish greeting spoken after the English one when ADD-ES is on (empty = generated)",
+          "maxLength": 400,
+          "title": "Greeting Es",
+          "type": "string"
         }
       },
       "title": "Voice",
+      "type": "object"
+    },
+    "Webchat": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "allowed_origins": {
+          "description": "Exact https origins of the client's website(s) that may embed the chat",
+          "items": {
+            "pattern": "^https://[A-Za-z0-9.-]+(:\\d{2,5})?$",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Allowed Origins",
+          "type": "array"
+        },
+        "title": {
+          "default": "",
+          "description": "Header of the chat box (empty = business name)",
+          "maxLength": 60,
+          "title": "Title",
+          "type": "string"
+        },
+        "max_messages_per_session": {
+          "default": 30,
+          "maximum": 100,
+          "minimum": 5,
+          "title": "Max Messages Per Session",
+          "type": "integer"
+        }
+      },
+      "title": "Webchat",
       "type": "object"
     },
     "Zapier": {
@@ -702,6 +899,18 @@
       "default": false,
       "title": "Paused",
       "type": "boolean"
+    },
+    "real_estate": {
+      "$ref": "#/$defs/RealEstate"
+    },
+    "webchat": {
+      "$ref": "#/$defs/Webchat"
+    },
+    "crm": {
+      "$ref": "#/$defs/Crm"
+    },
+    "review_requests": {
+      "$ref": "#/$defs/ReviewRequests"
     }
   },
   "required": [

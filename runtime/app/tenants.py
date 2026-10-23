@@ -67,6 +67,11 @@ class Voice(_Strict):
     tts_voice: str = "Polly.Joanna-Neural"
     greeting: str = Field(default="", max_length=400, description="Empty = generated from business name")
     languages: list[Literal["en", "es"]] = Field(default_factory=lambda: ["en"], min_length=1)
+    # ADD-ES: the Spanish voice (Amazon Polly neural or an ElevenLabs voice id) and an optional Spanish greeting. Used
+    # only when "es" is in `languages`; the call notice is always added in Spanish too (`voice.greeting_es`).
+    tts_voice_es: str = Field(default="Polly.Lupe-Neural", description="TTS voice for Spanish turns (ADD-ES)")
+    greeting_es: str = Field(default="", max_length=400,
+                             description="Spanish greeting spoken after the English one when ADD-ES is on (empty = generated)")
 
     @field_validator("languages")
     @classmethod
@@ -178,6 +183,70 @@ class Guard(_Strict):
     max_replies_day: int = Field(default=30, ge=1, le=500)
 
 
+# --- real-estate niche (Lead Assistant) ------------------------------------------------------------------------
+# The screening questions the assistant asks, in the order the agent wants them. Every item is a question the brain may
+# ask; nothing here is a protected class (fair housing: never race, color, religion, national origin, sex, familial
+# status, disability; the brain is told so and `guard.check_reply` blocks steering language).
+SCREENING_QUESTIONS = ("intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation",
+                       "has_agent")
+ScreeningQ = Literal["intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation",
+                     "has_agent"]
+LeadIntent = Literal["buyer", "seller", "renter"]
+
+
+class FollowUpBoss(_Strict):
+    """Direct Follow Up Boss "Events" API (optional; the Zapier webhook works without it). The API key is stored
+    encrypted like calendar tokens (credential provider `follow_up_boss`), never in this config."""
+    enabled: bool = False
+    source: str = Field(default="", max_length=60, description="Lead source shown in Follow Up Boss (empty = our brand name)")
+    assigned_to: str = Field(default="", max_length=120, description="Optional agent e-mail or name to assign the lead to")
+
+
+class RealEstate(_Strict):
+    """Niche settings used only when business.niche == "real_estate"."""
+    agent_name: str = Field(default="", max_length=80, description="The agent the assistant works for ('Jenna Harper'); empty = the brokerage only")
+    screening: list[ScreeningQ] = Field(default_factory=lambda: list(SCREENING_QUESTIONS), max_length=8,
+                                        description="Screening questions in the order to ask them (subset allowed)")
+    renters: bool = Field(default=False, description="Also screen renters as leads (otherwise a renter gets a message to the team)")
+    meetings: dict[LeadIntent | Literal["showing"], str] = Field(
+        default_factory=dict, description="Meeting type (one of booking.job_types) per lead intent; empty = matched by name")
+    follow_up_boss: FollowUpBoss = Field(default_factory=FollowUpBoss)
+
+    @field_validator("screening")
+    @classmethod
+    def _unique(cls, v: list[str]) -> list[str]:
+        if len(set(v)) != len(v):
+            raise ValueError("real_estate.screening: each question at most once")
+        return v
+
+
+# --- ADD-CHAT: chat box on the client's own website ----------------------------------------------------------------
+class Webchat(_Strict):
+    enabled: bool = False
+    allowed_origins: list[Annotated[str, Field(pattern=r"^https://[A-Za-z0-9.-]+(:\d{2,5})?$")]] = Field(
+        default_factory=list, max_length=10, description="Exact https origins of the client's website(s) that may embed the chat")
+    title: str = Field(default="", max_length=60, description="Header of the chat box (empty = business name)")
+    max_messages_per_session: int = Field(default=30, ge=5, le=100)
+
+
+# --- ADD-CRM: direct CRM links (credentials stored encrypted, never here) -------------------------------------------
+class CrmLink(_Strict):
+    enabled: bool = False
+    events: list[Literal["lead.created", "booking.created"]] = Field(default_factory=lambda: ["lead.created", "booking.created"])
+
+
+class Crm(_Strict):
+    hubspot: CrmLink = Field(default_factory=CrmLink)
+    jobber: CrmLink = Field(default_factory=CrmLink)
+
+
+# --- ADD-REV: post-job review request (shipped DISABLED; see app.reviews) ------------------------------------------
+class ReviewRequests(_Strict):
+    enabled: bool = Field(default=False, description="Off until the 10DLC campaign covers review requests and the client confirmed consent wording")
+    google_review_url: Annotated[str, Field(pattern=r"^https://")] | None = None
+    delay_hours: float = Field(default=2, ge=0, le=72, description="Hours after 'job completed' before the one review text")
+
+
 class TenantConfig(_Strict):
     """`tenants.config` jsonb. Field names follow SPEC 6.6."""
     business: Business
@@ -193,6 +262,17 @@ class TenantConfig(_Strict):
     zapier: Zapier = Field(default_factory=Zapier)
     guard: Guard = Field(default_factory=Guard)
     paused: bool = False
+    real_estate: RealEstate = Field(default_factory=RealEstate)
+    webchat: Webchat = Field(default_factory=Webchat)
+    crm: Crm = Field(default_factory=Crm)
+    review_requests: ReviewRequests = Field(default_factory=ReviewRequests)
+
+    @model_validator(mode="after")
+    def _meetings_are_job_types(self) -> "TenantConfig":
+        bad = [f"{k}={v!r}" for k, v in self.real_estate.meetings.items() if v not in self.booking.job_types]
+        if bad:
+            raise ValueError(f"real_estate.meetings: not in booking.job_types: {', '.join(bad)}")
+        return self
 
 
 class TenantRecord(BaseModel):
