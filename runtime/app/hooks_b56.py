@@ -44,6 +44,7 @@ _hubs: dict[Any, CalendarHub] = {}
 _notifiers: "weakref.WeakKeyDictionary[Store, Notifier]" = weakref.WeakKeyDictionary()
 _zaps: "weakref.WeakKeyDictionary[Store, ZapierClient]" = weakref.WeakKeyDictionary()
 _queues: "weakref.WeakKeyDictionary[Store, DeliveryQueue]" = weakref.WeakKeyDictionary()
+_crm: "weakref.WeakKeyDictionary[Store, dict[str, Any]]" = weakref.WeakKeyDictionary()  # ADD-CRM clients per provider
 
 
 def _settings_of(state: Any) -> Any:
@@ -71,6 +72,19 @@ def zapier_for(store: Store, state: StateStore, settings: Any | None = None) -> 
             z = ZapierClient(store, state, signing_secret(settings or _settings_of(state)))
             _zaps[store] = z
         return z
+
+
+def crm_for(store: Store, state: StateStore, provider: str, settings: Any | None = None) -> Any:
+    """ADD-CRM: one CRM client per store + provider (tests inject `_crm[store] = {provider: client}`)."""
+    from .crm import CredentialBox, make_client
+    with _lock:
+        clients = _crm.setdefault(store, {})
+        c = clients.get(provider)
+        if c is None:
+            settings = settings or _settings_of(state)
+            c = make_client(provider, CredentialBox(store, settings.cred_key), store, state)
+            clients[provider] = c
+        return c
 
 
 def hub_for(settings: Any) -> CalendarHub:
@@ -170,8 +184,29 @@ def queue_for(store: Store, state: StateStore, autostart: bool = True) -> Delive
                 res = zapier_for(store, state).attempt(tenant, p["event"], p["key"], p["data"], job["attempt"])
                 return ("retry", res["delay"]) if res["status"] == "retry" else ("done", 0.0)
 
-            q = DeliveryQueue(store, state, {"alert": h_alert, "calendar_alert": h_calendar, "zapier": h_zapier},
-                              autostart=autostart)
+            def h_crm(job):
+                # ADD-CRM: one job per (provider, event); the client decides sent / retry / failed.
+                from .crm import build_lead
+                tenant = _load_tenant(store, job["tenant_id"])
+                if tenant is None:
+                    return "dead", 0.0
+                p = job["payload"]
+                provider = p["provider"]
+                client = crm_for(store, state, provider)
+                if not client.connected(tenant.id):
+                    flag = f"crm:notconn:{tenant.id}:{provider}"
+                    if not state.get(flag):
+                        state.put(flag, True, tenant.id)
+                        store.for_tenant(tenant.id).log_event("crm.not_connected", {"provider": provider, "event": p["event"]})
+                    return "dead", 0.0
+                lead = build_lead(state, tenant, p["data"])
+                res = client.sync(tenant, p["event"], lead, idem=p["key"], attempt=job["attempt"])
+                if res["status"] == "retry":
+                    return "retry", float(res.get("delay") or 0.0)
+                return ("done", 0.0) if res["status"] in ("sent", "skipped") else ("dead", 0.0)
+
+            q = DeliveryQueue(store, state, {"alert": h_alert, "calendar_alert": h_calendar, "zapier": h_zapier,
+                                             "crm": h_crm}, autostart=autostart)
             _queues[store] = q
         return q
 
@@ -190,6 +225,13 @@ def emit(store: Store, state: Any, tenant: Any, event: str, payload: dict[str, A
     """Audit row + enqueue a signed Zapier delivery; returns at once."""
     from . import _stubs_b56
     _stubs_b56.record_emit(store, state, tenant, event, payload, idempotency_key)  # audit row, once per key
+    try:  # ADD-CRM: one job per enabled CRM link subscribed to this event
+        from .crm import links_for
+        for provider in links_for(tenant, event):
+            queue_for(store, state).enqueue("crm", {"provider": provider, "event": event, "key": idempotency_key,
+                                                    "data": payload}, tenant.id)
+    except Exception:  # noqa: BLE001
+        log.exception("crm enqueue failed")
     if not tenant.config.zapier.webhook_url or event not in tenant.config.zapier.events:
         return
     try:

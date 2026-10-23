@@ -258,3 +258,93 @@ def zapier_secret(slug: str, request: Request):
         return JSONResponse({"error": "ZAPIER_SIGNING_SECRET not configured"}, status_code=503)
     return {"signing_secret": tenant_secret(svc.zapier.master, tenant.id), "header": "X-Signature",
             "scheme": "sha256=HMAC_SHA256(secret, X-Timestamp + '.' + raw_body)"}
+
+
+# --- ADD-CRM ---------------------------------------------------------------------------------------------------
+# Direct CRM links (HubSpot, Jobber): the admin stores one access token per tenant + provider, encrypted like
+# calendar tokens; it is never echoed back. `POST .../test` is a read-only auth check. Public docs: docs/crm-links.md.
+#     PUT    /crm/{slug}/{provider}       {"token": "..."}  -> {"ok": true, "provider": ...}
+#     DELETE /crm/{slug}/{provider}                         -> {"ok": true, "provider": ...}
+#     GET    /crm/{slug}                                    -> {provider: {"connected": bool, "enabled": bool}}
+#     POST   /crm/{slug}/{provider}/test                    -> {"ok": bool, "status": ..., "reason"?: ...}
+from ..crm import PROVIDERS as CRM_PROVIDERS, CredentialBox, make_client  # noqa: E402
+
+CRM_TOKEN_MAX = 4096
+
+
+def _crm_box(svc: Services) -> CredentialBox | None:
+    return CredentialBox(svc.store, svc.settings.cred_key) if svc.settings.cred_key else None
+
+
+def _crm_client(svc: Services, provider: str):
+    """Uses the services' http client (`build_services(..., http=...)`, kept on the calendar TokenManager) or an
+    explicit `svc.crm_http`, so tests mock the CRM API the same way they mock calendars."""
+    http = getattr(svc, "crm_http", None) or getattr(getattr(svc.calendar, "tokens", None), "http", None)
+    return make_client(provider, _crm_box(svc), svc.store, svc.state, http=http)
+
+
+def _crm_guard(request: Request, slug: str, provider: str | None = None):
+    """Admin + tenant + provider checks shared by the endpoints. Returns (svc, tenant) or an error response."""
+    if (denied := require_admin(request)) is not None:
+        return denied
+    svc = services(request.app)
+    if provider is not None and provider not in CRM_PROVIDERS:
+        return JSONResponse({"error": "unknown provider", "providers": list(CRM_PROVIDERS)}, status_code=404)
+    tenant = _tenant(svc, slug)
+    if tenant is None:
+        return JSONResponse({"error": "unknown tenant"}, status_code=404)
+    if _crm_box(svc) is None:
+        return JSONResponse({"error": "CRED_KEY not configured"}, status_code=503)
+    return svc, tenant
+
+
+@router.get("/crm/{slug}")
+def crm_status(slug: str, request: Request):
+    got = _crm_guard(request, slug)
+    if isinstance(got, JSONResponse):
+        return got
+    svc, tenant = got
+    box = _crm_box(svc)
+    crm = getattr(tenant.config, "crm", None)
+    return {p: {"connected": box.connected(tenant.id, p), "enabled": bool(getattr(getattr(crm, p, None), "enabled", False))}
+            for p in CRM_PROVIDERS}
+
+
+@router.put("/crm/{slug}/{provider}")
+async def crm_connect(slug: str, provider: str, request: Request):
+    got = _crm_guard(request, slug, provider)
+    if isinstance(got, JSONResponse):
+        return got
+    svc, tenant = got
+    try:
+        body = await request.json()
+    except ValueError:
+        body = None
+    token = (body or {}).get("token") if isinstance(body, dict) else None
+    if not isinstance(token, str) or not token.strip() or len(token) > CRM_TOKEN_MAX or any(c.isspace() for c in token.strip()):
+        return JSONResponse({"error": "token must be a non-empty string without spaces"}, status_code=400)
+    _crm_box(svc).save(tenant.id, provider, token.strip())
+    svc.state.put(f"crm:notconn:{tenant.id}:{provider}", None, tenant.id)  # the "not connected" notice may fire again
+    svc.store.for_tenant(tenant.id).log_event("crm.connected", {"provider": provider}, actor="admin")
+    return {"ok": True, "provider": provider}
+
+
+@router.delete("/crm/{slug}/{provider}")
+def crm_disconnect(slug: str, provider: str, request: Request):
+    got = _crm_guard(request, slug, provider)
+    if isinstance(got, JSONResponse):
+        return got
+    svc, tenant = got
+    _crm_box(svc).delete(tenant.id, provider)
+    svc.store.for_tenant(tenant.id).log_event("crm.disconnected", {"provider": provider}, actor="admin")
+    return {"ok": True, "provider": provider}
+
+
+@router.post("/crm/{slug}/{provider}/test")
+def crm_test(slug: str, provider: str, request: Request):
+    got = _crm_guard(request, slug, provider)
+    if isinstance(got, JSONResponse):
+        return got
+    svc, tenant = got
+    res = _crm_client(svc, provider).check(tenant)
+    return JSONResponse(res, status_code=200 if res.get("ok") else 502)
