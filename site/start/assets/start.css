@@ -28,9 +28,17 @@ h1.t{font-size:clamp(1.8rem,5vw,2.7rem);margin:8px 0 12px}
 
 /* sign in */
 .login{display:grid;gap:4px}
-.gbtn{background:var(--cream);color:var(--navy);border-color:var(--cream)}
-.gbtn:hover{background:#fff;color:var(--navy)}
-.gbtn svg{flex:none}
+/* Social sign-in buttons. Google: white, #747775 border, #1F1F1F text, 'G' logo left (Sign in with Google branding guidelines).
+   Apple: black, white text + glyph, 'Sign in with Apple' (Human Interface Guidelines). Both: >= 44px tall, full width, logo 18px. */
+.sbtn{min-height:44px;gap:12px;font-weight:600;font-size:.98rem;justify-content:center;padding-inline:16px;margin-bottom:10px}
+.sbtn svg{flex:none}
+.sbtn--google{background:#fff;color:#1f1f1f;border-color:#747775}
+.sbtn--google:hover{background:#f2f2f2;color:#1f1f1f}
+.sbtn--apple{background:#000;color:#fff;border-color:#000}
+.sbtn--apple:hover{background:#1a1a1a;color:#fff}
+.sbtn[disabled]{opacity:.6;cursor:wait}
+.trust{margin:2px 0 0}
+.trust a{color:inherit}
 .or{display:flex;align-items:center;gap:12px;color:var(--fg-3);font-size:.82rem;margin:18px 0}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 .input.code{text-align:center;font-family:var(--mono);font-size:1.5rem;letter-spacing:.45em;padding-left:calc(14px + .45em)}

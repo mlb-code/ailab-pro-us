@@ -15,7 +15,8 @@ Setup (once): `uv venv --python 3.12 .venv && uv pip install --python .venv/bin/
 | `.venv/bin/python -m sim record --all --source mock` | refresh `sim/replays/` (`--source live --yes` spends API credit) |
 | `.venv/bin/python -m app.tenants --write-schema` | regenerate `app/tenant_schema.json` from the model |
 
-Env: `RUNTIME_MODE` (prod|sim), `STORE_BACKEND` (json|supabase), `DATA_DIR`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+Env: `RUNTIME_MODE` (prod|sim), `STORE_BACKEND` (json|supabase), `DATA_DIR`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (a Supabase
+**secret key**, `sb_secret_…`, made by `tools/us_setup.py --only supabase-keys`; the variable name is historical, the legacy service_role JWT is no longer used),
 `TWILIO_AUTH_TOKEN`, `PUBLIC_BASE_URL`, `CRED_KEY` (base64 32 bytes), `BRAIN_MODE` (mock|replay|record|live), `GLOBAL_DAILY_BUDGET_USD`,
 `VOICE_MODE` (stream = ConversationRelay, production default | gather = turn-based fallback), `VOICE_SILENCE_SECONDS` (7),
 `VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `VOICE_RELAY_GRACE_SECONDS` (20).

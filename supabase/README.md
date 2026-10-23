@@ -25,9 +25,9 @@
 |---|---|---|---|
 | 1 | פריסת Edge Functions | `events-dispatch` | `verify_jwt = true` (נקרא רק עם service role) |
 | 2 | | `email-unsubscribe` | **`verify_jwt = false`** (קישור ציבורי במייל) |
-| 3 | סוד Edge Function | `RESEND_API_KEY` | בלעדיו המיילים נשארים `pending` (לא נשרפים ניסיונות). `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` מוזרקים אוטומטית |
+| 3 | סוד Edge Function | `RESEND_API_KEY`, `SB_SERVICE_KEY` | בלעדי Resend המיילים נשארים `pending` (לא נשרפים ניסיונות). `SB_SERVICE_KEY` = המפתח הסודי החדש (`sb_secret_…`, נוצר ב-`tools/us_setup.py --only supabase-keys`); הפונקציות קוראות מפתחות דרך `functions/_shared/keys.ts` (מפתח חדש קודם, ה-JWT הישן `SUPABASE_SERVICE_ROLE_KEY` רק כגיבוי עד שמכבים אותו) |
 | 4 | Vault | `ailab_us_project_url` | `https://<ref>.supabase.co` |
-| 5 | Vault | `ailab_us_service_role_key` | אותו מפתח service role (JWT) שה-Edge runtime מזריק כ-`SUPABASE_SERVICE_ROLE_KEY` |
+| 5 | Vault | `ailab_us_service_role_key` | אותו מפתח סודי חדש (`SUPABASE_SECRET_KEY` מ-.secrets.env); pg_net שולח אותו גם ב-`apikey` וגם ב-`Authorization` (מיגרציה 20261022100000). השם נשאר היסטורי |
 | 6 | אחרי 4–5, SQL אחד | `select private.install_email_jobs();` | idempotent. יוצר 5 משימות pg_cron (UTC): `ailab-us-email-dispatch` כל דקה (רק כשיש מה לשלוח), `ailab-us-email-scan` 15:00 (תזכורת הצעה + nudge), `ailab-us-monthly-invoice` 15:00 ב-1 לחודש, `ailab-us-quote-expiring` 14:30 (קורא ל-`quote-expiring`), `ailab-us-storage-purge` 03:47 (מוחק קבצים מ-`private.storage_purge_queue`) |
 | 7 | `private.settings` | `admin_email` | המייל של מאיר (ברירת מחדל קיימת). `client_emails_enabled` נשאר `false` עד שמאיר מאשר נוסחים (חוסם רק תזכורות, ראו למטה); `admin_emails_enabled = true` |
 | 8 | Resend | דומיין `brand.domain` | עד שמאומת: שגיאת domain מ-Resend → שליחה חוזרת אוטומטית מ-`senders.fallback` |

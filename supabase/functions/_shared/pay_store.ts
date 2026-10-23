@@ -4,6 +4,7 @@
 //                     paypal_alert). The rules live in SQL; this side only calls them.
 //   MemoryPayStore -> in-process mirror of the same rules for the Deno tests (supabase/tests/paypal_test.sql proves the SQL).
 import { DbError, MemoryStore, type PaymentRow, RestStore, type Store } from "./store.ts";
+import { serverEnv } from "./keys.ts";
 
 export type PayKind = "deposit" | "final";
 export interface PayTarget {
@@ -36,9 +37,8 @@ export interface PayStore extends Store {
 // ------------------------------------------------------------------ PostgREST RPCs (deployed functions)
 export class RestPayStore extends RestStore implements PayStore {
   static override fromEnv(): RestPayStore {
-    const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!url || !key) throw new Error("supabase_env_missing");
-    return new RestPayStore(url.replace(/\/$/, ""), key);
+    const { url, key } = serverEnv();
+    return new RestPayStore(url, key);
   }
   private rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
     return this.req(`rpc/${name}`, { method: "POST", body: JSON.stringify(args) }) as Promise<T>;

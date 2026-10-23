@@ -211,6 +211,15 @@ begin
   if v ->> 'to' is distinct from (select admin_email from private.settings where id = 1) or v -> 'questionnaire' ->> 'offer' <> 'WEB' then
     raise exception 'FAIL WEB admin ctx'; end if;
   checks := checks + 4;
+  -- contact e-mail (social sign-in, 22.10.2026): client mails go to profiles.contact_email when set; the auth address stays
+  update public.profiles set contact_email = 'dani.real@example.com' where id = ua;
+  select private.email_context(id) into v from private.email_outbox where template = 'request_cancelled';
+  if v ->> 'to' <> 'dani.real@example.com' or v -> 'profile' ->> 'email' <> 'dani.real@example.com'
+     or v -> 'profile' ->> 'signin_email' <> 'Dani@Example.com' then raise exception 'FAIL contact_email recipient %', v; end if;
+  update public.profiles set contact_email = null where id = ua;
+  select private.email_context(id) into v from private.email_outbox where template = 'request_cancelled';
+  if v ->> 'to' <> 'Dani@Example.com' then raise exception 'FAIL recipient after clearing contact_email %', v; end if;
+  checks := checks + 2;
 
   -- 8. unsubscribe tokens
   v := public.email_recipient('Dani@Example.com');

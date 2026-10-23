@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import stat
 import sys
 import tempfile
@@ -29,6 +30,7 @@ GSEC = "GOCSPX-" + "w" * 24
 PUB = "sb_publishable_" + "p" * 24
 REF = "abcdefghijklmnopqrst"
 SRK = "eyJ" + "s" * 20 + "." + "t" * 30 + "." + "u" * 20   # fake service_role JWT
+NEWKEY = "sb_secret_" + "n3w" * 12                          # fake new-style secret key (shape only)
 
 
 class FakeApi:
@@ -51,6 +53,7 @@ class FakeApi:
         self.secrets = []
         self.deploys = []
         self.cron_deletes = 0
+        self.secret_keys = []   # new-style secret keys created through POST /api-keys: [{name, api_key}]
 
     def __call__(self, method, url, headers, data):
         self.calls.append((method, url, headers, data))
@@ -106,11 +109,16 @@ class FakeApi:
         if "/functions/deploy" in path:
             self.deploys.append((path, headers.get("Content-Type"), data))
             return ok({"id": "f1", "slug": "x", "status": "ACTIVE"}, 201)
+        if path.endswith("/api-keys") and method == "POST":
+            k = {"id": f"k{len(self.secret_keys) + 1}", "type": body["type"], "name": body["name"], "api_key": NEWKEY}
+            self.secret_keys.append(k)
+            return ok(k, 201)
         if "/api-keys" in path:
             reveal = "reveal=true" in path
             return ok([{"name": "anon", "type": "legacy", "api_key": "eyJ.anon.key"},
                        {"name": "default", "type": "publishable", "api_key": PUB},
-                       {"name": "service_role", "type": "legacy", "api_key": SRK if reveal else None}])
+                       {"name": "service_role", "type": "legacy", "api_key": SRK if reveal else None}]
+                      + [{**k, "api_key": k["api_key"] if reveal else None} for k in self.secret_keys])
         return 404, b'{"message":"not in fake"}'
 
     def methods(self):
@@ -155,7 +163,7 @@ class Base(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             rc = S.run(argv, transport=fake)
         text = out.getvalue()
-        for secret in (TOKEN, RESEND, ANTHROPIC, GSEC, SRK):
+        for secret in (TOKEN, RESEND, ANTHROPIC, GSEC, SRK, NEWKEY):
             self.assertNotIn(secret, text, "a secret was printed")
         self.assertNotIn("Bearer " + TOKEN[:6], text)
         return rc, text
@@ -462,6 +470,15 @@ class TestSetup(Base):
         rc, out = self.run_cli(["--only", "vault"], no_srk)
         self.assertEqual(rc, 1)
         self.assertIn("service_role", out)
+        self.assertIn("supabase-keys", out)
+
+    def test_vault_with_legacy_key_warns(self):
+        fake = FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+        rc, out = self.run_cli(["--only", "vault"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("⚠️", out)
+        self.assertIn("supabase-keys", out)
+        self.assertTrue(any(SRK in q and "ailab_us_service_role_key" in q for q in fake.sql))
 
     def test_bad_resend_key_rejected_before_sql(self):
         self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "RESEND_API_KEY": "re_x'; drop table x; --"})
@@ -482,6 +499,146 @@ class TestSetup(Base):
         self.assertNotIn('"DELETE"', src)
         for word in ("/pause", "/restore", "/remove", "vault.delete", "drop table", "cron.unschedule"):
             self.assertNotIn(word, src.lower())
+
+
+# ------------------------------------------------------------------ Sign in with Apple (--only apple,config; 22.10.2026)
+class TestApple(Base):
+    def fake(self):
+        return FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+
+    def p8(self):
+        path = os.path.join(self.tmp, "AuthKey_TEST000000.p8")
+        subprocess.run(["openssl", "ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", path], check=True, capture_output=True)
+        return path
+
+    def test_skipped_without_secrets_and_config_says_off(self):
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple,config"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("מדלג", out)
+        self.assertNotIn("external_apple_enabled", fake.auth_cfg)
+        self.assertIn("APPLE_ENABLED: false", S.read_text(S.CONFIG_JS))
+        self.assertIn("GOOGLE_ENABLED: false", S.read_text(S.CONFIG_JS))
+
+    def test_enables_apple_with_a_signed_secret_never_printed(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "APPLE_SERVICES_ID": "co.ailabpro.signin", "APPLE_TEAM_ID": "ABCDE12345",
+                      "APPLE_KEY_ID": "TEST000000", "APPLE_P8_PATH": self.p8()})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple,config"], fake)
+        self.assertEqual(rc, 0, out)
+        a = fake.auth_cfg
+        self.assertTrue(a["external_apple_enabled"])
+        self.assertEqual(a["external_apple_client_id"], "co.ailabpro.signin")
+        secret = a["external_apple_secret"]
+        self.assertEqual(secret.count("."), 2)
+        self.assertNotIn(secret, out)
+        self.assertNotIn(secret[:20], out)
+        hdr = json.loads(base64.urlsafe_b64decode(secret.split(".")[0] + "=="))
+        body = json.loads(base64.urlsafe_b64decode(secret.split(".")[1] + "=="))
+        self.assertEqual((hdr["alg"], hdr["kid"]), ("ES256", "TEST000000"))
+        self.assertEqual((body["iss"], body["sub"], body["aud"]), ("ABCDE12345", "co.ailabpro.signin", "https://appleid.apple.com"))
+        self.assertLessEqual(body["exp"] - body["iat"], 180 * 86400)
+        self.assertGreaterEqual(body["exp"] - body["iat"], 170 * 86400)
+        self.assertIn("APPLE_ENABLED: true", S.read_text(S.CONFIG_JS))
+        self.assertIn("תקף עד", out)
+
+    def test_bad_ids_or_missing_p8_stop_before_any_call(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "APPLE_SERVICES_ID": "co.ailabpro.signin", "APPLE_TEAM_ID": "short",
+                      "APPLE_KEY_ID": "TEST000000", "APPLE_P8_PATH": self.p8()})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple"], fake)
+        self.assertEqual(rc, 1)
+        self.assertNotIn("PATCH", fake.methods())
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "APPLE_SERVICES_ID": "co.ailabpro.signin", "APPLE_TEAM_ID": "ABCDE12345",
+                      "APPLE_KEY_ID": "TEST000000", "APPLE_P8_PATH": os.path.join(self.tmp, "missing.p8")})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "apple"], fake)
+        self.assertEqual(rc, 1)
+        self.assertIn(".p8", out)
+        self.assertNotIn("PATCH", fake.methods())
+
+    def test_config_reads_apple_flag_from_the_project(self):
+        fake = self.fake()
+        fake.auth_cfg["external_apple_enabled"] = True
+        rc, out = self.run_cli(["--only", "config"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("APPLE_ENABLED: true", S.read_text(S.CONFIG_JS))
+        self.assertIn("apple", S.STEPS)
+        self.assertEqual(S.STEPS.index("apple"), S.STEPS.index("google") + 1)
+
+
+# ------------------------------------------------------------------ --only supabase-keys (new key model, 22.10.2026)
+class TestSupabaseKeys(Base):
+    def fake(self):
+        return FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+
+    def test_opt_in_only(self):
+        self.assertNotIn("supabase-keys", S.STEPS)
+        self.assertIn("supabase-keys", S.OPT_IN_STEPS)
+        rc, out = self.run_cli(["--dry-run", "--only", "supabase-keys"], self.fake())
+        self.assertEqual(rc, 0)
+        self.assertIn("runtime_2026_10", out)
+
+    def test_creates_named_key_writes_file_sets_edge_secret_never_prints(self):
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "supabase-keys"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual([k["name"] for k in fake.secret_keys], ["runtime_2026_10"])
+        self.assertEqual(fake.secret_keys[0]["type"], "secret")
+        self.assertEqual(S.load_secrets()["SUPABASE_SECRET_KEY"], NEWKEY)
+        self.assertEqual(stat.S_IMODE(os.stat(S.SECRETS_FILE).st_mode), 0o600)
+        self.assertEqual(fake.secrets, [[{"name": "SB_SERVICE_KEY", "value": NEWKEY}]])
+        self.assertIn("runtime_2026_10", out)
+        self.assertIn("sb_secret_…", out)
+        self.assertNotIn(NEWKEY[:16], out)      # not even the prefix beyond sb_secret_
+        self.assertNotIn("DELETE", {m for m, *_ in fake.calls})
+
+    def test_rerun_reuses_the_file_value_no_second_key(self):
+        fake = self.fake()
+        self.run_cli(["--only", "supabase-keys"], fake)
+        rc, out = self.run_cli(["--only", "supabase-keys"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(len(fake.secret_keys), 1)
+        self.assertEqual(S.read_text(S.SECRETS_FILE).count("SUPABASE_SECRET_KEY="), 1)
+        self.assertEqual(len(fake.secrets), 2)   # the Edge secret is (re)set on every run, same value
+
+    def test_existing_project_key_is_reused_without_creating(self):
+        fake = self.fake()
+        fake.secret_keys.append({"id": "k9", "type": "secret", "name": "runtime_2026_10", "api_key": NEWKEY})
+        rc, out = self.run_cli(["--only", "supabase-keys"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(len(fake.secret_keys), 1)
+        self.assertNotIn("POST", {m for m, u, *_ in fake.calls if u.endswith("/api-keys")})
+        self.assertEqual(S.load_secrets()["SUPABASE_SECRET_KEY"], NEWKEY)
+
+    def test_custom_name_validated(self):
+        rc, out = self.run_cli(["--only", "supabase-keys", "--key-name", "Bad-Name"], self.fake())
+        self.assertEqual(rc, 1)
+        self.assertIn("--key-name", out)
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "supabase-keys", "--key-name", "runtime_2027_01"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(fake.secret_keys[0]["name"], "runtime_2027_01")
+
+    def test_vault_and_secrets_use_the_new_key_without_reveal(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "SUPABASE_SECRET_KEY": NEWKEY, "RESEND_API_KEY": RESEND})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "vault,secrets"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertNotIn("⚠️", out)
+        self.assertFalse(any("reveal=true" in u for _, u, *_ in fake.calls))
+        self.assertTrue(any(NEWKEY in q and "ailab_us_service_role_key" in q for q in fake.sql))
+        self.assertFalse(any(SRK in q for q in fake.sql))
+        self.assertEqual({s["name"] for s in fake.secrets[0]}, {"RESEND_API_KEY", "SB_SERVICE_KEY"})
+        self.assertEqual(next(s["value"] for s in fake.secrets[0] if s["name"] == "SB_SERVICE_KEY"), NEWKEY)
+
+    def test_bad_file_value_rejected(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "SUPABASE_SECRET_KEY": SRK})
+        fake = self.fake()
+        rc, out = self.run_cli(["--only", "vault"], fake)
+        self.assertEqual(rc, 1)
+        self.assertIn("sb_secret_", out)
+        self.assertEqual(fake.sql, [])
 
 
 # ------------------------------------------------------------------ --only paypal (fake PayPal REST API, no network)

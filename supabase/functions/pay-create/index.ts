@@ -2,7 +2,7 @@
 // (quote page = deposit, portal = final). Public like quote-view (verify_jwt = false): the quote token is the secret.
 // The amount comes from our DB row, never from the browser; custom_id = invoice_id = our payment id. Reuses the
 // payment's open order. PayPal off (brand.json payments.paypal or the Edge Function secrets) -> 503 paypal_off.
-// Env: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (injected), PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV (secrets).
+// Env: SUPABASE_URL + the server key (_shared/keys.ts), PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV (secrets).
 import { errorReply, json, readJson } from "../_shared/http.ts";
 import { createPayment, type PayDeps } from "../_shared/pay.ts";
 import { type PayStore, RestPayStore } from "../_shared/pay_store.ts";

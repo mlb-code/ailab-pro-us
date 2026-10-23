@@ -42,6 +42,9 @@
     O('Pacific/Honolulu', 'Hawaii (Honolulu)')];
 
   // Profile = public.profiles columns (asked once, editable later). 9 fields.
+  // Asked first, only for accounts whose sign-in address is a relay (Apple "Hide My Email"): where quotes and receipts go.
+  const PROFILE_CONTACT = { k: 'contact_email', label: 'Email for your quote and receipts', type: 'email', req: true, auto: 'email', ph: 'you@yourbusiness.com',
+    hint: 'You hid your email from us at Apple. We only write to the address you give here.' };
   const PROFILE = [
     { k: 'full_name', label: 'Full name', type: 'text', req: true, auto: 'name' },
     { k: 'company', label: 'Business name', type: 'text', req: true, auto: 'organization' },
@@ -229,5 +232,5 @@
     return { core: a.offer || null, add, custom, notes };
   }
 
-  window.StartQ = { VERSION: 1, PROFILE, STEPS, OFFER_OPTS, offerOpts, isRE, US_TZ, stepsFor, fieldsFor, visible, optsOf, resolve, valueText, buildSummary, visibleAnswers, countFields, quoteHints, toolOptions, reCrmOptions };
+  window.StartQ = { VERSION: 1, PROFILE, PROFILE_CONTACT, STEPS, OFFER_OPTS, offerOpts, isRE, US_TZ, stepsFor, fieldsFor, visible, optsOf, resolve, valueText, buildSummary, visibleAnswers, countFields, quoteHints, toolOptions, reCrmOptions };
 })();

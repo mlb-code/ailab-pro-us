@@ -11,17 +11,28 @@ What it does (every step is safe to re-run):
   auth       site URL + redirect allow-list, e-mail magic link + 6-digit code (30 min), English template,
              Resend SMTP when RESEND_API_KEY is set
   google     Google sign-in when GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET are set
+  apple      Sign in with Apple when APPLE_SERVICES_ID + APPLE_TEAM_ID + APPLE_KEY_ID + APPLE_P8_PATH are set: builds the
+             client secret (tools/apple_secret.py, ES256 JWT, 175 days) and sends it to Supabase; re-run before it expires
   storage    verify buckets client-files + videos-public (created by the storage migration)
-  vault      Vault: ailab_us_project_url + ailab_us_service_role_key (read from the API, never printed; A8 pg_net),
-             resend_api_key / anthropic_api_key when present
-  secrets    Edge Function secrets (ANTHROPIC_API_KEY, RESEND_API_KEY, ZAPIER_SIGNING_SECRET)
+  vault      Vault: ailab_us_project_url + ailab_us_service_role_key (A8 pg_net). Since 22.10.2026 the value is the
+             new-style SECRET key from .secrets.env (SUPABASE_SECRET_KEY, see supabase-keys); the legacy service_role JWT
+             is only a fallback (warned) until the legacy keys are switched off. resend_api_key / anthropic_api_key when present
+  secrets    Edge Function secrets (ANTHROPIC_API_KEY, RESEND_API_KEY, ZAPIER_SIGNING_SECRET, and SB_SERVICE_KEY =
+             SUPABASE_SECRET_KEY when present; supabase/functions/_shared/keys.ts reads it)
   functions  deploy supabase/functions/<slug>/index.ts (Supabase CLI if installed, else Management API)
   cron       select private.install_email_jobs() (A8), then verify every pg_cron job named in the migrations
-  config     write site/assets/config.js (window.SITE_CONFIG: URL + publishable/anon key, BACKEND 'supabase')
+  config     write site/assets/config.js (window.SITE_CONFIG: URL + publishable/anon key, BACKEND 'supabase',
+             GOOGLE_ENABLED / APPLE_ENABLED from the project's auth config: the sign-in buttons follow them)
   ping       call public.ping() through the REST API with the public key
 then prints a Hebrew checklist of what is still manual.
 
-Opt-in step (only with --only paypal; never part of a full run):
+Opt-in steps (only with --only …; never part of a full run):
+  supabase-keys  the new Supabase key model (Management API /v1/projects/{ref}/api-keys): creates ONE named secret key
+             (--key-name, default runtime_2026_10) unless it already exists, appends it to .secrets.env as
+             SUPABASE_SECRET_KEY (0600) and sets the Edge Function secret SB_SERVICE_KEY to the same value. Prints only the
+             key's name and its sb_secret_ prefix, never the value. The same value then goes (by hand) to Railway
+             SUPABASE_SERVICE_ROLE_KEY and the GitHub secret US_SUPABASE_SERVICE_KEY; then --only vault,secrets,functions.
+             Runbook: docs/runbooks/supabase-legacy-keys-off.md (private repo).
   paypal     card / PayPal checkout: reads PAYPAL_<SANDBOX|LIVE>_CLIENT_ID + _CLIENT_SECRET from .secrets.env, checks them
              with PayPal (OAuth), finds or creates the webhook <project>/functions/v1/paypal-webhook with the events the
              function handles, sets the Edge Function secrets PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV,
@@ -41,6 +52,7 @@ Usage (from the repo root):
   python3 tools/us_setup.py --only paypal --paypal-env sandbox                  # PayPal secrets + webhook, config stays off
   python3 tools/us_setup.py --only paypal --paypal-env live --paypal-enable     # the go-live switch (then functions + push)
   python3 tools/us_setup.py --only paypal --paypal-disable                      # card checkout off again (config only)
+  python3 tools/us_setup.py --only supabase-keys                                # new secret key -> .secrets.env + SB_SERVICE_KEY
 
 Secrets are read ONLY from ailab-pro-us/.secrets.env (never from the environment, never prompted), never printed,
 never put in a URL. Error texts are redacted before they are shown. This script has no destructive call:
@@ -81,9 +93,14 @@ SUPABASE_JS_DEFAULT = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.
 # from the quote page and portal (the quote token is the key) and PayPal's webhook (signature checked with PayPal).
 # pay-refund keeps verify_jwt: the admin's session JWT.
 NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe", "pay-create", "pay-capture", "pay-upwork", "paypal-webhook"}
-STEPS = ["migrate", "test", "settings", "auth", "google", "storage", "vault", "secrets",
+STEPS = ["migrate", "test", "settings", "auth", "google", "apple", "storage", "vault", "secrets",
          "functions", "cron", "config", "ping"]
-OPT_IN_STEPS = ["paypal"]   # only with --only (writes config/brand.json)
+APPLE_KEYS = ("APPLE_SERVICES_ID", "APPLE_TEAM_ID", "APPLE_KEY_ID", "APPLE_P8_PATH")
+OPT_IN_STEPS = ["paypal", "supabase-keys"]   # only with --only (paypal writes config/brand.json; supabase-keys creates a key)
+SECRET_KEY_ENV = "SUPABASE_SECRET_KEY"       # .secrets.env: the named sb_secret_ key (never printed)
+EDGE_SECRET_NAME = "SB_SERVICE_KEY"          # Edge Function secret read by supabase/functions/_shared/keys.ts (SUPABASE_* is reserved)
+DEFAULT_KEY_NAME = "runtime_2026_10"
+KEY_NAME_RX = r"[a-z][a-z0-9_]{2,40}"
 SLEEP = time.sleep          # patched by the tests
 POLL_SECONDS = 10
 POLL_TRIES = 90             # 15 minutes
@@ -261,6 +278,7 @@ class Ctx:
         self.ref = None
         self.report = []        # (ok: bool|None, text)
         self.google_on = None
+        self.apple_on = None
         self.public_key = None
         self.functions_skipped = []
         self.active_projects = []
@@ -488,6 +506,29 @@ def step_google(ctx):
     ctx.ok("כניסה עם Google הופעלה")
 
 
+def step_apple(ctx):
+    vals = {k: ctx.sec.get(k, "") for k in APPLE_KEYS}
+    if not all(vals.values()):
+        ctx.apple_on = False
+        say("  Apple: חסרים " + ", ".join(k for k, v in vals.items() if not v) + " ב-.secrets.env, מדלג (כפתור Apple יישאר כבוי).")
+        return
+    sid, team, kid, p8 = (vals[k].strip() for k in APPLE_KEYS)
+    if not re.fullmatch(r"[A-Za-z0-9.\-]{3,100}", sid) or not re.fullmatch(r"[A-Z0-9]{10}", team) or not re.fullmatch(r"[A-Z0-9]{10}", kid):
+        raise SetupError("❌ APPLE_SERVICES_ID / APPLE_TEAM_ID / APPLE_KEY_ID נראים לא תקינים (Team ID ו-Key ID = 10 תווים גדולים/ספרות).")
+    p8 = os.path.expanduser(p8)
+    if not os.path.isfile(p8):
+        raise SetupError(f"❌ קובץ ה-.p8 לא נמצא בנתיב שב-APPLE_P8_PATH. להוריד שוב מ-developer.apple.com (Keys) ולעדכן את הנתיב.")
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from apple_secret import MAX_DAYS, make_secret
+    secret = make_secret(team, kid, sid, p8, MAX_DAYS)
+    ctx.api.redact.values.append(secret)
+    ctx.api.req("PATCH", f"/projects/{ctx.ref}/config/auth", {
+        "external_apple_enabled": True, "external_apple_client_id": sid, "external_apple_secret": secret})
+    ctx.apple_on = True
+    exp = time.strftime("%d.%m.%Y", time.localtime(time.time() + MAX_DAYS * 86400))
+    ctx.ok(f"כניסה עם Apple הופעלה (Services ID {sid}). הסוד תקף עד {exp}: לפני כן להריץ שוב --only apple")
+
+
 # ------------------------------------------------------------------ step: storage
 def step_storage(ctx):
     rows = ctx.api.sql(ctx.ref, "select id, public from storage.buckets order by id;") or []
@@ -521,14 +562,32 @@ def vault_put(ctx, name, val, desc):
   else perform vault.update_secret(sid, {sql_lit(val)}); end if; end $v$;""")
 
 
-def service_role_key(ctx):
-    """Legacy service_role JWT (what the Edge runtime injects as SUPABASE_SERVICE_ROLE_KEY). Never printed."""
+def secret_key_from_file(ctx):
+    """The new-style secret key from .secrets.env (SUPABASE_SECRET_KEY), validated; "" when absent. Never printed."""
+    key = ctx.sec.get(SECRET_KEY_ENV, "")
+    if not key:
+        return ""
+    if not key.startswith("sb_secret_") or not re.fullmatch(r"[A-Za-z0-9_\-]{20,400}", key):
+        raise SetupError(f"❌ {SECRET_KEY_ENV} בקובץ .secrets.env צריך להתחיל ב-sb_secret_ (מפתח סודי חדש). "
+                         "למחוק את השורה ולהריץ: python3 tools/us_setup.py --only supabase-keys")
+    ctx.api.redact.values.append(key)
+    return key
+
+
+def server_key(ctx):
+    """The server key for Vault (pg_net -> Edge Functions): the new-style secret key from .secrets.env, else the legacy
+    service_role JWT from the API (warned: it stops working once legacy keys are off). Never printed."""
+    key = secret_key_from_file(ctx)
+    if key:
+        return key
     keys = ctx.api.req("GET", f"/projects/{ctx.ref}/api-keys?reveal=true") or []
     key = next((k.get("api_key") for k in keys if k.get("name") == "service_role" and k.get("api_key")), None)
     if not key or not re.fullmatch(r"[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+", key):
-        raise SetupError("❌ לא נמצא מפתח service_role (JWT) לפרויקט. בדשבורד: Settings → API Keys → Legacy API keys "
-                         "צריך להיות פעיל. להעביר לקלוד.")
+        raise SetupError(f"❌ אין {SECRET_KEY_ENV} ב-.secrets.env וגם לא נמצא מפתח service_role (JWT) ישן לפרויקט. "
+                         "להריץ: python3 tools/us_setup.py --only supabase-keys ואז שוב את הפקודה הזו. להעביר לקלוד.")
     ctx.api.redact.values.append(key)
+    ctx.warn(f"Vault מקבל את מפתח ה-service_role הישן (JWT). כשמכבים את המפתחות הישנים זה יפסיק לעבוד: "
+             f"להריץ --only supabase-keys ואז --only vault,secrets.")
     return key
 
 
@@ -536,9 +595,10 @@ def step_vault(ctx):
     for env, _, _ in VAULT_KEYS:          # validate every pasted key before any SQL is sent
         if ctx.sec.get(env):
             check_key(ctx.sec[env], env)
-    # A8 (pg_net → Edge Functions): project URL + service role key, always.
+    # A8 (pg_net → Edge Functions): project URL + server key, always (the key is validated before any SQL is sent).
+    key = server_key(ctx)
     vault_put(ctx, "ailab_us_project_url", f"https://{ctx.ref}.supabase.co", "ailab-us project URL (A8 cron/pg_net)")
-    vault_put(ctx, "ailab_us_service_role_key", service_role_key(ctx), "service role JWT for pg_net -> Edge Functions (A8)")
+    vault_put(ctx, "ailab_us_service_role_key", key, "server key (sb_secret_ or legacy JWT) for pg_net -> Edge Functions (A8)")
     done = ["ailab_us_project_url", "ailab_us_service_role_key"]
     for env, name, desc in VAULT_KEYS:
         val = ctx.sec.get(env)
@@ -559,6 +619,8 @@ def step_secrets(ctx):
         if v:
             check_key(v, k)
             items.append({"name": k, "value": v})
+    if secret_key_from_file(ctx):
+        items.append({"name": EDGE_SECRET_NAME, "value": ctx.sec[SECRET_KEY_ENV]})
     if not items:
         ctx.warn("סודות Edge Functions: אין עדיין מפתחות ב-.secrets.env, דילגתי.")
         return
@@ -697,7 +759,14 @@ def google_enabled(ctx):
     return bool(cfg.get("external_google_enabled"))
 
 
-def render_config(url, key, google_on, brand, supabase_js):
+def apple_enabled(ctx):
+    if ctx.apple_on is not None:
+        return ctx.apple_on
+    cfg = ctx.api.req("GET", f"/projects/{ctx.ref}/config/auth") or {}
+    return bool(cfg.get("external_apple_enabled"))
+
+
+def render_config(url, key, google_on, brand, supabase_js, apple_on=False):
     flags = {"show_founder_price": bool(brand.get("show_founder_price")), "legal_final": bool(brand.get("legal_final"))}
     return f"""/* Site-wide runtime config. PUBLIC values only (URL + publishable/anon key are public by design; never a service key).
    generated-by: tools/us_setup.py (task A2). Re-run `python3 tools/us_setup.py --only config` to refresh; do not edit by hand.
@@ -711,6 +780,7 @@ window.SITE_CONFIG = {{
   SUPABASE_ANON_KEY: {json.dumps(key)},
   SUPABASE_JS: {json.dumps(supabase_js)},
   GOOGLE_ENABLED: {'true' if google_on else 'false'},
+  APPLE_ENABLED: {'true' if apple_on else 'false'},
   ALLOW_MOCK_SWITCH: false,
   BUCKET: 'client-files',
   MAX_FILES: 5,
@@ -726,10 +796,10 @@ def step_config(ctx):
     cur = read_text(CONFIG_JS) if os.path.exists(CONFIG_JS) else ""
     m = re.search(r"SUPABASE_JS:\s*['\"](https://[^'\"]+)['\"]", cur)
     text = render_config(f"https://{ctx.ref}.supabase.co", key, google_enabled(ctx), ctx.brand,
-                         m.group(1) if m else SUPABASE_JS_DEFAULT)
+                         m.group(1) if m else SUPABASE_JS_DEFAULT, apple_enabled(ctx))
     with open(CONFIG_JS, "w", encoding="utf-8") as f:
         f.write(text)
-    ctx.ok(f"נכתב {os.path.relpath(CONFIG_JS, ROOT)} (BACKEND 'supabase', כתובת + מפתח ציבורי)")
+    ctx.ok(f"נכתב {os.path.relpath(CONFIG_JS, ROOT)} (BACKEND 'supabase', כתובת + מפתח ציבורי, Google {'פעיל' if 'GOOGLE_ENABLED: true' in text else 'כבוי'}, Apple {'פעיל' if 'APPLE_ENABLED: true' in text else 'כבוי'})")
 
 
 # ------------------------------------------------------------------ step: ping
@@ -849,6 +919,42 @@ def step_paypal(ctx):
     say("  הבא: python3 tools/us_setup.py --only functions (הפונקציות קוראות את brand.json בזמן הפריסה), ואז לדחוף את האתר.")
 
 
+# ------------------------------------------------------------------ step: supabase-keys (opt-in: --only supabase-keys)
+def step_supabase_keys(ctx):
+    """New key model: one named secret key for everything server-side. Idempotent: an existing key (file or project)
+    is reused, nothing is ever deleted or rotated here. The value is never printed."""
+    name = ctx.args.key_name or DEFAULT_KEY_NAME
+    if not re.fullmatch(KEY_NAME_RX, name):
+        raise SetupError("❌ --key-name: רק אותיות קטנות, ספרות ו-_ (3–41 תווים, מתחיל באות).")
+    key = secret_key_from_file(ctx)
+    if key:
+        say(f"  {SECRET_KEY_ENV} כבר קיים ב-.secrets.env, לא נוצר מפתח חדש")
+    else:
+        keys = ctx.api.req("GET", f"/projects/{ctx.ref}/api-keys?reveal=true") or []
+        mine = next((k for k in keys if k.get("type") == "secret" and k.get("name") == name), None)
+        if mine and mine.get("api_key"):
+            key = mine["api_key"]
+            say(f"  מפתח סודי בשם {name} כבר קיים בפרויקט, משתמש בו")
+        else:
+            created = ctx.api.req("POST", f"/projects/{ctx.ref}/api-keys", {
+                "type": "secret", "name": name,
+                "description": "ailab-us server key: Edge Functions (SB_SERVICE_KEY), Vault, Railway runtime, weekly report"}) or {}
+            key = created.get("api_key") or ""
+            say(f"  נוצר מפתח סודי חדש בשם {name}")
+        if not isinstance(key, str) or not key.startswith("sb_secret_") or not re.fullmatch(r"[A-Za-z0-9_\-]{20,400}", key):
+            raise SetupError("❌ Supabase לא החזיר מפתח sb_secret_ תקין. להעביר לקלוד.")
+        ctx.api.redact.values.append(key)
+        append_secret(SECRET_KEY_ENV, key)
+        ctx.sec[SECRET_KEY_ENV] = key
+    ctx.api.req("POST", f"/projects/{ctx.ref}/secrets", [{"name": EDGE_SECRET_NAME, "value": key}])
+    ctx.ok(f"מפתח סודי {name} (sb_secret_…): שמור ב-.secrets.env בשורה {SECRET_KEY_ENV}, וסוד {EDGE_SECRET_NAME} הוגדר ב-Edge Functions")
+    say("  הבא (לפי docs/runbooks/supabase-legacy-keys-off.md בריפו הפרטי):")
+    say("   1. python3 tools/us_setup.py --only vault,secrets,functions   (Vault + פריסת הפונקציות עם המפתח החדש)")
+    say(f"   2. Railway → runtime → Variables → SUPABASE_SERVICE_ROLE_KEY = הערך של {SECRET_KEY_ENV} מ-.secrets.env")
+    say(f"   3. GitHub (ריפו פרטי) → secret US_SUPABASE_SERVICE_KEY = אותו ערך")
+    say("   4. רק אחרי שהכול עובד: בדשבורד Supabase → Settings → API Keys → Legacy API keys → Disable")
+
+
 # ------------------------------------------------------------------ checklist
 def checklist(ctx):
     ref = ctx.ref or "<ref>"
@@ -877,6 +983,11 @@ def checklist(ctx):
             f"       https://{ref}.supabase.co/auth/v1/callback ; להדביק ID+Secret ב-.secrets.env ולהריץ --only google,config")
     else:
         add(f"Google Cloud → OAuth client: לוודא ש-https://{ref}.supabase.co/auth/v1/callback נמצא ב-Authorized redirect URIs.")
+    if not all(sec.get(k) for k in APPLE_KEYS):
+        add("Apple (לא חובה): Services ID + מפתח Sign in with Apple (.p8) ב-developer.apple.com, לפי docs/runbooks/social-signin-setup.md "
+            "(ריפו פרטי); להדביק APPLE_SERVICES_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_P8_PATH ב-.secrets.env ולהריץ --only apple,config")
+    else:
+        add("Apple: הסוד תקף 175 יום. תזכורת ביומן חודש לפני, ואז: python3 tools/us_setup.py --only apple")
     if ctx.functions_skipped or not function_slugs():
         add("Edge Functions: כשיהיו (A6/A8), להריץ --only functions. אם הפריסה דרך ה-API נכשלת:\n"
             "       brew install supabase/tap/supabase ואז שוב --only functions (הסקריפט משתמש ב-CLI אם הוא מותקן).")
@@ -895,8 +1006,8 @@ def dry_run(args, sec, brand):
         + ("ייווצר אם לא קיים (--create)" if args.create else "רק פרויקט קיים (בלי --create)"))
     say(f"  ארגון: {args.org or sec.get('SUPABASE_ORG_SLUG') or 'אוטומטי (אם יש יותר מאחד: חובה --org)'}")
     say(f"  סודות ב-.secrets.env (רק יש/אין): טוקן Supabase {have('SUPABASE_ACCESS_TOKEN')}, Resend {have('RESEND_API_KEY')}, "
-        f"Claude {have('ANTHROPIC_API_KEY')}, Google {have('GOOGLE_OAUTH_CLIENT_ID')}, "
-        f"סיסמת DB {have('SUPABASE_DB_PASSWORD')}")
+        f"Claude {have('ANTHROPIC_API_KEY')}, Google {have('GOOGLE_OAUTH_CLIENT_ID')}, Apple {have('APPLE_KEY_ID')}, "
+        f"סיסמת DB {have('SUPABASE_DB_PASSWORD')}, מפתח סודי חדש {have(SECRET_KEY_ENV)}")
     plan = {
         "migrate": "מיגרציות לפי הסדר: " + ", ".join(migration_files()),
         "test": "בדיקת RLS מרחוק (supabase/tests/rls_test.sql), חייב RLS_TESTS_PASSED",
@@ -905,10 +1016,13 @@ def dry_run(args, sec, brand):
                 + (f"SMTP Resend משולח {parse_sender(smtp_sender(brand, args.smtp_from))[1]}" if sec.get("RESEND_API_KEY")
                    else "בלי SMTP (אין מפתח Resend)"),
         "google": "Google: " + ("יופעל" if sec.get("GOOGLE_OAUTH_CLIENT_ID") else "ידולג (אין פרטים)"),
+        "apple": "Apple: " + ("יופעל (סוד ל-175 יום)" if all(sec.get(k) for k in APPLE_KEYS) else "ידולג (חסרים APPLE_* ב-.secrets.env)"),
         "storage": "אחסון: " + ", ".join(BUCKETS),
-        "vault": "Vault: ailab_us_project_url, ailab_us_service_role_key (מה-API, לא מודפס)"
+        "vault": "Vault: ailab_us_project_url, ailab_us_service_role_key ("
+                 + (f"המפתח הסודי החדש מ-{SECRET_KEY_ENV}" if sec.get(SECRET_KEY_ENV) else "service_role ישן מה-API, לא מודפס") + ")"
                  + "".join(", " + n for e, n, _ in VAULT_KEYS if sec.get(e)),
-        "secrets": "סודות Edge Functions: " + (", ".join(k for k in FUNCTION_SECRET_KEYS if sec.get(k)) or "ידולג"),
+        "secrets": "סודות Edge Functions: " + (", ".join([k for k in FUNCTION_SECRET_KEYS if sec.get(k)]
+                                                      + ([EDGE_SECRET_NAME] if sec.get(SECRET_KEY_ENV) else [])) or "ידולג"),
         "functions": "Edge Functions: " + (", ".join(function_slugs()) or "אין עדיין, ידולג")
                      + (" (CLI)" if shutil.which("supabase") else " (Management API)"),
         "cron": ("select private.install_email_jobs(); ואז " if has_email_jobs() else "")
@@ -918,6 +1032,8 @@ def dry_run(args, sec, brand):
         "paypal": ("כיבוי PayPal ב-config/brand.json" if args.paypal_disable else
                    f"PayPal {args.paypal_env}: מפתחות {have(*PAYPAL_KEYS[args.paypal_env])}, webhook, 4 סודות לפונקציות, config/brand.json"
                    + (" (מופעל)" if args.paypal_enable else " (נשאר כבוי)")),
+        "supabase-keys": f"מפתח סודי חדש {args.key_name or DEFAULT_KEY_NAME}: " + ("כבר ב-.secrets.env" if sec.get(SECRET_KEY_ENV)
+                         else "ייווצר (או ייקרא אם קיים) ויישמר ב-.secrets.env") + f", וסוד {EDGE_SECRET_NAME} בפונקציות",
     }
     for i, s in enumerate(steps, 1):
         say(f"  {i:>2}. [{s}] {plan[s]}")
@@ -953,9 +1069,9 @@ def parse_only(only):
 
 
 STEP_FUNCS = {"migrate": step_migrate, "test": step_test, "settings": step_settings, "auth": step_auth,
-              "google": step_google, "storage": step_storage, "vault": step_vault, "secrets": step_secrets,
+              "google": step_google, "apple": step_apple, "storage": step_storage, "vault": step_vault, "secrets": step_secrets,
               "functions": step_functions, "cron": step_cron, "config": step_config, "ping": step_ping,
-              "paypal": step_paypal}
+              "paypal": step_paypal, "supabase-keys": step_supabase_keys}
 
 
 def build_parser():
@@ -963,7 +1079,7 @@ def build_parser():
     ap.add_argument("--create", action="store_true", help="create the project if it does not exist")
     ap.add_argument("--ref", help="use this existing project ref")
     ap.add_argument("--org", help="organization slug (required if the account has more than one)")
-    ap.add_argument("--only", help="comma list of steps: " + ",".join(STEPS))
+    ap.add_argument("--only", help="comma list of steps: " + ",".join(STEPS) + " (opt-in: " + ",".join(OPT_IN_STEPS) + ")")
     ap.add_argument("--dry-run", action="store_true", help="print the plan; no network call")
     ap.add_argument("--plan", action="store_true", help="read-only network check: orgs, projects, Free slot")
     ap.add_argument("--smtp-from", help="override SMTP sender, e.g. 'Name <hello@verified-domain>'")
@@ -971,6 +1087,7 @@ def build_parser():
     ap.add_argument("--paypal-env", choices=("sandbox", "live"), default="sandbox", help="--only paypal: which PayPal app (default sandbox)")
     ap.add_argument("--paypal-enable", action="store_true", help="--only paypal: also set payments.paypal.enabled = true")
     ap.add_argument("--paypal-disable", action="store_true", help="--only paypal: only set payments.paypal.enabled = false")
+    ap.add_argument("--key-name", help=f"--only supabase-keys: name of the secret key (default {DEFAULT_KEY_NAME})")
     ap.add_argument("--self-test", action="store_true", help="run offline unit tests (tools/us_setup_test.py)")
     return ap
 

@@ -6,12 +6,13 @@
    API (all async unless noted):
      ready()                                   -> resolves when the adapter is usable
      mode (sync)                               -> 'mock' | 'supabase' | 'off'
-     googleEnabled (sync)                      -> bool
+     googleEnabled / appleEnabled (sync)       -> bool (config.js GOOGLE_ENABLED / APPLE_ENABLED)
+     providers (sync)                          -> ['google','apple'] in button order (StartSignin.enabledProviders)
      getSession()                              -> {user:{id,email}} | null
      consumeLink()                             -> session | null   (magic-link return; strips URL params)
      sendCode(email)                           -> void             (one email: magic link + 6-digit code)
      verifyCode(email, code)                   -> session
-     signInWithGoogle()                        -> void (redirects)
+     signInWithGoogle() / signInWithApple()    -> void (redirects; PKCE; return URL from StartSignin.redirectTarget allow-list)
      signOut()
      getProfile() / saveProfile(patch)         -> profile row
      listQuestionnaires()                      -> rows (own only)
@@ -69,14 +70,23 @@
       if (r.error) { let code = r.error.message; try { const j = await r.error.context.json(); if (j && j.error) code = j.error; } catch (e) { /* not JSON */ } throw new Error(code); }
       return r.data;
     }
+    const SI = window.StartSignin;
+    // Return URL after the provider: only the configured site or local dev (never a third-party origin). PKCE: the
+    // browser comes back with ?code=… which supabase-js exchanges itself; no access token ever appears in the URL.
+    const returnTo = () => SI.redirectTarget(location.origin, (window.Start && window.Start.BRAND && window.Start.BRAND.site_url) || '', '/start/');
+    async function oauth(provider) {
+      must(await sb.auth.signInWithOAuth({ provider, options: { redirectTo: returnTo(), scopes: provider === 'google' ? 'openid email profile' : undefined } }));
+    }
     return {
       mode: 'supabase',
-      googleEnabled: !!C.GOOGLE_ENABLED,
+      googleEnabled: C.GOOGLE_ENABLED === true,
+      appleEnabled: C.APPLE_ENABLED === true,
+      providers: SI.enabledProviders(C),
       async getSession() { const { data } = await sb.auth.getSession(); return wrap(data.session); },
       async consumeLink() {
-        // detectSessionInUrl (PKCE) already exchanged ?code=; just clean the URL.
+        // detectSessionInUrl (PKCE) already exchanged ?code=; just clean the URL (home.js reads a provider error first).
         const s = await this.getSession();
-        if (/[?&#](code|access_token|error|token_hash)=/.test(location.href)) history.replaceState(null, '', location.pathname);
+        if (SI.urlHasTokens(location.href)) history.replaceState(null, '', location.pathname);
         return s;
       },
       async sendCode(email) {
@@ -86,9 +96,8 @@
         const d = must(await sb.auth.verifyOtp({ email, token: code, type: 'email' }));
         return wrap(d.session);
       },
-      async signInWithGoogle() {
-        must(await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/start/' } }));
-      },
+      async signInWithGoogle() { await oauth('google'); },
+      async signInWithApple() { await oauth('apple'); },
       async signOut() { try { await sb.auth.signOut(); } catch (e) { /* already signed out */ } },
       async getProfile() { return must(await sb.from('profiles').select('*').eq('id', await uid()).maybeSingle()); },
       async saveProfile(patch) { return must(await sb.from('profiles').update(patch).eq('id', await uid()).select().single()); },
@@ -216,8 +225,9 @@
     return impl;
   })();
 
-  const api = { mode, get googleEnabled() { return !!(impl && impl.googleEnabled); }, ready: () => readyP };
-  ['getSession', 'consumeLink', 'sendCode', 'verifyCode', 'signInWithGoogle', 'signOut', 'getProfile', 'saveProfile',
+  const api = { mode, get googleEnabled() { return !!(impl && impl.googleEnabled); }, get appleEnabled() { return !!(impl && impl.appleEnabled); },
+    get providers() { return (impl && impl.providers) || []; }, ready: () => readyP };
+  ['getSession', 'consumeLink', 'sendCode', 'verifyCode', 'signInWithGoogle', 'signInWithApple', 'signOut', 'getProfile', 'saveProfile',
     'listQuestionnaires', 'createQuestionnaire', 'getQuestionnaire', 'saveQuestionnaire', 'submitQuestionnaire',
     'deleteQuestionnaire', 'listAttachments', 'uploadAttachment', 'removeAttachment', 'downloadUrl', 'listQuotes',
     'getClient', 'listPayments', 'notify', 'payCreate', 'payCapture',

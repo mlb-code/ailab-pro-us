@@ -2,7 +2,7 @@
 #   make install   npm dev deps (Playwright + Puppeteer, no browser download)
 #   make serve     static site on http://localhost:8787 (site/ + /__fixture__/)
 #   make qa-fast   static checks only (no browsers): secrets, hard-coded values, config sync, price book,
-#                  us_setup self-test, generated pages/fixtures up to date, SQL lint, video VO length, Upwork proposals. CI runs this.
+#                  us_setup self-test, generated pages/fixtures up to date, sign-in helper unit tests, SQL lint, video VO length. CI runs this.
 #   make qa        EVERYTHING: qa-fast + browsers (3 engines) + Deno tests + offline Postgres (PGlite) suites.
 #                  Every browser suite gets its own server on a free port (no port clashes). Prefer serial `make qa`:
 #                  under heavy CPU load `-j` causes Playwright launch/click timeouts.
@@ -34,6 +34,7 @@ qa-fast: secrets
 	$(PY) tools/us_setup.py --self-test
 	$(PY) tools/build_landing.py --check
 	$(PY) tools/landing_test.py >/dev/null
+	$(NODE) tools/signin_test.mjs >/dev/null
 	$(DENO_RUN) tools/build_quote_fixtures.ts --check
 	$(PY) tools/sql_lint.py supabase/migrations
 	$(PY) videos/vo_length.py
@@ -52,6 +53,10 @@ qa-demo:
 qa-start:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_start.mjs
 	E2E_PORT=$(FREE) $(NODE) tools/overflow_start.mjs
+
+# Sign-in screen with Google / Apple mocked (order, wording, errors, one-person-one-account, Apple relay e-mail)
+qa-signin:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_signin.mjs
 
 qa-admin:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_admin.mjs
@@ -84,7 +89,7 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
 	$(DENO_RUN) supabase/tests/offline/paypal_run.ts
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-admin qa-portal-b7 qa-phase-a qa-paypal
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-phase-a qa-paypal
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------

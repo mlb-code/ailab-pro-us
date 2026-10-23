@@ -5,7 +5,11 @@
      - attachments: own draft only, max 5 per questionnaire, max 10 MB each
      - quotes visible to the client only from 'sent' on (sent_at set)
    E-mails go to an in-browser outbox (shown on the sign-in screen in mock mode).
-   Test/dev helpers: window.StartMock.admin.{reset, db, inbox, seed(stage, pricebook)}. */
+   Test/dev helpers: window.StartMock.admin.{reset, db, inbox, seed(stage, pricebook)}.
+   Social sign-in (Google / Apple) is simulated, never contacting a provider: on localhost /start/?mock=1&mock_providers=google,apple
+   shows the buttons; a click "redirects" to /start/?mock_oauth=<provider> and the return is decided by mock_oauth_outcome=
+   ok (default; signs in as <provider>.user@example.test, or mock_oauth_email=…) | hide (Apple relay address) | cancel | down | conflict
+   (the last three come back exactly like Supabase does: #error=…&error_code=…&error_description=…). */
 (function () {
   const KEY = 'aplp_mock_db_v1', SKEY = 'aplp_mock_session_v1';
   const ls = {
@@ -18,6 +22,18 @@
     'calls', 'sms_messages', 'bookings'];   // third row: receptionist data written by the runtime (B7 reads it)
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
+  const ss = {
+    get: k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* storage blocked */ } }
+  };
+  (function mockSocialFlags() {   // per-tab switches for tests/demos (see the header comment)
+    const p = new URLSearchParams(location.search);
+    if (p.has('mock_providers')) ss.set('start_mock_providers', p.get('mock_providers') || '');
+    if (p.has('mock_oauth_outcome')) ss.set('start_mock_oauth_outcome', p.get('mock_oauth_outcome') || 'ok');
+    if (p.has('mock_oauth_email')) ss.set('start_mock_oauth_email', p.get('mock_oauth_email') || '');
+  })();
+  const mockProviders = () => (ss.get('start_mock_providers') || '').split(',').map(x => x.trim()).filter(Boolean);
+  const RELAY_DEMO = 'k7x2mq9ab3@privaterelay.appleid.com';
   // = defaultPayMethod() in /assets/quote_view.mjs: a new draft starts with it, quote-send falls back to it (tools/e2e_admin.mjs).
   // Card / PayPal checkout while brand.json payments.paypal is on (same rule as paypalOn()), else Upwork Direct Contracts.
   const ppOnBrand = b => { const p = b && b.payments && b.payments.paypal; return !!(p && p.enabled === true && /^[A-Za-z0-9_-]{16,128}$/.test(p.client_id || '')); };
@@ -52,7 +68,7 @@
       u = { id: uuid(), email, created_at: now() };
       db.users.push(u);
       // mirrors private.handle_new_user(): every auth user gets a profile row
-      db.profiles.push({ id: u.id, email, full_name: null, company: null, phone: null, city: null, state: null, timezone: null,
+      db.profiles.push({ id: u.id, email, contact_email: null, full_name: null, company: null, phone: null, city: null, state: null, timezone: null,
         niche: null, website: null, how_heard: null, update_lang: 'en', is_admin: email === MOCK_ADMIN_EMAIL(), created_at: now(), updated_at: now() });
     }
     ls.set(SKEY, { uid: u.id });
@@ -61,14 +77,35 @@
 
   function create(C) {
     const MAX_FILES = C.MAX_FILES || 5, MAX_BYTES = (C.MAX_FILE_MB || 10) * 1048576;
+    const providers = mockProviders().filter(x => x === 'google' || x === 'apple');
+    const OAUTH_BACK = { cancel: 'error=access_denied&error_code=user_cancelled&error_description=User+cancelled+the+sign-in',
+      down: 'error=server_error&error_code=unexpected_failure&error_description=Unable+to+exchange+external+code',
+      conflict: 'error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user' };
+    function oauthStart(provider) {
+      if (providers.indexOf(provider) === -1) return fail('provider_disabled');
+      // like supabase-js: the page leaves for the provider; here the "provider" is this same page. A refusal comes back
+      // exactly as Supabase sends it (in the hash); a success comes back with a marker that consumeLink() turns into a session.
+      const back = OAUTH_BACK[ss.get('start_mock_oauth_outcome') || 'ok'];
+      location.assign(back ? '/start/#' + back : '/start/?mock_oauth=' + provider);
+      return new Promise(() => {});   // never resolves: navigation is under way
+    }
     return {
       mode: 'mock',
-      googleEnabled: false,
+      googleEnabled: providers.indexOf('google') !== -1,
+      appleEnabled: providers.indexOf('apple') !== -1,
+      providers: ['google', 'apple'].filter(x => providers.indexOf(x) !== -1),
       getSession() { return later(session(me(load()))); },
       consumeLink() {
         const p = new URLSearchParams(location.search);
         const tok = p.get('mock_token');
         const db = load();
+        const prov = p.get('mock_oauth');
+        if (prov) {
+          const email = ss.get('start_mock_oauth_outcome') === 'hide' ? RELAY_DEMO : (ss.get('start_mock_oauth_email') || (prov + '.user@example.test'));
+          history.replaceState(null, '', location.pathname);
+          const u = signIn(db, email); store(db);
+          return later(session(u));
+        }
         if (tok) {
           p.delete('mock_token');
           history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
@@ -99,7 +136,8 @@
         const u = signIn(db, email); store(db);
         return later(session(u));
       },
-      signInWithGoogle() { return fail('provider_disabled'); },
+      signInWithGoogle() { return oauthStart('google'); },
+      signInWithApple() { return oauthStart('apple'); },
       signOut() { ls.del(SKEY); return later(null); },
 
       getProfile() {
@@ -109,8 +147,10 @@
       saveProfile(patch) {
         const db = load(), u = me(db); if (!u) return fail('not_authenticated');
         const p = db.profiles.find(x => x.id === u.id); if (!p) return fail('not_found');
-        const ok = ['full_name', 'company', 'phone', 'city', 'state', 'timezone', 'niche', 'website', 'how_heard', 'update_lang'];
+        const ok = ['full_name', 'company', 'phone', 'city', 'state', 'timezone', 'niche', 'website', 'how_heard', 'update_lang', 'contact_email'];
         ok.forEach(k => { if (k in patch) p[k] = patch[k]; });   // id/email/is_admin are ignored, like profiles_guard
+        if (p.contact_email != null && p.contact_email !== '' && !window.StartSignin.validEmail(p.contact_email)) return fail('invalid_contact_email');
+        if (p.contact_email) p.contact_email = String(p.contact_email).trim().toLowerCase();
         if (p.update_lang !== 'en' && p.update_lang !== 'he') return fail('invalid_update_lang');
         if (p.timezone) { try { new Intl.DateTimeFormat('en-US', { timeZone: p.timezone }); } catch (e) { return fail('invalid_timezone'); } }
         p.updated_at = now(); store(db);
