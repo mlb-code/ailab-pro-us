@@ -59,7 +59,16 @@ def reminder_text(tenant: TenantRecord, booking: dict[str, Any]) -> str:
             "Reply here to change it. Reply STOP to opt out.")  # short: 1 segment with a 44-char SMS name
 
 
-WINDOW_OF = {"textback": "textback", "confirmation": "scheduled", "reminder": "scheduled"}
+def review_text(tenant: TenantRecord, url: str) -> str:
+    """ADD-REV (shipped disabled, see app.reviews): the one template that carries a link, the client's own Google
+    review page. No prices or offers; one segment with a short SMS name."""
+    return (f"{sms_business_name(tenant)}: thanks for choosing us! If you have a minute, a Google review helps a lot: "
+            f"{url} Reply STOP to opt out.")
+
+
+WINDOW_OF = {"textback": "textback", "confirmation": "scheduled", "reminder": "scheduled", "review": "scheduled"}
+REVIEW_GAP = timedelta(days=90)  # at most one review text per contact per 90 days
+REVIEW_CONSENT_VERSION = "review-2026-10-23"
 
 
 def next_allowed(cfg, t: datetime, contact: str = "", window: str = "textback") -> datetime:
@@ -194,6 +203,74 @@ class Outbound:
                                       "booking": {k: booking.get(k) for k in ("start", "label", "event_id")},
                                       "dedupe": f"reminder:{booking.get('event_id')}"})
 
+    # --- ADD-REV: post-job review request (DISABLED by default: env + tenant switch, see app.reviews) --------
+    def _review_key(self, tenant: TenantRecord, contact: str) -> str:
+        return f"review:{tenant.id}:{who(contact)}"
+
+    def review_enabled(self, tenant: TenantRecord) -> tuple[bool, str]:
+        """Both switches: REVIEW_REQUESTS_ENABLED (env kill switch) and the tenant's `review_requests.enabled`."""
+        rv = tenant.config.review_requests
+        if not self.settings.review_requests_enabled:
+            return False, "env_disabled"
+        if not rv.enabled:
+            return False, "tenant_disabled"
+        if not rv.google_review_url:
+            return False, "no_review_url"
+        return True, ""
+
+    def _review_block(self, tenant: TenantRecord, ts, contact: str, now: datetime) -> str:
+        """Why no review text may go to this number right now ('' = fine). Checked when queueing and again at send."""
+        ok, reason = self.review_enabled(tenant)
+        if not ok:
+            return reason
+        if guard.is_blocked(contact, tenant.config):
+            return "blocklist"
+        if ts.is_opted_out(contact):
+            return "opted_out"
+        last = self.state.get(self._review_key(tenant, contact))
+        if isinstance(last, str) and now - datetime.fromisoformat(last) < REVIEW_GAP:
+            return "already_asked_90d"
+        return ""
+
+    def enqueue_review(self, tenant: TenantRecord, contact: str, now: datetime, job: dict[str, Any]) -> dict[str, Any]:
+        """Queue the one review text `delay_hours` after the job was completed, inside the 09-20 window (both zones).
+        Consent: a `booking_texts` = yes row for the number (the customer said yes to texts at booking), or the client
+        attests it on this request (`consent: true` + `consent_text`), which is then written to the consent log."""
+        ts = self.store.for_tenant(tenant.id)
+        if reason := self._review_block(tenant, ts, contact, now):
+            return {"queued": False, "reason": reason}
+        if not any(r.get("decision") == "yes" for r in ts.consent(contact, "booking_texts")):
+            text = str(job.get("consent_text") or "").strip()
+            if not (job.get("consent") is True and text):
+                return {"queued": False, "reason": "no_consent"}
+            ts.record_consent(contact, "manual", "booking_texts", "yes", text, None, REVIEW_CONSENT_VERSION)
+        cfg = tenant.config
+        due = next_allowed(cfg, now + timedelta(hours=cfg.review_requests.delay_hours), contact, "scheduled")
+        ref = str(job.get("job_ref") or "").strip() or now.strftime("%Y%m%d%H%M%S")
+        added = self._add_job(tenant, {"kind": "review", "contact": contact, "due": due.isoformat(),
+                                       "job": {k: job.get(k) for k in ("name", "job_type", "job_ref")},
+                                       "dedupe": f"review:{who(contact)}:{ref}"})
+        if not added:
+            return {"queued": False, "reason": "duplicate"}
+        return {"queued": True, "due": due.isoformat(), "job_id": added["id"]}
+
+    def _run_review(self, tenant: TenantRecord, job: dict[str, Any], now: datetime) -> dict[str, Any]:
+        """Send time: both switches, opt-out, blocklist, landline and the 90-day rule are checked again."""
+        contact = job["contact"]
+        ts = self.store.for_tenant(tenant.id)
+        if reason := self._review_block(tenant, ts, contact, now):
+            res = {"sent": False, "reason": reason}
+        elif (line := self.line_type(tenant, contact, now)) in NO_TEXT_LINE_TYPES:
+            res = {"sent": False, "reason": f"line_type:{line}"}
+        else:
+            res = self.send(tenant, contact, review_text(tenant, tenant.config.review_requests.google_review_url),
+                            "review", now)
+            if res["sent"]:
+                self.state.put(self._review_key(tenant, contact), now.isoformat(), tenant.id)
+        ts.log_event("sms.review", {"job_ref": (job.get("job") or {}).get("job_ref"),
+                                    **{k: v for k, v in res.items() if k != "sid"}})
+        return res
+
     def run_due(self, now: datetime, tenant: TenantRecord | None = None) -> list[dict[str, Any]]:
         tenants = [tenant] if tenant else self._all_tenants()
         done: list[dict[str, Any]] = []
@@ -236,7 +313,8 @@ class Outbound:
             return {"sent": False, "reason": "called_back"}
         if not guard.send_window_ok(cfg, now, contact, window):  # e.g. the loop was down overnight: wait again
             nxt = next_allowed(cfg, now, contact, window)
-            if job["kind"] != "textback" and nxt > datetime.fromisoformat(job["booking"]["start"]) - timedelta(hours=1):
+            if (job["kind"] not in ("textback", "review") and job.get("booking")
+                    and nxt > datetime.fromisoformat(job["booking"]["start"]) - timedelta(hours=1)):
                 return {"sent": False, "reason": "too_late"}
             self._add_job(tenant, {**{k: v for k, v in job.items() if k != "id"}, "due": nxt.isoformat()})
             return {"sent": False, "reason": "deferred"}
@@ -262,6 +340,8 @@ class Outbound:
                     self.rt.engine.note_outbound(tenant, "sms", contact, tid, body, prior=body)
             ts.log_event("sms.textback", {"call_sid": job.get("call_sid"), **{k: v for k, v in res.items() if k != "sid"}})
             return res
+        if job["kind"] == "review":
+            return self._run_review(tenant, job, now)
         # confirmation / reminder: only if the booking still stands
         b = job["booking"]
         live = [r for r in ts.select("bookings", provider_event_id=b.get("event_id")) if r.get("status") == "confirmed"]

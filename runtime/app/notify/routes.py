@@ -260,6 +260,64 @@ def zapier_secret(slug: str, request: Request):
             "scheme": "sha256=HMAC_SHA256(secret, X-Timestamp + '.' + raw_body)"}
 
 
+# --- ADD-REV ---------------------------------------------------------------------------------------------------
+# Post-job review-request SMS (app.reviews, docs/review-requests.md). Shipped DISABLED: both the env kill switch
+# REVIEW_REQUESTS_ENABLED and the tenant's review_requests.enabled must be on, else 403 review_requests_disabled.
+#   POST /reviews/{slug}/job-completed   admin Bearer token OR tenant HMAC (X-Timestamp + X-Signature over the body)
+#   GET  /reviews/{slug}/status          admin: the two switches, url_set, pending_jobs
+
+def _review_rt(request: Request):
+    return getattr(request.app.state, "rt", None)
+
+
+@router.post("/reviews/{slug}/job-completed")
+async def review_job_completed(slug: str, request: Request):
+    from ..reviews import BadBody, job_completed, verify_zapier_inbound
+    svc = services(request.app)
+    tenant = _tenant(svc, slug)
+    if tenant is None:
+        return JSONResponse({"error": "unknown tenant"}, status_code=404)
+    raw = await request.body()
+    rt = _review_rt(request)
+    if require_admin(request) is not None:  # not the admin token: accept a valid tenant signature instead
+        now_s = rt.now().timestamp() if rt is not None else None
+        if not verify_zapier_inbound(request.headers, raw, tenant.id, svc.zapier.master, now_s):
+            return JSONResponse({"error": "unauthorized"}, status_code=401)
+    if rt is None or getattr(rt, "outbound", None) is None:
+        return JSONResponse({"error": "runtime not ready"}, status_code=503)
+    enabled, _why = rt.outbound.review_enabled(tenant)
+    if not enabled and _why in ("env_disabled", "tenant_disabled"):
+        return JSONResponse({"error": "review_requests_disabled"}, status_code=403)
+    try:
+        import json as _json
+        body = _json.loads(raw or b"{}")
+    except ValueError:
+        return JSONResponse({"error": "body must be JSON"}, status_code=400)
+    try:
+        res = job_completed(rt, tenant, body, rt.now())
+    except BadBody as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    return {k: v for k, v in res.items() if k in ("queued", "reason", "due")}
+
+
+@router.get("/reviews/{slug}/status")
+def review_status(slug: str, request: Request):
+    if (denied := require_admin(request)) is not None:
+        return denied
+    svc = services(request.app)
+    tenant = _tenant(svc, slug)
+    if tenant is None:
+        return JSONResponse({"error": "unknown tenant"}, status_code=404)
+    rt = _review_rt(request)
+    rv = tenant.config.review_requests
+    pending = 0
+    if rt is not None and getattr(rt, "outbound", None) is not None:
+        pending = sum(1 for j in rt.outbound.jobs(tenant) if j.get("kind") == "review")
+    return {"env_enabled": bool(svc.settings.review_requests_enabled), "tenant_enabled": bool(rv.enabled),
+            "url_set": bool(rv.google_review_url), "pending_jobs": pending}
+# --- end ADD-REV -----------------------------------------------------------------------------------------------
+
+
 # --- ADD-CRM ---------------------------------------------------------------------------------------------------
 # Direct CRM links (HubSpot, Jobber): the admin stores one access token per tenant + provider, encrypted like
 # calendar tokens; it is never echoed back. `POST .../test` is a read-only auth check. Public docs: docs/crm-links.md.

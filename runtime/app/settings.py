@@ -92,6 +92,9 @@ class Settings:
     twilio_account_sid: str = ""
     jobs_token: str = field(default="", repr=False)  # accepted by /jobs/tick as RUNTIME_ADMIN_TOKEN alias
     jobs_loop_s: float = 0.0  # optional; the cron is POST /jobs/tick. > 0: also run SMS jobs in-process
+    # ADD-REV kill switch (REVIEW_REQUESTS_ENABLED). Off by default: review texts need a 10DLC campaign that
+    # covers them and consent collected for them; the tenant's `review_requests.enabled` must be on as well.
+    review_requests_enabled: bool = False
 
     @property
     def is_sim(self) -> bool:
@@ -126,6 +129,7 @@ class Settings:
             "voice_mode": self.voice_mode,
             "twilio_rest_configured": bool(self.twilio_account_sid),
             "jobs_token_configured": bool(self.jobs_token),
+            "review_requests_enabled": self.review_requests_enabled,
         }
 
 
@@ -166,6 +170,8 @@ def load(env: dict[str, str] | None = None) -> Settings:
         twilio_account_sid=env.get("TWILIO_ACCOUNT_SID", ""),
         jobs_token=env.get("JOBS_TOKEN", ""),
         jobs_loop_s=float(env.get("JOBS_LOOP_SECONDS", "0")),
+        review_requests_enabled=(env.get("REVIEW_REQUESTS_ENABLED") or "0").strip().lower()
+        in ("1", "true", "yes", "on"),
     )
     if env.get("REPLAY_DIR"):
         kwargs["replay_dir"] = Path(env["REPLAY_DIR"])
