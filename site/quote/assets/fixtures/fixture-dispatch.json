@@ -37,16 +37,16 @@
       "name": "Missed-Call AI Receptionist",
       "list": [
         "1 location and 1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
-        "Answers the calls you miss, and texts back callers who hang up",
+        "Answers the calls you miss (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
         "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
         "Booking into 1 calendar: Google Calendar or Calendly",
         "Appointment manager: callers can check, move or cancel a visit it booked for them just by calling back, and it recognizes returning callers",
         "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
-        "Owner notifications by SMS and email for every lead, plus a daily summary email",
+        "An email alert for every lead, plus a daily summary email (text alerts too, once business texting is live)",
         "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
         "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
-        "We handle the texting registration that US phone carriers require (fees included)",
-        "Included usage per month: 400 voice minutes and 1,000 SMS segments; we alert you at 80% and 100%; we never charge for extra minutes or texts on our own, we add more only if you say yes",
+        "When US carrier registration for business texting opens, we register your business for you (fees included)",
+        "Included usage per month: 400 voice minutes (and 1,000 texts once business texting is live); we alert you at 80% and 100%; we never charge for extra minutes or texts on our own, we add more only if you say yes",
         "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
       ]
     },
@@ -67,7 +67,7 @@
     "Spanish / bilingual phone line (extra, fixed price)",
     "A direct link to apps like Jobber or HubSpot (extra, fixed price)",
     "Chat box on your website (extra, fixed price)",
-    "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+    "Usage above the included 400 minutes (and 1,000 texts, once business texting is live); we alert you at 80% and 100% and add more only if you say yes",
     "Call recordings (we keep a written copy of each call, not the audio)",
     "Medical records or patient health information (we can't sign a HIPAA agreement)"
   ],

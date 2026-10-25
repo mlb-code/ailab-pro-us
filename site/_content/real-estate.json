@@ -5,7 +5,7 @@
   "offer": "RCP",
   "seo": {
     "title": "Never Miss a Buyer or Seller Call: AI Lead Response for Agents | {brand}",
-    "description": "Missed callers get a text right away, get screened, and get booked into your calendar. Leads can go to Follow Up Boss. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
+    "description": "Missed callers get answered, screened, and booked into your calendar. Leads can go to Follow Up Boss. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
     "og_title": "Never miss a buyer or seller call.",
     "og_kicker": "AI lead response for real estate",
     "service_type": "AI lead response and qualification for real estate agents",
@@ -14,7 +14,7 @@
   "hero": {
     "eyebrow": "AI lead response · agents · teams · brokerages",
     "title": "Never miss a *buyer* or seller call.",
-    "lead": "Even when you're at a showing, every caller gets a text right away. It asks if they're buying or selling, where, when, and if they're pre-approved. Then it books them into your calendar and can send the lead to Follow Up Boss.",
+    "lead": "Even when you're at a showing, every caller gets answered right away. It asks if they're buying or selling, where, when, and if they're pre-approved. Then it books them into your calendar and can send the lead to Follow Up Boss.",
     "fine": "No sales calls. Fixed quote in writing {quote_sla}."
   },
   "clock": {
@@ -38,7 +38,7 @@
       {
         "t": "2:16 PM",
         "a": "Booked",
-        "b": "Showing · Sat 10:00 AM · you get a text",
+        "b": "Showing · Sat 10:00 AM · you get an email",
         "booked": true
       }
     ]
@@ -47,7 +47,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you can't take go to your AI assistant's number. It answers with your name or your team's name. If a caller hangs up, it texts them within a minute, so sign calls don't go cold."
+      "text": "Calls you can't take go to your AI assistant's number. It answers with your name or your team's name, so sign calls don't go cold. (Texting callers who hang up is coming soon, after US carrier registration.)"
     },
     {
       "icon": "chat",
@@ -56,14 +56,14 @@
     },
     {
       "icon": "calendar",
-      "title": "It books, you get a text",
-      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by text and email. Each lead can also be added to Follow Up Boss automatically (through Zapier, an app that connects apps)."
+      "title": "It books, you get an email",
+      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by email (and by text, once business texting is live). Each lead can also be added to Follow Up Boss automatically (through Zapier, an app that connects apps)."
     }
   ],
   "demo": {
     "eyebrow": "Try it",
     "title": "Be the *caller*. See what your leads would get.",
-    "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call.",
+    "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call, once business texting is live (coming soon, after US carrier registration).",
     "business": "Jenna Harper · Maple & Main Realty",
     "business_line": "Austin, TX",
     "scenarios": [
@@ -497,14 +497,14 @@
   ],
   "included_items": [
     "1 new US phone number for your lead assistant, for you or your team. You keep your own number; calls you miss are sent to the new one.",
-    "Answers the calls you miss, and texts back callers who hang up, right away",
+    "Answers the calls you miss, right away (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
     "Lead screening: buying or selling, property or area, timeline, pre-approval, already working with an agent",
     "Booking showings, listing consults and buyer calls into Google Calendar or Calendly",
     "Answers to up to 25 common questions (listings, open houses, your process), your business hours, and a nights-and-weekends mode",
-    "Lead alerts by SMS and email for every new lead, plus a daily summary email",
+    "An email alert for every new lead, plus a daily summary email (text alerts too, once business texting is live)",
     "Leads sent to Follow Up Boss or kvCORE through 1 included Zapier link",
     "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
-    "We handle the texting registration that US phone carriers require (fees included)",
+    "When US carrier registration for business texting opens, we register your business for you (fees included)",
     "{usage_text}",
     "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
   ],

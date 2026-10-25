@@ -516,7 +516,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       blocks: [
         { p: `${hi(ctx)} ${rcp ? "your AI receptionist is live." : "your website is live."}` },
         { title: "What happens now", list: rcp
-          ? ["Missed calls forwarded to your receptionist number are answered.", "You get a text and an email for every lead.",
+          ? ["Missed calls forwarded to your receptionist number are answered.", "You get an email for every lead (and a text, once business texting is live).",
             "Each evening you get a short summary of the day.", "Need a change? Open a request in your portal and follow its status there."]
           : ["Your site is online at your domain.", "Need a change? Open a request in your portal and follow its status there."] },
         { facts: [[rcp ? "Receptionist number" : "", num],

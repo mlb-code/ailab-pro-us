@@ -5,7 +5,7 @@
   "offer": "RCP",
   "seo": {
     "title": "AI Receptionist for HVAC & Plumbing Companies | {brand}",
-    "description": "Missed calls answered, texted back and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls.",
+    "description": "Missed calls answered and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls.",
     "og_title": "Every missed call, answered and booked.",
     "og_kicker": "AI receptionist for HVAC & plumbing",
     "service_type": "AI phone receptionist for home service businesses",
@@ -14,7 +14,7 @@
   "hero": {
     "eyebrow": "AI receptionist for HVAC & plumbing companies",
     "title": "Every missed call, answered and *booked*.",
-    "lead": "You're on a roof or under a sink. The phone rings. Your AI receptionist answers, texts back anyone who hangs up, and books the job into your calendar.",
+    "lead": "You're on a roof or under a sink. The phone rings. Your AI receptionist answers, takes the job details, and books the job into your calendar.",
     "fine": "No sales calls. Fixed quote in writing {quote_sla}.",
     "also": "Also for electrical, roofing and garage door companies."
   },
@@ -39,7 +39,7 @@
       {
         "t": "7:44 PM",
         "a": "Booked",
-        "b": "Tuesday 8 AM–12 PM · AC repair · you get a text",
+        "b": "Tuesday 8 AM–12 PM · AC repair · you get an email",
         "booked": true
       }
     ]
@@ -48,7 +48,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you don't pick up go to your AI receptionist's number. It answers with your business name and asks what's going on. If a caller hangs up, it texts them within a minute."
+      "text": "Calls you don't pick up go to your AI receptionist's number. It answers with your business name and asks what's going on. (Texting callers who hang up is coming soon, after US carrier registration.)"
     },
     {
       "icon": "chat",
@@ -57,14 +57,14 @@
     },
     {
       "icon": "calendar",
-      "title": "It books, you get a text",
-      "text": "It books only open times on your calendar, in the areas and hours you serve. You get each new lead by text and email, plus a daily summary."
+      "title": "It books, you get an email",
+      "text": "It books only open times on your calendar, in the areas and hours you serve. You get each new lead by email, plus a daily summary (text alerts too, once business texting is live)."
     }
   ],
   "demo": {
     "eyebrow": "Try it",
     "title": "Be the *customer*. See what your callers would get.",
-    "lead": "Pick a situation and tap the answers. You'll see the texts your customer gets after a missed call. The answers are set in advance.",
+    "lead": "Pick a situation and tap the answers. You'll see the texts your customer will get after a missed call once business texting is live (coming soon, after US carrier registration). The answers are set in advance.",
     "business": "Copperleaf Air & Plumbing",
     "business_line": "Heating, Air & Plumbing · Houston",
     "scenarios": [
@@ -174,7 +174,7 @@
             "booked": {
               "title": "AC repair",
               "when": "{slot}",
-              "detail": "ZIP {zip} · owner alerted by text + email"
+              "detail": "ZIP {zip} · owner alerted by email"
             }
           }
         }
@@ -426,7 +426,7 @@
     },
     {
       "q": "What about emergencies?",
-      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT text right away, and it can ring your cell."
+      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT email right away (and a text, once business texting is live), and it can ring your cell."
     },
     {
       "ref": "builtin_ai"

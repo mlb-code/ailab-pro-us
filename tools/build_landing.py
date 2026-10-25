@@ -1020,7 +1020,7 @@ def demo_page(c, contents, year):
         nav(c, path, {'label': 'Get a quote', 'href': cta0, 'ev': 'quote_start', 'niche_cta': True}), '<main id="main">',
         f'''<section class="section" id="demo"><div class="wrap">
 <div class="shead"><p class="eyebrow">Demo</p><h1 style="font-size:clamp(2.1rem,5vw,3.6rem)">Be the <em class="em">customer</em>. Tap the replies.</h1>
-<p class="lead">This is what a caller gets after a missed call: a text from your AI assistant, a few quick questions, and a booked time. The answers are set in advance. {esc(c.brand['disclaimers']['demo'])}.</p>
+<p class="lead">This is what a caller will get after a missed call once business texting is live (coming soon, after US carrier registration): a text from your AI assistant, a few quick questions, and a booked time. On the phone, the same questions and booking work today. The answers are set in advance. {esc(c.brand['disclaimers']['demo'])}.</p>
 <p class="hero__price"><b class="num">{money(i0['setup_cents'])}</b> setup <span class="plus">+</span> <b class="num">{money(i0['monthly_cents'])}</b>/mo<span class="tag"><span data-demo-product>{esc(n0.get('product_name') or i0['name'])}</span> · fixed price, in writing</span></p>
 {call_line(c, long=True)}</div>
 {demo_widget(c, PUBLIC_DEMO_NICHES, contents, cta_href=cta0, cta_label='Get my fixed quote', switcher=True)}

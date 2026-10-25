@@ -301,7 +301,7 @@ async function main() {
     await page.click('#submitBtn');
     await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'You’ll get a written fixed quote ' + brand.quote_sla_text), 'submit → quote promise from brand.quote_sla_text');
-    ok(await waitText(page, 'Texting starts once phone carriers approve you, usually in 1–2 weeks'), 'what-happens-next: SMS registration line');
+    ok(await waitText(page, 'Texting (text-back and text alerts) is coming soon, after US carrier registration'), 'what-happens-next: texting is coming soon (no live-SMS promise)');
     const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     const qrow = db.questionnaires.find(q => q.id === qid);
     ok(qrow.status === 'submitted' && qrow.submitted_at && qrow.offer === 'RCP' && qrow.niche === 'home_services', 'row submitted with offer + niche columns');

@@ -120,16 +120,16 @@
       "marketed": true,
       "includes": [
         "1 location and 1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
-        "Answers the calls you miss, and texts back callers who hang up",
+        "Answers the calls you miss (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
         "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
         "Booking into 1 calendar: Google Calendar or Calendly",
         "Appointment manager: callers can check, move or cancel a visit it booked for them just by calling back, and it recognizes returning callers",
         "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
-        "Owner notifications by SMS and email for every lead, plus a daily summary email",
+        "An email alert for every lead, plus a daily summary email (text alerts too, once business texting is live)",
         "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
         "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
-        "We handle the texting registration that US phone carriers require (fees included)",
-        "Included usage per month: 400 voice minutes and 1,000 SMS segments; we alert you at 80% and 100%; we never charge for extra minutes or texts on our own, we add more only if you say yes",
+        "When US carrier registration for business texting opens, we register your business for you (fees included)",
+        "Included usage per month: 400 voice minutes (and 1,000 texts once business texting is live); we alert you at 80% and 100%; we never charge for extra minutes or texts on our own, we add more only if you say yes",
         "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
       ],
       "excludes": [
@@ -139,7 +139,7 @@
         "Spanish / bilingual phone line (add-on ADD-ES)",
         "A direct link to apps like Jobber or HubSpot (add-on ADD-CRM)",
         "Chat box on your website (add-on ADD-CHAT)",
-        "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+        "Usage above the included 400 minutes (and 1,000 texts, once business texting is live); we alert you at 80% and 100% and add more only if you say yes",
         "Call recordings (we keep a written copy of each call, not the audio)",
         "Medical records or patient health information (we can't sign a HIPAA agreement)"
       ]
@@ -201,7 +201,7 @@
         "More locations or phone numbers (add-on ADD-LOC)",
         "Spanish / bilingual phone line (add-on ADD-ES)",
         "A direct link to apps like Jobber or HubSpot (add-on ADD-CRM)",
-        "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
+        "Usage above the included 400 minutes (and 1,000 texts, once business texting is live); we alert you at 80% and 100% and add more only if you say yes",
         "Call recordings (we keep a written copy of each call, not the audio)",
         "Medical records or patient health information (we can't sign a HIPAA agreement)",
         "Pages beyond the 5 included (add-on ADD-PAGE)",
@@ -305,7 +305,7 @@
       ],
       "availability": "available",
       "includes": [
-        "Callers can speak or text in Spanish; summaries to you stay in English"
+        "Callers can speak in Spanish (texting in Spanish too, once business texting is live); summaries to you stay in English"
       ],
       "excludes": []
     },
@@ -397,7 +397,7 @@
     },
     {
       "code": "ADD-USAGE",
-      "name": "Extra minutes and texts: +400 min / +1,000 texts",
+      "name": "Extra minutes: +400 min (+1,000 texts once business texting is live)",
       "group": "addon",
       "kind": "fixed",
       "setup_cents": 0,
@@ -407,7 +407,7 @@
       ],
       "availability": "available",
       "includes": [
-        "400 more voice minutes and 1,000 more texts every month"
+        "400 more voice minutes every month (and 1,000 more texts once business texting is live)"
       ],
       "excludes": []
     },

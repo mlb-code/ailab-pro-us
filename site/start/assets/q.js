@@ -268,7 +268,7 @@
       '<b>Accept online</b> and pay a ' + dep + '% deposit. No call needed (a short video call is optional).',
       '<b>Setup checklist</b> with a short video for each step: hours, alerts, calendar and the rest.'
     ];
-    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away. Texting starts once phone carriers approve you, usually in 1–2 weeks.');
+    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away. Texting (text-back and text alerts) is coming soon, after US carrier registration; until then, alerts come by email.');
     return '<h2 class="h-sec">What happens next</h2><ol class="next">' + items.map(x => '<li>' + x + '</li>').join('') + '</ol>';
   }
   async function submit() {

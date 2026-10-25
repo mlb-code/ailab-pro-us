@@ -84,7 +84,7 @@
     },
     "ai_disclosure": {
       "q": "Will callers know it's AI?",
-      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Before it texts a booking confirmation or reminder, it asks the caller's permission and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
+      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Texting is coming soon, after US carrier registration; once it is live, it asks the caller's permission before it texts a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",
@@ -104,7 +104,7 @@
     },
     "spanish": {
       "q": "Can it speak Spanish?",
-      "a": "Yes, as an extra: {price:ADD-ES.setup} setup + {price:ADD-ES.monthly}/mo. Callers can talk or text in Spanish; your summaries stay in English."
+      "a": "Yes, as an extra: {price:ADD-ES.setup} setup + {price:ADD-ES.monthly}/mo. Callers can talk in Spanish (texting in Spanish too, once business texting is live); your summaries stay in English."
     },
     "builtin_ai": {
       "q": "Why not the AI assistant built into Jobber or Housecall Pro?",
@@ -123,8 +123,8 @@
     "eyebrow": "What happens to a missed call",
     "title": "The caller doesn't wait. Your *{assistant}* doesn't either."
   },
-  "usage_text_fallback": "{usage_voice} minutes + {usage_sms} texts included every month. We let you know when you've used 80%. No surprise charges: we add more only if you say yes.",
-  "sms_note": "Phone answering starts right away. Texting starts once US phone carriers approve your business for texting, usually in 1–2 weeks.",
+  "usage_text_fallback": "{usage_voice} minutes included every month ({usage_sms} texts included too, once business texting is live). We let you know when you've used 80%. No surprise charges: we add more only if you say yes.",
+  "sms_note": "Phone answering works from day one. Texting (automatic text-back, text alerts and text confirmations) is coming soon, after US carrier registration. Until then, alerts come by email.",
   "founder": {
     "text": "{founding_label}: {price:RCP.founding} setup + {price:RCP.monthly}/mo for our first {founding_max} clients, if you let us write a short case study about your results."
   },
@@ -145,8 +145,8 @@
       },
       {
         "num": "Day 1",
-        "title": "We register your texting",
-        "text": "We register your business for texting with US phone carriers. Approval usually takes 1–2 weeks. Fees included."
+        "title": "Texting registration",
+        "text": "Texting is coming soon, after US carrier registration. When it opens, we register your business with US phone carriers for you. Fees included."
       },
       {
         "num": "By day {days:RCP}",
@@ -173,7 +173,7 @@
   "why": {
     "$comment": "Dark stat section after the hero. Only cited numbers: each stat needs source + source_url (verified 2026-10-12). Never invent a number.",
     "eyebrow": "Why it matters",
-    "title": "Your customers would rather *text*. Most businesses never text back.",
+    "title": "Your customers won't *wait*. A missed call goes to the next company.",
     "lead": "A missed call is usually followed by a text, or by a call to the next company on the list.",
     "stats": [
       {
@@ -198,7 +198,7 @@
         "source_url": "https://textmagic.com/blog/consumer-sms-survey"
       }
     ],
-    "pill": "Your {assistant} answers, texts back and books. Every time."
+    "pill": "Your {assistant} answers and books. Every time."
   },
   "footer": {
     "$comment": "Footer columns (all pages from tools/build_landing.py). Social links come from config/brand.json social (empty = hidden). Address, email and disclaimer come from brand.json.",
@@ -280,7 +280,7 @@
         "sub_title": "Use cases",
         "sub_links": [
           {
-            "label": "Missed-call text back",
+            "label": "Missed-call answering",
             "href": "/#how-it-answers"
           },
           {

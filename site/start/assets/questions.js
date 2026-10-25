@@ -49,7 +49,7 @@
   const PROFILE = [
     { k: 'full_name', label: 'Full name', type: 'text', req: true, auto: 'name' },
     { k: 'company', label: 'Business name', type: 'text', req: true, auto: 'organization' },
-    { k: 'phone', label: 'Mobile phone', type: 'tel', req: true, auto: 'tel', ph: '(555) 555-0100', hint: 'For quote questions by text. We never call unannounced.' },
+    { k: 'phone', label: 'Mobile phone', type: 'tel', req: true, auto: 'tel', ph: '(555) 555-0100', hint: 'For quote questions. We never call unannounced.' },
     { k: 'website', label: 'Website (optional)', type: 'url', auto: 'url', ph: 'yourbusiness.com' },
     { k: 'city', label: 'City', type: 'text', auto: 'address-level2', half: true },
     { k: 'state', label: 'State', type: 'select', opts: US_STATES.map(s => O(s, s)), auto: 'address-level1', half: true },

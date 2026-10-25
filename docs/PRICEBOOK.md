@@ -67,7 +67,7 @@ Status: `available` = can be quoted and bought now. `coming soon` = listed on th
 | `ADD-LEAD` | Fast follow-up for new leads | RCP | $900 | $125 | $215 | coming soon |
 | `ADD-QUOTE` | Follow-up on quotes you have sent | RCP | $500 | $50 | $100 | coming soon |
 | `ADD-REV` | Google review requests after each job | RCP | $400 | $25 | $65 | coming soon |
-| `ADD-USAGE` | Extra minutes and texts: +400 min / +1,000 texts | RCP | $0 | $60 | $60 | available |
+| `ADD-USAGE` | Extra minutes: +400 min (+1,000 texts once business texting is live) | RCP | $0 | $60 | $60 | available |
 | `ADD-PAGE` | Extra website page | WEB | $250 | $0 | — | available |
 | `ADD-WEB-ES` | Spanish version of the website | WEB | $900 | $20 | $110 | available |
 | `ADD-LOGO` | Simple logo (wordmark + icon) | WEB | $300 | $0 | — | available |
