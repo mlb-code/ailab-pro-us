@@ -192,7 +192,7 @@
         } else answers[k] = el.value;
         markDirty();
         // branching fields re-render the current step in place (keeps focus on the same control)
-        if (['offer', 'niche', 'tools', 're_crm'].indexOf(k) !== -1) {
+        if (['offer', 'niche', 'tools', 're_crm', 'urgent'].indexOf(k) !== -1) {   // urgent -> the on-call dispatch choice
           const val = el.value, type = el.type;
           render(false);
           const back = app.querySelector('input[data-k="' + k + '"][value="' + CSS.escape(val) + '"]');
@@ -268,7 +268,7 @@
       '<b>Accept online</b> and pay a ' + dep + '% deposit. No call needed (a short video call is optional).',
       '<b>Setup checklist</b> with a short video for each step: hours, alerts, calendar and the rest.'
     ];
-    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away. Texting starts once phone carriers approve you, usually in 1–2 weeks.');
+    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away. Texting (text-back and text alerts) is coming soon, after US carrier registration; until then, alerts come by email.');
     return '<h2 class="h-sec">What happens next</h2><ol class="next">' + items.map(x => '<li>' + x + '</li>').join('') + '</ol>';
   }
   async function submit() {

@@ -12,7 +12,12 @@ export interface PricebookItem {
   kind: Kind;
   setup_cents: number | null;
   monthly_cents: number | null;
+  /** Plan B monthly (no setup fee, 12-month minimum). Server copy only; not sold while rules.plan_b_enabled is false. */
+  plan_b_monthly_cents?: number | null;
   applies_to: string[];
+  /** "coming_soon" = listed, never quoted or bought (needs texting registration). */
+  availability?: "available" | "coming_soon";
+  requires?: string[];
   setup_pct?: number;
   contains?: string[];
   includes: string[];
@@ -66,6 +71,8 @@ export interface PriceOptions {
   discount_code?: string | null;
   /** Meir confirmed a quote above the manual-price threshold, or with "later" offers. */
   manual_approved?: boolean;
+  /** "A" (default): setup + monthly. "B" (no setup fee, 12 months) is refused while it is not sold. */
+  plan?: "A" | "B";
   /** FOUNDING quotes already sent/accepted (server counts in the DB). */
   founding_used?: number;
 }
@@ -115,7 +122,8 @@ export interface ValidateResult {
 
 export const itemOf: (pb: Pricebook, code: string) => PricebookItem | undefined = P.itemOf as unknown as never;
 export const addonApplies: (pb: Pricebook, addon: PricebookItem, core: string) => boolean = P.addonApplies as unknown as never;
-export const alreadyIncluded: (core: string | null, code: string) => boolean = P.alreadyIncluded as unknown as never;
+export const alreadyIncluded: (core: string | null, code: string, pb?: Pricebook) => boolean = P.alreadyIncluded as unknown as never;
+export const isAvailable: (it: PricebookItem | undefined) => boolean = P.isAvailable as unknown as never;
 export const wholeDollars: (cents: number) => number = P.wholeDollars as unknown as never;
 export const priceQuote: (pb: Pricebook, input: LineInput[], opts?: PriceOptions) => PriceResult = P.priceQuote as unknown as never;
 export const storedItems: (r: PriceResult) => StoredItem[] = P.storedItems as unknown as never;

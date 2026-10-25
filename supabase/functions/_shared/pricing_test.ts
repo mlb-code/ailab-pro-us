@@ -1,6 +1,8 @@
 // Pricing scenarios (PRICEBOOK §4). Expected numbers are derived from pricebook.json, never typed as dollars.
 import { PRICEBOOK as PB } from "./config.ts";
-import { inputsFromStored, MAX_QTY, priceQuote, sendBlockers, storedItems, validateItems, wholeDollars } from "./pricing.ts";
+import { alreadyIncluded, inputsFromStored, isAvailable, MAX_QTY, priceQuote, sendBlockers, storedItems, validateItems, wholeDollars } from "./pricing.ts";
+import type { Pricebook } from "./pricing.ts";
+import { allowedCodes, catalogText } from "./quote_prompt.ts";
 import { assert, eq } from "./test_util.ts";
 
 const P = (code: string) => PB.items.find((i) => i.code === code)!;
@@ -25,7 +27,7 @@ Deno.test("2 WEB alone and 3 BNDL alone", () => {
 Deno.test("4 SPEC journey: RCP + ADD-CRM (Jobber) = setup, monthly and deposit as in SPEC §1 step 8", () => {
   const r = priceQuote(PB, [{ code: "RCP" }, { code: "ADD-CRM", qty: 1 }]);
   eq([r.setup_cents, r.monthly_cents, r.deposit_cents], [S("RCP") + S("ADD-CRM"), M("RCP") + M("ADD-CRM"), dep(S("RCP") + S("ADD-CRM"))]);
-  eq(r.setup_cents, 470000, "SPEC says $4,700"); eq(r.deposit_cents, 235000, "SPEC says $2,350");
+  eq(r.setup_cents, 470000, "SPEC §1 step 8 setup"); eq(r.deposit_cents, 235000, "SPEC §1 step 8 deposit");
 });
 
 Deno.test("5 add-ons with quantity: RCP + ADD-LOC x2 + ADD-ES; bundle accepts RCP and WEB add-ons", () => {
@@ -65,7 +67,7 @@ Deno.test("8 custom item -> needs_manual_price; priced custom resolves it", () =
 });
 
 Deno.test("9 setup over the threshold -> needs_manual_price until Meir confirms", () => {
-  const lines = [{ code: "BNDL" }, { code: "ADD-LOC", qty: 2 }, { code: "ADD-CRM", qty: 2 }, { code: "ADD-ES" }, { code: "ADD-REV" }];
+  const lines = [{ code: "BNDL" }, { code: "ADD-LOC", qty: 2 }, { code: "ADD-CRM", qty: 2 }, { code: "ADD-ES" }, { code: "ADD-DISPATCH" }];
   const r = priceQuote(PB, lines);
   assert(r.setup_cents > PB.rules.manual_price_setup_over_cents, "scenario must exceed threshold");
   eq([r.needs_manual_price, r.manual_reasons], [true, ["setup_over_threshold"]]);
@@ -153,4 +155,80 @@ Deno.test("15 browser copy site/assets/pricing.mjs is byte-identical (sync_confi
   const a = Deno.readTextFileSync(new URL("./pricing.mjs", import.meta.url));
   const b = Deno.readTextFileSync(new URL("../../../site/assets/pricing.mjs", import.meta.url));
   eq(a === b, true, "run python3 tools/sync_config.py");
+});
+
+// ---- v1.1, owner decision 2026-10-25 (dual-pricing-2026-10.he.md): the approved table, typed once here on purpose
+// so a wrong edit of pricebook.json fails. [setup, monthly, plan B monthly] in cents.
+const APPROVED: Record<string, [number, number, number]> = {
+  RCP: [350000, 30000, 65000], WEB: [190000, 12900, 31900], BNDL: [490000, 40000, 89000],
+  "BNDL-NM": [470000, 45000, 92000], "BNDL-GROW": [540000, 50000, 104000],
+  "ADD-DISPATCH": [70000, 7500, 14500], "ADD-LEAD": [90000, 12500, 21500], "ADD-QUOTE": [50000, 5000, 10000],
+  "ADD-ES": [35000, 3000, 6500], "ADD-REV": [40000, 2500, 6500], "ADD-CHAT": [50000, 2500, 7500],
+  "ADD-CRM": [120000, 5000, 17000], "ADD-LOC": [90000, 10000, 19000], "ADD-WEB-ES": [90000, 2000, 11000],
+};
+const SOON = ["ADD-LEAD", "ADD-QUOTE", "ADD-REV", "BNDL-NM", "BNDL-GROW"];
+
+Deno.test("16 price book v1.1 = the approved A/B table; plan B formula = monthly + setup x 1.2 / 12", () => {
+  for (const [code, [s, m, b]] of Object.entries(APPROVED)) {
+    eq([S(code), M(code), P(code).plan_b_monthly_cents], [s, m, b], code);
+    eq(b, m + wholeDollars(s * 1.2 / 12), code + " plan B formula");
+  }
+  eq(PB.rules.plan_b_enabled, false, "plan B stays off until the Tranzila USD terminal is confirmed");
+});
+
+Deno.test("17 available SMS-free add-ons quote at the new plan A prices", () => {
+  const r = priceQuote(PB, [{ code: "RCP" }, { code: "ADD-DISPATCH" }]);
+  eq([r.ok, r.setup_cents, r.monthly_cents, r.deposit_cents], [true, 420000, 37500, 210000]);
+  const all = ["ADD-DISPATCH", "ADD-LOC", "ADD-ES", "ADD-CRM", "ADD-CHAT"];
+  const a = priceQuote(PB, [{ code: "RCP" }, ...all.map((code) => ({ code }))], { manual_approved: true });
+  eq([a.ok, a.setup_cents, a.monthly_cents], [true, S("RCP") + all.reduce((x, c) => x + S(c), 0), M("RCP") + all.reduce((x, c) => x + M(c), 0)]);
+  const w = priceQuote(PB, [{ code: "WEB" }, { code: "ADD-WEB-ES" }]);
+  eq([w.ok, w.setup_cents, w.monthly_cents], [true, 280000, 14900]);
+  // FOUNDING: setup only; monthly never discounted
+  const f = priceQuote(PB, [{ code: "RCP" }, { code: "ADD-DISPATCH" }], { discount_code: "FOUNDING" });
+  eq([f.setup_cents, f.monthly_cents], [420000 - wholeDollars(420000 * 0.3), 37500]);
+});
+
+Deno.test("18 coming-soon items (need texting registration) are never quotable", () => {
+  for (const code of SOON) {
+    assert(!isAvailable(P(code)), code + " is coming soon");
+    const core = P(code).group === "core" ? [] : [{ code: "RCP" }];
+    const r = priceQuote(PB, [...core, { code }]);
+    assert(!r.ok && r.errors.includes(`coming_soon:${code}`), code + ": " + r.errors.join());
+    assert(validateItems(PB, [...core, { code }]).blockers.includes(`coming_soon:${code}`), code + " blocked in admin");
+    assert(!allowedCodes(PB).includes(code), code + " never offered to Claude");
+    assert(!catalogText(PB).includes(`- ${code}:`), code + " not in the catalog Claude sees");
+  }
+  for (const code of ["RCP", "WEB", "BNDL", "ADD-DISPATCH", "ADD-CHAT", "ADD-CRM", "ADD-ES", "ADD-LOC", "ADD-WEB-ES"]) {
+    assert(isAvailable(P(code)) && allowedCodes(PB).includes(code), code + " is sellable");
+  }
+  // a stored quote that somehow carries a coming-soon line cannot be sent
+  const q = { items: [{ code: "RCP", qty: 1, kind: "fixed" }, { code: "ADD-LEAD", qty: 1, kind: "fixed" }], setup_cents: 0, monthly_cents: 0, deposit_cents: 0, status: "approved" };
+  assert(sendBlockers(PB, q).includes("coming_soon:ADD-LEAD"));
+});
+
+Deno.test("19 plan B is refused while it is not sold; plan A is the default", () => {
+  eq(priceQuote(PB, [{ code: "RCP" }], { plan: "B" }).errors, ["plan_b_not_available"]);
+  eq(priceQuote(PB, [{ code: "RCP" }], { plan: "A" }).ok, true);
+  eq(priceQuote(PB, [{ code: "RCP" }]).setup_cents, S("RCP"));
+});
+
+Deno.test("20 a bundle's contained add-ons cannot be added twice (once the bundle is sellable)", () => {
+  const pb = structuredClone(PB) as Pricebook;
+  pb.rules.core_codes = [...pb.rules.core_codes, "BNDL-NM"];
+  for (const i of pb.items) if (["BNDL-NM", "ADD-LEAD"].includes(i.code)) i.availability = "available";
+  assert(alreadyIncluded("BNDL-NM", "ADD-DISPATCH", pb) && !alreadyIncluded("BNDL-NM", "ADD-ES", pb));
+  eq(priceQuote(pb, [{ code: "BNDL-NM" }, { code: "ADD-DISPATCH" }]).errors, ["already_included:ADD-DISPATCH:BNDL-NM"]);
+  const r = priceQuote(pb, [{ code: "BNDL-NM" }, { code: "ADD-ES" }]);
+  eq([r.ok, r.setup_cents, r.monthly_cents], [true, S("BNDL-NM") + S("ADD-ES"), M("BNDL-NM") + M("ADD-ES")]);
+});
+
+Deno.test("21 the public site copy carries no plan B data and no feature list for coming-soon items", () => {
+  const site = JSON.parse(Deno.readTextFileSync(new URL("../../../site/assets/pricebook.json", import.meta.url)));
+  eq(site.rules.plan_b_enabled, false);
+  eq("term_plan" in site.rules, false);
+  // deno-lint-ignore no-explicit-any
+  eq(site.items.filter((i: any) => "plan_b_monthly_cents" in i).length, 0);
+  // deno-lint-ignore no-explicit-any
+  for (const i of site.items.filter((i: any) => i.availability === "coming_soon")) eq([i.includes, i.excludes], [[], []], i.code);
 });

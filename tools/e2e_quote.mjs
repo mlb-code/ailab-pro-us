@@ -250,6 +250,18 @@ await off.goto(`${BASE}/quote/?t=fixture-paypalpaid`); await off.waitForSelector
 ok((await off.textContent('#pay-slot')).includes('Deposit paid'), 'PayPal off: a paid PayPal deposit still shows as paid');
 ok(sdkUrls.length === n0, 'PayPal off: SDK never requested');
 ok(errs.length === 0, 'console errors (PayPal): ' + errs.join(' | '));
+// price book v1.1: an RCP + ADD-DISPATCH quote (fixture built by the real engine) shows the add-on at the price-book price;
+// a coming-soon code is never on a quote, and its feature list never reaches the public price book
+const pd = await off.context().newPage();
+await pd.goto(`${BASE}/quote/?t=fixture-dispatch`); await pd.waitForSelector('#acceptForm');
+const dsp = pb.items.find(i => i.code === 'ADD-DISPATCH'), rcp = pb.items.find(i => i.code === 'RCP');
+const qd = P.priceQuote(pb, [{ code: 'RCP' }, { code: 'ADD-DISPATCH' }]);
+s = (await pd.textContent('body')).replace(/\s+/g, ' ');
+ok(qd.ok && qd.setup_cents === rcp.setup_cents + dsp.setup_cents && qd.monthly_cents === rcp.monthly_cents + dsp.monthly_cents, 'engine: RCP + ADD-DISPATCH = table prices');
+ok(s.includes(dsp.name) && s.includes(usd(qd.setup_cents)) && s.includes(usd(qd.monthly_cents)) && s.includes(usd(qd.deposit_cents)), 'fixture-dispatch: dispatch line + totals on the page');
+const soonCodes = pb.items.filter(i => i.availability === 'coming_soon').map(i => i.code);
+ok(soonCodes.length > 0 && soonCodes.every(c => !P.priceQuote(pb, [{ code: 'RCP' }, { code: c }]).ok), 'coming-soon codes are refused by the engine (browser copy)');
+ok(!('term_plan' in pb.rules) && pb.items.every(i => !('plan_b_monthly_cents' in i)), 'public price book: no plan B data');
 await b.close(); srv.kill();
 console.log(`e2e_quote: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

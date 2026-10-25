@@ -63,5 +63,36 @@ try:
 except SystemExit:
     check('consented review with a missing field stops the build', True)
 
+# Pricing v1.1 (owner decision 2026-10-25): plan B never renders while rules.plan_b_enabled is false, and every
+# coming-soon item appears only inside a labelled coming-soon block, never with a buy/quote button.
+import json, re  # noqa: E402
+pb = json.load(open(os.path.join(bl.ROOT, 'config', 'pricebook.json'), encoding='utf-8'))
+pages = page_with([])
+check('plan B is off in the price book', pb['rules']['plan_b_enabled'] is False)
+b_amounts = {bl.money(i['plan_b_monthly_cents']) for i in pb['items'] if i.get('plan_b_monthly_cents') and i['plan_b_monthly_cents'] != i['monthly_cents']}
+a_amounts = {bl.money(i[k]) for i in pb['items'] for k in ('setup_cents', 'monthly_cents') if isinstance(i.get(k), int)}
+b_only = sorted(b_amounts - a_amounts)
+soon = [i for i in pb['items'] if i.get('availability') == 'coming_soon']
+for rel, h in pages.items():
+    if not rel.endswith('.html'):
+        continue
+    vis = re.sub(r'<(script|style)\b.*?</\1>', '', h, flags=re.S)
+    hits = [x for x in b_only if re.search(re.escape(x) + r'(?![\d,])', vis)]
+    check(f'{rel}: no plan B price on the page {hits if hits else ""}', not hits)
+    check(f'{rel}: no "no setup fee" plan wording', not re.search(r'\$0 setup|no setup fee|12-month (plan|minimum)', vis, re.I))
+    blocks = ''.join(re.findall(r'<(?:table|div) class="[^"]*"[^>]*data-coming-soon.*?</(?:table|div)>', vis, flags=re.S))
+    outside = vis
+    for blk in re.findall(r'<(?:table|div) class="[^"]*"[^>]*data-coming-soon.*?</(?:table|div)>', vis, flags=re.S):
+        outside = outside.replace(blk, '')
+    for i in soon:
+        name = bl.esc(i['name'])
+        if name in vis:
+            check(f'{rel}: {i["code"]} shown only inside a coming-soon block', name in blocks and name not in outside)
+    check(f'{rel}: no quote link for a coming-soon code', not any(f'offer={i["code"]}' in vis for i in soon))
+home = pages['index.html']
+check('home: SMS-free add-on ADD-DISPATCH is listed with its price', bl.esc(next(i['name'] for i in pb['items'] if i['code'] == 'ADD-DISPATCH')) in home
+      and f'{bl.money(70000)} + {bl.money(7500)}/mo' in home)
+check('home: coming-soon block present with the label', 'data-coming-soon' in home and pb['rules']['availability']['coming_soon_label'] in home)
+
 print(f'landing_test: {len(failures)} failed')
 sys.exit(1 if failures else 0)

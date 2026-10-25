@@ -237,6 +237,15 @@ async function main() {
     ok((await stepId(page)) === 'calls' && (await text(page, '#stepTitle')) === 'Your calls today', 'calls step');
     for (const [k, v] of [['who_answers', 'owner'], ['calls_week', '20_50'], ['missed_pct', '25_50'], ['after_hours', 'voicemail'], ['urgent', 'often'], ['job_value', '200_1k']])
       await pick(page, `input[name=${k}][value="${v}"]`);
+    // ADD-DISPATCH (price book v1.1): offered only after "urgent calls", priced from the price book, never a coming-soon item
+    const disp = pb.items.find(i => i.code === 'ADD-DISPATCH');
+    const usd0 = c => '$' + Math.round(c / 100).toLocaleString('en-US');
+    ok(await exists(page, 'input[name=dispatch][value=yes]'), 'urgent calls → on-call dispatch question shown');
+    ok(await waitText(page, usd0(disp.setup_cents) + ' setup + ' + usd0(disp.monthly_cents) + '/mo'),
+      'dispatch choice shows the price-book price');
+    const soonNames = pb.items.filter(i => i.availability === 'coming_soon').map(i => i.name);
+    ok(!(await page.evaluate(n => n.some(x => document.body.textContent.includes(x)), soonNames)), 'no coming-soon item offered in the questionnaire');
+    await pick(page, 'input[name=dispatch][value=yes]');
     ok((await overflowAt(page)).length === 0, 'calls step: no overflow');
     await clickNext(page);
     ok((await stepId(page)) === 'tools', 'tools step');
@@ -279,6 +288,8 @@ async function main() {
     ok(!(await hebrew(page)), 'no Hebrew in questionnaire');
     const hints = await page.evaluate(id => window.StartQ.quoteHints(JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(q => q.id === id).answers, window.Start.PB), qid);
     ok(hints.add.some(a => a.code === 'ADD-LOC') && hints.add.some(a => a.code === 'ADD-CRM') && hints.add.some(a => a.code === 'ADD-ES'), 'quote hints: ADD-LOC, ADD-CRM, ADD-ES');
+    ok(hints.add.some(a => a.code === 'ADD-DISPATCH'), 'quote hints: dispatch yes → ADD-DISPATCH');
+    ok(!hints.add.some(a => pb.items.some(i => i.code === a.code && i.availability === 'coming_soon')), 'quote hints: no coming-soon code');
     ok(hints.custom.includes('tool:other'), 'quote hints: Other tool → custom');
     // edit link jumps back
     await page.click('[data-go=business]'); await sleep(80);
@@ -290,7 +301,7 @@ async function main() {
     await page.click('#submitBtn');
     await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'You’ll get a written fixed quote ' + brand.quote_sla_text), 'submit → quote promise from brand.quote_sla_text');
-    ok(await waitText(page, 'Texting starts once phone carriers approve you, usually in 1–2 weeks'), 'what-happens-next: SMS registration line');
+    ok(await waitText(page, 'Texting (text-back and text alerts) is coming soon, after US carrier registration'), 'what-happens-next: texting is coming soon (no live-SMS promise)');
     const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     const qrow = db.questionnaires.find(q => q.id === qid);
     ok(qrow.status === 'submitted' && qrow.submitted_at && qrow.offer === 'RCP' && qrow.niche === 'home_services', 'row submitted with offer + niche columns');

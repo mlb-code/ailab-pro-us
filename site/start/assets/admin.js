@@ -450,7 +450,8 @@
       unknown_code: 'קוד שלא קיים במחירון: ' + c, duplicate_code: 'הקוד ' + c + ' מופיע פעמיים.', bad_qty: 'כמות לא תקינה ב-' + c + ' (1 עד ' + (P ? P.MAX_QTY : '') + ').',
       core_qty: 'מוצר ליבה בכמות 1 בלבד.', addon_requires_core: 'התוספת ' + c + ' צריכה מוצר ליבה.', addon_not_applicable: 'התוספת ' + c + ' לא מתאימה ל-' + d + '.',
       already_included: c + ' כבר כלול ב-' + d + '.', percent_qty: 'דחוף בכמות 1 בלבד.', custom_without_label: 'שורה מותאמת בלי שם.',
-      unknown_discount: 'קוד הנחה לא מוכר.', monthly_discount_not_allowed: 'אסור לתת הנחה על החודשי.' })[k] || e;
+      unknown_discount: 'קוד הנחה לא מוכר.', monthly_discount_not_allowed: 'אסור לתת הנחה על החודשי.',
+      coming_soon: c + ' עדיין "בקרוב" (מחכה לרישום ה-SMS בארה"ב): אי אפשר להציע או למכור אותו.', plan_b_not_available: 'מסלול ב\' (בלי הקמה) עוד לא נמכר.' })[k] || e;
   };
   const QTY_CODES = ['ADD-LOC', 'ADD-CRM', 'ADD-PAGE', 'ADD-USAGE'];
   const isC = v => typeof v === 'number' && Number.isInteger(v) && v >= 0;
@@ -473,9 +474,10 @@
   function addableCodes(core) {
     const have = new Set(ED.lines.map(l => l.code)), cores = (PB.rules || {}).core_codes || [];
     return (PB.items || []).filter(it => {
-      if (have.has(it.code)) return false;
+      if (have.has(it.code) || !P.isAvailable(it)) return false;   // coming-soon items are never offered (PRICEBOOK §4.10)
       if (cores.includes(it.code)) return !core;
-      if (it.group === 'addon') return core ? P.addonApplies(PB, it, core) && !P.alreadyIncluded(core, it.code) : it.applies_to.includes('any');
+      if (it.group === 'core') return false;   // a core offer that is not sellable yet (not in rules.core_codes)
+      if (it.group === 'addon') return core ? P.addonApplies(PB, it, core) && !P.alreadyIncluded(core, it.code, PB) : it.applies_to.includes('any');
       return true;   // 'later' offers (alone or with a core)
     }).map(it => it.code);
   }

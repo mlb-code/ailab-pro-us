@@ -108,6 +108,12 @@ def main():
                 check(it['setup_cents'] == sv, f'{code}: setup_cents {it["setup_cents"]} == {sv}')
                 check(it['kind'] == ('from' if sk == 'from' else 'fixed'), f'{code}: kind {it["kind"]} matches table ({sk})')
             check(it['monthly_cents'] == mv, f'{code}: monthly_cents {it["monthly_cents"]} == {mv}')
+            if 'Plan B monthly' in col:
+                bk, bv = money(r[col['Plan B monthly']])
+                check(it.get('plan_b_monthly_cents') == (bv if bk == 'fixed' else None),
+                      f'{code}: plan_b_monthly_cents {it.get("plan_b_monthly_cents")} == table ({r[col["Plan B monthly"]]})')
+            if 'Status' in col:
+                check(it.get('availability') == r[col['Status']].replace(' ', '_'), f'{code}: availability {it.get("availability")!r} == table ({r[col["Status"]]})')
             if 'Applies to' in col:
                 check(it['applies_to'] == [r[col['Applies to']]], f'{code}: applies_to {it["applies_to"]}')
                 check(it['group'] == 'addon', f'{code}: group addon')
@@ -166,6 +172,44 @@ def main():
     check(items['RCP']['setup_cents'] + items['WEB']['setup_cents'] - items['BNDL']['setup_cents'] == s_save * 100, f'bundle saves ${s_save} setup')
     check(items['RCP']['monthly_cents'] + items['WEB']['monthly_cents'] - items['BNDL']['monthly_cents'] == m_save * 100, f'bundle saves ${m_save} monthly')
     check(items['BNDL'].get('contains') == ['RCP', 'WEB'], 'BNDL contains RCP + WEB')
+
+    # 3b. two ways to pay + availability (owner decision 2026-10-25)
+    check(R.get('plan_b_enabled') is False, 'plan B is OFF (rules.plan_b_enabled = false) until the Tranzila USD terminal is confirmed')
+    T = R.get('term_plan') or {}
+    check(T.get('min_months') == 12 and T.get('setup_cents') == 0 and T.get('after_term') == 'monthly_a'
+          and T.get('early_exit') == 'setup_remaining_share' and T.get('first_charge') == 'at_signing', 'term plan: 12 months, $0 setup, first charge at signing, drops to plan A, early exit = unpaid setup share')
+    check(T.get('founding_applies') is False and T.get('channels') == ['site'] and R.get('upwork_plans') == ['A'], 'term plan: no FOUNDING, site only; Upwork = plan A only')
+    prem = T.get('premium_pct')
+    for it in pb['items']:
+        b = it.get('plan_b_monthly_cents')
+        recurring = it['group'] in ('core', 'addon') and it['kind'] == 'fixed' and (it['monthly_cents'] or 0) > 0
+        check((b is not None) == recurring, f'{it["code"]}: plan B price present only on fixed items with a monthly fee')
+        if b is not None:
+            want = it['monthly_cents'] + round(it['setup_cents'] * (100 + prem) / 100 / 12 / 100) * 100
+            check(b == want, f'{it["code"]}: plan B {b} == monthly + setup x {100 + prem}% / 12 = {want}')
+    AP = R.get('annual_prepay') or {}
+    check(AP.get('months_paid') == 10 and AP.get('months_covered') == 12 and AP.get('plan') == 'A'
+          and '12 months of the monthly fee for the price of 10' in md, 'annual prepay: 12 months for the price of 10, plan A (Upwork)')
+    AV = R.get('availability') or {}
+    soon = {c for c, it in items.items() if it.get('availability') == 'coming_soon'}
+    check(soon == {'ADD-LEAD', 'ADD-QUOTE', 'ADD-REV', 'BNDL-NM', 'BNDL-GROW'}, f'coming soon = the texting items and the bundles that contain them ({sorted(soon)})')
+    check(not (soon & set(R['core_codes'])), 'no coming-soon item is a sellable core code')
+    for c in soon:
+        req = items[c].get('requires') or []
+        check(bool(req) and all(k in AV.get('reasons', {}) for k in req), f'{c}: coming soon says why (requires -> rules.availability.reasons)')
+    for it in pb['items']:
+        if it['group'] in ('core', 'addon'):
+            check(it.get('availability') in ('available', 'coming_soon'), f'{it["code"]}: availability set')
+        for part in it.get('contains', []):
+            check(part in items, f'{it["code"]}: contains existing code {part}')
+            if items.get(part, {}).get('availability') == 'coming_soon':
+                check(it.get('availability') == 'coming_soon', f'{it["code"]}: contains coming-soon {part} -> coming soon too')
+    for code, parts in (('BNDL-NM', ['RCP', 'ADD-DISPATCH', 'ADD-LEAD']), ('BNDL-GROW', ['RCP', 'ADD-DISPATCH', 'ADD-LEAD', 'ADD-QUOTE', 'ADD-REV'])):
+        it = items[code]
+        check(it.get('contains') == parts, f'{code} contains {" + ".join(parts)}')
+        check(it['setup_cents'] < sum(items[p]['setup_cents'] for p in parts) and it['monthly_cents'] < sum(items[p]['monthly_cents'] for p in parts),
+              f'{code}: costs less than its parts')
+    check('Appointment manager' in md and any(s.startswith('Appointment manager') for s in items['RCP']['includes']), 'appointment manager is part of RCP (no code, no fee)')
 
     # 4. semantics
     for it in pb['items']:

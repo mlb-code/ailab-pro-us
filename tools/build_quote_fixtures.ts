@@ -39,6 +39,7 @@ async function build(name: string, opts: { discount?: string; payLink?: string; 
 const files: Record<string, Promise<string>> = {
   "fixture.json": build("plumber_jobber", { payLink: "https://www.paypal.com/invoice/p/#DEMO-ONLY" }),
   "fixture-bundle.json": build("bndl", { discount: "FOUNDING", rush: true }),
+  "fixture-dispatch.json": build("locksmith_after_hours", {}),   // price book v1.1: RCP + ADD-DISPATCH
   "fixture-web.json": build("web_only", {}),
   "fixture-accepted.json": build("plumber_jobber", { accept: true, payLink: "https://www.paypal.com/invoice/p/#DEMO-ONLY" }),
   "fixture-expired.json": build("hvac_basic", { expired: true }),

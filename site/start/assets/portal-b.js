@@ -176,7 +176,7 @@
   function notifyEditor(px, n) {
     n = n || {};
     const ds = n.daily_summary === undefined ? '19:00' : n.daily_summary;
-    return '<div class="field"><label for="' + px + '_sms">Mobile numbers for text alerts</label><span class="hint" id="' + px + '_smsH">Up to 5, separated by commas. US numbers like (713) 555-0100.</span>' +
+    return '<div class="field"><label for="' + px + '_sms">Mobile numbers for text alerts</label><span class="hint" id="' + px + '_smsH">Up to 5, separated by commas. US numbers like (713) 555-0100. Text alerts start once business texting is live (after US carrier registration); until then, alerts come by email.</span>' +
       '<input class="input" id="' + px + '_sms" inputmode="tel" autocomplete="tel" aria-describedby="' + px + '_smsH" value="' + esc((n.sms || []).map(fmtPhone).join(', ')) + '"></div>' +
       '<div class="field"><label for="' + px + '_email">Emails for lead alerts</label><span class="hint" id="' + px + '_emH">Up to 5, separated by commas.</span>' +
       '<input class="input" id="' + px + '_email" inputmode="email" aria-describedby="' + px + '_emH" value="' + esc((n.email || []).join(', ')) + '"></div>' +
@@ -327,7 +327,7 @@
           '<div class="field"><label for="ob_car">Your phone provider</label><select class="select" id="ob_car"><option value="">Choose…</option>' + carrierOptions(car) + '</select></div>' +
           '<div id="ob_carhow">' + carrierHow(car, num) + '</div>' +
           (num ? '<h3 class="h-sub">Test call</h3><p>Press “Test call”. You then have 30 minutes: call your business number from another phone, let it ring out, and say a few words to the receptionist. This step turns to Done when the call arrives.</p>' +
-            '<p class="notice" role="note" id="ob_textback">Heads-up: if you hang up without speaking, the phone you called from gets our “Sorry we missed your call” text-back message. That’s expected during a test.</p>' +
+            '<p class="notice" role="note" id="ob_textback">Heads-up: once business texting is live (after US carrier registration), hanging up without speaking sends the phone you called from our “Sorry we missed your call” text-back message. That’s expected during a test. Until then, nothing is texted.</p>' +
             '<div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_test"' + (it.status === 'done' ? ' disabled' : '') + ' aria-describedby="ob_textback">Test call</button>' +
             (B.mode === 'mock' ? '<button type="button" class="btn btn--ghost btn--sm" id="ob_testsim" hidden>Simulate the forwarded call (demo mode)</button>' : '') + '</div><div id="msg_forward_calls" aria-live="polite">' +
             (data.test_call_at ? S.msgHtml('Call received ' + when(data.test_call_at, d) + '. Forwarding works.', 'ok') : '') + '</div>' : '');
@@ -377,7 +377,7 @@
           '<div id="msg_tools" aria-live="polite"></div><div class="btn-row"><button type="button" class="btn btn--primary btn--sm" data-save="tools">Save webhook</button>' +
           '<button type="button" class="btn btn--ghost btn--sm" id="ob_skip" data-item="' + esc(it.id) + '">Skip — I don’t use other tools</button></div>';
       case 'sms':
-        return '<p>Phone carriers require every business that texts to register (called A2P 10DLC). We file it for you; it typically takes 1–2 weeks. Calls are answered in the meantime.</p>' +
+        return '<p>Phone carriers require every business that texts to register (called A2P 10DLC). We file it for you once US carrier registration for business texting opens. Until it is approved, calls are answered and alerts come by email.</p>' +
           '<div class="pgrid"><div class="field"><label for="ob_legal">Legal business name <span class="req">required</span></label><input class="input" id="ob_legal" maxlength="200" value="' + esc(data.legal_name || '') + '"></div>' +
           '<div class="field half"><label for="ob_ein">EIN <span class="req">required</span></label><input class="input" id="ob_ein" inputmode="numeric" placeholder="12-3456789" maxlength="10" value="' + esc(data.ein || '') + '"></div>' +
           '<div class="field half"><label for="ob_web">Website (optional)</label><input class="input" id="ob_web" inputmode="url" maxlength="200" value="' + esc(data.website || '') + '"></div>' +
