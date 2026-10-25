@@ -38,7 +38,9 @@
       "demo_start",
       "quote_start",
       "quote_submit",
-      "quote_accept"
+      "quote_accept",
+      "quote_open",
+      "pay_click"
     ]
   },
   "claude": {

@@ -25,7 +25,7 @@ VO: This is the client portal of {{brand.name}}. A business owner signs in to co
 VO: In the setup checklist, the owner clicks Connect Google Calendar.
 
 ### S3 · Consent screen (Google, real)
-- **Record:** account chooser → consent screen. Zoom so the app name, the requested permission and the address bar (with `client_id=`) are readable. Click **Continue**.
+- **Record:** account chooser → consent screen. Zoom so the app name, the requested permission and the address bar (with `client_id=` and `redirect_uri=https://rt.ailabpro.co/...`) are readable. Hold 3 s on the scope line. Click **Continue**.
 
 VO: Google shows our app name and the one permission we request: to view and edit events on the owner's calendars. We don't request contacts, email, or any other Google data.
 
@@ -37,9 +37,11 @@ VO: The owner returns to the portal, and the calendar shows as connected.
 ### S5 · How the scope is used (simulator + Google Calendar)
 - **Record:** a test call through the deployed runtime (B9 smoke test) or the simulator pointed at the test tenant, ending in a booking; then the test Google Calendar showing the new event "Booked by AI receptionist" with the job details.
 
-VO: When a customer calls and books a visit, the receptionist reads existing events to find open times, then creates one event with the job details.
+VO: When a customer calls and books a visit, the receptionist reads only the start and end times of existing events to find open times, then creates one event with the job details.
 VO: It only changes events it created. Owners can disconnect at any time from their Google account settings.
 
 ## Production notes
+- 2026-10-25: shot-by-shot list, consent-screen checklist and the scope justification text are in the internal runbook `docs/runbooks/google-oauth-verification.he.md` (sections 3–4). The redirect must be on `rt.ailabpro.co` (`OAUTH_BASE_URL`), not on `*.up.railway.app`.
+- "Reads only start and end times": matches `runtime/app/calendar/google.py` `BUSY_FIELDS` (events.list `fields=`).
 - The privacy policy URL and the home page on the verified domain must be live before submitting (runbook stage 4).
 - "It only changes events it created": matches `runtime/app/calendar/base.py` (cancel only our own events). Re-check before recording.

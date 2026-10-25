@@ -1,18 +1,8 @@
 // Landing pages (A4): analytics events + early-access lead form. No network calls unless the visitor submits the form.
-// Events (names from config brand.json analytics.events): demo_start, quote_start. gtag/clarity load only when IDs exist.
+// Measurement (tags, [data-ev] clicks, first-touch UTM) is /assets/measure.js, loaded before this file.
 (function () {
   'use strict';
-  function track(name, params) {
-    try {
-      if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
-      if (typeof window.clarity === 'function') window.clarity('event', name);
-    } catch (e) { /* never block navigation */ }
-  }
-
-  document.addEventListener('click', function (ev) {
-    var a = ev.target.closest('[data-ev]');
-    if (a) track(a.getAttribute('data-ev'), { page: location.pathname });
-  });
+  // Click events ([data-ev]) and GA4 / Clarity loading live in /assets/measure.js.
 
   // Early-access form: POST to the lead endpoint when configured, else open a prefilled email.
   document.querySelectorAll('form[data-lead]').forEach(function (form) {
@@ -38,7 +28,7 @@
         website: form.elements.website ? form.elements.website.value : '',
         niche: form.getAttribute('data-niche'),
         source_page: location.pathname,
-        utm: Object.fromEntries(new URLSearchParams(location.search))
+        utm: (window.Measure && window.Measure.firstTouch()) || Object.fromEntries(new URLSearchParams(location.search))
       };
       var endpoint = form.getAttribute('data-endpoint');
       var button = form.querySelector('button[type=submit]');

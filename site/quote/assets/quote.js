@@ -59,18 +59,11 @@
     $('#footer').innerHTML = '<div class="footer__legal"><span>' + esc(BRAND.name || '') + '</span>' +
       '<a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/service-agreement/">Service Agreement</a>' +
       '<span>' + esc((BRAND.disclaimers && BRAND.disclaimers.footer) || '') + sup + '</span></div>';
-    const ga = BRAND.analytics && BRAND.analytics.ga4_id;
-    if (ga && !window.gtag) {
-      window.dataLayer = window.dataLayer || []; window.gtag = function () { window.dataLayer.push(arguments); };
-      window.gtag('js', new Date()); window.gtag('config', ga, { page_location: cleanUrl, page_referrer: '' });
-      const s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(ga); document.head.appendChild(s);
-    }
+    // GA4 only (no Clarity on the quote page: names, prices, signature). Token-free page_location, no referrer.
+    if (window.Measure) window.Measure.init(BRAND.analytics, { clarity: false, gaConfig: { page_location: cleanUrl, page_referrer: '' } });
   }
   // funnel event names live only in brand.json analytics.events; the name is assembled from parts
-  function track(parts) {
-    const n = parts.join('_');
-    try { if (window.gtag && ((BRAND.analytics && BRAND.analytics.events) || []).indexOf(n) !== -1) window.gtag('event', n); } catch (e) { /* never breaks the page */ }
-  }
+  function track(parts, params) { if (window.Measure) window.Measure.trackFunnel(parts, params); }
 
   // ---- mock adapter: reads/writes the shared mock DB; view + accept rules come from the server's own module
   const MOCK_KEY = 'aplp_mock_db_v1';
@@ -274,7 +267,7 @@
   function upworkSlot(q) {
     const dep = money(q.totals.deposit_cents);
     if (q.payment.link) {
-      return '<a class="btn btn--primary btn--block" href="' + esc(q.payment.link) + '" target="_blank" rel="noopener">Open your Upwork contract</a>' +
+      return '<a class="btn btn--primary btn--block" href="' + esc(q.payment.link) + '" target="_blank" rel="noopener" data-pay="upwork">Open your Upwork contract</a>' +
         '<p class="muted small">Fund the ' + dep + ' deposit there by card, PayPal or bank transfer.</p>' + assureHtml(q);
     }
     return '<div class="notice notice--ok q-upwork" role="status"><div>' +
@@ -328,7 +321,7 @@
       PC = PC || await import('/assets/paypal_checkout.mjs');
       await PC.mount(wrap, {
         brand: BRAND, currency: Q.currency || 'USD',
-        create: () => { say(''); return payCreate(); },
+        create: () => { say(''); track(['pay', 'click'], { method: 'paypal', which: 'deposit' }); return payCreate(); },
         capture: orderId => payCapture(orderId),
         onResult: r => {
           lastRef = (r && r.reference) || '';
@@ -374,7 +367,7 @@
     if (q.payment && q.payment.method === PP && (ppOn() || depState(q) !== 'due')) return paypalSlot(q);
     if (q.payment && q.payment.method === 'upwork') return upworkSlot(q);
     if (q.payment && q.payment.link) {
-      return '<a class="btn btn--primary btn--block" href="' + esc(q.payment.link) + '" target="_blank" rel="noopener">Pay deposit ' + dep + '</a>' +
+      return '<a class="btn btn--primary btn--block" href="' + esc(q.payment.link) + '" target="_blank" rel="noopener" data-pay="link">Pay deposit ' + dep + '</a>' +
         '<p class="muted small">Secure payment page. Your setup starts when the deposit arrives.</p>';
     }
     const ep = BRAND.endpoints && BRAND.endpoints.payment;
@@ -499,6 +492,10 @@
   (async function init() {
     await loadBrand();
     if (!token) return fail('not_found');
-    try { render(await loadQuote()); } catch (e) { fail(String(e && e.message || e)); }
+    try {
+      const q = await loadQuote();
+      render(q);
+      track(['quote', 'open'], { status: q.status });
+    } catch (e) { fail(String(e && e.message || e)); }
   })();
 })();

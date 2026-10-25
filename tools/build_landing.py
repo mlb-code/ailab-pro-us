@@ -163,17 +163,13 @@ ICONS = {
 
 
 def analytics(c):
+    """Measurement (2026-10-25): /assets/measure.js + its config. Empty IDs in brand.json analytics = no third-party
+    tag is ever loaded (measure.js still keeps first-touch UTM in localStorage). measure.js also skips loading when the
+    browser sends Global Privacy Control / Do Not Track, and on localhost. Clarity masks every form (typed values)."""
     a = c.brand.get('analytics', {})
-    out = []
-    guard = "!/^(localhost|127\\.0\\.0\\.1)$/.test(location.hostname)"
-    if a.get('ga4_id'):
-        gid = esc(a['ga4_id'])
-        out.append(f'<script async src="https://www.googletagmanager.com/gtag/js?id={gid}"></script>')
-        out.append(f"<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}if({guard}){{gtag('js',new Date());gtag('config','{gid}');}}</script>")
-    if a.get('clarity_id'):
-        cid = esc(a['clarity_id'])
-        out.append('<script>if(' + guard + '){(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","' + cid + '");}</script>')
-    return '\n'.join(out)
+    cfg = {'ga4_id': a.get('ga4_id', ''), 'clarity_id': a.get('clarity_id', ''), 'events': a.get('events', [])}
+    js = json.dumps(cfg, ensure_ascii=False, separators=(',', ':'))
+    return f'<script src="/assets/measure.js" defer data-measure="{esc(js)}"></script>'
 
 
 def inline_css():

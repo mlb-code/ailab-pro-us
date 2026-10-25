@@ -72,7 +72,7 @@ class CalendarHub:
 def build_hub(store: Store, settings: Any, state: StateStore | None = None, alert: AlertFn | None = None,
               http: httpx.Client | None = None, env: dict[str, str] | None = None) -> CalendarHub:
     state = state or StateStore(store, memory_fallback=getattr(settings, "is_sim", False))
-    tokens = TokenManager(store, settings.cred_key, clients_from_env(settings.public_base_url, env), http=http,
+    tokens = TokenManager(store, settings.cred_key, clients_from_env(settings.oauth_base_url or settings.public_base_url, env), http=http,
                           state=state)
     providers: dict[str, CalendarProvider] = {
         "calendly": CalendlyProvider(store, tokens, state, alert, http),

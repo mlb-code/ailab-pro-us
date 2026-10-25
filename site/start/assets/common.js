@@ -27,27 +27,14 @@
         '<span>' + esc((BRAND.disclaimers && BRAND.disclaimers.footer) || '') + sup + '</span></div>';
     }
   }
-  // GA4 + Clarity only when their IDs are configured (brand.json analytics.ga4_id / clarity_id).
+  // GA4 + Clarity only when their IDs are configured (brand.json analytics.ga4_id / clarity_id): /assets/measure.js.
+  // The portal is personal throughout, so Clarity masks the whole page. Never on the admin screens.
   function analytics() {
-    const cl = BRAND.analytics && BRAND.analytics.clarity_id;   // Microsoft Clarity, only when an ID is configured
-    if (cl && !window.clarity) {
-      window.clarity = function () { (window.clarity.q = window.clarity.q || []).push(arguments); };
-      const c = document.createElement('script'); c.async = true; c.src = 'https://www.clarity.ms/tag/' + encodeURIComponent(cl);
-      document.head.appendChild(c);
-    }
-    const id = BRAND.analytics && BRAND.analytics.ga4_id;
-    if (!id || window.gtag) return;
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function () { window.dataLayer.push(arguments); };
-    window.gtag('js', new Date()); window.gtag('config', id);
-    const s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
-    document.head.appendChild(s);
+    if (!window.Measure || /^\/start\/admin\//.test(location.pathname)) return;
+    window.Measure.init(BRAND.analytics, { maskAll: true });
   }
   // Funnel events must be declared in brand.json analytics.events; the name is built from parts so it lives only there.
-  function trackFunnel(parts, params) {
-    const n = parts.join('_');
-    if (((BRAND.analytics && BRAND.analytics.events) || []).indexOf(n) !== -1) track(n, params);
-  }
+  function trackFunnel(parts, params) { if (window.Measure) window.Measure.trackFunnel(parts, params); }
   // Promised quote turnaround, one wording everywhere: brand.json quote_sla_text (e.g. "within 24 hours").
   const sla = () => BRAND.quote_sla_text || 'soon';
   const slaCap = () => { const t = sla(); return t.charAt(0).toUpperCase() + t.slice(1); };
@@ -57,7 +44,7 @@
     const live = it && it.delivery_business_days ? ', live in ' + it.delivery_business_days + ' business days' : '';
     return 'First draft in 3 business days' + live + ' after we have your content.';
   };
-  function track(name, params) { try { if (window.gtag) window.gtag('event', name, params || {}); } catch (e) { /* analytics never breaks the page */ } }
+  function track(name, params) { if (window.Measure) window.Measure.track(name, params); }
 
   const money = cents => cents == null ? '' : '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 });
   function priceOf(code) {

@@ -480,6 +480,13 @@
     }).map(it => it.code);
   }
 
+  // first-touch source of the lead (questionnaires.utm, from the site's utm_* links; empty = unknown / direct)
+  function utmLine(qn) {
+    const u = qn && qn.utm;
+    if (!u || !u.utm_source) return '';
+    const parts = [u.utm_source, u.utm_medium, u.utm_campaign].filter(Boolean).map(esc).join(' / ');
+    return '<p class="muted small">מקור הליד (הקליק הראשון): <span dir="ltr">' + parts + '</span>' + (u.landing_path ? ' · דף נחיתה <span dir="ltr">' + esc(u.landing_path) + '</span>' : '') + '</p>';
+  }
   function quoteDetail() {
     const d = $('#detail');
     const q = sel && D.quotes.find(x => x.id === sel);
@@ -489,7 +496,7 @@
     const qn = D.qs.find(x => x.id === q.questionnaire_id);
     const summary = qn ? (Array.isArray(qn.summary) && qn.summary.length ? qn.summary : (Q ? Q.buildSummary(Object.assign({}, qn.answers, { offer: qn.offer, niche: qn.niche }), PB) : [])) : [];
     const answers = '<details class="card" open><summary><b>התשובות של הלקוח</b></summary><ul class="sum" dir="ltr" lang="en">' +
-      (summary.length ? summary.map(it => '<li><div class="q">' + esc(it.q) + '</div><div class="a' + ((it.a || '').trim() ? '' : ' none') + '">' + esc((it.a || '').trim() || '—') + '</div></li>').join('') : '<li class="muted">אין שאלון מקושר.</li>') + '</ul></details>';
+      (summary.length ? summary.map(it => '<li><div class="q">' + esc(it.q) + '</div><div class="a' + ((it.a || '').trim() ? '' : ' none') + '">' + esc((it.a || '').trim() || '—') + '</div></li>').join('') : '<li class="muted">אין שאלון מקושר.</li>') + '</ul>' + utmLine(qn) + '</details>';
     const head = '<div class="row">' + pill('quote', q.status) + '<span class="muted small">נוצרה ' + esc(fmtDate(q.created_at, true)) +
       (q.sent_at ? ' · נשלחה ' + esc(fmtDate(q.sent_at, true)) : '') + (q.valid_until ? ' · בתוקף עד ' + esc(fmtDate(q.valid_until)) : '') + '</span></div>' +
       '<h2>' + esc(company(q.user_id)) + '</h2>';

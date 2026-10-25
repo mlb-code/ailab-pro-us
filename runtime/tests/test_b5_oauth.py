@@ -184,3 +184,17 @@ def test_state_replay_refused_at_the_token_manager(tmp_path, demo_raw):
     e.hub.tokens.handle_callback("google", "good-code", state)
     with pytest.raises(crypto.CryptoError):
         e.hub.tokens.handle_callback("google", "good-code", state)
+
+
+def test_oauth_base_url_moves_only_the_calendar_redirect(tmp_path, demo_raw):
+    """Google verification: redirect URI on our verified domain (OAUTH_BASE_URL); Twilio keeps PUBLIC_BASE_URL."""
+    from app.calendar import build_hub
+    from app.store import JsonStore
+    s = harness.sim_settings(tmp_path, PUBLIC_BASE_URL="https://runtime-x.up.railway.app", OAUTH_BASE_URL="https://rt.example.test/")
+    assert s.public_base_url == "https://runtime-x.up.railway.app" and s.oauth_base_url == "https://rt.example.test"
+    hub = build_hub(JsonStore(tmp_path / "d2"), s, alert=lambda t, a: None, env=OAUTH_ENV)
+    assert hub.tokens.clients["google"].redirect_uri == "https://rt.example.test/oauth/google/callback"
+    plain = harness.sim_settings(tmp_path, PUBLIC_BASE_URL="https://runtime-x.up.railway.app")
+    assert plain.oauth_base_url == ""
+    hub2 = build_hub(JsonStore(tmp_path / "d3"), plain, alert=lambda t, a: None, env=OAUTH_ENV)
+    assert hub2.tokens.clients["google"].redirect_uri == "https://runtime-x.up.railway.app/oauth/google/callback"
