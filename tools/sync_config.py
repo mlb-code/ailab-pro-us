@@ -94,13 +94,30 @@ def paypal_errors(brand):
 SITE_PRIVATE_KEYS = {'brand.json': ('physical_address',)}
 
 
+def site_pricebook(data):
+    """Public price book (owner decision 2026-10-25): while rules.plan_b_enabled is false, Plan B (no setup fee,
+    12-month minimum) must not reach the site, so rules.term_plan and every item's plan_b_monthly_cents are dropped.
+    Coming-soon items keep code, name, prices and the coming-soon flag, but not their feature lists (no texting
+    promise for something that cannot be bought yet)."""
+    rules = data.get('rules', {})
+    if not rules.get('plan_b_enabled'):
+        rules.pop('term_plan', None)
+        for it in data.get('items', []):
+            it.pop('plan_b_monthly_cents', None)
+    for it in data.get('items', []):
+        if it.get('availability') == 'coming_soon':
+            it['includes'], it['excludes'] = [], []
+    return data
+
+
 def public_copy(name, target, src):
-    keys = SITE_PRIVATE_KEYS.get(name) if target == 'site/assets' else None
-    if not keys:
+    if target != 'site/assets' or name not in SITE_PRIVATE_KEYS and name != 'pricebook.json':
         return src
     data = json.loads(src)
-    for k in keys:
+    for k in SITE_PRIVATE_KEYS.get(name, ()):
         data.pop(k, None)
+    if name == 'pricebook.json':
+        data = site_pricebook(data)
     return (json.dumps(data, ensure_ascii=False, indent=2) + '\n').encode()
 
 

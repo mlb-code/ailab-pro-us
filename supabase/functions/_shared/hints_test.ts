@@ -15,5 +15,10 @@ Deno.test(`hints parity with questions.js on ${fixtures.length} fixtures + edge 
   cases.push({ offer: "RCP", niche: "home_services", locations: "4plus", calls_week: "400plus", tools: ["other", "outlook_calendar", "quickbooks"] });
   cases.push({ offer: "RCP", niche: "real_estate", re_crm: "other", tools: [] });
   cases.push({ offer: "BNDL", niche: "home_services", tools: ["servicetitan", "hubspot", "jobber"], timeline: "asap" });
+  cases.push({ offer: "RCP", niche: "home_services", urgent: "often", dispatch: "yes" });
+  cases.push({ offer: "RCP", niche: "real_estate", dispatch: "yes" });
+  const soon = { ...PB, items: PB.items.map((i) => (i.code === "ADD-DISPATCH" ? { ...i, availability: "coming_soon" as const } : i)) };
+  eq(quoteHints({ offer: "RCP", niche: "home_services", dispatch: "yes" }, soon).add, [], "coming-soon dispatch is never added");
+  eq(win.StartQ.quoteHints({ offer: "RCP", niche: "home_services", dispatch: "yes" }, soon).add, [], "questions.js: coming-soon dispatch is never added");
   for (const a of cases) eq(quoteHints(a, PB), win.StartQ.quoteHints(a, PB), JSON.stringify(a).slice(0, 80));
 });

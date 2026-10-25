@@ -15,6 +15,7 @@
    calls     who_answers, calls_week,          calls_week '400plus' -> custom (volume over the auto-quote limit)
              missed_pct, after_hours (not RE),
              urgent (not real_estate), job_value
+             dispatch (urgent often|sometimes)  'yes' -> ADD-DISPATCH x1 (only while the price book lists it as available)
              re_lead_types[], re_qualify[]     real_estate only (lead screening: buyer/seller/renter, timeline, pre-approval)
    website   has_website, domain, gbp,         WEB/BNDL; domain, gbp, web_hours, web_address WEB only
              web_hours, web_address
@@ -86,6 +87,14 @@
 
   // Real-estate CRM choices come only from config: pricebook.integration_meta entries with category crm + niche real_estate
   // (label = integration_meta.<key>.label), then Other and None.
+  // ADD-DISPATCH choice: the price comes from the price book; a coming-soon item is never offered as a "yes".
+  const usd = c => '$' + Math.round(c / 100).toLocaleString('en-US');
+  const sold = (PB, code) => ((PB && PB.items) || []).find(i => i.code === code && i.availability !== 'coming_soon');
+  function dispatchOptions(a, PB) {
+    const it = sold(PB, 'ADD-DISPATCH');
+    const yes = it ? 'Yes, add it (' + usd(it.setup_cents) + ' setup + ' + usd(it.monthly_cents) + '/mo)' : 'Yes, tell me when it’s available';
+    return [O('yes', yes), O('no', 'No, the assistant takes a message')];
+  }
   function reCrmOptions(a, PB) {
     const ints = PB && PB.integrations || {}, meta = PB && PB.integration_meta || {};
     const keys = Object.keys(meta).filter(k => k !== 'other' && k in ints && meta[k].category === 'crm' && (meta[k].niches || []).indexOf('real_estate') !== -1);
@@ -121,6 +130,9 @@
         O('service', 'Answering service'), O('forward', 'They forward to someone on call')] },
       { k: 'urgent', label: 'Do you get urgent calls that can’t wait?', type: 'single', when: a => a.niche !== 'real_estate',
         opts: [O('often', 'Yes, often'), O('sometimes', 'Sometimes'), O('rarely', 'Rarely or never')] },
+      { k: 'dispatch', label: 'Should urgent calls at night go straight to your on-call tech?', type: 'single',
+        when: a => a.niche !== 'real_estate' && offerIs('RCP', 'BNDL', 'UNSURE')(a) && (a.urgent === 'often' || a.urgent === 'sometimes'),
+        hint: 'Optional extra. The assistant rings your on-call list in order and puts the caller through.', opts: dispatchOptions },
       { k: 're_lead_types', label: 'Which leads call you?', hint: 'Pick all that apply.', type: 'multi', when: isRE,
         opts: [O('buyers', 'Buyers'), O('sellers', 'Sellers'), O('renters', 'Renters'), O('investors', 'Investors')] },
       { k: 're_qualify', label: 'What should every caller be asked?', hint: 'Pick all that apply. You get the answers with each lead.', type: 'multi', when: isRE,
@@ -215,6 +227,9 @@
     if (a.locations === '4plus') custom.push('locations_over_3');
     if (a.calls_week === '400plus') custom.push('call_volume');
     if (a.spanish === 'many' || a.spanish === 'some') add.push({ code: 'ADD-ES', qty: 1 });
+    if (a.dispatch === 'yes' && a.niche !== 'real_estate') {
+      if (sold(PB, 'ADD-DISPATCH')) add.push({ code: 'ADD-DISPATCH', qty: 1 }); else notes.push('wants ADD-DISPATCH (not available yet)');
+    }
     const crm = [];
     (a.tools || []).forEach(t => {
       const m = ints[t] || 'custom';

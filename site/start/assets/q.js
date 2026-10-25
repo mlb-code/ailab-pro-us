@@ -192,7 +192,7 @@
         } else answers[k] = el.value;
         markDirty();
         // branching fields re-render the current step in place (keeps focus on the same control)
-        if (['offer', 'niche', 'tools', 're_crm'].indexOf(k) !== -1) {
+        if (['offer', 'niche', 'tools', 're_crm', 'urgent'].indexOf(k) !== -1) {   // urgent -> the on-call dispatch choice
           const val = el.value, type = el.type;
           render(false);
           const back = app.querySelector('input[data-k="' + k + '"][value="' + CSS.escape(val) + '"]');

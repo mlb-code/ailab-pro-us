@@ -21,6 +21,7 @@
       "missed_pct": "25_50",
       "after_hours": "voicemail",
       "urgent": "often",
+      "dispatch": "yes",
       "job_value": "200_1k",
       "tools": [
         "google_calendar"
@@ -81,6 +82,11 @@
         "k": "urgent",
         "q": "urgent",
         "a": "often"
+      },
+      {
+        "k": "dispatch",
+        "q": "dispatch",
+        "a": "yes"
       },
       {
         "k": "job_value",

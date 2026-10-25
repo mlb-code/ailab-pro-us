@@ -1,8 +1,8 @@
 {
   "$schema": "./pricebook.schema.json",
   "$comment": "Machine source of truth for prices (built from docs/PRICEBOOK.md). Claude never invents a price: it picks codes, code computes totals. Change = PRICEBOOK.md + this file, approved by Meir; tools/pricebook_test.py diffs the two.",
-  "version": "1.0",
-  "updated": "2026-10-11",
+  "version": "1.1",
+  "updated": "2026-10-25",
   "currency": "USD",
   "rules": {
     "core_codes": [
@@ -42,6 +42,28 @@
       "ehr_or_practice_management": "custom"
     },
     "upwork_same_prices": true,
+    "upwork_plans": [
+      "A"
+    ],
+    "annual_prepay": {
+      "months_paid": 10,
+      "months_covered": 12,
+      "with_setup": true,
+      "plan": "A",
+      "channels": [
+        "upwork_direct_contracts"
+      ],
+      "label": "12 months for the price of 10",
+      "text": "Paying a year ahead (Upwork Direct Contracts only): setup plus 12 months of the monthly fee for the price of 10 months. This is a prepayment option, not a discount on the monthly fee."
+    },
+    "availability": {
+      "coming_soon_label": "Coming soon",
+      "coming_soon_text": "Coming soon, after US carrier registration for business texting. Not available to buy yet.",
+      "reasons": {
+        "us_texting_registration": "Needs business texting, which starts only after US phone carriers approve our texting registration (A2P 10DLC)."
+      }
+    },
+    "plan_b_enabled": false,
     "overage_policy": "no_auto_billing_alert_80_100_addon_with_approval"
   },
   "refund_rules": {
@@ -92,6 +114,7 @@
       "setup_cents": 350000,
       "monthly_cents": 30000,
       "applies_to": [],
+      "availability": "available",
       "delivery_business_days": 10,
       "delivery_starts": "after access is complete",
       "marketed": true,
@@ -100,6 +123,7 @@
         "Answers the calls you miss, and texts back callers who hang up",
         "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
         "Booking into 1 calendar: Google Calendar or Calendly",
+        "Appointment manager: callers can check, move or cancel a visit it booked for them just by calling back, and it recognizes returning callers",
         "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
         "Owner notifications by SMS and email for every lead, plus a daily summary email",
         "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
@@ -110,6 +134,7 @@
       ],
       "excludes": [
         "Outbound AI calls and marketing text messages",
+        "After-hours dispatch that puts urgent calls through to your on-call tech (add-on ADD-DISPATCH)",
         "More locations or phone numbers (add-on ADD-LOC)",
         "Spanish / bilingual phone line (add-on ADD-ES)",
         "A direct link to apps like Jobber or HubSpot (add-on ADD-CRM)",
@@ -127,6 +152,7 @@
       "setup_cents": 190000,
       "monthly_cents": 12900,
       "applies_to": [],
+      "availability": "available",
       "delivery_business_days": 7,
       "delivery_starts": "after content is complete",
       "marketed": true,
@@ -155,6 +181,7 @@
       "setup_cents": 490000,
       "monthly_cents": 40000,
       "applies_to": [],
+      "availability": "available",
       "delivery_business_days": 14,
       "delivery_starts": "after access and content are complete",
       "marketed": true,
@@ -170,6 +197,7 @@
       ],
       "excludes": [
         "Outbound AI calls and marketing text messages",
+        "After-hours dispatch that puts urgent calls through to your on-call tech (add-on ADD-DISPATCH)",
         "More locations or phone numbers (add-on ADD-LOC)",
         "Spanish / bilingual phone line (add-on ADD-ES)",
         "A direct link to apps like Jobber or HubSpot (add-on ADD-CRM)",
@@ -185,6 +213,71 @@
       ]
     },
     {
+      "code": "BNDL-NM",
+      "name": "Never Miss a Job bundle",
+      "group": "core",
+      "kind": "fixed",
+      "setup_cents": 470000,
+      "monthly_cents": 45000,
+      "applies_to": [],
+      "availability": "coming_soon",
+      "requires": [
+        "us_texting_registration"
+      ],
+      "marketed": true,
+      "contains": [
+        "RCP",
+        "ADD-DISPATCH",
+        "ADD-LEAD"
+      ],
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "BNDL-GROW",
+      "name": "Growth bundle",
+      "group": "core",
+      "kind": "fixed",
+      "setup_cents": 540000,
+      "monthly_cents": 50000,
+      "applies_to": [],
+      "availability": "coming_soon",
+      "requires": [
+        "us_texting_registration"
+      ],
+      "marketed": true,
+      "contains": [
+        "RCP",
+        "ADD-DISPATCH",
+        "ADD-LEAD",
+        "ADD-QUOTE",
+        "ADD-REV"
+      ],
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "ADD-DISPATCH",
+      "name": "After-hours dispatch to your on-call tech",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 70000,
+      "monthly_cents": 7500,
+      "applies_to": [
+        "RCP"
+      ],
+      "availability": "available",
+      "includes": [
+        "Urgent calls at night and on weekends go straight to your on-call tech (or around the clock, if you choose)",
+        "Rings up to 3 people on your on-call list in order. Each one hears a one-line summary first and presses 1 to take the call",
+        "If nobody takes it, the caller hears when to expect a call back, and your on-call team gets an alert phone call",
+        "Your online account shows who is on call and a log of every urgent call"
+      ],
+      "excludes": [
+        "Text-message alerts to your techs"
+      ]
+    },
+    {
       "code": "ADD-LOC",
       "name": "Additional location / phone number",
       "group": "addon",
@@ -194,6 +287,7 @@
       "applies_to": [
         "RCP"
       ],
+      "availability": "available",
       "includes": [
         "1 more location with its own phone number, hours and answers to common questions"
       ],
@@ -204,11 +298,12 @@
       "name": "Spanish (bilingual line)",
       "group": "addon",
       "kind": "fixed",
-      "setup_cents": 75000,
-      "monthly_cents": 5000,
+      "setup_cents": 35000,
+      "monthly_cents": 3000,
       "applies_to": [
         "RCP"
       ],
+      "availability": "available",
       "includes": [
         "Callers can speak or text in Spanish; summaries to you stay in English"
       ],
@@ -224,6 +319,7 @@
       "applies_to": [
         "RCP"
       ],
+      "availability": "available",
       "per": "system",
       "includes": [
         "Leads and bookings added directly into 1 supported app (Jobber, Housecall Pro, GoHighLevel or HubSpot)"
@@ -242,24 +338,61 @@
       "applies_to": [
         "RCP"
       ],
+      "availability": "available",
       "includes": [
         "A chat box for your website that uses the same answers, rules and booking as your phone line"
       ],
       "excludes": []
     },
     {
-      "code": "ADD-REV",
-      "name": "Post-job review-request SMS",
+      "code": "ADD-LEAD",
+      "name": "Fast follow-up for new leads",
       "group": "addon",
       "kind": "fixed",
-      "setup_cents": 40000,
-      "monthly_cents": 0,
+      "setup_cents": 90000,
+      "monthly_cents": 12500,
       "applies_to": [
         "RCP"
       ],
-      "includes": [
-        "A text after each completed job asking the customer for a Google review"
+      "availability": "coming_soon",
+      "requires": [
+        "us_texting_registration"
       ],
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "ADD-QUOTE",
+      "name": "Follow-up on quotes you have sent",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 50000,
+      "monthly_cents": 5000,
+      "applies_to": [
+        "RCP"
+      ],
+      "availability": "coming_soon",
+      "requires": [
+        "us_texting_registration"
+      ],
+      "includes": [],
+      "excludes": []
+    },
+    {
+      "code": "ADD-REV",
+      "name": "Google review requests after each job",
+      "group": "addon",
+      "kind": "fixed",
+      "setup_cents": 40000,
+      "monthly_cents": 2500,
+      "applies_to": [
+        "RCP"
+      ],
+      "availability": "coming_soon",
+      "requires": [
+        "us_texting_registration"
+      ],
+      "includes": [],
       "excludes": []
     },
     {
@@ -272,6 +405,7 @@
       "applies_to": [
         "RCP"
       ],
+      "availability": "available",
       "includes": [
         "400 more voice minutes and 1,000 more texts every month"
       ],
@@ -287,6 +421,7 @@
       "applies_to": [
         "WEB"
       ],
+      "availability": "available",
       "includes": [
         "1 additional page"
       ],
@@ -302,6 +437,7 @@
       "applies_to": [
         "WEB"
       ],
+      "availability": "available",
       "includes": [
         "A Spanish version of every page"
       ],
@@ -317,6 +453,7 @@
       "applies_to": [
         "WEB"
       ],
+      "availability": "available",
       "includes": [
         "A simple wordmark and icon"
       ],
@@ -332,6 +469,7 @@
       "applies_to": [
         "WEB"
       ],
+      "availability": "available",
       "includes": [
         "A blog section and 3 starter articles"
       ],
@@ -347,6 +485,7 @@
       "applies_to": [
         "any"
       ],
+      "availability": "available",
       "setup_pct": 25,
       "pct_of": "setup_subtotal_before_rush",
       "includes": [

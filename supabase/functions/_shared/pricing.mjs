@@ -9,8 +9,13 @@ export const CUSTOM_CODE = "CUSTOM";
 export const APPROVAL_ONLY = ["ADD-RUSH", "ADD-USAGE"];
 /** Max quantity per line (server and admin editor). */
 export const MAX_QTY = 10;
-/** Only this core contains the web chat widget already. */
+/** Add-ons a core already contains without listing them in `contains` (BNDL includes the web chat widget). */
 const ALREADY_INCLUDED = { BNDL: ["ADD-CHAT"] };
+
+/** false = "coming soon" in the price book: listed on the site, never quoted or bought (PRICEBOOK §4.10). */
+export function isAvailable(it) {
+  return !!it && it.availability !== "coming_soon";
+}
 
 export function itemOf(pb, code) {
   return pb.items.find((i) => i.code === code);
@@ -27,9 +32,12 @@ export function addonApplies(pb, addon, core) {
   return addon.applies_to.some((c) => fam.includes(c));
 }
 
-/** ADD-CHAT on a bundle would double-charge (BNDL includes the widget). */
-export function alreadyIncluded(core, code) {
-  return !!core && (ALREADY_INCLUDED[core] || []).includes(code);
+/** An add-on the core already includes would double-charge: ADD-CHAT on BNDL, or any add-on in the core's `contains`. */
+export function alreadyIncluded(core, code, pb) {
+  if (!core) return false;
+  if ((ALREADY_INCLUDED[core] || []).includes(code)) return true;
+  const it = pb ? itemOf(pb, core) : undefined;
+  return !!(it && it.contains && it.contains.includes(code));
 }
 
 const isCents = (v) => typeof v === "number" && Number.isInteger(v) && v >= 0;
@@ -39,7 +47,7 @@ export const wholeDollars = (cents) => Math.round(cents / 100) * 100;
 
 /**
  * input: [{code, qty?, label?, manual_setup_cents?, manual_monthly_cents?, reason?, source?, systems?}]
- * opts:  {discount_code?, manual_approved?}
+ * opts:  {discount_code?, manual_approved?, plan?}   plan: "A" (default, setup + monthly) | "B" (no setup fee, 12 months)
  *
  * Manual-price rules (PRICEBOOK §3–4):
  *  - CUSTOM and "from" lines need Meir's manual setup+monthly prices.
@@ -47,6 +55,8 @@ export const wholeDollars = (cents) => Math.round(cents / 100) * 100;
  *    (and manual prices where the table has none). After that the quote is sendable.
  *  - setup total above rules.manual_price_setup_over_cents needs manual_approved=true.
  * A quote = exactly one core offer (RCP|WEB|BNDL) + add-ons, OR later offers only (e.g. a retainer). Add-ons need a core.
+ * "Coming soon" items (needs texting registration: ADD-LEAD, ADD-QUOTE, ADD-REV and the bundles that contain them) are
+ * rejected: coming_soon:<code>. Plan B is not sold yet (rules.plan_b_enabled false; quotes are plan A): plan_b_not_available.
  */
 export function priceQuote(pb, input, opts = {}) {
   const errors = [];
@@ -57,6 +67,11 @@ export function priceQuote(pb, input, opts = {}) {
   if (cores.length > 1) errors.push("more_than_one_core_offer");
   else if (cores.length === 0 && !laterOnly) errors.push("no_core_offer");
   const core = cores.length === 1 ? cores[0].code : null;
+  const plan = opts.plan == null ? "A" : opts.plan;
+  // Plan B prices live in the server copy of the price book only; the engine prices plan A until B is switched on
+  // and built (card on file, 12-month term), so a B request is refused either way.
+  if (plan === "B") errors.push("plan_b_not_available");
+  else if (plan !== "A") errors.push(`unknown_plan:${plan}`);
 
   const seen = new Set();
   for (const l of input) {
@@ -76,12 +91,13 @@ export function priceQuote(pb, input, opts = {}) {
     }
     const it = itemOf(pb, l.code);
     if (!it) { errors.push(`unknown_code:${l.code}`); continue; }
+    if (!isAvailable(it)) { errors.push(`coming_soon:${l.code}`); continue; }
     if (seen.has(l.code)) { errors.push(`duplicate_code:${l.code}`); continue; }
     seen.add(l.code);
     if (it.group === "core" && qty !== 1) { errors.push(`core_qty:${l.code}`); continue; }
     if (it.group === "addon" && !it.applies_to.includes("any") && !core) { errors.push(`addon_requires_core:${l.code}`); continue; }
     if (it.group === "addon" && core && !addonApplies(pb, it, core)) { errors.push(`addon_not_applicable:${l.code}:${core}`); continue; }
-    if (alreadyIncluded(core, l.code)) { errors.push(`already_included:${l.code}:${core}`); continue; }
+    if (alreadyIncluded(core, l.code, pb)) { errors.push(`already_included:${l.code}:${core}`); continue; }
 
     if (it.kind === "percent") {
       if (qty !== 1) { errors.push(`percent_qty:${l.code}`); continue; }

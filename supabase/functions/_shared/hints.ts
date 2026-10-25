@@ -2,6 +2,7 @@
 // TypeScript port of quoteHints() in site/start/assets/questions.js (the form's documented contract);
 // hints_test.ts runs both on every fixture and fails on any drift.
 import type { Pricebook } from "./pricing.ts";
+import { isAvailable } from "./pricing.ts";
 
 export type Answers = Record<string, unknown>;
 export interface Hints {
@@ -21,6 +22,10 @@ export function quoteHints(a: Answers, pb: Pricebook): Hints {
   if (a.locations === "4plus") custom.push("locations_over_3");
   if (a.calls_week === "400plus") custom.push("call_volume");
   if (a.spanish === "many" || a.spanish === "some") add.push({ code: "ADD-ES", qty: 1 });
+  if (a.dispatch === "yes" && a.niche !== "real_estate") {
+    if (isAvailable(pb.items.find((i) => i.code === "ADD-DISPATCH"))) add.push({ code: "ADD-DISPATCH", qty: 1 });
+    else notes.push("wants ADD-DISPATCH (not available yet)");
+  }
   const crm: string[] = [];
   arr(a.tools).forEach((t) => {
     const m = ints[t] || "custom";

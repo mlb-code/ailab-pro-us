@@ -1,7 +1,7 @@
 // Public quote view + acceptance rules — ONE implementation for quote-view / quote-accept (Deno, via quote_engine.ts)
 // and the quote page's mock mode (site/assets/quote_view.mjs, byte-identical copy by tools/sync_config.py).
 // Pure ES module: only imports the shared pricing module; no I/O.
-import { deliveryDays, inputsFromStored, itemOf, priceQuote } from "./pricing.mjs";
+import { deliveryDays, inputsFromStored, isAvailable, itemOf, priceQuote } from "./pricing.mjs";
 
 export const TOKEN_RX = /^[A-Za-z0-9]{32,128}$/;
 /** statuses a client may open by link (drafts / needs_manual_price / approved / void are never public) */
@@ -44,7 +44,7 @@ export function toPublicView(q, profile, now, pb, defaultAgreementVersion, pays)
   // exclusions from the price book; drop the ones the quote already buys (e.g. "add-on ADD-ES" when ADD-ES is a line)
   // then show the code suffix "(add-on ADD-ES)" as plain words: the code stays in the price book for this filter only
   const excludes = ((coreIt && coreIt.excludes) || []).filter((e) => !codes.some((c) => e.includes(`add-on ${c})`)))
-    .map((e) => e.replace(/ \(add-on [A-Z0-9-]+\)$/, " (extra, fixed price)"));
+    .map((e) => e.replace(/ \(add-on ([A-Z0-9-]+)\)$/, (_m, c) => (isAvailable(itemOf(pb, c)) ? " (extra, fixed price)" : " (coming soon)")));
   const retainer = codes.some((c) => pb.refund_rules.retainer.codes.includes(c)) ? pb.refund_rules.retainer.text : null;
   // satisfaction guarantee (refund_rules.rcp_guarantee): only for its core codes (RCP, BNDL); WEB keeps the deposit rule only
   const g = pb.refund_rules.rcp_guarantee;

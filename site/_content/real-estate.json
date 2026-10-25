@@ -491,7 +491,9 @@
   ],
   "addons_hide": [
     "ADD-CRM",
-    "ADD-REV"
+    "ADD-REV",
+    "ADD-DISPATCH",
+    "ADD-QUOTE"
   ],
   "included_items": [
     "1 new US phone number for your lead assistant, for you or your team. You keep your own number; calls you miss are sent to the new one.",

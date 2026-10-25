@@ -25,8 +25,8 @@
       "name": "Spanish (bilingual line)",
       "qty": 1,
       "kind": "fixed",
-      "setup_cents": 75000,
-      "monthly_cents": 5000
+      "setup_cents": 35000,
+      "monthly_cents": 3000
     },
     {
       "code": "ADD-CRM",
@@ -49,7 +49,7 @@
       "name": "Rush delivery (half the business days)",
       "qty": 1,
       "kind": "percent",
-      "setup_cents": 186300,
+      "setup_cents": 176300,
       "monthly_cents": 0
     }
   ],
@@ -95,6 +95,7 @@
   ],
   "excludes": [
     "Outbound AI calls and marketing text messages",
+    "After-hours dispatch that puts urgent calls through to your on-call tech (extra, fixed price)",
     "More locations or phone numbers (extra, fixed price)",
     "Usage above the included 400 minutes / 1,000 texts (we alert you at 80% and 100%; we add more only if you say yes)",
     "Call recordings (we keep a written copy of each call, not the audio)",
@@ -107,14 +108,14 @@
   ],
   "not_included_extra": [],
   "totals": {
-    "setup_subtotal_cents": 745000,
-    "rush_cents": 186300,
-    "discount_cents": 279400,
+    "setup_subtotal_cents": 705000,
+    "rush_cents": 176300,
+    "discount_cents": 264400,
     "discount_label": "Founding-client price (30% off setup)",
-    "setup_cents": 651900,
-    "monthly_cents": 50000,
-    "deposit_cents": 326000,
-    "final_cents": 325900,
+    "setup_cents": 616900,
+    "monthly_cents": 48000,
+    "deposit_cents": 308500,
+    "final_cents": 308400,
     "deposit_pct": 50
   },
   "refund": {

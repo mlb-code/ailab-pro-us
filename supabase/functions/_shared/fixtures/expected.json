@@ -29,9 +29,9 @@
   },
   "roofer_spanish": {
     "status": "draft",
-    "setup_cents": 425000,
-    "monthly_cents": 35000,
-    "deposit_cents": 212500,
+    "setup_cents": 385000,
+    "monthly_cents": 33000,
+    "deposit_cents": 192500,
     "items": [
       [
         "RCP",
@@ -81,12 +81,16 @@
   },
   "locksmith_after_hours": {
     "status": "draft",
-    "setup_cents": 350000,
-    "monthly_cents": 30000,
-    "deposit_cents": 175000,
+    "setup_cents": 420000,
+    "monthly_cents": 37500,
+    "deposit_cents": 210000,
     "items": [
       [
         "RCP",
+        1
+      ],
+      [
+        "ADD-DISPATCH",
         1
       ]
     ]
@@ -125,9 +129,9 @@
   },
   "bndl": {
     "status": "draft",
-    "setup_cents": 745000,
-    "monthly_cents": 50000,
-    "deposit_cents": 372500,
+    "setup_cents": 705000,
+    "monthly_cents": 48000,
+    "deposit_cents": 352500,
     "items": [
       [
         "BNDL",

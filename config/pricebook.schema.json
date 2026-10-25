@@ -47,7 +47,8 @@
         "overage_markup_pct",
         "custom_triggers",
         "liability_cap_months",
-        "liability_cap_floor_usd"
+        "liability_cap_floor_usd",
+        "plan_b_enabled"
       ],
       "properties": {
         "core_codes": {
@@ -166,6 +167,172 @@
         },
         "upwork_same_prices": {
           "type": "boolean"
+        },
+        "upwork_plans": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A"
+            ]
+          },
+          "minItems": 1,
+          "description": "Upwork sells plan A only (setup + monthly, or the annual prepay)."
+        },
+        "annual_prepay": {
+          "type": "object",
+          "required": [
+            "months_paid",
+            "months_covered",
+            "plan",
+            "channels",
+            "label"
+          ],
+          "properties": {
+            "months_paid": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "months_covered": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "with_setup": {
+              "type": "boolean"
+            },
+            "plan": {
+              "enum": [
+                "A"
+              ]
+            },
+            "channels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string"
+            }
+          }
+        },
+        "availability": {
+          "type": "object",
+          "required": [
+            "coming_soon_label",
+            "coming_soon_text",
+            "reasons"
+          ],
+          "properties": {
+            "coming_soon_label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "coming_soon_text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reasons": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "plan_b_enabled": {
+          "type": "boolean",
+          "description": "Plan B (no setup fee, 12-month minimum). false = never shown on the site or offered in quotes; the public site copy drops term_plan and plan_b_monthly_cents."
+        },
+        "term_plan": {
+          "type": "object",
+          "required": [
+            "setup_cents",
+            "min_months",
+            "premium_pct",
+            "first_charge",
+            "after_term",
+            "early_exit",
+            "founding_applies",
+            "channels"
+          ],
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "setup_cents": {
+              "const": 0
+            },
+            "min_months": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "premium_pct": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "formula": {
+              "type": "string"
+            },
+            "first_charge": {
+              "enum": [
+                "at_signing",
+                "at_go_live"
+              ]
+            },
+            "first_charge_refund": {
+              "enum": [
+                "deposit_rule"
+              ]
+            },
+            "after_term": {
+              "enum": [
+                "monthly_a"
+              ]
+            },
+            "cancel_notice_days_after_term": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "early_exit": {
+              "enum": [
+                "setup_remaining_share"
+              ]
+            },
+            "early_exit_text": {
+              "type": "string"
+            },
+            "guarantee_exit": {
+              "enum": [
+                "no_balance"
+              ]
+            },
+            "founding_applies": {
+              "const": false
+            },
+            "card_on_file": {
+              "type": "boolean"
+            },
+            "channels": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "site"
+                ]
+              }
+            },
+            "eligible": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -404,6 +571,10 @@
         "monthly_cents": {
           "$ref": "#/$defs/cents"
         },
+        "plan_b_monthly_cents": {
+          "$ref": "#/$defs/cents",
+          "description": "Plan B monthly (no setup fee, first 12 months); see rules.term_plan."
+        },
         "setup_pct": {
           "type": "integer",
           "minimum": 1,
@@ -419,6 +590,20 @@
           "items": {
             "type": "string"
           }
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "coming_soon"
+          ],
+          "description": "coming_soon = listed with a \"Coming soon\" label, never quotable or purchasable (pricing.mjs rejects it)."
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Why it is not available yet: keys of rules.availability.reasons."
         },
         "delivery_business_days": {
           "type": "integer",

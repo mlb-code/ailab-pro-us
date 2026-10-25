@@ -40,6 +40,7 @@
         "Answers the calls you miss, and texts back callers who hang up",
         "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
         "Booking into 1 calendar: Google Calendar or Calendly",
+        "Appointment manager: callers can check, move or cancel a visit it booked for them just by calling back, and it recognizes returning callers",
         "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
         "Owner notifications by SMS and email for every lead, plus a daily summary email",
         "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
@@ -59,6 +60,7 @@
   ],
   "excludes": [
     "Outbound AI calls and marketing text messages",
+    "After-hours dispatch that puts urgent calls through to your on-call tech (extra, fixed price)",
     "More locations or phone numbers (extra, fixed price)",
     "Spanish / bilingual phone line (extra, fixed price)",
     "Chat box on your website (extra, fixed price)",

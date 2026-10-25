@@ -409,7 +409,7 @@
   "pricing": {
     "eyebrow": "Pricing",
     "title": "The price is on the *page*.",
-    "note": "Need a second location, Spanish, or a direct link to Jobber? Each extra has a fixed price, listed below."
+    "note": "Want urgent night calls put straight through to your on-call tech, a second location, Spanish, or a direct link to Jobber? Each extra has a fixed price, listed below."
   },
   "faq": [
     {
@@ -441,5 +441,13 @@
     {
       "ref": "cancel"
     }
-  ]
+  ],
+  "bundles": {
+    "title": "Bundles for trades that get urgent calls",
+    "codes": [
+      "BNDL-NM",
+      "BNDL-GROW"
+    ],
+    "today": "Available today: the AI receptionist plus after-hours dispatch ({price:ADD-DISPATCH.setup} + {price:ADD-DISPATCH.monthly}/mo on top of the receptionist price)."
+  }
 }

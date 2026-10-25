@@ -389,7 +389,7 @@
       const meta = pb.integration_meta || {};
       (hints.add || []).forEach(x => {
         const it = P.itemOf(pb, x.code);
-        if (it && P.addonApplies(pb, it, core) && !P.alreadyIncluded(core, x.code) && !lines.some(l => l.code === x.code))
+        if (it && P.isAvailable(it) && P.addonApplies(pb, it, core) && !P.alreadyIncluded(core, x.code, pb) && !lines.some(l => l.code === x.code))
           lines.push({ code: x.code, qty: Math.min(P.MAX_QTY, x.qty || 1), source: 'answers', systems: x.systems });
       });
       const CUSTOM_NAMES = { locations_over_3: 'More than 3 locations', call_volume: 'Call volume above the auto-quote limit' };

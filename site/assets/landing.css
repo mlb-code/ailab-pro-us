@@ -367,3 +367,10 @@ main>.section:nth-of-type(odd):not(.section--amber){background:linear-gradient(1
 @media (max-width:1024px){.footer__grid{grid-template-columns:repeat(3,minmax(0,1fr))}.footer__brand{grid-column:1/-1}}
 @media (max-width:640px){.footer__grid{grid-template-columns:1fr 1fr}}
 @media (max-width:360px){.footer__grid{grid-template-columns:1fr}}
+
+/* ---------- coming soon (price book availability, 2026-10-25): listed, never sold ---------- */
+.addons--soon td{color:var(--fg-3)}
+.addons--soon td+td{color:var(--fg-3)}
+.bundle--soon{border-style:dashed}
+.bundle--soon .split li{align-items:flex-start}
+.bundle--soon .split li>b{color:var(--fg-3)}

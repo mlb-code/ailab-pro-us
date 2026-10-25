@@ -588,12 +588,22 @@ def includes_list(c, code):
     return ''.join(out)
 
 
-ADDON_SUFFIX = re.compile(r' \(add-on [A-Z0-9-]+\)$')  # price-book code suffix: machine-readable, shown as plain words
+ADDON_SUFFIX = re.compile(r' \(add-on ([A-Z0-9-]+)\)$')  # price-book code suffix: machine-readable, shown as plain words
+
+
+def soon(c, code):
+    """Coming soon in the price book (needs US texting registration): listed with a label, never sold (PRICEBOOK §4.10)."""
+    return (c.items.get(code) or {}).get('availability') == 'coming_soon'
+
+
+def soon_label(c):
+    return c.pb['rules'].get('availability', {}).get('coming_soon_label', 'Coming soon')
 
 
 def excludes_list(c, code):
-    return ''.join(f'<li>{esc(ADDON_SUFFIX.sub(" (extra, fixed price)", s))}</li>' for s in c.items[code]['excludes']
-                   if not s.lower().startswith('usage above'))
+    def plain(s):
+        return ADDON_SUFFIX.sub(lambda m: f' ({soon_label(c).lower()})' if soon(c, m.group(1)) else ' (extra, fixed price)', s)
+    return ''.join(f'<li>{esc(plain(s))}</li>' for s in c.items[code]['excludes'] if not s.lower().startswith('usage above'))
 
 
 def tool_status(c, key):
@@ -604,6 +614,8 @@ def tool_status(c, key):
         return 'is-zap', 'Via Zapier · included'
     if v.startswith('addon:'):
         it = c.items[v.split(':', 1)[1]]
+        if soon(c, it['code']):
+            return 'is-custom', soon_label(c)
         return 'is-addon', f'Extra {money(it["setup_cents"])} + {money(it["monthly_cents"])}/mo'
     return 'is-custom', 'Custom quote'
 
@@ -691,24 +703,49 @@ def section_proof(c, rows_override=None):
 </div></section>'''
 
 
+def item_price(i):
+    if i['kind'] == 'percent':
+        return f'+{i["setup_pct"]}% of setup'
+    parts = []
+    if i['setup_cents']:
+        parts.append(money(i['setup_cents']))
+    if i['monthly_cents']:
+        parts.append(f'{money(i["monthly_cents"])}/mo')
+    return ' + '.join(parts)
+
+
 def addons_table(c, core, hide=()):
-    rows = []
+    """Extras you can buy now, then (separately, labelled) the coming-soon ones: name and price only, no feature
+    promises, never a button. Plan B prices never render here (rules.plan_b_enabled is false)."""
+    rows, later = [], []
     for i in c.pb['items']:
         if i['group'] != 'addon' or core not in i['applies_to'] and 'any' not in i['applies_to']:
             continue
         if i['code'] in hide:
             continue
-        if i['kind'] == 'percent':
-            price = f'+{i["setup_pct"]}% of setup'
-        else:
-            parts = []
-            if i['setup_cents']:
-                parts.append(money(i['setup_cents']))
-            if i['monthly_cents']:
-                parts.append(f'{money(i["monthly_cents"])}/mo')
-            price = ' + '.join(parts)
-        rows.append(f'<tr><td>{esc(i["name"])}</td><td>{esc(price)}</td></tr>')
-    return f'<table class="addons"><caption>Extras, fixed prices</caption><tbody>{"".join(rows)}</tbody></table>'
+        (later if soon(c, i['code']) else rows).append(f'<tr><td>{esc(i["name"])}</td><td>{esc(item_price(i))}</td></tr>')
+    out = f'<table class="addons"><caption>Extras, fixed prices</caption><tbody>{"".join(rows)}</tbody></table>'
+    if later:
+        av = c.pb['rules'].get('availability', {})
+        out += (f'<table class="addons addons--soon" data-coming-soon><caption>{esc(soon_label(c))}</caption><tbody>{"".join(later)}</tbody></table>'
+                f'<p class="small muted">{esc(av.get("coming_soon_text", ""))}</p>')
+    return out
+
+
+def bundles_soon(c, n):
+    """Trade bundles that are not sold yet (they contain a texting add-on): a labelled card, no button (PRICEBOOK §1)."""
+    b = (n or {}).get('bundles')
+    if not b:
+        return ''
+    cards = []
+    for code in b['codes']:
+        i = c.items[code]
+        if not soon(c, code):
+            raise SystemExit(f'build_landing: {code} is sellable now; give it a real price card and a quote path first')
+        parts = ' + '.join(esc(c.items[x]['name']) for x in i['contains'])
+        cards.append(f'<li><span><b>{esc(i["name"])}</b><br><span class="small muted">{parts}</span></span><b>{esc(item_price(i))}</b></li>')
+    return (f'<div class="bundle bundle--soon" data-coming-soon><span class="badge">{esc(soon_label(c))}</span><h3>{c.h(b["title"])}</h3>'
+            f'<ul class="split">{"".join(cards)}</ul><p class="small">{c.h(b["today"])}</p></div>')
 
 
 def price_card(c, code, cta_href, cta_label, *, featured=True, early=False, n=None):
@@ -740,7 +777,7 @@ def refund_fine(c, code):
 
 
 def section_pricing(c, pr, code, cta_href, cta_label, *, early=False, bundle_link=True, n=None):
-    side = [f'<p>{c.h(pr["note"])}</p>', addons_table(c, code, (n or {}).get('addons_hide', ()))]
+    side = [f'<p>{c.h(pr["note"])}</p>', addons_table(c, code, (n or {}).get('addons_hide', ())), bundles_soon(c, n)]
     if bundle_link:
         b = c.items['BNDL']
         side.append(f'<p class="small">Need a website too? The <a href="/website/#bundle">{esc((n or {}).get("bundle_name") or b["name"])}</a> is {money(b["setup_cents"])} + {money(b["monthly_cents"])}/mo.</p>')

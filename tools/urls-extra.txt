@@ -4,6 +4,7 @@
 /legal/service-agreement/
 /quote/?t=fixture
 /quote/?t=fixture-bundle
+/quote/?t=fixture-dispatch
 /quote/?t=fixture-web
 /quote/?t=fixture-accepted
 /quote/?t=fixture-expired
