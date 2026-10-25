@@ -365,3 +365,12 @@ def test_report_templates_show_dispatch_lines_only_when_on():
     _, text, _ = T.daily_summary("Cool Breeze HVAC", {**base, "dispatch": {"urgent_transfers": 2, "connected": 1,
                                                                             "avg_accept_s": 14, "alerts_sent": 2}})
     assert "Urgent calls sent to your on-call team: 2" in text and "average time to pick up: 14 seconds" in text
+
+
+def test_technician_sees_the_callers_number(tmp_path, demo_raw):
+    sim, clock = build(tmp_path, demo_raw, "gather")
+    call = start_urgent(sim)
+    resp_turn = call.say("Tess 77005")
+    import xml.etree.ElementTree as ET
+    resp = sim.twilio.dial_result(call.to, call.caller, call.call_sid, "no-answer", path=call.dial_action)
+    assert ET.fromstring(resp.text).find("Dial").get("callerId") == call.caller

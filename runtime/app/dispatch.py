@@ -5,7 +5,7 @@ Flow (voice only; the 911 sentence for life-safety words always comes first and 
 1. An urgent call (`guard.detect_emergency` == "urgent") while dispatch is active (`active`: enabled, and closed
    now or `daytime_too`) and someone is on call (`plan`): the assistant asks for the caller's first name and ZIP
    (one question, skipped for what it already knows), then says it is connecting them and the call leaves the AI.
-2. Each leg is `<Dial callerId=tenant number timeout<=20><Number url=/voice/dispatch/whisper>` (Twilio "whisper"):
+2. Each leg is `<Dial callerId=the caller's own number (tenant number if unknown) timeout<=20><Number url=/voice/dispatch/whisper>` (Twilio "whisper"):
    when the technician picks up, only they hear the one-sentence brief ("Urgent call for {business}: {issue}, ZIP
    {zip}, caller {first name}. Press 1 to take the call.") and must press 1 within 8 s; then the two are bridged.
    No 1 (voicemail, no answer, other key) -> that leg ends and the next number rings; between legs the caller
@@ -247,8 +247,11 @@ class Dispatcher:
             return str(vr)
         elapsed = (self.rt.now() - datetime.fromisoformat(d["started_at"])).total_seconds()
         ring = int(max(MIN_RING_S, min(LEG_RING_S, MAX_WAIT_S - elapsed)))
-        dial = vr.dial(timeout=ring, action=f"/voice/dial-result?leg={i}", method="POST",
-                       caller_id=tenant.twilio_number or None)
+        # the technician sees the customer's own number (Meir 25.10), so he knows who it is and can call back;
+        # Twilio allows passing the inbound caller through on a <Dial> from the same call
+        caller = (c.contact if c else "") or ""
+        shown = caller if re.fullmatch(r"\+[1-9]\d{7,14}", caller) else (tenant.twilio_number or None)
+        dial = vr.dial(timeout=ring, action=f"/voice/dial-result?leg={i}", method="POST", caller_id=shown)
         dial.number(legs[i]["phone"], url=f"/voice/dispatch/whisper?d={self.token(tenant, call_sid, l=i)}",
                     method="POST")
         return str(vr)
