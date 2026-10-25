@@ -46,7 +46,7 @@ async def oauth_ticket(provider: str, request: Request):
     if not svc.calendar.tokens.configured(provider):
         return JSONResponse({"error": f"{provider} OAuth client not configured"}, status_code=503)
     ticket = svc.calendar.tokens.ticket(tenant_id, provider)
-    base = svc.settings.public_base_url or str(request.base_url).rstrip("/")
+    base = svc.settings.oauth_base_url or svc.settings.public_base_url or str(request.base_url).rstrip("/")
     return {"url": f"{base}/oauth/{provider}/start?{urlencode({'ticket': ticket})}"}
 
 

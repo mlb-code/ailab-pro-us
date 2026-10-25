@@ -62,6 +62,10 @@ class Settings:
     supabase_service_key: str = field(default="", repr=False)
     twilio_auth_token: str = field(default="", repr=False)
     public_base_url: str = ""
+    # Calendar OAuth (connect link + redirect URI) on our own domain, e.g. https://rt.ailabpro.co. Google's verification
+    # needs every redirect URI on a verified, authorized domain; *.up.railway.app is a public suffix and can never be one.
+    # Empty = public_base_url (unchanged behaviour). Twilio webhooks keep using public_base_url.
+    oauth_base_url: str = ""
     cred_key: str = field(default="", repr=False)
     brain_mode: str = "live"
     model: str = ""            # claude.model: the general default (health ping fallback, cost tests)
@@ -137,6 +141,7 @@ class Settings:
             "twilio_auth_configured": bool(self.twilio_auth_token),
             "cred_key_configured": bool(self.cred_key),
             "public_base_url": self.public_base_url or None,
+            "oauth_base_url": self.oauth_base_url or None,
             "voice_mode": self.voice_mode,
             "twilio_rest_configured": bool(self.twilio_account_sid),
             "jobs_token_configured": bool(self.jobs_token),
@@ -158,6 +163,7 @@ def load(env: dict[str, str] | None = None) -> Settings:
         supabase_service_key=env.get("SUPABASE_SERVICE_ROLE_KEY", ""),
         twilio_auth_token=env.get("TWILIO_AUTH_TOKEN") or (SIM_TWILIO_AUTH_TOKEN if sim else ""),
         public_base_url=env.get("PUBLIC_BASE_URL", "").rstrip("/"),
+        oauth_base_url=env.get("OAUTH_BASE_URL", "").rstrip("/"),
         cred_key=env.get("CRED_KEY") or (SIM_CRED_KEY if sim else ""),
         brain_mode=brain_mode,
         model=env.get("CLAUDE_MODEL") or _brand_model(),

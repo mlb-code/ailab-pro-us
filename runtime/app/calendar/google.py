@@ -22,6 +22,10 @@ from .base import AlertFn, CalendarError, CalendarProvider, FreeInfo, event_text
 from .oauth import TokenManager
 
 API = "https://www.googleapis.com/calendar/v3"
+# Data minimisation (Google API Services User Data Policy, OAuth verification 2026-10-25): from the owner's existing
+# events we read ONLY what the busy-time check needs. Titles, descriptions, attendees, locations and links are never
+# requested, so they never reach our servers, our logs or Claude.
+BUSY_FIELDS = "nextPageToken,items(status,transparency,start,end,extendedProperties/private)"
 OUR_TAG = "ailab_booking"
 
 
@@ -51,7 +55,7 @@ class GoogleCalendarProvider(CalendarProvider):
         page: str | None = None
         for _ in range(10):  # at most 2,500 events in the horizon
             params = {"timeMin": start.isoformat(), "timeMax": end.isoformat(), "singleEvents": "true",
-                      "orderBy": "startTime", "maxResults": 250, "showDeleted": "false"}
+                      "orderBy": "startTime", "maxResults": 250, "showDeleted": "false", "fields": BUSY_FIELDS}
             if page:
                 params["pageToken"] = page
             body = self.api.call(tenant_id, "GET", f"/calendars/{self._cal(cfg)}/events", params=params)

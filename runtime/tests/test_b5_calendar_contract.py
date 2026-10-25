@@ -333,3 +333,19 @@ def test_engine_takes_a_message_when_the_calendar_is_disconnected(provider, tmp_
         r = eng.handle(e.tenant, "sms", harness.CALLER, text, "SMthread2", MON_9 + timedelta(minutes=i))
     assert r.outcome == "message" and e.created() == []
     assert [a["kind"] for _, a in e.alerts] == ["calendar_reconnect"]
+
+
+def test_google_reads_only_busy_time_fields_and_one_scope(tmp_path, demo_raw):
+    """OAuth verification (2026-10-25): least data. events.list asks Google only for status / transparency / start / end /
+    our private tag, never titles, descriptions, attendees or locations; the consent asks for calendar.events only."""
+    from app.calendar.oauth import ENDPOINTS
+    assert ENDPOINTS["google"].scopes == ("https://www.googleapis.com/auth/calendar.events",)
+    e = make_env("google", tmp_path, demo_raw)
+    assert e.hub.availability(e.tid, e.cfg, MON_9)
+    lists = [r for r in e.up.requests if r.method == "GET" and r.url.path.endswith("/events")]
+    assert lists, "events.list was called"
+    for r in lists:
+        fields = r.url.params.get("fields", "")
+        assert fields == "nextPageToken,items(status,transparency,start,end,extendedProperties/private)"
+        for never in ("summary", "description", "attendees", "location", "creator", "organizer", "htmlLink"):
+            assert never not in fields

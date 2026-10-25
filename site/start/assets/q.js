@@ -287,7 +287,7 @@
     const pay = isWeb() && payEndpoint();
     const lead = isWeb()
       ? '<p class="lead" id="doneLead">Your deposit link is on its way — we email it ' + S.esc(S.sla()) + ' to <b>' + S.esc(session.user.email) + '</b>. ' + S.esc(S.webTimeline()) + '</p>' +
-        (pay ? '<div class="btn-row spaced-b"><a class="btn btn--primary" id="payDeposit" href="' + S.esc(pay + (pay.indexOf('?') === -1 ? '?' : '&') + 'offer=WEB&ref=' + encodeURIComponent(id)) + '">Pay the ' + depPct() + '% deposit</a></div>' : '')
+        (pay ? '<div class="btn-row spaced-b"><a class="btn btn--primary" id="payDeposit" data-pay="web_deposit" href="' + S.esc(pay + (pay.indexOf('?') === -1 ? '?' : '&') + 'offer=WEB&ref=' + encodeURIComponent(id)) + '">Pay the ' + depPct() + '% deposit</a></div>' : '')
       : '<p class="lead" id="doneLead">You’ll get a written fixed quote ' + S.esc(S.sla()) + '. We’ll email it to <b>' + S.esc(session.user.email) + '</b>.</p>';
     app.innerHTML = '<span class="eyebrow">Submitted</span><h1 class="t" id="doneTitle" tabindex="-1">Thanks — we have everything we need.</h1>' + lead +
       nextStepsHtml() + '<div class="btn-row spaced"><a class="btn btn--primary" href="/start/">Go to your portal</a></div>';

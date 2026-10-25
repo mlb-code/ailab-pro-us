@@ -98,8 +98,14 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/email_events_run.ts
 	$(DENO_RUN) supabase/tests/offline/paypal_run.ts
 	$(DENO_RUN) supabase/tests/offline/dispatch_run.ts
+	$(DENO_RUN) supabase/tests/offline/questionnaire_utm_run.ts
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal
+# Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity load, events fire, GPC/DNT
+# blocks everything, Clarity masks forms, first-touch UTM reaches the questionnaire. Nothing reaches Google or Microsoft.
+qa-measure:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_measure.mjs
+
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal qa-measure
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------

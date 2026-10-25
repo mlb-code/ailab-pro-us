@@ -146,7 +146,8 @@
   }
   async function startNew(init) {
     const niches = (S.PB._niches || []).map(n => n.key);
-    const r = await B.createQuestionnaire({ offer: init && init.offer || null, niche: init && niches.indexOf(init.niche) !== -1 ? init.niche : null });
+    const utm = (window.Measure && window.Measure.firstTouch()) || null;   // first-touch utm_* kept by /assets/measure.js
+    const r = await B.createQuestionnaire({ offer: init && init.offer || null, niche: init && niches.indexOf(init.niche) !== -1 ? init.niche : null, utm });
     S.trackFunnel(['quote', 'start'], { offer: init && init.offer || '' });
     location.href = '/start/q/?id=' + r.id;
   }
@@ -253,7 +254,7 @@
     }
     if (live) {
       return live.pay_link
-        ? { i: 2, text: 'Quote accepted. Next: the deposit (' + S.money(live.deposit_cents) + ').', action: { href: live.pay_link, label: 'Pay deposit ' + S.money(live.deposit_cents), ext: true } }
+        ? { i: 2, text: 'Quote accepted. Next: the deposit (' + S.money(live.deposit_cents) + ').', action: { href: live.pay_link, label: 'Pay deposit ' + S.money(live.deposit_cents), ext: true, pay: 'link' } }
         : { i: 2, text: 'Quote accepted. We’ll send your secure payment link ' + S.sla() + '.', action: { href: quoteUrl(live), label: 'View your quote' } };
     }
     if (open) return { i: 1, text: 'Your fixed quote is ready.', action: { href: quoteUrl(open), label: 'Review your quote' } };
@@ -270,7 +271,7 @@
     const steps = STAGES.map((s, i) => '<li class="' + (i < st.i ? 'is-done' : i === st.i ? 'is-current' : '') + '"' + (i === st.i ? ' aria-current="step"' : '') + '><span>' + s + '</span></li>').join('');
     const a = st.action;
     const btn = !a ? '' : a.id ? '<button type="button" class="btn btn--primary" id="' + a.id + '">' + S.esc(a.label) + '</button>'
-      : '<a class="btn btn--primary" href="' + S.esc(a.href) + '"' + (a.ext ? ' target="_blank" rel="noopener"' : '') + ' id="nextAction">' + S.esc(a.label) + '</a>';
+      : '<a class="btn btn--primary" href="' + S.esc(a.href) + '"' + (a.ext ? ' target="_blank" rel="noopener"' : '') + (a.pay ? ' data-pay="' + S.esc(a.pay) + '"' : '') + ' id="nextAction">' + S.esc(a.label) + '</a>';
     let list = '';
     if (d.qs.length) {
       list = '<h2 class="h-sec">Your questionnaires</h2><ul class="qlist">' + d.qs.map(q => {

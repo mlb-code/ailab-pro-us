@@ -17,6 +17,12 @@
     set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
     del: k => { try { localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
   };
+  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'landing_path', 'first_seen'];
+  function cleanUtm(u) {
+    const out = {};
+    if (u && typeof u === 'object' && !Array.isArray(u)) UTM_KEYS.forEach(k => { if (typeof u[k] === 'string' && u[k]) out[k] = u[k].slice(0, 200); });
+    return out;
+  }
   const TABLES = ['users', 'profiles', 'questionnaires', 'attachments', 'quotes', 'clients', 'payments', 'events', 'outbox', 'otps',
     'leads', 'onboarding_items', 'requests', 'tenants', 'runtime_state', 'admin_notes', 'quote_reviews',   // second row: admin (A7)
     'calls', 'sms_messages', 'bookings', 'dispatch_events'];   // third row: receptionist data written by the runtime (B7 reads it)
@@ -164,11 +170,12 @@
           .map(q => ({ id: q.id, offer: q.offer, niche: q.niche, status: q.status, created_at: q.created_at, updated_at: q.updated_at, submitted_at: q.submitted_at }));
         return later(rows);
       },
+      // mirrors private.questionnaires_guard (20261025100000_us_questionnaire_utm.sql): whitelisted keys, strings, 200 chars
       createQuestionnaire(init) {
         const db = load(), u = me(db); if (!u) return fail('not_authenticated');
         if (db.questionnaires.filter(q => q.user_id === u.id).length >= 20) return fail('too_many_questionnaires');
         const q = { id: uuid(), user_id: u.id, offer: init && init.offer || null, niche: init && init.niche || null, status: 'draft',
-          answers: {}, summary: [], submitted_at: null, created_at: now(), updated_at: now() };
+          answers: {}, summary: [], submitted_at: null, created_at: now(), updated_at: now(), utm: cleanUtm(init && init.utm) };
         db.questionnaires.push(q);
         event(db, 'questionnaire', q.id, u.id, 'created', { to: 'draft' });
         store(db);

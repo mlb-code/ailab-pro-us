@@ -298,7 +298,7 @@
       PC = await import('/assets/paypal_checkout.mjs');
       await PC.mount(box, {
         brand: S.BRAND, currency: (S.PB && S.PB.currency) || 'USD',
-        create: async () => { say(''); return (await B.payCreate(fp.quote.public_token, 'final')).order_id; },
+        create: async () => { say(''); S.trackFunnel(['pay', 'click'], { method: 'paypal', which: 'final' }); return (await B.payCreate(fp.quote.public_token, 'final')).order_id; },
         capture: orderId => B.payCapture(fp.quote.public_token, 'final', orderId),
         onResult: async r => {
           S.toast(r && r.status === 'pending' ? 'Payment processing' : 'Final payment received');

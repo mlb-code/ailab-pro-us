@@ -109,7 +109,9 @@
         return must(await sb.from('questionnaires').select(RANGE).eq('user_id', await uid()).order('updated_at', { ascending: false }));
       },
       async createQuestionnaire(init) {
-        return must(await sb.from('questionnaires').insert({ offer: init.offer || null, niche: init.niche || null }).select('id').single());
+        const row = { offer: init.offer || null, niche: init.niche || null };
+        if (init.utm && Object.keys(init.utm).length) row.utm = init.utm;   // first touch (questionnaires.utm, write-once)
+        return must(await sb.from('questionnaires').insert(row).select('id').single());
       },
       async getQuestionnaire(id) { return must(await sb.from('questionnaires').select('*').eq('id', id).maybeSingle()); },
       async saveQuestionnaire(id, patch) {
