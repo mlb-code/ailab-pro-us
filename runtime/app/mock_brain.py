@@ -431,6 +431,8 @@ class MockBrain:
                 if CANCEL_APPT.search(everything):
                     return self._reply(f"I found your {bk['job_type']} visit {bk['label']}. Do you want me to cancel it?")
                 return self._tool(n, "get_availability", {"job_type": bk["job_type"], "zip": bk["zip"], "date_from": None})
+            if r.get("reason") in ("need_phone", "name_needed"):  # chat box: no caller id to search by
+                return self._reply("What mobile number is the booking under, and what name is it under?")
             if sum(1 for nm, _ in results if nm == "find_my_booking") >= 2:
                 return self._tool(n, "take_message", {"summary": "Customer wants to change a booking we could not find",
                                                       "urgency": "normal", "name": None})

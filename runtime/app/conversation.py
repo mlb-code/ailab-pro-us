@@ -702,8 +702,9 @@ class Engine:
         old_label = appt.row_label(row, cfg)
         job, name = row.get("job_type") or "Job", row.get("customer_name") or "Customer"
         what = f"moved from {old_label} to {new['label']}" if new else f"cancelled ({old_label})"
-        summary = f"Booking {what} by the customer: {job}, {name}" + \
-            (". Asked from a different number than the booking's" if other_number else "")
+        where = (". Asked in the web chat, with the booking's number and name" if not appt.e164(c.contact)
+                 else ". Asked from a different number than the booking's")
+        summary = f"Booking {what} by the customer: {job}, {name}" + (where if other_number else "")
         c.meta["appt"] = {"kind": kind, "label": (new or {}).get("label") or old_label}
         c.meta.setdefault("appt_events", []).append({
             "kind": kind, "key": f"{row.get('id')}:{kind}", "contact": row.get("contact_e164") or c.contact,
@@ -763,6 +764,12 @@ class Engine:
             other = appt.e164(raw) if raw else None
             if raw and not other:
                 return {"ok": False, "reason": "bad_phone"}
+            if not other and not appt.e164(c.contact):
+                # Fix 28.10: no caller id (web chat: the contact is the chat session id). Never search by it and never
+                # answer "no booking" before searching by the customer's own number: make the model ask for it.
+                return {"ok": False, "reason": "need_phone",
+                        "note": "There is no caller id here: ask for the mobile number the booking is under and the "
+                                "name on it, then call find_my_booking with both."}
             if other and other != c.contact:
                 if not str(args.get("name") or "").strip():
                     return {"ok": False, "reason": "name_needed"}
