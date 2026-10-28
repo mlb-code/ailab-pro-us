@@ -438,7 +438,8 @@
   "included": {
     "eyebrow": "What's included",
     "title": "One price. Every lead gets *screened* and booked.",
-    "tools_title": "Works with your tools"
+    "tools_title": "Works with your tools",
+    "tools_extra": [{"label": "Apple iCloud Calendar", "status": "Via Calendly · included", "after": "calendly"}]
   },
   "pricing": {
     "eyebrow": "Pricing",

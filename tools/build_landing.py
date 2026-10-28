@@ -640,6 +640,10 @@ def section_included(c, niche_key, inc, n):
             continue
         cls, label = tool_status(c, k)
         tools.append(f'<li class="{cls}"><span>{esc(meta["label"])}</span><span>{esc(label)}</span></li>')
+        # Display-only rows (no questionnaire option), e.g. iCloud Calendar reached through Calendly.
+        for x in inc.get('tools_extra', []):
+            if x['after'] == k:
+                tools.append(f'<li class="is-native"><span>{esc(x["label"])}</span><span>{esc(x["status"])}</span></li>')
     return f'''<section class="section" id="included"><div class="wrap">
 <div class="shead"><p class="eyebrow">{c.h(inc['eyebrow'])}</p><h2>{c.h(inc['title'])}</h2></div>
 <div class="incl">

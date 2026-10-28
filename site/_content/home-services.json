@@ -404,7 +404,8 @@
   "included": {
     "eyebrow": "What's included",
     "title": "One price. *Everything* a missed call needs.",
-    "tools_title": "Works with your tools"
+    "tools_title": "Works with your tools",
+    "tools_extra": [{"label": "Apple iCloud Calendar", "status": "Via Calendly · included", "after": "calendly"}]
   },
   "pricing": {
     "eyebrow": "Pricing",
