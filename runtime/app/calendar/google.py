@@ -67,9 +67,10 @@ class GoogleCalendarProvider(CalendarProvider):
                 s, e = _parse(ev.get("start") or {}, tz), _parse(ev.get("end") or {}, tz)
                 if s and e:
                     busy.append((s, e))
-            page = body.get("nextPageToken")
-            if not page:
+            nxt = body.get("nextPageToken")
+            if not nxt or nxt == page:  # a token that repeats would loop on the same page
                 break
+            page = nxt
         return FreeInfo(busy=busy)
 
     def _create_event(self, tenant_id, cfg, slot, details):

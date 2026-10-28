@@ -832,7 +832,12 @@ class Engine:
                 date_from = date.fromisoformat(str(args["date_from"])) if args.get("date_from") else None
             except ValueError:
                 date_from = None
-            slots = self.calendar.availability(tenant.id, cfg, now, date_from=date_from, limit=3)
+            try:
+                slots = self.calendar.availability(tenant.id, cfg, now, date_from=date_from, limit=3)
+            except Exception as exc:  # noqa: BLE001 - a calendar problem (incl. its deadline) must never end the turn
+                log.warning("availability failed tenant=%s: %s", tenant.slug, type(exc).__name__)
+                return {"ok": False, "reason": "calendar_unavailable",
+                        "note": "The calendar cannot be checked right now: take_message so the team calls back."}
             if c.meta.get("my_bookings"):  # moving a visit: never offer the time it already has
                 slots = appt.without_own(slots, ts, c.meta["my_bookings"])
             for s in slots:

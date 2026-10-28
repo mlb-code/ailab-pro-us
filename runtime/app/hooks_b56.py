@@ -23,6 +23,8 @@ import logging
 import os
 import threading
 import weakref
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import date, datetime
 from types import SimpleNamespace
 from typing import Any
@@ -39,7 +41,10 @@ from .zapier import ZapierClient, signing_secret
 
 log = logging.getLogger("rt.hooks")
 
-_lock = threading.Lock()
+# Re-entrant: `hub_for` builds the delivery queue (`queue_for`) for its new hub while it holds this lock. With a plain
+# Lock that self-deadlocked on the first real (Google/Calendly) calendar call and then blocked every alert, emit and
+# /jobs/tick in the process for good (incident 2026-10-28).
+_lock = threading.RLock()
 _hubs: dict[Any, CalendarHub] = {}
 _notifiers: "weakref.WeakKeyDictionary[Store, Notifier]" = weakref.WeakKeyDictionary()
 _zaps: "weakref.WeakKeyDictionary[Store, ZapierClient]" = weakref.WeakKeyDictionary()
@@ -108,30 +113,68 @@ def get_provider(tenant_id: str, cfg: Any, settings: Any) -> Any:
     return hub.provider(cfg) or hub
 
 
-class TenantCalendars:
-    """Engine-facing dispatcher (same surface as the stub, plus cancel and reschedule)."""
+# Hard upper bound for one calendar operation inside a live turn (chat, SMS, voice). Each HTTP request already has a
+# 10 s timeout and loops are bounded, but a turn must never wait on a provider (or on a lock) without limit: past the
+# deadline the turn gets "calendar unavailable" and the assistant takes a message instead.
+CALENDAR_READ_DEADLINE_S = 12.0
+CALENDAR_WRITE_DEADLINE_S = 25.0
+_cal_pool = ThreadPoolExecutor(max_workers=16, thread_name_prefix="calendar")
 
-    def __init__(self, settings: Any, resolve=None):
+
+class CalendarTimeout(RuntimeError):
+    """A calendar operation did not finish within its deadline (the worker thread is left to finish on its own)."""
+
+
+def _bounded(what: str, deadline_s: float, fn, *args, **kwargs):
+    fut = _cal_pool.submit(fn, *args, **kwargs)
+    try:
+        return fut.result(timeout=deadline_s)
+    except FutureTimeout:
+        log.error("calendar %s exceeded %.0f s: the turn continues without the calendar", what, deadline_s)
+        raise CalendarTimeout(f"calendar {what} timed out") from None
+
+
+class TenantCalendars:
+    """Engine-facing dispatcher (same surface as the stub, plus cancel and reschedule).
+
+    Every call runs under a deadline (`_bounded`): availability raises `CalendarTimeout` (the engine answers
+    `calendar_unavailable`), writes return `{"ok": False, "reason": "calendar_unavailable"}`."""
+
+    def __init__(self, settings: Any, resolve=None, read_deadline_s: float | None = None,
+                 write_deadline_s: float | None = None):
         self.settings = settings
         self.resolve = resolve or (lambda tenant_id, cfg: get_provider(tenant_id, cfg, settings))
+        self.read_deadline_s = read_deadline_s or CALENDAR_READ_DEADLINE_S
+        self.write_deadline_s = write_deadline_s or CALENDAR_WRITE_DEADLINE_S
+
+    def _write(self, what: str, fn) -> dict[str, Any]:
+        try:
+            return _bounded(what, self.write_deadline_s, fn)
+        except CalendarTimeout:
+            return {"ok": False, "reason": "calendar_unavailable"}
 
     def availability(self, tenant_id, cfg, now: datetime, date_from: date | None = None, limit: int = 6):
-        return self.resolve(tenant_id, cfg).availability(tenant_id, cfg, now, date_from=date_from, limit=limit)
+        return _bounded("availability", self.read_deadline_s, lambda: self.resolve(tenant_id, cfg).availability(
+            tenant_id, cfg, now, date_from=date_from, limit=limit))
 
     def book(self, tenant_id, cfg, now, slot_id, details):
-        return self.resolve(tenant_id, cfg).book(tenant_id, cfg, now, slot_id, details)
+        return self._write("book", lambda: self.resolve(tenant_id, cfg).book(tenant_id, cfg, now, slot_id, details))
 
     def cancel(self, tenant_id, cfg, event_id, reason="", now=None):
-        p = self.resolve(tenant_id, cfg)
-        if not hasattr(p, "cancel"):
-            return {"ok": False, "reason": "not_supported"}
-        return p.cancel(tenant_id, cfg, event_id, reason, now)
+        def run():
+            p = self.resolve(tenant_id, cfg)
+            if not hasattr(p, "cancel"):
+                return {"ok": False, "reason": "not_supported"}
+            return p.cancel(tenant_id, cfg, event_id, reason, now)
+        return self._write("cancel", run)
 
     def reschedule(self, tenant_id, cfg, now, event_id, slot_id, details):
-        p = self.resolve(tenant_id, cfg)
-        if not hasattr(p, "reschedule"):
-            return {"ok": False, "reason": "not_supported"}
-        return p.reschedule(tenant_id, cfg, now, event_id, slot_id, details)
+        def run():
+            p = self.resolve(tenant_id, cfg)
+            if not hasattr(p, "reschedule"):
+                return {"ok": False, "reason": "not_supported"}
+            return p.reschedule(tenant_id, cfg, now, event_id, slot_id, details)
+        return self._write("reschedule", run)
 
 
 def _convo_from_store(store: Store, tenant: Any, alert: dict[str, Any]) -> Any:

@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from .base import CalendarAuthError, CalendarError
-from .oauth import TokenManager
+from .oauth import REQUEST_TIMEOUT, TokenManager
 
 
 class AuthedApi:
@@ -25,7 +25,8 @@ class AuthedApi:
             token = self.tokens.access_token(tenant_id, self.provider, force_refresh=attempt == 1)
             try:
                 resp = self.http.request(method, url, params=params, json=json,
-                                         headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+                                         headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                                         timeout=REQUEST_TIMEOUT)
             except httpx.HTTPError as exc:
                 raise CalendarError(f"{self.provider} unreachable: {type(exc).__name__}") from None
             if resp.status_code == 401 and attempt == 0:

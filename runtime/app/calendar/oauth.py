@@ -31,6 +31,9 @@ from .. import crypto
 from ..store import StateStore, Store
 from .base import CalendarAuthError, CalendarError
 
+# Every provider request (token endpoint and API) is bounded, even on an injected client without its own timeout.
+REQUEST_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
 PROVIDERS = ("calendly", "google")  # Calendly first: it is the default (TASKS Addendum 2)
 
 
@@ -89,7 +92,7 @@ class TokenManager:
         self.state = state or StateStore(store)
         self.cred_key = cred_key
         self.clients = clients
-        self.http = http or httpx.Client(timeout=10.0)
+        self.http = http or httpx.Client(timeout=REQUEST_TIMEOUT)
         self.clock = clock
 
     # --- connect flow ------------------------------------------------------------------
@@ -206,7 +209,7 @@ class TokenManager:
         form = {**data, "client_id": client.client_id, "client_secret": client.client_secret}
         try:
             resp = self.http.post(ENDPOINTS[provider].token_url, data=form,
-                                  headers={"Accept": "application/json"})
+                                  headers={"Accept": "application/json"}, timeout=REQUEST_TIMEOUT)
         except httpx.HTTPError as exc:
             raise CalendarError(f"{provider} token endpoint unreachable: {type(exc).__name__}") from None
         if resp.status_code >= 500 or resp.status_code == 429:
