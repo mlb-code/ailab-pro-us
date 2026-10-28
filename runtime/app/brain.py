@@ -8,11 +8,13 @@ behave well inside them.
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any, Callable
 
+from .guard import SMS_REPLY_MAX
 from .llm import LLMClient, LLMError
 from .tenants import DAYS, TenantConfig
 
@@ -403,6 +405,57 @@ class BrainResult:
 
 ToolExecutor = Callable[[str, dict[str, Any]], dict[str, Any]]
 
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+_NORM = re.compile(r"[^a-z0-9]+")
+_LOOKUP_TOOLS = {"get_availability", "find_my_booking", "qualify_lead"}  # text next to these is only a preamble
+
+
+class _Reply:
+    """The customer's reply for one turn: every text Claude wrote in it, in order, each sentence once.
+
+    Fix 28.10: Claude sometimes wrote the confirmation next to book_slot / cancel_booking and then "Goodbye, Dana!"
+    next to end_conversation; only the last text was sent, so the confirmation was lost on SMS and chat.
+    - Text next to a tool that failed was written before the outcome; it is dropped when Claude wrote anything
+      after it (its correction). With nothing after it, it is the reply as before (the guard then decides).
+    - Text channels: if the whole reply is longer than one reply may be, preambles next to lookup tools
+      ("Let me check the schedule.") go first, so the guard's cut does not eat the slot offer or question.
+    Voice speaks the stream itself (app.speech); this text is unused there and kept the same way."""
+
+    def __init__(self, channel: str):
+        self.channel = channel
+        self.parts: list[tuple[str, bool]] = []  # (text, is_lookup_preamble)
+        self.fallback = ""  # text next to a failed tool
+
+    def add(self, said: str, tools: list[str] | None = None, failed: bool = False) -> None:
+        if not said:
+            return
+        if failed:
+            self.fallback = said
+            return
+        self.parts.append((said, bool(tools) and set(tools) <= _LOOKUP_TOOLS))
+
+    def text(self) -> str:
+        if not self.parts:
+            return self.fallback
+        seen: set[str] = set()
+        parts: list[tuple[str, bool]] = []
+        for said, preamble in self.parts:
+            kept = []
+            for sentence in _SENTENCE.split(said):
+                key = _NORM.sub(" ", sentence.lower()).strip()
+                if key and key in seen:
+                    continue
+                seen.add(key)
+                kept.append(sentence)
+            if " ".join(kept).strip():
+                parts.append((" ".join(kept).strip(), preamble))
+
+        def joined() -> str:
+            return " ".join(p for p, _ in parts)
+        while self.channel != "voice" and len(joined()) > SMS_REPLY_MAX and any(pre for _, pre in parts[:-1]):
+            parts.pop(next(i for i, (_, pre) in enumerate(parts[:-1]) if pre))
+        return joined()
+
 
 def run_turn(llm: LLMClient, cfg: TenantConfig, channel: str, history: list[dict[str, Any]],
              user_content: list[dict[str, Any]], execute: ToolExecutor,
@@ -420,7 +473,7 @@ def run_turn(llm: LLMClient, cfg: TenantConfig, channel: str, history: list[dict
     tool_defs = tools(cfg, channel)
     messages = [*history, {"role": "user", "content": user_content}]
     out = BrainResult()
-    last_said = ""
+    reply = _Reply(channel)
     for _ in range(MAX_ITERATIONS):
         t0 = time.perf_counter()
         if on_call is not None:
@@ -445,12 +498,10 @@ def run_turn(llm: LLMClient, cfg: TenantConfig, channel: str, history: list[dict
         uses = [b for b in content if b.get("type") == "tool_use"]
         said = " ".join(b.get("text", "") for b in content if b.get("type") == "text").strip()
         if not uses:
-            # A final response with no text (e.g. the confirmation was written next to end_conversation):
-            # reply with the last thing Claude wrote in this turn rather than nothing.
-            out.text = said or last_said
+            reply.add(said)
+            out.text = reply.text()
             out.messages = messages
             return out
-        last_said = said or last_said
         results = []
         for use in uses:
             result = execute(use["name"], dict(use.get("input") or {}))
@@ -459,5 +510,6 @@ def run_turn(llm: LLMClient, cfg: TenantConfig, channel: str, history: list[dict
                             "content": json.dumps(result, sort_keys=True),
                             **({"is_error": True} if result.get("ok") is False else {})})
         messages.append({"role": "user", "content": results})
+        reply.add(said, tools=[u["name"] for u in uses], failed=any(r.get("is_error") for r in results))
     out.error = "too_many_iterations"
     return out
