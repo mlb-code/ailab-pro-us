@@ -178,6 +178,10 @@
     const f = get('faq'); if (f.faq) cfg.faq = f.faq;
     cfg.booking = Object.assign({}, cfg.booking || {});
     if (f.services) cfg.booking.job_types = f.services;
+    // asked in the checklist since 2026-10-29: 5-digit ZIPs from the free-text service area; prices on the phone (mode only — items are typed here)
+    const zips = String(f.service_area || '').match(/\b\d{5}\b/g) || [];
+    if (zips.length) cfg.business.service_area_zips = [...new Set(zips)].slice(0, 500);
+    if (f.price_on_phone) cfg.pricing = Object.assign({}, cfg.pricing || {}, { mode: f.price_on_phone === 'fixed' ? 'listed' : 'none' });
     const cal = get('calendar'); if (cal.provider) cfg.booking.provider = cal.provider; if (cal.booking_link) cfg.booking.booking_link = cal.booking_link;
     if (!cfg.booking.windows) cfg.booking.windows = [['08:00', '12:00'], ['12:00', '16:00']];
     const a = get('alerts');

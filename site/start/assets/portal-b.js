@@ -64,6 +64,19 @@
 
   // ------------------------------------------------------------ data
   const isRcp = d => !!(d.client && (d.client.products || []).some(p => p === 'RCP' || p === 'BNDL'));
+  const nicheOf = d => (((d.tenant || {}).config || {}).business || {}).niche || ((d.qs || []).map(q => q.niche).find(Boolean)) || (window.__profile || {}).niche || 'home_services';
+  const isRE = d => nicheOf(d) === 'real_estate';
+  // asked in the checklist since 2026-10-29 (used to be questionnaire fields; same option values, kept in onboarding_items.data)
+  const PRICE_ON_PHONE = [['no', 'No — our team gives prices'], ['fixed', 'Yes, a few fixed prices (like a service-call fee)']];
+  const RE_LEAD_TYPES = [['buyers', 'Buyers'], ['sellers', 'Sellers'], ['renters', 'Renters'], ['investors', 'Investors']];
+  const RE_QUALIFY = [['timeline', 'When they plan to buy, sell or move'], ['preapproval', 'Mortgage pre-approval status'], ['budget', 'Budget or price range'],
+    ['areas', 'Neighborhoods they want'], ['property', 'Address of the property to sell']];
+  const YES_NO_UNSURE = [['yes', 'Yes'], ['no', 'No'], ['unsure', 'Not sure']];
+  const WEB_TONE = [['friendly', 'Friendly and local'], ['professional', 'Professional and polished'], ['bold', 'Bold and modern']];
+  const CONTENT_HAVE = [['logo', 'Logo'], ['photos', 'Photos of our work'], ['reviews', 'Customer reviews'], ['colors', 'Brand colors'], ['none', 'Nothing yet']];
+  const choices = (name, opts, cur, multi) => '<div class="choices choices--compact"' + (multi ? '' : ' role="radiogroup"') + '>' + opts.map(([v, l]) =>
+    '<label class="choice"><input type="' + (multi ? 'checkbox' : 'radio') + '" name="' + name + '" value="' + v + '"' + ((multi ? (cur || []).indexOf(v) !== -1 : cur === v) ? ' checked' : '') + '><span class="choice__t">' + esc(l) + '</span></label>').join('') + '</div>';
+  const picked = name => S.$$('input[name="' + name + '"]:checked').map(i => i.value);
   async function load(d) {
     Object.assign(d, { ob: [], tenant: null, requests: [], usage: null, calls: [], sms: [], bookings: [], reqFiles: {} });
     if (!d.client) return d;
@@ -356,11 +369,20 @@
           '<div class="field"><label for="ob_tz">Time zone</label><select class="select" id="ob_tz"><option value="">Choose…</option>' + opts.map(o => '<option value="' + esc(o.v) + '"' + (o.v === tzv ? ' selected' : '') + '>' + esc(o.l) + '</option>').join('') + '</select></div>' +
           hoursEditor('obh', data.hours || cfg.hours) + afterHoursEditor('obah', (data.after_hours || cfg.after_hours || {}).mode) + saveBtn(it);
       }
-      case 'faq':
+      case 'faq': {
+        const re = isRE(d);
         return '<p>What do callers ask most? Your receptionist answers only from this list and hands anything else to you.</p>' +
           '<div class="field"><label for="ob_services">Services you book</label><span class="hint" id="ob_servicesH">Separated by commas, e.g. AC repair, Furnace repair, Maintenance.</span>' +
           '<input class="input" id="ob_services" aria-describedby="ob_servicesH" value="' + esc((data.services || (cfg.booking || {}).job_types || []).join(', ')) + '"></div>' +
+          '<div class="field"><label for="ob_area">' + (re ? 'Areas you cover' : 'Where you work') + '</label><span class="hint" id="ob_areaH">ZIP codes, cities, counties or neighborhoods, separated by commas. Callers from outside get a polite “we don’t cover that area”.</span>' +
+          '<input class="input" id="ob_area" aria-describedby="ob_areaH" maxlength="500" value="' + esc(data.service_area || '') + '"></div>' +
+          (re ? '<fieldset class="field"><legend class="label">Which leads call you?</legend><span class="hint">Pick all that apply.</span>' + choices('ob_relead', RE_LEAD_TYPES, data.re_lead_types, true) + '</fieldset>' +
+            '<fieldset class="field"><legend class="label">What should every caller be asked?</legend><span class="hint">Pick all that apply. You get the answers with each lead.</span>' + choices('ob_requal', RE_QUALIFY, data.re_qualify, true) + '</fieldset>'
+          : '<fieldset class="field"><legend class="label">Should the receptionist mention prices?</legend>' + choices('ob_price', PRICE_ON_PHONE, data.price_on_phone) + '</fieldset>' +
+            '<div class="field" id="ob_pricesBox"' + (data.price_on_phone === 'fixed' ? '' : ' hidden') + '><label for="ob_prices">Fixed prices it may say</label><span class="hint" id="ob_pricesH">One per line, e.g. “Service call: your price”. Anything not listed is handed to you.</span>' +
+            '<textarea class="textarea short" id="ob_prices" aria-describedby="ob_pricesH" maxlength="2000">' + esc((data.fixed_prices || []).join('\n')) + '</textarea></div>') +
           '<h3 class="h-sub">Frequently asked questions</h3>' + faqEditor('obf', data.faq || cfg.faq) + saveBtn(it);
+      }
       case 'alerts': {
         const em = data.emergency || cfg.emergency || {};
         const oc = data.on_call_number !== undefined ? data.on_call_number : ((cfg.handoff || {}).number || em.dial || '');
@@ -384,10 +406,19 @@
           '<div class="field"><label for="ob_addr">Business address <span class="req">required</span></label><input class="input" id="ob_addr" autocomplete="street-address" maxlength="300" value="' + esc(data.address || '') + '"></div></div>' +
           '<label class="check consent"><input type="checkbox" id="ob_consent"' + (data.consent ? ' checked' : '') + '> <span>' + esc(SMS_CONSENT) + '</span></label>' + saveBtn(it) + goLiveHtml(it, d);
       case 'web_content':
-        return '<p>Tell us what your website should say. Photos and your logo can go in a link (Google Drive, Dropbox) or a Request with files.</p>' +
+        return '<p>Tell us what your website should say and show. Rough is fine — you review every page before it goes live. Photos and your logo: attach them below, or paste a link (Google Drive, Dropbox).</p>' +
           '<div class="field"><label for="ob_about">About your business</label><textarea class="textarea" id="ob_about" maxlength="4000">' + esc(data.about || '') + '</textarea></div>' +
+          '<div class="pgrid"><div class="field"><label for="ob_whours">Business hours to show</label><input class="input" id="ob_whours" maxlength="200" placeholder="e.g. Mon–Fri 7am–6pm, Sat 8am–noon, 24/7 emergencies" value="' + esc(data.web_hours || '') + '"></div>' +
+          '<div class="field"><label for="ob_waddr">Address to show</label><span class="hint" id="ob_waddrH">Leave empty if you only list your service area.</span><input class="input" id="ob_waddr" aria-describedby="ob_waddrH" maxlength="300" placeholder="Street, city, state, ZIP" value="' + esc(data.web_address || '') + '"></div></div>' +
           '<div class="field"><label for="ob_domain">Domain you already own (optional)</label><input class="input" id="ob_domain" maxlength="200" value="' + esc(data.domain || '') + '"></div>' +
-          '<div class="field"><label for="ob_assets">Link to photos / logo (optional)</label><input class="input" id="ob_assets" inputmode="url" maxlength="500" value="' + esc(data.assets_link || '') + '"></div>' + saveBtn(it) + goLiveHtml(it, d);
+          '<fieldset class="field"><legend class="label">Do you have a Google Business Profile?</legend>' + choices('ob_gbp', YES_NO_UNSURE, data.gbp) + '</fieldset>' +
+          '<fieldset class="field"><legend class="label">Tone of voice</legend>' + choices('ob_tone', WEB_TONE, data.web_tone) + '</fieldset>' +
+          '<div class="field"><label for="ob_colors">Brand colors (optional)</label><input class="input" id="ob_colors" maxlength="200" placeholder="e.g. navy and orange, or “match my logo”" value="' + esc(data.web_colors || '') + '"></div>' +
+          '<div class="field"><label for="ob_reviews">Paste 2–3 customer reviews (optional)</label><span class="hint" id="ob_reviewsH">First name and town with each one is perfect.</span><textarea class="textarea" id="ob_reviews" aria-describedby="ob_reviewsH" maxlength="4000">' + esc(data.web_reviews || '') + '</textarea></div>' +
+          '<fieldset class="field"><legend class="label">What can you send us?</legend><span class="hint">Pick all that apply.</span>' + choices('ob_have', CONTENT_HAVE, data.content_have, true) + '</fieldset>' +
+          '<div class="field"><label for="ob_assets">Link to photos / logo (optional)</label><input class="input" id="ob_assets" inputmode="url" maxlength="500" value="' + esc(data.assets_link || '') + '"></div>' +
+          '<div class="field"><label for="ob_wfiles">Attach files (optional, up to 5)</label><span class="hint" id="ob_wfilesH">Logo, photos, a price list. They arrive as a Request with files, so we can reply to you about them.' + (data.files_request_at ? ' Files sent ' + S.fmtDate(data.files_request_at) + '.' : '') + '</span>' +
+          '<input class="input" type="file" id="ob_wfiles" aria-describedby="ob_wfilesH" multiple accept=".' + EXT.join(',.') + '"></div>' + saveBtn(it) + goLiveHtml(it, d);
       default:
         return saveBtn(it, 'Mark as done');
     }
@@ -418,7 +449,11 @@
         const f = readFaq('obf');
         const errs = (services.length ? schemaErrs(services, '#/$defs/Booking/properties/job_types', 'Services') : ['Add at least one service you book.']).concat(f.errs);
         if (!f.faq.length) errs.push('Add at least one question and answer.');
-        return errs.length ? { errs } : { data: { services, faq: f.faq }, settings: { faq: f.faq } };
+        if (errs.length) return { errs };
+        const data = { services, faq: f.faq, service_area: S.$('#ob_area').value.trim() || null };
+        if (isRE(d)) { data.re_lead_types = picked('ob_relead'); data.re_qualify = picked('ob_requal'); }
+        else { data.price_on_phone = picked('ob_price')[0] || null; data.fixed_prices = data.price_on_phone === 'fixed' ? list(S.$('#ob_prices').value) : []; }
+        return { data, settings: { faq: f.faq } };
       }
       case 'alerts': {
         const n = readNotify('obn'), oc = readOnCall('oboc');
@@ -456,7 +491,9 @@
         const about = S.$('#ob_about').value.trim(), assets = S.$('#ob_assets').value.trim();
         if (about.length < 20) return { errs: ['Tell us a little more about your business (a few sentences).'] };
         if (assets && !/^https:\/\//.test(assets)) return { errs: ['The photos link should start with https://'] };
-        return { data: { about, domain: S.$('#ob_domain').value.trim() || null, assets_link: assets || null } };
+        const txt = id => S.$(id).value.trim() || null;
+        return { data: { about, domain: txt('#ob_domain'), assets_link: assets || null, web_hours: txt('#ob_whours'), web_address: txt('#ob_waddr'), gbp: picked('ob_gbp')[0] || null,
+          web_tone: picked('ob_tone')[0] || null, web_colors: txt('#ob_colors'), web_reviews: txt('#ob_reviews'), content_have: picked('ob_have') } };
       }
       default: return { data: {} };
     }
@@ -471,6 +508,13 @@
     try {
       // whitelisted receptionist settings go to the live config too (only once a tenant exists)
       if (r.settings && d.tenant) await B.updateTenantSettings(d.tenant.id, r.settings);
+      const wf = key === 'web_content' ? S.$('#ob_wfiles') : null;
+      if (wf && wf.files && wf.files.length) {
+        const req = await B.createRequest({ title: 'Website content files', body: 'Files for my website, sent from the Website content step.' });
+        const errs = await uploadFiles(req.id, wf.files);
+        if (errs.length) { errBox('msg_' + key, ['Some files weren’t attached: ' + errs.join(' ')]); if (btn) btn.disabled = false; return; }
+        r.data.files_request_at = new Date().toISOString();
+      }
       await B.updateOnboarding(it.id, 'done', Object.assign({ saved_at: new Date().toISOString() }, r.data));
       S.toast('Saved');
       const next = d.ob.slice().sort((a, b) => a.sort - b.sort).find(o => o.status !== 'done' && o.key !== key);
@@ -504,6 +548,7 @@
     S.$$('[data-save]').forEach(b => b.addEventListener('click', () => saveStep(d, b.dataset.save, api)));
     if (S.$('#obh_mon_on')) bindHours('obh');
     if (S.$('#obf_faq')) bindFaq('obf');
+    S.$$('input[name=ob_price]').forEach(r => r.addEventListener('change', () => { S.$('#ob_pricesBox').hidden = picked('ob_price')[0] !== 'fixed'; }));
     if (S.$('#obn_sms')) bindNotify('obn');
     S.$$('input[name=ob_prov]').forEach(r => r.addEventListener('change', () => {
       const v = (S.$('input[name=ob_prov]:checked') || {}).value;
