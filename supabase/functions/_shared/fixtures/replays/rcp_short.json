@@ -1,0 +1,50 @@
+{
+  "recorded": false,
+  "note": "Hand-written stand-in in the exact output schema for the 3-screen questionnaire (2026-10-29, only the 11 new-flow keys); replace with `deno task quote:live` output (NEEDS-CLAUDE).",
+  "model": "replay",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "output": {
+    "items": [
+      {
+        "code": "RCP",
+        "qty": 1,
+        "reason": "Requested core offer: a plumbing business with 50–150 calls a week.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-LOC",
+        "qty": 1,
+        "reason": "Two locations or phone lines.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-ES",
+        "qty": 1,
+        "reason": "Some callers speak Spanish.",
+        "custom_label": ""
+      },
+      {
+        "code": "ADD-CRM",
+        "qty": 1,
+        "reason": "Jobber: new leads and bookings are written to the client's Jobber account.",
+        "custom_label": ""
+      }
+    ],
+    "scope_md": "A Missed-Call AI Receptionist for Bayou Plumbing, on two lines. Unanswered calls are answered in English or Spanish, the caller's details and the job are collected, and appointments go into your Google Calendar and Jobber. Urgent callers get a message taken and you are alerted right away.",
+    "assumptions": [
+      "Standard scope: service area, after-hours handling, prices on the phone and the FAQ list are collected in the setup checklist after the deposit.",
+      "Both locations share one Google Calendar and one Jobber account.",
+      "No on-call dispatch: urgent calls are messages plus an alert."
+    ],
+    "not_included_extra": [],
+    "timeline_text": "Setup takes about 10 business days after you complete the access checklist.",
+    "questions_for_client": [
+      "Do the two locations have different hours or service areas?",
+      "Should the receptionist mention any fixed prices, such as a service-call fee?"
+    ],
+    "risk_flags": [
+      "Short questionnaire: verify scope in the checklist (service area, after-hours, emergencies). Busy season June–August may push call volume toward the included minutes."
+    ]
+  }
+}

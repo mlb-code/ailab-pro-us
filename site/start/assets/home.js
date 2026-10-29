@@ -33,7 +33,7 @@
     app.innerHTML =
       '<span class="eyebrow">Fixed quote · no sales call</span>' +
       '<h1 class="t">Get your written fixed quote.</h1>' +
-      '<p class="lead">Sign in' + (providers.length ? ' with ' + providers.map(SI.providerName).join(' or ') + ', or' : '') + ' with your email, and answer a short questionnaire (about 6 minutes). You’ll get a written fixed quote ' + S.esc(S.sla()) + '. No password, no phone call.</p>' +
+      '<p class="lead">Sign in' + (providers.length ? ' with ' + providers.map(SI.providerName).join(' or ') + ', or' : '') + ' with your email, and answer a short questionnaire (about 3 minutes, 3 screens). You’ll get a written fixed quote ' + S.esc(S.sla()) + '. No password, no phone call.</p>' +
       '<div class="card login">' + social +
       '<form id="emailForm" novalidate><div class="field"><label for="email">Email address</label>' +
       '<input class="input" type="email" id="email" name="email" autocomplete="email" inputmode="email" placeholder="you@yourbusiness.com" required></div>' +
@@ -179,14 +179,14 @@
   const profileFields = () => (SI.isRelayEmail(profile && profile.email) ? [Q.PROFILE_CONTACT] : []).concat(Q.PROFILE);
   function showProfile(first) {
     const relay = SI.needsContactEmail(profile);
-    app.innerHTML = '<span class="eyebrow">' + (first ? 'Step 0 · About you' : 'Your details') + '</span>' +
+    app.innerHTML = '<span class="eyebrow">' + (first ? 'Step 1 of 3 · About you' : 'Your details') + '</span>' +
       '<h1 class="t">' + (first ? 'Nice to meet you.' : 'Your details') + '</h1>' +
-      '<p class="lead">' + (first ? 'Once, so we know who we’re quoting. Then on to the questionnaire.' : 'Update them any time.') + '</p>' +
+      '<p class="lead">' + (first ? 'About 3 minutes. Everything saves as you go.' : 'Update them any time.') + '</p>' +
       (relay ? '<div class="notice notice--info" role="status" id="relayNote">You signed in with Apple and chose to hide your email. Tell us where to send your quote and receipts; your Apple sign-in keeps working.</div>' : '') +
       '<form id="profileForm" class="card" novalidate><div class="pgrid">' + profileFields().map(profileField).join('') + '</div>' +
       '<div id="profileMsg"></div><div class="navbtns">' +
       (first ? '' : '<button type="button" class="btn btn--ghost" id="pCancel">Cancel</button>') +
-      '<button type="submit" class="btn btn--primary" id="pSave">' + (first ? 'Save and continue' : 'Save') + '</button></div></form>';
+      '<button type="submit" class="btn btn--primary" id="pSave">' + (first ? 'Continue →' : 'Save') + '</button></div></form>';
     focusMain();
     if (!first) S.$('#pCancel').addEventListener('click', () => showPortal());
     S.$('#profileForm').addEventListener('submit', async e => {
@@ -205,7 +205,8 @@
       }
       const digits = (row.phone || '').replace(/\D/g, '');
       if (!/^\+?[0-9()\-\s.]{7,24}$/.test(row.phone) || digits.length < 10 || digits.length > 15) { bad('phone', 'That phone number doesn’t look right.'); return; }
-      if (!row.update_lang) row.update_lang = 'en';
+      row.update_lang = profile.update_lang || 'en';   // not asked; the owner changes it in the admin
+      if (!profile.timezone) { const tz = detectTz(); if (tz) row.timezone = tz; }   // detected silently; corrected in the checklist (Business hours)
       const btn = S.$('#pSave'); btn.disabled = true;
       try { profile = await B.saveProfile(row); }
       catch (err) { btn.disabled = false; setMsg(box, S.errText(err)); return; }
@@ -263,7 +264,7 @@
     if (sub) return { i: 1, text: 'Questionnaire received. You’ll get a written fixed quote ' + S.sla() + '.', action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
     const draft = d.qs.find(q => q.status === 'draft');
     if (draft) return { i: 0, text: 'Your questionnaire is saved. Pick up where you left off.', action: { href: '/start/q/?id=' + draft.id, label: 'Continue the questionnaire' } };
-    return { i: 0, text: 'About 6 minutes, saved as you go. You’ll get a written fixed quote ' + S.sla() + '.', action: { id: 'startQ', label: 'Start the questionnaire' } };
+    return { i: 0, text: 'About 3 minutes, saved as you go. You’ll get a written fixed quote ' + S.sla() + '.', action: { id: 'startQ', label: 'Start the questionnaire' } };
   }
 
   function homeHtml(d) {

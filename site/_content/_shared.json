@@ -25,9 +25,9 @@
     "lead": "Everything happens in writing, on your schedule. You can stop at any step.",
     "steps": [
       {
-        "num": "6 min",
+        "num": "3 min",
         "title": "Questionnaire",
-        "text": "Tell us how calls work today, your hours, your service area and your tools. It saves as you go."
+        "text": "Tell us what you need, how many calls you get and which tools you use. Three screens; it saves as you go."
       },
       {
         "num": "{quote_sla_short}",
@@ -117,7 +117,7 @@
   },
   "cta_band": {
     "title": "Get your *fixed* quote. No call needed.",
-    "text": "A 6-minute questionnaire. A written quote {quote_sla}."
+    "text": "A 3-minute questionnaire. A written quote {quote_sla}."
   },
   "missed": {
     "eyebrow": "What happens to a missed call",

@@ -13,7 +13,7 @@
     "lead": "You're on a job. The phone rings. Your AI receptionist answers, takes the details, and books the job into your calendar.",
     "cta": "Get my fixed quote",
     "secondary": "Try the demo",
-    "fine": "Sign-up takes about 6 minutes. No sales calls. Fixed quote in writing {quote_sla}."
+    "fine": "Sign-up takes about 3 minutes. No sales calls. Fixed quote in writing {quote_sla}."
   },
   "demo": {
     "eyebrow": "Try it",
@@ -58,6 +58,6 @@
   ],
   "band": {
     "title": "Get your *fixed* quote. No call needed.",
-    "text": "A 6-minute questionnaire. A written quote {quote_sla}."
+    "text": "A 3-minute questionnaire. A written quote {quote_sla}."
   }
 }

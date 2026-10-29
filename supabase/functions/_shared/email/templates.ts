@@ -171,11 +171,11 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const niche = ctx.lead?.niche ? `?niche=${encodeURIComponent(ctx.lead.niche)}` : "";
     return {
       subject: "Your fixed-quote link",
-      preheader: "About 6 minutes, no sales call. Your written quote follows.",
+      preheader: "About 3 minutes, no sales call. Your written quote follows.",
       heading: "Your fixed-quote link",
       blocks: [
         { p: "Hi, here's the link you asked for." },
-        { p: `Answer a few questions about your business (about 6 minutes) and we'll email you a written, fixed quote ${brand.quote_sla_text}. No sales call needed.` },
+        { p: `Answer a few questions about your business (about 3 minutes, 3 screens) and we'll email you a written, fixed quote ${brand.quote_sla_text}. No sales call needed.` },
       ],
       cta: { label: "Start my questionnaire", url: `${siteUrl(brand)}/start/${niche}` },
     };

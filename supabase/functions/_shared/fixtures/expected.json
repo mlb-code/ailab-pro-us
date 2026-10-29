@@ -167,5 +167,29 @@
       ]
     ]
   },
+  "rcp_short": {
+    "status": "draft",
+    "setup_cents": 595000,
+    "monthly_cents": 48000,
+    "deposit_cents": 297500,
+    "items": [
+      [
+        "RCP",
+        1
+      ],
+      [
+        "ADD-LOC",
+        1
+      ],
+      [
+        "ADD-ES",
+        1
+      ],
+      [
+        "ADD-CRM",
+        1
+      ]
+    ]
+  },
   "$comment": "Hand-computed from config/pricebook.json (cents). Deposit = 50% of setup, whole dollars. Engine output must match exactly."
 }

@@ -132,11 +132,11 @@
   },
   "variants": {
     "web_flow": {
-      "link": "No waiting for a quote. Answer 10 minutes of questions and we email your deposit link {quote_sla}. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content.",
-      "online": "No waiting for a quote. Pay the deposit online and answer 10 minutes of questions. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content."
+      "link": "No waiting for a quote. Answer about 3 minutes of questions and we email your deposit link {quote_sla}. You add your content later in your portal. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content.",
+      "online": "No waiting for a quote. Pay the deposit online and answer about 3 minutes of questions; you add your content later in your portal. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content."
     },
     "web_step1": {
-      "link": "Pick the package and fill a 10-minute content questionnaire. We email your 50% deposit link {quote_sla}.",
+      "link": "Pick the package and answer a 3-minute questionnaire. We email your 50% deposit link {quote_sla}. Your content comes later, in your portal.",
       "online": "Accept the terms and pay the 50% deposit online."
     },
     "web_step1_title": {
@@ -156,7 +156,7 @@
       "online": "10 min"
     },
     "web_nocall": {
-      "link": "No. There's no quote step: choose the package on this page, fill in the 10-minute questionnaire, and we email your deposit link {quote_sla}. If you'd rather talk first, you can book an optional 15-minute video call.",
+      "link": "No. There's no quote step: choose the package on this page, fill in the 3-minute questionnaire, and we email your deposit link {quote_sla}. You add your website content later in your portal. If you'd rather talk first, you can book an optional 15-minute video call.",
       "online": "No. There's no quote step: choose the package on this page, pay the deposit online, and fill in the content questionnaire. If you'd rather talk first, you can book an optional 15-minute video call."
     },
     "web_step1_num": {

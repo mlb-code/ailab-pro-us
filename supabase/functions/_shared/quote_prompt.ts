@@ -83,7 +83,8 @@ export function userPrompt(pb: Pricebook, q: { offer: string | null; niche: stri
   return [
     "<catalog>", catalogText(pb), "</catalog>",
     `<requested_offer>${q.offer ?? "UNSURE"}</requested_offer>`,
-    q.offer === "UNSURE" ? "The client is unsure: recommend the single best core offer from the answers (goal, website_now, biggest_leak)." : "Keep the requested core offer.",
+    q.offer === "UNSURE" ? "The client is unsure: recommend the single best core offer from the answers (goal, has_website)." : "Keep the requested core offer.",
+    "Short questionnaire (about 11 answers): assume the standard scope for anything not asked (service area, after-hours handling, prices on the phone, website content are collected after the deposit); list every unknown that matters in assumptions or questions_for_client.",
     `<niche>${q.niche ?? ""}</niche>`,
     "<deterministic_items>", JSON.stringify(deterministic), "</deterministic_items>",
     "<engine_notes>", JSON.stringify({ custom: hints.custom, notes: hints.notes }), "</engine_notes>",

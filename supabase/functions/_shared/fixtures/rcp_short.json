@@ -1,0 +1,75 @@
+{
+  "name": "rcp_short",
+  "profile": {
+    "full_name": "Maya Chen",
+    "company": "Bayou Plumbing"
+  },
+  "questionnaire": {
+    "offer": "RCP",
+    "niche": "home_services",
+    "status": "submitted",
+    "answers": {
+      "offer": "RCP",
+      "niche": "home_services",
+      "services": [
+        "plumbing"
+      ],
+      "locations": "2",
+      "calls_week": "50_150",
+      "spanish": "some",
+      "dispatch": "no",
+      "tools": [
+        "google_calendar",
+        "jobber"
+      ],
+      "more": "Busy season is June–August."
+    },
+    "summary": [
+      {
+        "k": "offer",
+        "q": "What would you like us to build?",
+        "a": "Missed-Call AI Receptionist"
+      },
+      {
+        "k": "niche",
+        "q": "Your industry",
+        "a": "Home services"
+      },
+      {
+        "k": "services",
+        "q": "What do you do?",
+        "a": "Plumbing"
+      },
+      {
+        "k": "locations",
+        "q": "How many locations or separate phone lines?",
+        "a": "2"
+      },
+      {
+        "k": "calls_week",
+        "q": "Calls per week",
+        "a": "50–150"
+      },
+      {
+        "k": "spanish",
+        "q": "Do your callers speak Spanish?",
+        "a": "Some"
+      },
+      {
+        "k": "dispatch",
+        "q": "Should urgent calls at night go straight to your on-call tech?",
+        "a": "No, the assistant takes a message"
+      },
+      {
+        "k": "tools",
+        "q": "Which of these do you use?",
+        "a": "Google Calendar, Jobber"
+      },
+      {
+        "k": "more",
+        "q": "Add a note (optional)",
+        "a": "Busy season is June–August."
+      }
+    ]
+  }
+}

@@ -107,11 +107,11 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:4px}
 .choice__t .badge{align-self:flex-start}
 .choice:has(input:focus-visible){box-shadow:var(--focus)}
 .founder{color:var(--acc);font-weight:600}
-.drop{border:1px dashed var(--line-2);border-radius:var(--radius-sm);padding:18px;text-align:center}
-.files{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:8px}
-.files li{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.9rem}
-.files .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.files .sz{color:var(--fg-3);font-size:.8rem;white-space:nowrap}
+.field--more>summary{display:inline-block;cursor:pointer;list-style:none}
+.field--more>summary::-webkit-details-marker{display:none}
+.field--more>summary:focus-visible{outline:none;box-shadow:var(--focus)}
+.field--more[open]>summary{margin-bottom:8px}
+.field--more .hint{display:block;margin-bottom:6px}
 
 /* review */
 .sum{list-style:none;border-top:1px solid var(--line)}
