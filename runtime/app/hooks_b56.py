@@ -182,7 +182,18 @@ def _convo_from_store(store: Store, tenant: Any, alert: dict[str, Any]) -> Any:
     contact = alert.get("contact") or ""
     booking = None
     if alert.get("kind") == "booking" and contact:
-        rows = store.for_tenant(tenant.id).select("bookings", contact_e164=contact)
+        ts = store.for_tenant(tenant.id)
+        rows = ts.select("bookings", contact_e164=contact)
+        if not rows and alert.get("convo_id"):
+            # Web chat: the alert's contact is the session id (`web-...`) while the booking row is keyed by the
+            # number the customer typed. The saved conversation knows what it booked (event id, phone).
+            key = f"convo:{tenant.id}:{alert.get('channel', '')}:{alert['convo_id']}"
+            saved = store.select("runtime_state", key=key)
+            booked = ((saved[0].get("value") or {}).get("booking") or {}) if saved else {}
+            if booked.get("event_id"):
+                rows = ts.select("bookings", provider_event_id=booked["event_id"])
+            if not rows and booked.get("phone"):
+                rows = ts.select("bookings", contact_e164=booked["phone"])
         if rows:
             b = sorted(rows, key=lambda r: str(r.get("created_at") or ""))[-1]
             booking = {"name": b.get("customer_name"), "address": b.get("address"), "job_type": b.get("job_type"),
