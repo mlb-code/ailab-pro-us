@@ -1,0 +1,63 @@
+{
+  "$comment": "Lighter home page variant at /lite/ (noindex, not in the sitemap) built for a side-by-side comparison with / (owner request 2026-10-29). Five blocks: hero, demo, what's included, one price card, 4 FAQs + final CTA. Demo scenarios, clock and the price come from home-services.json and the price book. Tokens: see _shared.json. Never type a price here.",
+  "key": "home_lite",
+  "based_on": "home_services",
+  "full_page": "/",
+  "seo": {
+    "title": "AI Receptionist for HVAC & Plumbing Companies | {brand}",
+    "description": "Missed calls answered and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls."
+  },
+  "hero": {
+    "eyebrow": "AI receptionist for HVAC & plumbing companies",
+    "title": "Every missed call, answered and *booked*.",
+    "lead": "You're on a job. The phone rings. Your AI receptionist answers, takes the details, and books the job into your calendar.",
+    "cta": "Get your fixed quote",
+    "secondary": "Try the demo",
+    "fine": "No sales calls. Fixed quote in writing {quote_sla}."
+  },
+  "demo": {
+    "eyebrow": "Try it",
+    "title": "Be the *customer*.",
+    "lead": "Pick a situation and tap the answers. The answers are set in advance."
+  },
+  "included": {
+    "eyebrow": "What's included",
+    "title": "One price. *Everything* a missed call needs.",
+    "lines": [
+      "Answers the calls you miss, with your business name",
+      "Takes the job details: name, number, address, job type, urgency",
+      "Books open times into Google Calendar or Calendly",
+      "Emails you every lead, plus a daily summary",
+      "Answers up to 25 common questions and knows your hours",
+      "Checked and updated by a real person every month"
+    ]
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "The price is on the *page*.",
+    "trust": [
+      "Fixed quote in writing {quote_sla}",
+      "{refund_label} on the deposit",
+      "{guarantee_label}"
+    ],
+    "full_page_link": "See the full page: how it works, the tools it connects to, extras and every detail."
+  },
+  "faq": [
+    {
+      "ref": "cost"
+    },
+    {
+      "ref": "keep_number"
+    },
+    {
+      "ref": "cancel"
+    },
+    {
+      "ref": "no_call"
+    }
+  ],
+  "band": {
+    "title": "Get your *fixed* quote. No call needed.",
+    "text": "A 6-minute questionnaire. A written quote {quote_sla}."
+  }
+}

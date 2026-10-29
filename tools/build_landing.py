@@ -1,8 +1,9 @@
 """Build the public landing pages from config + content. Stdlib only. Never edit the generated HTML by hand.
 
-Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,website,reviews}.json
+Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,website,home-lite,reviews}.json
 Outputs: site/index.html (home services), site/home-services/, site/real-estate/,
-         site/website/, site/demo/, site/sitemap.xml, site/robots.txt, site/assets/og/*.png (only with --og or when missing)
+         site/website/, site/demo/, site/lite/ (lighter home page for comparison, noindex), site/sitemap.xml, site/robots.txt,
+         site/assets/og/*.png (only with --og or when missing)
 
 usage:
   python3 tools/build_landing.py            build (renders missing OG images with Playwright)
@@ -534,7 +535,7 @@ def demo_payload(c, keys, contents):
     return json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
 
 
-def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False):
+def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False, transcript_=True):
     first = contents[keys[0]]['demo']
     sw = ''
     if switcher:
@@ -554,7 +555,7 @@ def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False):
 {sw}
 <p class="small muted">Pick a situation:</p>
 <div class="demo__picks" role="group" aria-label="Demo scenarios">{picks}</div>
-{transcript(c, first)}
+{transcript(c, first) if transcript_ else ''}
 </div>
 <div class="phone">
 <div class="phone__bar"><span class="phone__av" aria-hidden="true">{av}</span><span class="phone__who"><b data-demo-biz>{esc(first['business'])}</b><span data-demo-line>{esc(first['business_line'])} · AI assistant</span></span></div>
@@ -793,14 +794,14 @@ def section_pricing(c, pr, code, cta_href, cta_label, *, early=False, bundle_lin
 </div></section>'''
 
 
-def faq_items(c, faq):
+def faq_items(c, faq, sizes=(8, 9)):
     out = []
     for f in faq:
         if 'ref' in f:
             f = c.shared['faq'][f['ref']]
         out.append((c.t(f['q']), c.t(f['a'])))
-    if len(out) not in (8, 9):
-        raise SystemExit(f'FAQ must have 8 or 9 entries, has {len(out)}')
+    if len(out) not in sizes:
+        raise SystemExit(f'FAQ must have {" or ".join(map(str, sizes))} entries, has {len(out)}')
     return out
 
 
@@ -813,11 +814,13 @@ def section_faq(faqs):
 
 
 def section_band(c, cta_href, cta_label, demo_href='#demo', band=None, niche_cta=False):
+    """Closing amber band: the quote button, plus a demo button unless demo_href is None (the /lite/ page keeps one)."""
     b = band or c.shared['cta_band']
     nc = ' data-niche-cta' if niche_cta else ''
+    demo = f'<a class="btn" href="{esc(demo_href)}" data-ev="demo_start">Try the demo</a>' if demo_href else ''
     return f'''<section class="section section--amber band"><div class="wrap">
 <h2>{c.h(b['title'])}</h2><p style="margin-top:12px">{c.h(b['text'])}</p>
-<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start"{nc}>{esc(cta_label)}</a><a class="btn" href="{esc(demo_href)}" data-ev="demo_start">Try the demo</a></div>
+<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start"{nc}>{esc(cta_label)}</a>{demo}</div>
 </div></section>'''
 
 
@@ -1035,6 +1038,58 @@ def demo_page(c, contents, year):
     return '\n'.join(body)
 
 
+def lite_page(c, lite, contents, year):
+    """/lite/: the home page with less on it (owner request 2026-10-29), for a side-by-side comparison. Five blocks:
+    hero, the scripted demo, six "what's included" lines, one price card, four FAQs and the closing band. Same nav, footer
+    and styles as /; noindex and outside the sitemap until the owner picks a version. Everything cut stays one link away
+    (the "See the full page" line under the price card). The demo, the clock and the price come from the full page."""
+    path = '/lite/'
+    key = lite['based_on']
+    n = contents[key]
+    c.page = {k: v for k, v in (n.get('page_tokens') or {}).items()}
+    c.page.setdefault('assistant', 'receptionist')
+    cta_href = f'/start/?offer={n["offer"]}&niche={key}'
+    cta_label = c.t(lite['hero']['cta'])
+    faqs = faq_items(c, lite['faq'], sizes=(4,))
+    hero, inc, pr, d = lite['hero'], lite['included'], lite['pricing'], lite['demo']
+    full = lite['full_page']
+    body = [
+        head(c, title=c.t(lite['seo']['title']), desc=c.t(lite['seo']['description']), path=path, index=False,
+             og_image=f'/assets/og/{n["slug"]}.png', og_title=c.t(n['seo']['og_title'])),
+        nav(c, path, {'label': 'Get a quote', 'href': cta_href, 'ev': 'quote_start'}),
+        '<main id="main">',
+        f'''<section class="hero"><div class="wrap hero__grid">
+<div class="hero__copy">
+<p class="eyebrow">{c.h(hero['eyebrow'])}</p>
+<h1>{c.h(hero['title'])}</h1>
+<p class="lead">{c.h(hero['lead'])}</p>
+{price_line(c, n['offer'], 'Fixed price · in writing · no hourly billing')}
+<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start">{esc(cta_label)}</a><a class="btn btn--ghost" href="#demo" data-ev="demo_start">{c.h(hero['secondary'])}</a></div>
+<p class="hero__fine">{c.h(hero['fine'])}</p>
+</div>
+{clock(c, n['clock'], 'A missed call becomes a booking', n.get('demo'))}
+</div></section>''',
+        f'''<section class="section" id="demo"><div class="wrap">
+<div class="shead"><p class="eyebrow">{c.h(d['eyebrow'])}</p><h2>{c.h(d['title'])}</h2><p class="lead">{c.h(d['lead'])} {esc(c.brand['disclaimers']['demo'])}.</p></div>
+{demo_widget(c, [key], contents, cta_href=cta_href, cta_label=cta_label, transcript_=False)}
+{call_line(c)}
+<script src="/assets/demo.js" defer></script>
+</div></section>''',
+        f'''<section class="section" id="included"><div class="wrap">
+<div class="shead"><p class="eyebrow">{c.h(inc['eyebrow'])}</p><h2>{c.h(inc['title'])}</h2></div>
+<ul class="ticks">{''.join(f'<li>{c.h(x)}</li>' for x in inc['lines'])}</ul>
+</div></section>''',
+        f'''<section class="section" id="pricing"><div class="wrap">
+<div class="shead"><p class="eyebrow">{c.h(pr['eyebrow'])}</p><h2>{c.h(pr['title'])}</h2></div>
+<div class="pricing">{price_card(c, n['offer'], cta_href, cta_label, n={'included_items': pr['trust']})}<div class="pricing__side">
+<p class="small"><a href="{esc(full)}">{c.h(pr['full_page_link'])}</a></p></div></div>
+</div></section>''',
+        section_faq(faqs),
+        section_band(c, cta_href, cta_label, demo_href=None, band=lite['band']),
+        '</main>', mobile_bar(c, n['offer'], cta_href, cta_label), footer(c, year), '</body>\n</html>\n']
+    return '\n'.join(body)
+
+
 def sitemap(c, paths):
     urls = ''.join(f'<url><loc>{esc(c.site_url + p)}</loc></url>' for p in paths)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<!-- {MARK} -->\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n'
@@ -1135,6 +1190,7 @@ def build(c):
     for k, n in contents.items():
         validate_demo(k, n['demo'])
     website = load(os.path.join(CONTENT, 'website.json'))
+    lite = load(os.path.join(CONTENT, 'home-lite.json'))
     c.reviews = load(os.path.join(CONTENT, 'reviews.json'))
     year = c.pb.get('updated', '2026')[:4]
     pages = {
@@ -1143,6 +1199,7 @@ def build(c):
         'real-estate/index.html': niche_page(c, 'real_estate', contents, path='/real-estate/', year=year),
         'website/index.html': website_page(c, website, year),
         'demo/index.html': demo_page(c, contents, year),
+        'lite/index.html': lite_page(c, lite, contents, year),
     }
     indexed = ['/', '/real-estate/', '/website/', '/demo/']
     pages['sitemap.xml'] = sitemap(c, indexed)
