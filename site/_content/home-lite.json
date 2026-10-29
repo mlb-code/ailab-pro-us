@@ -1,8 +1,8 @@
 {
-  "$comment": "Lighter home page variant at /lite/ (noindex, not in the sitemap) built for a side-by-side comparison with / (owner request 2026-10-29). Five blocks: hero, demo, what's included, one price card, 4 FAQs + final CTA. Demo scenarios, clock and the price come from home-services.json and the price book. Tokens: see _shared.json. Never type a price here.",
+  "$comment": "The home page (/) since 2026-10-29: the lighter version the owner chose. Five blocks: hero, demo, what's included, one price card, 4 FAQs + final CTA. The full page lives at /home-services/. Demo scenarios, clock and the price come from home-services.json and the price book. Tokens: see _shared.json. Never type a price here.",
   "key": "home_lite",
   "based_on": "home_services",
-  "full_page": "/",
+  "full_page": "/home-services/",
   "seo": {
     "title": "AI Receptionist for HVAC & Plumbing Companies | {brand}",
     "description": "Missed calls answered and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls."
@@ -11,9 +11,9 @@
     "eyebrow": "AI receptionist for HVAC & plumbing companies",
     "title": "Every missed call, answered and *booked*.",
     "lead": "You're on a job. The phone rings. Your AI receptionist answers, takes the details, and books the job into your calendar.",
-    "cta": "Get your fixed quote",
+    "cta": "Get my fixed quote",
     "secondary": "Try the demo",
-    "fine": "No sales calls. Fixed quote in writing {quote_sla}."
+    "fine": "Sign-up takes about 6 minutes. No sales calls. Fixed quote in writing {quote_sla}."
   },
   "demo": {
     "eyebrow": "Try it",

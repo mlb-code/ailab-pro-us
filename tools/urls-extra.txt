@@ -17,4 +17,3 @@
 /demo-site/home-services/about/
 /demo-site/home-services/reviews/
 /demo-site/home-services/contact/
-/lite/

@@ -1038,12 +1038,11 @@ def demo_page(c, contents, year):
     return '\n'.join(body)
 
 
-def lite_page(c, lite, contents, year):
+def lite_page(c, lite, contents, year, *, path='/lite/', index=False):
     """/lite/: the home page with less on it (owner request 2026-10-29), for a side-by-side comparison. Five blocks:
     hero, the scripted demo, six "what's included" lines, one price card, four FAQs and the closing band. Same nav, footer
     and styles as /; noindex and outside the sitemap until the owner picks a version. Everything cut stays one link away
     (the "See the full page" line under the price card). The demo, the clock and the price come from the full page."""
-    path = '/lite/'
     key = lite['based_on']
     n = contents[key]
     c.page = {k: v for k, v in (n.get('page_tokens') or {}).items()}
@@ -1054,7 +1053,7 @@ def lite_page(c, lite, contents, year):
     hero, inc, pr, d = lite['hero'], lite['included'], lite['pricing'], lite['demo']
     full = lite['full_page']
     body = [
-        head(c, title=c.t(lite['seo']['title']), desc=c.t(lite['seo']['description']), path=path, index=False,
+        head(c, title=c.t(lite['seo']['title']), desc=c.t(lite['seo']['description']), path=path, index=index,
              og_image=f'/assets/og/{n["slug"]}.png', og_title=c.t(n['seo']['og_title'])),
         nav(c, path, {'label': 'Get a quote', 'href': cta_href, 'ev': 'quote_start'}),
         '<main id="main">',
@@ -1194,14 +1193,13 @@ def build(c):
     c.reviews = load(os.path.join(CONTENT, 'reviews.json'))
     year = c.pb.get('updated', '2026')[:4]
     pages = {
-        'index.html': niche_page(c, 'home_services', contents, path='/', year=year),
-        'home-services/index.html': niche_page(c, 'home_services', contents, path='/home-services/', canonical='/', year=year),
+        'index.html': lite_page(c, lite, contents, year, path='/', index=True),
+        'home-services/index.html': niche_page(c, 'home_services', contents, path='/home-services/', year=year),
         'real-estate/index.html': niche_page(c, 'real_estate', contents, path='/real-estate/', year=year),
         'website/index.html': website_page(c, website, year),
         'demo/index.html': demo_page(c, contents, year),
-        'lite/index.html': lite_page(c, lite, contents, year),
     }
-    indexed = ['/', '/real-estate/', '/website/', '/demo/']
+    indexed = ['/', '/home-services/', '/real-estate/', '/website/', '/demo/']
     pages['sitemap.xml'] = sitemap(c, indexed)
     pages['robots.txt'] = robots(c)
     og = [(contents[k]['slug'], c.t(contents[k]['seo']['og_kicker']), c.t(contents[k]['seo']['og_title']), 'RCP') for k in NICHE_FILES]

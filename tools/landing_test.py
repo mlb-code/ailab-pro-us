@@ -49,7 +49,8 @@ cases = [
 ]
 for label, reviews, shown in cases:
     pages = page_with(reviews)
-    for rel in ('index.html', 'real-estate/index.html'):
+    # The home page (/) is the lighter version since 2026-10-29; the full page with reviews is /home-services/.
+    for rel in ('home-services/index.html', 'real-estate/index.html'):
         h = pages[rel]
         check(f'{label}: {rel} sample strip present', 'id="sample-calls"' in h and 'rv--sample' in h)
         check(f'{label}: {rel} reviews section {"present" if shown else "absent"}', ('id="reviews"' in h) == shown)
@@ -89,7 +90,7 @@ for rel, h in pages.items():
         if name in vis:
             check(f'{rel}: {i["code"]} shown only inside a coming-soon block', name in blocks and name not in outside)
     check(f'{rel}: no quote link for a coming-soon code', not any(f'offer={i["code"]}' in vis for i in soon))
-home = pages['index.html']
+home = pages['home-services/index.html']
 check('home: SMS-free add-on ADD-DISPATCH is listed with its price', bl.esc(next(i['name'] for i in pb['items'] if i['code'] == 'ADD-DISPATCH')) in home
       and f'{bl.money(70000)} + {bl.money(7500)}/mo' in home)
 check('home: coming-soon block present with the label', 'data-coming-soon' in home and pb['rules']['availability']['coming_soon_label'] in home)
