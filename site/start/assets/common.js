@@ -27,8 +27,9 @@
         '<span>' + esc((BRAND.disclaimers && BRAND.disclaimers.footer) || '') + sup + '</span></div>';
     }
   }
-  // GA4 + Clarity only when their IDs are configured (brand.json analytics.ga4_id / clarity_id): /assets/measure.js.
-  // The portal is personal throughout, so Clarity masks the whole page. Never on the admin screens.
+  // GA4 + Clarity + Meta Pixel only when their IDs are configured (brand.json analytics.ga4_id / clarity_id / meta_pixel_id):
+  // /assets/measure.js. The portal is personal throughout, so Clarity masks the whole page; the pixel gets page views and
+  // funnel event names only (nothing typed is sent). Never on the admin screens.
   function analytics() {
     if (!window.Measure || /^\/start\/admin\//.test(location.pathname)) return;
     window.Measure.init(BRAND.analytics, { maskAll: true });

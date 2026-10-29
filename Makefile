@@ -100,8 +100,9 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/dispatch_run.ts
 	$(DENO_RUN) supabase/tests/offline/questionnaire_utm_run.ts
 
-# Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity load, events fire, GPC/DNT
-# blocks everything, Clarity masks forms, first-touch UTM reaches the questionnaire. Nothing reaches Google or Microsoft.
+# Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity + Meta Pixel load, events fire,
+# GPC/DNT blocks everything, Clarity masks forms, the pixel maps funnel events and stays off the quote page, first-touch UTM
+# reaches the questionnaire. Nothing reaches Google, Microsoft or Meta.
 qa-measure:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_measure.mjs
 

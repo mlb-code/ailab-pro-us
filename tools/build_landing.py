@@ -166,9 +166,11 @@ ICONS = {
 def analytics(c):
     """Measurement (2026-10-25): /assets/measure.js + its config. Empty IDs in brand.json analytics = no third-party
     tag is ever loaded (measure.js still keeps first-touch UTM in localStorage). measure.js also skips loading when the
-    browser sends Global Privacy Control / Do Not Track, and on localhost. Clarity masks every form (typed values)."""
+    browser sends Global Privacy Control / Do Not Track, and on localhost. Clarity masks every form (typed values).
+    Meta Pixel (optional, 2026-10-29): same rules; page views + the funnel events, autoConfig off, no advanced matching."""
     a = c.brand.get('analytics', {})
-    cfg = {'ga4_id': a.get('ga4_id', ''), 'clarity_id': a.get('clarity_id', ''), 'events': a.get('events', [])}
+    cfg = {'ga4_id': a.get('ga4_id', ''), 'clarity_id': a.get('clarity_id', ''), 'meta_pixel_id': a.get('meta_pixel_id', ''),
+           'events': a.get('events', [])}
     js = json.dumps(cfg, ensure_ascii=False, separators=(',', ':'))
     return f'<script src="/assets/measure.js" defer data-measure="{esc(js)}"></script>'
 

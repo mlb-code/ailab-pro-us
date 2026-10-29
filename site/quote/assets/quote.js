@@ -59,8 +59,8 @@
     $('#footer').innerHTML = '<div class="footer__legal"><span>' + esc(BRAND.name || '') + '</span>' +
       '<a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/service-agreement/">Service Agreement</a>' +
       '<span>' + esc((BRAND.disclaimers && BRAND.disclaimers.footer) || '') + sup + '</span></div>';
-    // GA4 only (no Clarity on the quote page: names, prices, signature). Token-free page_location, no referrer.
-    if (window.Measure) window.Measure.init(BRAND.analytics, { clarity: false, gaConfig: { page_location: cleanUrl, page_referrer: '' } });
+    // GA4 only (no Clarity / Meta Pixel on the quote page: names, prices, signature, private token). Token-free page_location, no referrer.
+    if (window.Measure) window.Measure.init(BRAND.analytics, { clarity: false, meta: false, gaConfig: { page_location: cleanUrl, page_referrer: '' } });
   }
   // funnel event names live only in brand.json analytics.events; the name is assembled from parts
   function track(parts, params) { if (window.Measure) window.Measure.trackFunnel(parts, params); }

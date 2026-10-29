@@ -34,6 +34,7 @@
   "analytics": {
     "ga4_id": "",
     "clarity_id": "",
+    "meta_pixel_id": "",
     "events": [
       "demo_start",
       "quote_start",
