@@ -4,11 +4,11 @@
   "based_on": "home_services",
   "full_page": "/home-services/",
   "seo": {
-    "title": "AI Receptionist for HVAC & Plumbing Companies | {brand}",
-    "description": "Missed calls answered and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls."
+    "title": "AI Receptionist for Small Businesses: HVAC, Plumbing, Electrical | {brand}",
+    "description": "AI for small business, done for you: missed calls answered and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls."
   },
   "hero": {
-    "eyebrow": "AI receptionist for HVAC & plumbing companies",
+    "eyebrow": "AI receptionist for small businesses: HVAC, plumbing, electrical",
     "title": "Every missed call, answered and *booked*.",
     "lead": "You're on a job. The phone rings. Your AI receptionist answers, takes the details, and books the job into your calendar.",
     "cta": "Get my fixed quote",
