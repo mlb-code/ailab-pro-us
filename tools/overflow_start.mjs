@@ -62,10 +62,10 @@ async function runEngine(name, type) {
     const id = await page.evaluate(([o, n]) => window.Backend.createQuestionnaire({ offer: o, niche: n }).then(r => r.id), [offer, niche]);
     // long answers to stress wrapping
     await page.evaluate(([qid, o, n]) => window.Backend.saveQuestionnaire(qid, { offer: o, niche: n, answers: { offer: o, niche: n,
-      service_area: 'Houston, Pasadena, Pearland, Sugar Land, The Woodlands, 77002 77005 77006 77007 77008 77019 77098',
+      services: ['hvac', 'plumbing', 'electrical', 'roofing', 'garage_doors', 'locksmith', 'pest', 'cleaning', 'landscaping', 'other'], locations: '2',
       tools: ['google_calendar', 'jobber', 'other'], tools_other: 'SuperLongToolNameWithoutAnySpacesAtAllToTestWrapping', more: 'x'.repeat(400) } }), [id, offer, niche]);
     const steps = await page.evaluate(([o, n]) => window.StartQ.stepsFor({ offer: o, niche: n }).map(s => s.id), [offer, niche]);
-    for (const s of steps.concat('review')) {
+    for (const s of steps) {
       await go(`/start/q/?id=${id}#${s}`, '#stepTitle');
       await measure(`${offer}/${niche} #${s}`);
     }

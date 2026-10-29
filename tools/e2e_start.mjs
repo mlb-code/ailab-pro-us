@@ -92,8 +92,6 @@ async function fillProfile(page) {
   await page.type('#p_full_name', 'Dani Levi');
   await page.type('#p_company', 'Cool Breeze HVAC');
   await page.type('#p_phone', '(713) 555-0100');
-  await page.type('#p_city', 'Houston');
-  await page.select('#p_state', 'TX');
   await page.click('#pSave');
 }
 
@@ -136,31 +134,34 @@ async function main() {
     await page.type('#code', code);
     await page.waitForSelector('#profileForm', { timeout: 5000 });
     ok(true, 'correct code signs in → profile');
-    // ---------------------------------------------------------------- profile
+    // ---------------------------------------------------------------- profile (screen 1 of 3, spec 2026-10-29)
     console.log('profile');
-    ok((await page.$eval('#p_timezone', s => s.value)) === 'America/Chicago', 'time zone auto-detected');
-    ok((await page.$eval('#p_update_lang', s => s.value)) === 'en', 'update_lang defaults to English');
-    ok((await page.$$eval('#p_update_lang option', o => o.map(x => x.value))).join() === ',en,he', 'update_lang offers en/he');
+    ok((await page.$$('#profileForm input')).length === 3, 'profile asks 3 fields only (name, business, phone)');
+    ok(!(await exists(page, '#p_timezone')) && !(await exists(page, '#p_city')) && !(await exists(page, '#p_update_lang')), 'no time zone / city / state / language fields');
+    ok(await page.evaluate(() => /step 1 of 3/i.test(document.body.innerText)) && await waitText(page, 'About 3 minutes'), 'profile = step 1 of 3, "about 3 minutes"');
+    ok((await text(page, '#pSave')).startsWith('Continue'), 'profile button = Continue');
     await page.click('#pSave');
     ok(await waitText(page, 'Missing: Full name'), 'profile requires name/business/phone');
     await page.type('#p_full_name', 'Dani Levi'); await page.type('#p_company', 'Cool Breeze HVAC'); await page.type('#p_phone', '123');
     await page.click('#pSave');
     ok(await waitText(page, 'phone number doesn’t look right'), 'bad phone rejected');
     await page.$eval('#p_phone', e => { e.value = ''; }); await page.type('#p_phone', '(713) 555-0100');
-    await page.type('#p_city', 'Houston'); await page.select('#p_state', 'TX');
     ok((await overflowAt(page)).length === 0, 'profile: no overflow');
     await page.click('#pSave');
     await page.waitForSelector('[role=tablist]');
+    { const pr = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')).profiles.find(p => p.full_name === 'Dani Levi'));
+      ok(pr.timezone === 'America/Chicago' && pr.update_lang === 'en', 'time zone detected silently + update_lang defaults to en'); }
     ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Quotes,Billing', 'portal tabs = Home, Quotes, Billing');
-    ok(await waitText(page, 'Start the questionnaire'), 'single next action: start questionnaire');
+    ok(await waitText(page, 'Start the questionnaire') && await waitText(page, 'About 3 minutes'), 'single next action: start questionnaire (about 3 minutes)');
     ok((await text(page, '#hello')) === 'Hi Dani.', 'greets by first name');
-    // ---------------------------------------------------------------- questionnaire
+    // ---------------------------------------------------------------- questionnaire (screens 2 + 3 of 3)
     console.log('questionnaire');
     await page.click('#startQ');
     await page.waitForSelector('#stepTitle');
     const qid = await page.evaluate(() => new URLSearchParams(location.search).get('id'));
     ok(/^[0-9a-f-]{36}$/.test(qid), 'questionnaire created');
-    ok((await stepId(page)) === 'project', 'starts on project step');
+    ok((await stepId(page)) === 'need', 'starts on the "need" step');
+    ok((await text(page, '.lbls span')).startsWith('Step 2 of 3'), 'first questionnaire screen is "Step 2 of 3" [' + await text(page, '.lbls span') + ']');
     ok((await page.$$eval('input[name=offer]', i => i.map(x => x.value))).join() === 'RCP,WEB,BNDL,UNSURE', 'offer choices RCP/WEB/BNDL/UNSURE');
     ok((await page.$$eval('input[name=niche]', i => i.map(x => x.value))).join() === 'home_services,real_estate', 'niche closed list (home services + real estate only; no law, no health care)');
     ok(!(await page.evaluate(() => [...document.querySelectorAll('input[name=niche]')].some(i => i.closest('label').innerText.toLowerCase().includes('early access')))), 'no early-access niche offered');
@@ -173,30 +174,34 @@ async function main() {
     const fLabel = pb.rules.discounts.FOUNDING.label;
     ok(flagOn === !!(await waitText(page, fLabel, flagOn ? 3000 : 300)), 'founder price ' + (flagOn ? 'shown (flag on)' : 'hidden (flag off)'));
     await clickNext(page);
-    ok(await waitText(page, 'Please choose what you’d like a quote for'), 'project step requires an offer');
+    ok(await waitText(page, 'Please choose what you’d like a quote for'), 'need step requires an offer');
     await pick(page, 'input[name=offer][value=RCP]');
     await pick(page, 'input[name=niche][value=home_services]');
-    ok((await text(page, '.lbls span')).startsWith('Step 1 of 7'), 'RCP path = 6 steps + review [' + await text(page, '.lbls span') + ']');
-    // branch: UNSURE adds "recommend"
+    const ids = (o, n) => page.evaluate(([o, n]) => window.StartQ.stepsFor({ offer: o, niche: n }).map(s => s.id).join(), [o, n]);
+    const keys = (o, n, extra) => page.evaluate(([o, n, extra]) => window.StartQ.fieldsFor(Object.assign({ offer: o, niche: n }, extra || {})).map(f => f.k).join(), [o, n, extra]);
+    let two = true;
+    for (const o of ['RCP', 'WEB', 'BNDL', 'UNSURE']) for (const n of ['home_services', 'real_estate']) if (await ids(o, n) !== 'need,extras') two = false;
+    ok(two, 'every path = 2 questionnaire steps (need, extras)');
+    ok(await keys('RCP', 'home_services') === 'offer,niche,services,locations,calls_week,spanish,dispatch,tools,more', 'RCP × home services keys');
+    ok(await keys('RCP', 'real_estate') === 'offer,niche,services,locations,calls_week,spanish,re_crm,tools,more', 'RCP × real estate keys (CRM instead of dispatch)');
+    ok(await keys('BNDL', 'home_services') === 'offer,niche,services,locations,calls_week,spanish,dispatch,tools,web_extras,more', 'BNDL keys (RCP + web extras)');
+    ok(await keys('WEB', 'home_services', { tools: ['other'] }) === 'offer,niche,services,has_website,web_extras,content_have,more', 'WEB keys (no locations, no tools)');
+    ok(await keys('UNSURE', 'home_services') === 'offer,niche,services,goal,calls_week,locations,spanish,tools,has_website,more', 'UNSURE keys (goal on step 2, locations + has_website on step 3)');
+    // branch: UNSURE adds "goal" in place of locations
     await pick(page, 'input[name=offer][value=UNSURE]');
-    ok((await page.evaluate(() => window.StartQ.stepsFor({ offer: 'UNSURE', niche: 'home_services' }).map(s => s.id).join())) === 'project,recommend,business,calls,tools,finish', 'UNSURE adds the recommend step');
+    ok(await exists(page, 'input[name=goal]') && !(await exists(page, 'input[name=locations]')), 'UNSURE: goal shown, locations moves to step 3');
     ok((await page.evaluate(() => document.activeElement && document.activeElement.value)) === 'UNSURE', 'focus kept after branch re-render');
-    await clickNext(page);
-    ok((await stepId(page)) === 'recommend', 'UNSURE → recommend step');
-    ok((await page.$$('#stepTitle ~ .field, #stepTitle ~ fieldset')).length === 3, 'recommend step asks 3 questions');
-    await page.click('#prevBtn'); await sleep(80);
-    // branch: WEB → website step, no calls
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 4, 'UNSURE step 2 = 4 questions');
+    // branch: WEB → no locations
     await pick(page, 'input[name=offer][value=WEB]');
-    const webSteps = await page.evaluate(() => window.StartQ.stepsFor({ offer: 'WEB', niche: 'home_services' }).map(s => s.id).join());
-    ok(webSteps === 'project,business,website,look,finish', 'WEB branch steps');
+    ok(!(await exists(page, 'input[name=locations]')) && !(await exists(page, 'input[name=goal]')), 'WEB: no locations / goal on step 2');
     // branch: real estate
     await pick(page, 'input[name=offer][value=RCP]');
     await pick(page, 'input[name=niche][value=real_estate]');
-    await clickNext(page); await clickNext(page);
-    ok((await text(page, '#stepTitle')) === 'Your leads today', 'real estate: calls step framed as leads');
-    ok(await exists(page, 'input[name=re_lead_types][value=renters]') && await exists(page, 'input[name=re_qualify][value=preapproval]'), 'real estate: lead type + pre-approval questions');
-    ok(!(await exists(page, 'input[name=after_hours]')), 'real estate: no receptionist after-hours question');
     await clickNext(page);
+    ok((await stepId(page)) === 'extras' && (await text(page, '.lbls span')).startsWith('Step 3 of 3'), 'real estate: step 3 of 3');
+    ok((await text(page, '#f_calls_week legend')) === 'Leads per week', 'real estate: calls framed as leads');
+    ok(!(await exists(page, 'input[name=dispatch]')) && !(await exists(page, 'input[name=after_hours]')) && !(await exists(page, 'input[name=re_lead_types]')), 'real estate: no dispatch / after-hours / lead-type questions (checklist)');
     ok(await exists(page, 'input[name=re_crm][value=kvcore]'), 'real estate: CRM question incl. kvCORE');
     const crmKeys = await page.$$eval('input[name=re_crm]', i => i.map(x => x.value));
     const pbx = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8'));
@@ -209,46 +214,46 @@ async function main() {
     ok(await page.evaluate(() => { const crm = window.StartQ.reCrmOptions({ niche: 'real_estate' }, window.Start.PB).map(o => o.v); return !window.StartQ.toolOptions({ niche: 'real_estate' }, window.Start.PB).some(o => o.v !== 'other' && crm.includes(o.v)); }), 'real estate: no tool appears in both questions');
     await pick(page, 'input[name=re_crm][value=other]');
     ok(await exists(page, '#f_tools_other'), 'CRM "other" reveals the text field');
-    // back to project
-    await page.goto(BASE + '/start/q/?id=' + qid + '#project', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
+    ok((await overflowAt(page)).length === 0, 'real estate step 3: no overflow');
+    // back to the first step
+    await page.goto(BASE + '/start/q/?id=' + qid + '#need', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
     ok(!(await page.evaluate(() => window.StartQ.toolOptions({ niche: 'home_services' }, window.Start.PB).some(o => o.v === 'follow_up_boss' || o.v === 'kvcore'))), 'home services tools exclude niche-only tools');
-    // field count limits
+    // field count limits (spec 2026-10-29: ≤ 12 questionnaire fields on every path, profile ≤ 4)
     const counts = await page.evaluate(() => ({ rcp: window.StartQ.countFields('RCP', 'home_services'), prof: window.StartQ.PROFILE.length,
-      max: Math.max(...['RCP', 'WEB', 'UNSURE'].flatMap(o => ['home_services', 'real_estate'].map(n => window.StartQ.countFields(o, n)))) }));
-    ok(counts.rcp + counts.prof <= 28, 'RCP path ≤ 28 fields incl. profile (' + (counts.rcp + counts.prof) + ')');
-    ok(counts.max <= 28, 'every non-bundle path ≤ 28 questionnaire fields');
+      max: Math.max(...['RCP', 'WEB', 'BNDL', 'UNSURE'].flatMap(o => ['home_services', 'real_estate'].map(n => window.StartQ.countFields(o, n)))) }));
+    ok(counts.prof === 3, 'profile = 3 fields');
+    ok(counts.rcp <= 10, 'RCP × home services ≤ 10 questionnaire fields incl. "Which tool?" and the note (' + counts.rcp + ')');
+    ok(counts.max <= 12, 'every path (incl. bundle) ≤ 12 questionnaire fields (' + counts.max + ')');
     // happy path: RCP × home services
     await pick(page, 'input[name=niche][value=home_services]');
     await pick(page, 'input[name=offer][value=RCP]');
-    await clickNext(page);
-    ok((await stepId(page)) === 'business', 'RCP → business');
-    ok((await overflowAt(page)).length === 0, 'business step: no overflow');
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 4, 'RCP step 2 = 4 questions (offer, industry, services, locations)');
+    ok((await overflowAt(page)).length === 0, 'need step: no overflow');
     await pick(page, 'input[name=services][value=hvac]');
-    const evil = '<img src=x onerror="window.__xss=1">Houston & 77005';
-    await page.type('#f_service_area', evil);
-    ok(await page.evaluate(id => !!localStorage.getItem('start_q_backup_' + id), qid), 'localStorage backup written while typing');
+    ok(await page.evaluate(id => !!localStorage.getItem('start_q_backup_' + id), qid), 'localStorage backup written while answering');
     await pick(page, 'input[name=locations][value="2"]');
     await page.waitForFunction(() => /Saved/.test(document.querySelector('#saveState').textContent), { timeout: 5000 }).catch(() => {});
     ok((await text(page, '#saveState')).startsWith('Saved'), 'autosave shows Saved');
     await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
-    ok((await stepId(page)) === 'business', 'resume: same step after reload');
-    ok((await page.$eval('#f_service_area', i => i.value)) === evil, 'resume: answer restored');
+    ok((await stepId(page)) === 'need', 'resume: same step after reload');
+    ok(await page.$eval('input[name=locations][value="2"]', i => i.checked) && await page.$eval('input[name=services][value=hvac]', i => i.checked), 'resume: answers restored');
     await clickNext(page);
-    ok((await stepId(page)) === 'calls' && (await text(page, '#stepTitle')) === 'Your calls today', 'calls step');
-    for (const [k, v] of [['who_answers', 'owner'], ['calls_week', '20_50'], ['missed_pct', '25_50'], ['after_hours', 'voicemail'], ['urgent', 'often'], ['job_value', '200_1k']])
-      await pick(page, `input[name=${k}][value="${v}"]`);
-    // ADD-DISPATCH (price book v1.1): offered only after "urgent calls", priced from the price book, never a coming-soon item
+    ok((await stepId(page)) === 'extras' && (await text(page, '#stepTitle')) === 'Extras that change the price', 'extras step');
+    ok((await text(page, '.lbls span')).startsWith('Step 3 of 3'), 'last screen = Step 3 of 3');
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 4, 'RCP step 3 = 4 questions (calls, Spanish, dispatch, tools)');
+    ok(!(await exists(page, '#nextBtn')) && (await text(page, '#submitBtn')) === 'Get my fixed quote', 'no review screen: step 3 ends with "Get my fixed quote"');
+    ok(await waitText(page, 'Your answers lock after you send'), 'lock note under the button');
+    ok(!(await exists(page, '#fileIn')), 'no file upload in the questionnaire (portal, after the deposit)');
+    await pick(page, 'input[name=calls_week][value="20_50"]');
+    // ADD-DISPATCH (price book v1.1): asked directly (no "urgent calls" gate), priced from the price book, never a coming-soon item
     const disp = pb.items.find(i => i.code === 'ADD-DISPATCH');
     const usd0 = c => '$' + Math.round(c / 100).toLocaleString('en-US');
-    ok(await exists(page, 'input[name=dispatch][value=yes]'), 'urgent calls → on-call dispatch question shown');
+    ok(await exists(page, 'input[name=dispatch][value=yes]') && !(await exists(page, 'input[name=urgent]')), 'on-call dispatch asked directly, without the urgent question');
     ok(await waitText(page, usd0(disp.setup_cents) + ' setup + ' + usd0(disp.monthly_cents) + '/mo'),
       'dispatch choice shows the price-book price');
     const soonNames = pb.items.filter(i => i.availability === 'coming_soon').map(i => i.name);
     ok(!(await page.evaluate(n => n.some(x => document.body.textContent.includes(x)), soonNames)), 'no coming-soon item offered in the questionnaire');
     await pick(page, 'input[name=dispatch][value=yes]');
-    ok((await overflowAt(page)).length === 0, 'calls step: no overflow');
-    await clickNext(page);
-    ok((await stepId(page)) === 'tools', 'tools step');
     const toolVals = await page.$$eval('input[name=tools]', i => i.map(x => x.value));
     const expected = Object.keys(pb.integration_meta).filter(k => (pb.integration_meta[k].niches || ['*']).some(n => n === '*' || n === 'home_services'));
     ok(toolVals.join() === expected.join(), 'tool picker = pricebook closed list + Zapier + Other');
@@ -259,60 +264,54 @@ async function main() {
     ok(!(await exists(page, '#f_tools_other')), 'tools_other hidden until Other');
     await pick(page, 'input[name=tools][value=other]');
     ok(await exists(page, '#f_tools_other'), 'Other reveals tools_other');
-    await page.type('#f_tools_other', 'Square');
-    await clickNext(page);
-    ok((await stepId(page)) === 'prefs', 'prefs step');
+    const evil = '<img src=x onerror="window.__xss=1">Square & Co';
+    await page.type('#f_tools_other', evil);
     await pick(page, 'input[name=spanish][value=some]');
-    await pick(page, 'input[name=price_on_phone][value=no]');
-    await clickNext(page);
-    ok((await stepId(page)) === 'finish', 'finish step');
-    await pick(page, 'input[name=timeline][value=month]');
-    const f1 = path.join(tmp, 'price sheet.pdf'); fs.writeFileSync(f1, '%PDF-1.4 test');
-    const f2 = path.join(tmp, 'virus.exe'); fs.writeFileSync(f2, 'MZ');
-    const fin = await page.$('#fileIn');
-    await fin.uploadFile(f1);
-    await page.waitForSelector('#fileList li', { timeout: 5000 });
-    ok((await text(page, '#fileList')).includes('price sheet.pdf'), 'file upload listed');
-    const fin2 = await page.$('#fileIn'); await fin2.uploadFile(f2); await sleep(200);
-    ok(await waitText(page, 'virus.exe: file type not supported'), 'unsupported file type rejected');
+    ok(await page.$eval('#f_more_d', d => !d.open), 'note is collapsed until tapped');
+    await pick(page, '#f_more_d summary');
+    ok(await page.$eval('#f_more_d', d => d.open), '"Add a note" opens the textarea');
     await page.type('#f_more', 'Busy season is June–August.');
-    ok((await overflowAt(page)).length === 0, 'finish step: no overflow');
+    ok((await overflowAt(page)).length === 0, 'extras step: no overflow');
     // keyboard: radios are native inputs reachable by Tab
     ok(await page.evaluate(() => [...document.querySelectorAll('.choice input')].every(i => i.tabIndex >= 0)), 'choices keyboard-focusable');
-    await clickNext(page);
-    ok((await stepId(page)) === 'review', 'review screen');
-    const sumText = await text(page, '.sum');
-    ok(sumText.includes('<img src=x onerror="window.__xss=1">Houston & 77005'), 'HTML injection rendered as text');
-    ok(!(await exists(page, '.sum img')) && !(await page.evaluate(() => window.__xss)), 'no injected element / script ran');
-    ok(sumText.includes('Jobber') && sumText.includes('Google Calendar'), 'summary shows tool labels');
     ok(!(await hebrew(page)), 'no Hebrew in questionnaire');
+    await page.waitForFunction(() => /Saved/.test(document.querySelector('#saveState').textContent), { timeout: 5000 }).catch(() => {});
     const hints = await page.evaluate(id => window.StartQ.quoteHints(JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(q => q.id === id).answers, window.Start.PB), qid);
     ok(hints.add.some(a => a.code === 'ADD-LOC') && hints.add.some(a => a.code === 'ADD-CRM') && hints.add.some(a => a.code === 'ADD-ES'), 'quote hints: ADD-LOC, ADD-CRM, ADD-ES');
     ok(hints.add.some(a => a.code === 'ADD-DISPATCH'), 'quote hints: dispatch yes → ADD-DISPATCH');
     ok(!hints.add.some(a => pb.items.some(i => i.code === a.code && i.availability === 'coming_soon')), 'quote hints: no coming-soon code');
     ok(hints.custom.includes('tool:other'), 'quote hints: Other tool → custom');
-    // edit link jumps back
-    await page.click('[data-go=business]'); await sleep(80);
-    ok((await stepId(page)) === 'business', 'review Edit jumps to the step');
-    await page.evaluate(() => { location.hash = 'tools'; }); await sleep(150);
-    ok((await text(page, '#stepTitle')) === 'Your tools', 'hashchange draws the step without reload');
-    await page.goto(BASE + '/start/q/?id=' + qid + '#review', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
-    ok((await overflowAt(page)).length === 0, 'review: no overflow');
+    // hash navigation
+    await page.evaluate(() => { location.hash = 'need'; }); await sleep(150);
+    ok((await text(page, '#stepTitle')) === 'What you need', 'hashchange draws the step without reload');
+    await page.goto(BASE + '/start/q/?id=' + qid + '#extras', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
+    ok((await page.$eval('#f_more', t => t.value)) === 'Busy season is June–August.' && await page.$eval('#f_more_d', d => d.open), 'note restored and open on reload');
+    ok((await overflowAt(page)).length === 0, 'extras (reloaded): no overflow');
     await page.click('#submitBtn');
     await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'You’ll get a written fixed quote ' + brand.quote_sla_text), 'submit → quote promise from brand.quote_sla_text');
     ok(await waitText(page, 'Texting (text-back and text alerts) is coming soon, after US carrier registration'), 'what-happens-next: texting is coming soon (no live-SMS promise)');
+    ok(await waitText(page, 'nothing to upload now'), 'thank-you: files go to the portal later');
     const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     const qrow = db.questionnaires.find(q => q.id === qid);
     ok(qrow.status === 'submitted' && qrow.submitted_at && qrow.offer === 'RCP' && qrow.niche === 'home_services', 'row submitted with offer + niche columns');
     ok(Array.isArray(qrow.summary) && qrow.summary.every(s => s.k && s.q != null), 'summary jsonb [{k,q,a}] saved');
+    ok(Object.keys(qrow.answers).sort().join() === 'calls_week,dispatch,locations,more,niche,offer,services,spanish,tools,tools_other', 'answers = the 3-screen keys only (' + Object.keys(qrow.answers).sort().join() + ')');
     ok(db.events.some(e => e.type === 'q_submitted' && e.entity_id === qid), 'owner-notification event stub recorded');
     ok(db.outbox.some(m => m.template === 'q_received') && db.outbox.some(m => m.template === 'admin_q_submitted'), 'q_received + owner alert in mock outbox');
     ok(db.outbox.find(m => m.template === 'q_received').subject.endsWith(brand.quote_sla_text), 'q_received subject uses brand.quote_sla_text');
     ok(!(await page.evaluate(id => localStorage.getItem('start_q_backup_' + id), qid)), 'backup cleared after submit');
-    // locked
+    // optional one-tap "how did you hear about us?" on the thank-you screen
+    await pick(page, 'input[name=how_heard][value=google]'); await sleep(150);
+    ok((await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')).profiles.find(p => p.full_name === 'Dani Levi').how_heard)) === 'google', 'thank-you: how_heard saved with one tap');
+    // locked + read-only summary renders answers as text
     await page.goto(BASE + '/start/q/?id=' + qid, { waitUntil: 'load' }); await page.waitForSelector('#roTitle');
     ok(!(await exists(page, '.step input')) && await waitText(page, 'locked'), 'submitted questionnaire is read-only');
+    const sumText = await text(page, '.sum');
+    ok(sumText.includes(evil), 'HTML injection rendered as text');
+    ok(!(await exists(page, '.sum img')) && !(await page.evaluate(() => window.__xss)), 'no injected element / script ran');
+    ok(sumText.includes('Jobber') && sumText.includes('Google Calendar') && sumText.includes('Busy season'), 'summary shows tool labels + the note');
+    ok((await overflowAt(page)).length === 0, 'read-only: no overflow');
     ok((await page.evaluate(id => window.Backend.saveQuestionnaire(id, { answers: { x: 1 } }), qid)) === null, 'save after submit is refused');
     ok((await page.evaluate(id => window.Backend.submitQuestionnaire(id).then(() => 'ok', e => e.message), qid)) === 'questionnaire_locked', 'resubmit refused (questionnaire_locked)');
     // ---------------------------------------------------------------- portal states
@@ -376,22 +375,20 @@ async function main() {
     console.log('web');
     const wid = await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'WEB', niche: 'home_services' }).then(r => r.id));
     await page.goto(BASE + '/start/q/?id=' + wid, { waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
-    ok((await page.evaluate(() => window.StartQ.stepsFor({ offer: 'WEB', niche: 'home_services' }).map(s => s.id).join())) === 'project,business,website,look,finish', 'WEB steps: content-focused, no tools');
-    await clickNext(page); await clickNext(page);
-    ok((await text(page, '#stepTitle')) === 'Your site details' && await exists(page, '#f_web_hours') && await exists(page, '#f_web_address') && await exists(page, 'input[name=domain]'), 'WEB: hours, address, domain');
-    await page.type('#f_web_hours', 'Mon–Fri 7–6');
+    ok(await exists(page, 'input[name=services]') && !(await exists(page, 'input[name=locations]')), 'WEB step 2: services, no locations');
     await clickNext(page);
-    ok(await exists(page, 'input[name=web_tone]') && await exists(page, '#f_web_colors') && await exists(page, 'input[name=content_have][value=logo]') && await exists(page, '#f_web_reviews'), 'WEB: tone, colors, logo/photos, reviews');
-    await pick(page, 'input[name=web_tone][value=friendly]');
-    await clickNext(page);
-    ok(!(await exists(page, 'input[name=decider]')), 'WEB: no decider question');
-    await clickNext(page);
-    ok((await text(page, '#submitBtn')).includes('deposit link'), 'WEB submit button = request deposit link');
+    ok((await text(page, '#stepTitle')) === 'Your website' && await exists(page, 'input[name=has_website]') && await exists(page, 'input[name=web_extras][value=extra_pages]') && await exists(page, 'input[name=content_have][value=logo]'), 'WEB step 3: website today, extras, what you can send');
+    ok(!(await exists(page, '#f_web_hours')) && !(await exists(page, 'input[name=domain]')) && !(await exists(page, 'input[name=tools]')) && !(await exists(page, 'input[name=calls_week]')), 'WEB: content details (hours, domain, tone) moved to the checklist; no tools / calls');
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 3, 'WEB step 3 = 3 questions + the note');
+    await pick(page, 'input[name=has_website][value=outdated]');
+    await pick(page, 'input[name=content_have][value=logo]');
+    ok((await overflowAt(page)).length === 0, 'WEB step 3: no overflow');
+    ok((await text(page, '#submitBtn')).includes('deposit link'), 'WEB submit button = send and get the deposit link');
     await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'Your deposit link is on its way — we email it ' + brand.quote_sla_text), 'WEB finish: deposit link + brand SLA');
     ok(await waitText(page, 'First draft in 3 business days, live in ' + pb.items.find(i => i.code === 'WEB').delivery_business_days + ' business days after we have your content'), 'WEB finish: draft + live timing (live days from pricebook)');
     ok(!(await waitText(page, 'written fixed quote', 300)) && !(await waitText(page, 'text-back', 300)), 'WEB finish: no quote / receptionist steps');
-    ok(await waitText(page, 'Review:') && await waitText(page, 'Go live:'), 'WEB next steps: content → draft → review → go-live');
+    ok(await waitText(page, 'Review:') && await waitText(page, 'Go live:') && await waitText(page, 'asks for the rest after the deposit'), 'WEB next steps: content in the portal → draft → review → go-live');
     ok(!(await exists(page, '#payDeposit')) === !(brand.endpoints && brand.endpoints.payment), 'deposit button only when brand.endpoints.payment exists');
     const wdb = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     ok(wdb.events.some(e => e.type === 'web_deposit_link_requested' && e.entity_id === wid) && wdb.outbox.some(m => m.template === 'admin_web_deposit_link_requested'), 'owner event web_deposit_link_requested');
@@ -401,13 +398,14 @@ async function main() {
     page = await newPage(browser, { brandPatch: { endpoints: { payment: 'https://pay.example.test/deposit' } } });
     await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]', { timeout: 8000 });
     const wid2 = await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'WEB', niche: 'home_services' }).then(r => r.id));
-    await page.goto(BASE + '/start/q/?id=' + wid2 + '#review', { waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
+    await page.goto(BASE + '/start/q/?id=' + wid2 + '#extras', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
     await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok((await page.$eval('#payDeposit', a => a.textContent + '|' + a.getAttribute('href'))).startsWith('Pay the ' + pb.rules.deposit_pct + '% deposit|https://pay.example.test/deposit?offer=WEB&ref='), 'endpoints.payment → Pay the deposit button');
     await page.close();
     page = await newPage(browser);
-    // BNDL stays on the quote path
-    ok(await (async () => { await page.goto(BASE + '/start/', { waitUntil: 'load' }); return page.evaluate(() => window.StartQ.stepsFor({ offer: 'BNDL' }).some(s => s.id === 'tools')); })(), 'BNDL keeps the quote path');
+    // BNDL stays on the quote path, with the web extras on screen 3 (5 questions: the one allowed exception)
+    await page.goto(BASE + '/start/', { waitUntil: 'load' });
+    ok(await page.evaluate(() => { const f = window.StartQ.fieldsFor({ offer: 'BNDL', niche: 'home_services' }).map(x => x.k); return f.includes('tools') && f.includes('web_extras') && f.includes('dispatch'); }), 'BNDL keeps the quote path (tools + dispatch + web extras)');
     await page.close();
     // ---------------------------------------------------------------- founder flag (brand.json show_founder_price)
     page = await newPage(browser, { founder: true });

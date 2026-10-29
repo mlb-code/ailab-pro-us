@@ -73,7 +73,7 @@ async function signIn(page, pathName, email) {
 async function profile(page, company) {
   await page.waitForSelector('#profileForm');
   await page.type('#p_full_name', 'Dani Levi'); await page.type('#p_company', company); await page.type('#p_phone', '(713) 555-0100');
-  await page.type('#p_city', 'Houston'); await page.select('#p_state', 'TX'); await page.click('#pSave');
+  await page.click('#pSave');
   await page.waitForSelector('[role=tablist]');
 }
 async function tabTo(page, id) { await page.click('#tab-' + id); await sleep(150); }

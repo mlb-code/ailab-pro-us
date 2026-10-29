@@ -117,15 +117,15 @@ async function run(browser, width) {
   await page.waitForSelector('#stepTitle');
   ok(await page.$eval('input[name=offer][value=RCP]', i => i.checked).catch(() => false), 'intent: RCP preselected');
   ok(await page.$eval('input[name=niche][value=home_services]', i => i.checked).catch(() => false), 'intent: home services preselected');
-  await pick('input[name=offer][value=RCP]'); await pick('input[name=niche][value=home_services]'); await next();
-  await pick('input[name=services][value=hvac]'); await page.type('#f_service_area', 'Houston 77005'); await fillStep(); await noOverflow('q/business'); await next();
-  for (const [k, v] of [['who_answers', 'owner'], ['calls_week', '20_50'], ['missed_pct', '25_50'], ['after_hours', 'voicemail'], ['urgent', 'often'], ['job_value', '200_1k']]) await pick(`input[name=${k}][value="${v}"]`);
-  await noOverflow('q/calls'); await next();
-  await pick('input[name=tools][value=google_calendar]'); await pick('input[name=tools][value=jobber]'); await noOverflow('q/tools'); await next();
-  await fillStep(); await pick('input[name=spanish][value=no]').catch(() => {}); await next();
-  await fillStep(); await noOverflow('q/finish'); await next();
-  ok(await page.evaluate(() => location.hash) === '#review', 'RCP questionnaire reaches the review screen');
-  await page.waitForSelector('#submitBtn'); await page.click('#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 10000 });
+  // 3 screens (spec 2026-10-29): profile, then "What you need" and "Extras that change the price"; no review screen
+  ok(await waitText('Step 2 of 3'), 'questionnaire opens on step 2 of 3');
+  await pick('input[name=offer][value=RCP]'); await pick('input[name=niche][value=home_services]');
+  await pick('input[name=services][value=hvac]'); await pick('input[name=locations][value="1"]'); await noOverflow('q/need'); await next();
+  ok(await page.evaluate(() => location.hash) === '#extras' && await waitText('Step 3 of 3'), 'RCP questionnaire: step 3 of 3 is the last screen');
+  for (const [k, v] of [['calls_week', '20_50'], ['spanish', 'no'], ['dispatch', 'no']]) await pick(`input[name=${k}][value="${v}"]`);
+  await pick('input[name=tools][value=google_calendar]'); await pick('input[name=tools][value=jobber]'); await noOverflow('q/extras');
+  ok(!(await page.$('#nextBtn')) && await page.$eval('#submitBtn', b => b.textContent) === 'Get my fixed quote', 'step 3 ends with "Get my fixed quote" (no review screen)');
+  await page.click('#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 10000 });
   ok(await waitText('written fixed quote ' + brand.quote_sla_text), 'done screen: quote promise from brand.quote_sla_text');
   await noOverflow('q/done');
   let d = await db();
@@ -255,12 +255,9 @@ async function run(browser, width) {
   ok(page.url().includes('/start/q/'), 'WEB intent opens the content questionnaire');
   await page.waitForSelector('#stepTitle');
   await pick('input[name=offer][value=WEB]'); await pick('input[name=niche][value=home_services]');
-  for (let i = 0; i < 8 && (await page.evaluate(() => location.hash)) !== '#review'; i++) {
-    await fillStep(); await page.evaluate(() => { const s = document.querySelector('#f_service_area'); if (s && !s.value) { s.value = 'Austin'; s.dispatchEvent(new Event('input', { bubbles: true })); } });
-    await page.evaluate(() => document.querySelectorAll('input[name=web_extras]').forEach(c => { if (c.checked) c.click(); }));
-    await next();
-  }
-  ok(await page.evaluate(() => location.hash) === '#review', 'WEB questionnaire reaches review');
+  await pick('input[name=services][value=cleaning]'); await next();
+  ok(await page.evaluate(() => location.hash) === '#extras' && await waitText('Step 3 of 3'), 'WEB questionnaire: 2 screens, no review');
+  await pick('input[name=has_website][value=no]'); await pick('input[name=content_have][value=logo]'); await noOverflow('WEB q/extras');
   ok(/deposit link/i.test(await page.$eval('#submitBtn', b => b.textContent).catch(() => '')), 'WEB submit button asks for the deposit link (no quote)');
   await page.click('#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 10000 });
   const wd = await body();
@@ -281,8 +278,8 @@ async function run(browser, width) {
   await profile('Amy Carter', 'Lone Star Homes', '(214) 555-0100');
   await page.waitForSelector('#stepTitle');
   ok(await page.$eval('input[name=niche][value=real_estate]', i => i.checked).catch(() => false), 'real-estate niche preselected');
-  await next(); await fillStep(); await next();
-  ok((await page.$eval('#stepTitle', e => e.textContent)) === 'Your leads today', 'real-estate branch: "Your leads today"');
+  await pick('input[name=locations][value="1"]'); await next();
+  ok((await page.$eval('#f_calls_week legend', e => e.textContent)) === 'Leads per week' && !!(await page.$('input[name=re_crm]')), 'real-estate branch: leads per week + CRM question');
   ok(!/receptionist/i.test(await body()), 'real-estate questionnaire never says "receptionist"');
   await noOverflow('real-estate questionnaire');
   await page.close();

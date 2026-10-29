@@ -70,7 +70,7 @@ try {
   await page.waitForSelector('#mockCode'); await page.fill('#code', (await page.textContent('#mockCode')).trim());
   await page.waitForSelector('#profileForm');
   await page.fill('#p_full_name', 'Dana Levin'); await page.fill('#p_company', 'Rapid Flow Plumbing'); await page.fill('#p_phone', '(713) 555-0100');
-  await page.fill('#p_city', 'Houston'); await page.selectOption('#p_state', 'TX'); await page.click('#pSave');
+  await page.click('#pSave');
   await page.waitForSelector('[role=tablist]');
   await page.goto(BASE + '/start/?mock_seed=deposit_paid'); await page.waitForSelector('#tab-onboarding');   // checklist seeded lazily
   let d = await db();

@@ -169,7 +169,6 @@ try {
     ok((await fbqCalls(page)).some(c => c[0] === 'init' && c[1] === PX), 'portal: fbq init with the configured ID');
     ok(await page.evaluate(() => document.body.getAttribute('data-clarity-mask') === 'True'), 'portal: whole page masked for Clarity');
     await page.type('#p_full_name', 'Dana Measure'); await page.type('#p_company', 'Measure HVAC'); await page.type('#p_phone', '7135550199');
-    await page.type('#p_city', 'Houston').catch(() => {}); await page.select('#p_state', 'TX').catch(() => {});
     await page.click('#pSave');
     await page.waitForFunction(() => location.pathname.startsWith('/start/q/'), { timeout: 10000 }); await settle();
     ok(events(rec).includes(evName('quote', 'start')), 'questionnaire created -> quote_start');
