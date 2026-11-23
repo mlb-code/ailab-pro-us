@@ -1,8 +1,8 @@
 """Build the public landing pages from config + content. Stdlib only. Never edit the generated HTML by hand.
 
-Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home-services,real-estate,website,home-lite,reviews}.json
-Outputs: site/index.html (home services), site/home-services/, site/real-estate/,
-         site/website/, site/demo/, site/lite/ (lighter home page for comparison, noindex), site/sitemap.xml, site/robots.txt,
+Inputs : config/brand.json, config/pricebook.json, site/_content/{_shared,home,firstring,home-services,real-estate,website,reviews}.json
+Outputs: site/index.html (AI Lab Pro house-brand home, home.json), site/firstring/ (FirstRing product page, firstring.json),
+         site/home-services/, site/real-estate/, site/website/, site/demo/, site/sitemap.xml, site/robots.txt,
          site/assets/og/*.png (only with --og or when missing)
 
 usage:
@@ -160,6 +160,11 @@ ICONS = {
     'phone': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="14" y="4" width="20" height="40" rx="4"/><path d="M21 38h6"/><path d="M38 12l6-6M44 12l-6-6" stroke-linecap="round"/></svg>',
     'chat': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 10h28a4 4 0 014 4v14a4 4 0 01-4 4H18l-8 7v-7H6a4 4 0 01-4-4V14a4 4 0 014-4z"/><path d="M11 19h18M11 25h11" stroke-linecap="round"/></svg>',
     'calendar': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="9" width="38" height="34" rx="4"/><path d="M5 18h38M15 4v9M33 4v9" stroke-linecap="round"/><path d="M17 31l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    # FirstRing page (2026-11-23): the three kinds of calls + what the owner gets
+    'wrench': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M30 6a10 10 0 00-9.4 13.4L7 33a4.2 4.2 0 006 6l13.6-13.6A10 10 0 0040 15l-6 2-4-4 2-6a10 10 0 00-2-1z"/></svg>',
+    'quote': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4h17l9 9v31H12z"/><path d="M29 4v9h9M18 24h14M18 31h14M18 38h8"/></svg>',
+    'repeat': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="16" r="8"/><path d="M8 42c2-8 8-12 16-12s14 4 16 12"/><path d="M33 9l4-4 4 4M37 5v9" /></svg>',
+    'mail': '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="38" height="28" rx="4"/><path d="M7 13l17 13 17-13"/></svg>',
 }
 
 
@@ -816,7 +821,7 @@ def section_faq(faqs):
 
 
 def section_band(c, cta_href, cta_label, demo_href='#demo', band=None, niche_cta=False):
-    """Closing amber band: the quote button, plus a demo button unless demo_href is None (the /lite/ page keeps one)."""
+    """Closing amber band: the quote button, plus a demo button unless demo_href is None (the /firstring/ page drops it: its demo is on the page)."""
     b = band or c.shared['cta_band']
     nc = ' data-niche-cta' if niche_cta else ''
     demo = f'<a class="btn" href="{esc(demo_href)}" data-ev="demo_start">Try the demo</a>' if demo_href else ''
@@ -918,7 +923,7 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
     body = [
         head(c, title=title, desc=desc, path=path, canonical=canonical, index=index,
              og_image=f'/assets/og/{n["slug"]}.png', og_title=c.t(seo['og_title']), jsonld=ld),
-        nav(c, '/' if key == 'home_services' else path,
+        nav(c, '/firstring/' if key == 'home_services' else path,
             {'label': 'Join early access', 'href': '#early-access'} if early else
             {'label': 'Get a quote', 'href': cta_href, 'ev': 'quote_start'}),
         '<main id="main">',
@@ -1040,54 +1045,157 @@ def demo_page(c, contents, year):
     return '\n'.join(body)
 
 
-def lite_page(c, lite, contents, year, *, path='/lite/', index=False):
-    """/lite/: the home page with less on it (owner request 2026-10-29), for a side-by-side comparison. Five blocks:
-    hero, the scripted demo, six "what's included" lines, one price card, four FAQs and the closing band. Same nav, footer
-    and styles as /; noindex and outside the sitemap until the owner picks a version. Everything cut stays one link away
-    (the "See the full page" line under the price card). The demo, the clock and the price come from the full page."""
-    key = lite['based_on']
+def firstring_page(c, fr, contents, year, *, path='/firstring/'):
+    """/firstring/: FirstRing by AI Lab Pro, the flagship product page (2026-11-23). It is the former home page (the
+    lighter version from 2026-10-29) cut down and renamed: hero (price, quote button, demo line, call thread), the three
+    kinds of calls, the scripted demo, one price card with three FAQs beside it, and the closing band. The purchase path is unchanged
+    (/start/?offer=RCP&niche=home_services); every detail stays one link away at /home-services/. The demo, the price and
+    the clock styling come from the home-services page and the price book."""
+    key = fr['based_on']
     n = contents[key]
     c.page = {k: v for k, v in (n.get('page_tokens') or {}).items()}
     c.page.setdefault('assistant', 'receptionist')
+    c.page['tagline'] = c.t(fr['tagline'])
     cta_href = f'/start/?offer={n["offer"]}&niche={key}'
-    cta_label = c.t(lite['hero']['cta'])
-    faqs = faq_items(c, lite['faq'], sizes=(4,))
-    hero, inc, pr, d = lite['hero'], lite['included'], lite['pricing'], lite['demo']
-    full = lite['full_page']
+    cta_label = c.t(fr['hero']['cta'])
+    faqs = faq_items(c, fr['faq'], sizes=(3,))
+    hero, cl, pr, d = fr['hero'], fr['calls'], fr['pricing'], fr['demo']
+    seo = fr['seo']
+    title, desc = c.t(seo['title']), c.t(seo['description'])
+    ld = {'@context': 'https://schema.org', '@graph': [
+        org_ld(c),
+        service_ld(c, n['offer'], fr['product'], desc, c.site_url + path, n['seo']['service_type'], n['seo']['audience']),
+        faq_ld(faqs)]}
+    calls = ''.join(f'<li><span class="calls__ic">{ICONS[x["icon"]]}</span><h3>{c.h(x["title"])}</h3><p>{c.h(x["text"])}</p></li>'
+                    for x in cl['items'])
+    gets = ''.join(f'<li><span class="calls__ic">{ICONS[x["icon"]]}</span>{c.h(x["text"])}</li>' for x in cl['you_get'])
+    faq_list = ''.join(f'<details><summary>{esc(q)}</summary><div><p>{esc(a)}</p></div></details>' for q, a in faqs)
     body = [
-        head(c, title=c.t(lite['seo']['title']), desc=c.t(lite['seo']['description']), path=path, index=index,
-             og_image=f'/assets/og/{n["slug"]}.png', og_title=c.t(n['seo']['og_title'])),
+        head(c, title=title, desc=desc, path=path, og_image='/assets/og/firstring.png', og_title=c.t(seo['og_title']), jsonld=ld),
         nav(c, path, {'label': 'Get a quote', 'href': cta_href, 'ev': 'quote_start'}),
         '<main id="main">',
-        f'''<section class="hero"><div class="wrap hero__grid">
+        f'''<section class="hero hero--fr"><div class="wrap hero__grid">
 <div class="hero__copy">
 <p class="eyebrow">{c.h(hero['eyebrow'])}</p>
 <h1>{c.h(hero['title'])}</h1>
 <p class="lead">{c.h(hero['lead'])}</p>
 {price_line(c, n['offer'], 'Fixed price · in writing · no hourly billing')}
 <div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start">{esc(cta_label)}</a><a class="btn btn--ghost" href="#demo" data-ev="demo_start">{c.h(hero['secondary'])}</a></div>
-<p class="hero__fine">{c.h(hero['fine'])}</p>
+{call_line(c)}<p class="hero__fine">{c.h(hero['fine'])}</p>
 </div>
-{clock(c, n['clock'], 'A missed call becomes a booking', n.get('demo'))}
+{clock(c, fr['clock'], 'A call you could not take becomes a booking', n.get('demo'))}
+</div></section>''',
+        f'''<section class="section" id="calls"><div class="wrap">
+<div class="shead"><p class="eyebrow">{c.h(cl['eyebrow'])}</p><h2>{c.h(cl['title'])}</h2></div>
+<ol class="calls">{calls}</ol>
+<div class="calls__get"><p class="calls__k">{c.h(cl['you_get_title'])}</p><ul>{gets}</ul></div>
 </div></section>''',
         f'''<section class="section" id="demo"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(d['eyebrow'])}</p><h2>{c.h(d['title'])}</h2><p class="lead">{c.h(d['lead'])} {esc(c.brand['disclaimers']['demo'])}.</p></div>
+<div class="shead"><p class="eyebrow">{c.h(d['eyebrow'])}</p><h2>{c.h(d['title'])}</h2><p class="lead">{c.h(d['lead'])}</p></div>
 {demo_widget(c, [key], contents, cta_href=cta_href, cta_label=cta_label, transcript_=False)}
-{call_line(c)}
 <script src="/assets/demo.js" defer></script>
-</div></section>''',
-        f'''<section class="section" id="included"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(inc['eyebrow'])}</p><h2>{c.h(inc['title'])}</h2></div>
-<ul class="ticks">{''.join(f'<li>{c.h(x)}</li>' for x in inc['lines'])}</ul>
 </div></section>''',
         f'''<section class="section" id="pricing"><div class="wrap">
 <div class="shead"><p class="eyebrow">{c.h(pr['eyebrow'])}</p><h2>{c.h(pr['title'])}</h2></div>
-<div class="pricing">{price_card(c, n['offer'], cta_href, cta_label, n={'included_items': pr['trust']})}<div class="pricing__side">
-<p class="small"><a href="{esc(full)}">{c.h(pr['full_page_link'])}</a></p></div></div>
+<div class="pricing">{price_card(c, n['offer'], cta_href, cta_label, n={'included_items': pr['trust'], 'product_name': fr['product']})}<div class="pricing__side">
+<div class="faq" id="faq">{faq_list}</div>
+<p class="small"><a href="{esc(fr['full_page'])}">{c.h(pr['full_page_link'])}</a></p></div></div>
 </div></section>''',
-        section_faq(faqs),
-        section_band(c, cta_href, cta_label, demo_href=None, band=lite['band']),
+        section_band(c, cta_href, cta_label, demo_href=None, band=fr['band']),
         '</main>', mobile_bar(c, n['offer'], cta_href, cta_label), footer(c, year), '</body>\n</html>\n']
+    return '\n'.join(body)
+
+
+AREA_ICONS = {
+    'service': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13v-1a8 8 0 0116 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-2 2.5-5 2.5"/></svg>',
+    'sales': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
+    'operations': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
+}
+
+
+def house_page(c, h, year, *, path='/'):
+    """/ (2026-11-23): AI Lab Pro as the house brand. Hero: one headline, one line, one button to FirstRing, and the live
+    demo line as a call card (tap to call). Then the three areas (Service with FirstRing featured, Sales, Operations): only
+    what the price book sells today carries a price; anything else is a 'by request' line. Three trust points, closing
+    band. No demo widget, no reviews, no client names (owner decision pending; slot between #areas and #trust)."""
+    c.page = {'tagline': c.t(h['tagline'])}
+    mail = c.brand.get('support_email', '')
+    seo, hero, call, ar = h['seo'], h['hero'], h['call'], h['areas']
+    title, desc = c.t(seo['title']), c.t(seo['description'])
+    ld = {'@context': 'https://schema.org', '@graph': [
+        org_ld(c), {'@type': 'WebSite', 'name': c.brand['name'], 'url': c.site_url + '/', 'publisher': {'@id': c.site_url + '/#org'}}]}
+    # call card: the demo phone line (brand.json demo.*); hidden entirely when the number is not configured
+    dp = c.brand.get('demo') or {}
+    num, e164 = str(dp.get('phone_number') or ''), str(dp.get('phone_e164') or '')
+    card = ''
+    if num and re.fullmatch(r'\+1\d{10}', e164):
+        biz, city = dp.get('phone_business') or '', dp.get('phone_city') or ''
+        card = f'''<aside class="ring" aria-label="{esc(c.t(call['kicker']))}">
+<p class="ring__k"><span class="ring__dot" aria-hidden="true"></span>{c.h(call['kicker'])}</p>
+<div class="ring__who"><span class="ring__av" aria-hidden="true">{esc(biz[:1])}<i></i><i></i></span><span><b>{esc(biz)}</b><small>{c.h(call['tag'])}{(' · ' + esc(city)) if city else ''}</small></span></div>
+<a class="ring__num num" href="tel:{esc(e164)}" data-ev="demo_call">{esc(num)}</a>
+<a class="btn ring__btn" href="tel:{esc(e164)}" data-ev="demo_call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/></svg>{c.h(call['button'])}</a>
+<p class="ring__fine">{c.h(call['fine'])}</p>
+</aside>'''
+
+    def mini(items):
+        out = []
+        for x in items:
+            href = (x.get('href') or '').replace('{support_email}', mail)
+            txt = f'<b>{c.h(x["title"])}</b><span>{c.h(x["text"])}</span>'
+            if href and x.get('link'):  # a line with its own short link ("Talk to us")
+                out.append(f'<li class="mini__ask">{txt}<a class="mini__link" href="{esc(href)}">{c.h(x["link"])} <span aria-hidden="true">&rarr;</span></a></li>')
+            elif href:
+                out.append(f'<li><a class="mini__go" href="{esc(href)}">{txt}<span class="mini__arrow" aria-hidden="true">&rarr;</span></a></li>')
+            else:
+                out.append(f'<li>{txt}</li>')
+        return '<ul class="mini">' + ''.join(out) + '</ul>'
+
+    def area_head(k, n_):
+        return f'<p class="area__k"><span class="area__ic">{AREA_ICONS[k]}</span><span class="area__n">0{n_}</span>{c.h(ar[k]["label"])}</p>'
+
+    f = ar['service']['feature']
+    i = c.items[f['price_code']]
+    chips = ''.join(f'<li>{c.h(x)}</li>' for x in f['chips'])
+    feature = f'''<div class="feat">
+<div class="feat__top"><span class="badge badge--acc">{c.h(f['badge'])}</span><span class="feat__kicker">{c.h(f['kicker'])}</span></div>
+<h3 class="feat__name">{c.h(f['name'])}<small>{c.h(f['by'])}</small></h3>
+<p class="feat__text">{c.h(f['text'])}</p>
+<ul class="feat__chips" aria-label="Calls it handles">{chips}</ul>
+<div class="feat__foot"><p class="feat__price"><b class="num">{money(i['setup_cents'])}</b> setup + <b class="num">{money(i['monthly_cents'])}</b>/mo</p>
+<a class="btn btn--primary" href="{esc(f['href'])}">{c.h(f['cta'])} <span aria-hidden="true">&rarr;</span></a></div>
+</div>'''
+    trust = ''.join(f'<li><b>{c.h(x["title"])}</b><span>{c.h(x["text"])}</span></li>' for x in h['trust'])
+    b = h['band']
+    body = [
+        head(c, title=title, desc=desc, path=path, og_image='/assets/og/home.png', og_title=c.t(seo['og_title']), jsonld=ld),
+        nav(c, path),
+        '<main id="main">',
+        f'''<section class="hero hero--house"><div class="wrap hero__grid">
+<div class="hero__copy">
+<p class="eyebrow">{c.h(hero['eyebrow'])}</p>
+<h1>{c.h(hero['title'])}</h1>
+<p class="lead">{c.h(hero['lead'])}</p>
+<div class="btn-row"><a class="btn btn--primary" href="{esc(hero['cta_href'])}">{c.h(hero['cta'])}</a></div>
+</div>
+{card}
+</div></section>''',
+        f'''<section class="section" id="areas"><div class="wrap">
+<div class="shead"><p class="eyebrow">{c.h(ar['eyebrow'])}</p><h2>{c.h(ar['title'])}</h2></div>
+<div class="areas">
+<article class="area area--service">{area_head('service', 1)}{feature}{mini(ar['service']['items'])}</article>
+<article class="area">{area_head('sales', 2)}{mini(ar['sales']['items'])}</article>
+<article class="area">{area_head('operations', 3)}{mini(ar['operations']['items'])}</article>
+</div>
+</div></section>''',
+        f'''<section class="section" id="trust"><div class="wrap">
+<ul class="trust3">{trust}</ul>
+</div></section>''',
+        f'''<section class="section section--amber band"><div class="wrap">
+<h2>{c.h(b['title'])}</h2><p style="margin-top:12px">{c.h(b['text'])}</p>
+<div class="btn-row"><a class="btn btn--primary" href="{esc(hero['cta_href'])}">{c.h(b['cta'])}</a><a class="btn" href="{esc(b['secondary_href'])}" data-ev="demo_start">{c.h(b['secondary'])}</a></div>
+</div></section>''',
+        '</main>', footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
 
 
@@ -1111,7 +1219,7 @@ body>*{{position:relative;z-index:1}}
 h1{{font-size:78px;line-height:1.0;font-weight:800;letter-spacing:-.045em;font-variation-settings:"wdth" 86;max-width:980px}}
 .p{{font-size:30px;color:rgba(242,240,247,.75)}}.p b{{font-family:'Noto Serif',serif;color:{amber};font-size:48px}}
 .f{{display:flex;justify-content:space-between;align-items:center}}.b{{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:800;letter-spacing:-.02em}}.b img{{width:56px;height:56px}}.b small{{font-family:'Space Mono',monospace;font-size:18px;color:{violet2};font-weight:400;letter-spacing:.2em}}</style></head>
-<body><div class="k">{kicker}</div><h1>{title}</h1><div class="f"><div class="p"><b>{setup}</b> setup + <b>{monthly}</b>/mo</div><span class="b"><img src="{gem}" alt="">{brand} <small>US</small></span></div></body></html>'''
+<body><div class="k">{kicker}</div><h1>{title}</h1><div class="f"><div class="p">{price}</div><span class="b"><img src="{gem}" alt="">{brand} <small>US</small></span></div></body></html>'''
 
 
 def render_og(c, specs):
@@ -1122,10 +1230,13 @@ def render_og(c, specs):
     with open(os.path.join(SITE, 'assets', 'gem-128.png'), 'rb') as fh:
         gem = 'data:image/png;base64,' + base64.b64encode(fh.read()).decode()
     for slug, kicker, title, code in specs:
-        i = c.items[code]
         th = c.brand['theme']
+        price = ''
+        if code:  # None = no price line (the house-brand home page)
+            i = c.items[code]
+            price = f'<b>{money(i["setup_cents"])}</b> setup + <b>{money(i["monthly_cents"])}</b>/mo'
         doc = OG_HTML.format(font=esc(c.brand['fonts']['google_css']), kicker=esc(kicker), title=esc(c.plain(title)),
-                             setup=money(i['setup_cents']), monthly=money(i['monthly_cents']), brand=esc(c.brand['name']),
+                             price=price, brand=esc(c.brand['name']),
                              gem=gem, ink=th['ink'], paper=th['paper'], deep=th['violet_deep'], violet2=th['violet_2'], amber=th['amber'])
         jobs.append({'html': doc, 'out': os.path.join(out_dir, f'{slug}.png')})
     script = r'''
@@ -1191,21 +1302,25 @@ def build(c):
     for k, n in contents.items():
         validate_demo(k, n['demo'])
     website = load(os.path.join(CONTENT, 'website.json'))
-    lite = load(os.path.join(CONTENT, 'home-lite.json'))
+    home = load(os.path.join(CONTENT, 'home.json'))
+    firstring = load(os.path.join(CONTENT, 'firstring.json'))
     c.reviews = load(os.path.join(CONTENT, 'reviews.json'))
     year = c.pb.get('updated', '2026')[:4]
     pages = {
-        'index.html': lite_page(c, lite, contents, year, path='/', index=True),
+        'index.html': house_page(c, home, year),
+        'firstring/index.html': firstring_page(c, firstring, contents, year),
         'home-services/index.html': niche_page(c, 'home_services', contents, path='/home-services/', year=year),
         'real-estate/index.html': niche_page(c, 'real_estate', contents, path='/real-estate/', year=year),
         'website/index.html': website_page(c, website, year),
         'demo/index.html': demo_page(c, contents, year),
     }
-    indexed = ['/', '/home-services/', '/real-estate/', '/website/', '/demo/']
+    indexed = ['/', '/firstring/', '/home-services/', '/real-estate/', '/website/', '/demo/']
     pages['sitemap.xml'] = sitemap(c, indexed)
     pages['robots.txt'] = robots(c)
     og = [(contents[k]['slug'], c.t(contents[k]['seo']['og_kicker']), c.t(contents[k]['seo']['og_title']), 'RCP') for k in NICHE_FILES]
     og.append(('website', c.t(website['seo']['og_kicker']), c.t(website['seo']['og_title']), 'WEB'))
+    og.append(('firstring', c.t(firstring['seo']['og_kicker']), c.t(firstring['seo']['og_title']), 'RCP'))
+    og.append(('home', c.t(home['hero']['eyebrow']), c.t(home['seo']['og_title']), None))
     return pages, og
 
 

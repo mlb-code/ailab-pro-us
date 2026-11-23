@@ -3,8 +3,8 @@
   "worked_with_fallback": "Worked with Samsung and Haier in {country} (through their local distributor)",
   "nav": [
     {
-      "label": "Home services",
-      "href": "/"
+      "label": "FirstRing",
+      "href": "/firstring/"
     },
     {
       "label": "Real estate",
@@ -203,7 +203,7 @@
   "footer": {
     "$comment": "Footer columns (all pages from tools/build_landing.py). Social links come from config/brand.json social (empty = hidden). Address, email and disclaimer come from brand.json.",
     "note": "Fixed prices, everything in writing.",
-    "studio": "Built with Claude — independent studio.",
+    "studio": "Built with Claude. Independent studio.",
     "social_title": "Follow *us*",
     "social_empty": "Social profiles coming soon. Email is the fastest way to reach us.",
     "columns": [
@@ -216,15 +216,15 @@
           },
           {
             "label": "How it works",
-            "href": "/#how"
+            "href": "/home-services/#how"
           },
           {
             "label": "After you pay",
-            "href": "/#after-you-pay"
+            "href": "/home-services/#after-you-pay"
           },
           {
             "label": "FAQ",
-            "href": "/#faq"
+            "href": "/firstring/#faq"
           },
           {
             "label": "Contact",
@@ -241,7 +241,7 @@
           },
           {
             "label": "Pricing",
-            "href": "/#pricing"
+            "href": "/firstring/#pricing"
           },
           {
             "label": "Book a video call",
@@ -261,11 +261,15 @@
         "title": "Products",
         "links": [
           {
-            "label": "AI phone answering: home services",
-            "href": "/"
+            "label": "FirstRing",
+            "href": "/firstring/"
           },
           {
-            "label": "AI assistant: real estate",
+            "label": "For home services",
+            "href": "/home-services/"
+          },
+          {
+            "label": "For real estate agents",
             "href": "/real-estate/"
           },
           {
@@ -281,15 +285,15 @@
         "sub_links": [
           {
             "label": "Missed-call answering",
-            "href": "/#how-it-answers"
+            "href": "/home-services/#how-it-answers"
           },
           {
             "label": "After-hours answering",
-            "href": "/#how-it-answers"
+            "href": "/home-services/#how-it-answers"
           },
           {
             "label": "Appointment booking",
-            "href": "/#demo"
+            "href": "/firstring/#demo"
           },
           {
             "label": "Lead screening for agents",

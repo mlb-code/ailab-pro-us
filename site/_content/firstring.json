@@ -1,0 +1,110 @@
+{
+  "$comment": "FirstRing product page (/firstring/), since 2026-11-23: the former home page (the lighter version from 2026-10-29), cut down and renamed. FirstRing by {brand} = the AI phone receptionist (price-book code RCP; the price book and the questionnaire still call it 'Missed-Call AI Receptionist'). Blocks: hero (price, quote button, demo line, call thread), three kinds of calls, the scripted demo, one price card with 3 FAQs beside it, closing band. The full detail page stays at /home-services/. Demo scenarios and the price come from home-services.json and the price book. Tokens: see _shared.json. Never type a price here. No texting claims: business texting is not live.",
+  "key": "firstring",
+  "based_on": "home_services",
+  "product": "FirstRing",
+  "full_page": "/home-services/",
+  "tagline": "FirstRing by {brand}, the AI receptionist for small businesses",
+  "seo": {
+    "title": "FirstRing: AI Receptionist for Small Businesses | {brand}",
+    "description": "FirstRing by {brand} is an AI receptionist for small businesses. It answers the calls you can't take, helps the caller and books the visit on your calendar. {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
+    "og_title": "Can't pick up? FirstRing will.",
+    "og_kicker": "FirstRing · AI receptionist for small businesses"
+  },
+  "hero": {
+    "eyebrow": "FirstRing by {brand} · AI receptionist for small businesses",
+    "title": "Can't pick up? *FirstRing* will.",
+    "lead": "It answers your business calls, helps the caller, puts the visit on your calendar and sends you a summary.",
+    "cta": "Get my fixed quote",
+    "secondary": "Try the demo",
+    "fine": "Sign-up takes about 3 minutes. No sales calls."
+  },
+  "clock": {
+    "caption": "One call you couldn't take, minute by minute. Illustration.",
+    "rows": [
+      {
+        "t": "7:42 PM",
+        "a": "Missed call",
+        "b": "You're finishing a job across town."
+      },
+      {
+        "t": "7:42 PM",
+        "a": "FirstRing answers",
+        "b": "\"Thanks for calling. How can I help?\""
+      },
+      {
+        "t": "7:43 PM",
+        "a": "Details taken",
+        "b": "AC blowing warm air · ZIP 77005 · urgent"
+      },
+      {
+        "t": "7:44 PM",
+        "a": "On your calendar",
+        "b": "Tuesday 8 AM–12 PM · AC repair · summary in your email",
+        "booked": true
+      }
+    ]
+  },
+  "calls": {
+    "eyebrow": "What it does",
+    "title": "Every kind of call, *handled*.",
+    "items": [
+      {
+        "icon": "wrench",
+        "title": "Something's broken",
+        "text": "Takes the details and how urgent it is, then books a visit."
+      },
+      {
+        "icon": "quote",
+        "title": "Wants a quote",
+        "text": "Asks what the job needs and books a time for the estimate."
+      },
+      {
+        "icon": "repeat",
+        "title": "Already a customer",
+        "text": "Checks, moves or cancels their visit and answers common questions."
+      }
+    ],
+    "you_get_title": "You get",
+    "you_get": [
+      {
+        "icon": "mail",
+        "text": "An email for every lead, plus a daily summary"
+      },
+      {
+        "icon": "calendar",
+        "text": "Appointments in Google Calendar or Calendly"
+      }
+    ]
+  },
+  "demo": {
+    "eyebrow": "Try it",
+    "title": "Be the *customer*.",
+    "lead": "Pick a situation and tap the answers. On a call, FirstRing asks the same questions. Nothing is really booked."
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "The price is on the *page*.",
+    "trust": [
+      "Fixed quote in writing {quote_sla}",
+      "{refund_label} on the deposit",
+      "{guarantee_label}"
+    ],
+    "full_page_link": "Every detail: the tools it connects to, extras and how setup works."
+  },
+  "faq": [
+    {
+      "ref": "cost"
+    },
+    {
+      "ref": "keep_number"
+    },
+    {
+      "ref": "cancel"
+    }
+  ],
+  "band": {
+    "title": "Get your *fixed* quote. No call needed.",
+    "text": "A 3-minute questionnaire. A written quote {quote_sla}."
+  }
+}

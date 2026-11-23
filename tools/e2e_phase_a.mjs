@@ -1,5 +1,5 @@
 // A10 phase-A gate: the whole sale journey end to end on the MOCK backend (Puppeteer + local Chrome, offline).
-//   landing / → "Get my fixed quote" → /start/ sign-in (link + 6-digit code) → profile → RCP questionnaire → submit
+//   landing / → /firstring/ → "Get my fixed quote" → /start/ sign-in (link + 6-digit code) → profile → RCP questionnaire → submit
 //   → admin: draft → approve & send → client opens /quote/#t=<token> → accept (name + consent) → portal "Pay deposit"
 //   → admin: client card + mark deposit paid → 7-step checklist → early go-live refused → testing → go-live request
 //   → final payment card. Plus the WEB self-serve path and the real-estate branch.
@@ -97,15 +97,20 @@ async function run(browser, width) {
   // ---------------------------------------------------------------- landing → sign-in → RCP questionnaire
   await goto('/start/?mock=1'); await page.evaluate(() => window.StartMock.admin.reset());
   // every public page: no unresolved {template} tokens from tools/build_landing.py in the visible text
-  for (const u of ['/', '/home-services/', '/real-estate/', '/website/', '/demo/', '/legal/terms/', '/legal/privacy/', '/legal/service-agreement/']) {
+  for (const u of ['/', '/firstring/', '/home-services/', '/real-estate/', '/website/', '/demo/', '/legal/terms/', '/legal/privacy/', '/legal/service-agreement/']) {
     await goto(u);
     const raw = await page.evaluate(() => [...new Set(document.body.innerText.match(/\{[a-z_][a-z0-9_:.\-]*\}/gi) || [])]);
     ok(raw.length === 0, u + ': no unresolved template tokens' + (raw.length ? ' (' + raw.join(' ') + ')' : ''));
   }
+  // Home (/) is the AI Lab Pro house page since 2026-11-23: its main button leads to /firstring/, where the quote button lives.
   await goto('/');
   await noOverflow('landing /');
+  const toFr = await page.$eval('.hero .btn--primary', a => a.getAttribute('href'));
+  ok(toFr === '/firstring/', 'home hero button → /firstring/ (' + toFr + ')');
+  await goto('/firstring/');
+  await noOverflow('landing /firstring/');
   const cta = await page.$$eval('a', as => (as.find(a => /Get my fixed quote/i.test(a.textContent)) || {}).getAttribute?.('href') || null);
-  ok(cta === '/start/?offer=RCP&niche=home_services', 'landing CTA "Get my fixed quote" → /start/?offer=RCP&niche=home_services (' + cta + ')');
+  ok(cta === '/start/?offer=RCP&niche=home_services', 'FirstRing CTA "Get my fixed quote" → /start/?offer=RCP&niche=home_services (' + cta + ')');
   await goto(cta);
   ok(await page.evaluate(() => window.Backend && window.Backend.mode) === 'mock', '/start/ runs on the mock backend');
   await page.waitForSelector('#email');

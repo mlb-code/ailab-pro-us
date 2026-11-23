@@ -49,7 +49,7 @@ cases = [
 ]
 for label, reviews, shown in cases:
     pages = page_with(reviews)
-    # The home page (/) is the lighter version since 2026-10-29; the full page with reviews is /home-services/.
+    # The home page (/) is the AI Lab Pro house page since 2026-11-23 (no reviews); the full page with reviews is /home-services/.
     for rel in ('home-services/index.html', 'real-estate/index.html'):
         h = pages[rel]
         check(f'{label}: {rel} sample strip present', 'id="sample-calls"' in h and 'rv--sample' in h)
@@ -94,6 +94,22 @@ home = pages['home-services/index.html']
 check('home: SMS-free add-on ADD-DISPATCH is listed with its price', bl.esc(next(i['name'] for i in pb['items'] if i['code'] == 'ADD-DISPATCH')) in home
       and f'{bl.money(70000)} + {bl.money(7500)}/mo' in home)
 check('home: coming-soon block present with the label', 'data-coming-soon' in home and pb['rules']['availability']['coming_soon_label'] in home)
+
+# House brand (2026-11-23): / is the AI Lab Pro home, /firstring/ the FirstRing product page with the purchase path.
+house, fr = pages['index.html'], pages['firstring/index.html']
+vis = lambda h: re.sub(r'<[^>]+>', ' ', re.sub(r'<(script|style)\b.*?</\1>', '', h, flags=re.S))
+ctx = bl.Ctx()
+check('/firstring/ title carries "AI Receptionist for Small Businesses"', 'AI Receptionist for Small Businesses' in re.search(r'<title>(.*?)</title>', fr).group(1))
+check('/ still says "AI receptionist for small businesses"', 'ai receptionist for small businesses' in vis(house).lower())
+check('/ hero button leads to /firstring/', re.search(r'<section class="hero hero--house">.*?class="btn btn--primary" href="/firstring/"', house, re.S) is not None)
+check('/firstring/ quote button keeps the purchase path', 'href="/start/?offer=RCP&amp;niche=home_services" data-ev="quote_start"' in fr)
+check('/firstring/ keeps the demo widget', 'data-demo-data' in fr)
+check('/ and /firstring/ in the sitemap', all(f'{ctx.site_url}{p}</loc>' in pages['sitemap.xml'] for p in ('/', '/firstring/')))
+for rel, h in (('index.html', house), ('firstring/index.html', fr)):
+    v = vis(h)
+    check(f'{rel}: no client names', not re.search(r'Samsung|Haier', v))
+    check(f'{rel}: no live-texting claim', not re.search(r'text-back|texts? (you|the caller) back|SMS', v, re.I))
+    check(f'{rel}: no em dash in page copy outside the demo disclaimer', '—' not in v.replace(ctx.brand['disclaimers']['demo'], ''))
 
 print(f'landing_test: {len(failures)} failed')
 sys.exit(1 if failures else 0)

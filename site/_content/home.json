@@ -1,0 +1,102 @@
+{
+  "$comment": "Home page (/) since 2026-11-23: the house brand. Blocks: hero (one headline, one line, one button to FirstRing, the live demo line as a call card), three areas (Service with FirstRing as the featured product, Sales, Operations), three trust points, closing band. Only what the price book sells today is listed with a price; anything else is one 'by request' line. Client proof is NOT shown: the owner has not decided which clients or in what form. If approved, it goes between #areas and #trust. Tokens: see _shared.json. Never type a price or the brand name here.",
+  "key": "home",
+  "tagline": "AI for small business service, sales and operations",
+  "seo": {
+    "title": "{brand}: AI for Small Businesses, Starting with an AI Receptionist",
+    "description": "{brand} sets up AI for small US businesses: service, sales and operations. Start with FirstRing, our AI receptionist for small businesses. Fixed prices, in writing.",
+    "og_title": "Put AI to work in your business."
+  },
+  "hero": {
+    "eyebrow": "AI for small businesses",
+    "title": "Put AI to work in your *business*.",
+    "lead": "We set up AI for small US businesses: service, sales and the daily work. It starts with your phone.",
+    "cta": "Meet FirstRing",
+    "cta_href": "/firstring/"
+  },
+  "call": {
+    "kicker": "Hear FirstRing live",
+    "button": "Call the demo line",
+    "tag": "Demo business",
+    "fine": "An AI answers for our demo business. US number, regular call charges apply. Calls may be recorded and written down as text."
+  },
+  "areas": {
+    "eyebrow": "What we do",
+    "title": "Three places AI can *help*.",
+    "service": {
+      "label": "Service",
+      "feature": {
+        "badge": "Flagship",
+        "kicker": "AI receptionist for small businesses",
+        "name": "FirstRing",
+        "by": "by {brand}",
+        "text": "Answers your business calls when you can't. Helps the caller, books the visit, sends you a summary.",
+        "chips": [
+          "Something's broken",
+          "Wants a quote",
+          "Already a customer"
+        ],
+        "price_code": "RCP",
+        "cta": "Meet FirstRing",
+        "href": "/firstring/"
+      },
+      "items": [
+        {
+          "title": "Chat box on your website",
+          "text": "Same answers as FirstRing. Add-on: {price:ADD-CHAT.setup} + {price:ADD-CHAT.monthly}/mo."
+        }
+      ]
+    },
+    "sales": {
+      "label": "Sales",
+      "items": [
+        {
+          "title": "Business website",
+          "text": "5 pages, built for phones. {price:WEB.setup} + {price:WEB.monthly}/mo.",
+          "href": "/website/"
+        },
+        {
+          "title": "For real estate agents",
+          "text": "Answers buyer and seller calls and books them into your calendar.",
+          "href": "/real-estate/"
+        }
+      ]
+    },
+    "operations": {
+      "label": "Operations",
+      "items": [
+        {
+          "title": "Bookings into your job app",
+          "text": "Jobber, Housecall Pro, GoHighLevel or HubSpot. FirstRing add-on: {price:ADD-CRM.setup} + {price:ADD-CRM.monthly}/mo."
+        },
+        {
+          "title": "Something else?",
+          "text": "By request. Tell us what takes up your week.",
+          "link": "Talk to us",
+          "href": "mailto:{support_email}"
+        }
+      ]
+    }
+  },
+  "trust": [
+    {
+      "title": "Fixed prices, in writing",
+      "text": "The price on the page is the price on your quote."
+    },
+    {
+      "title": "No sales calls",
+      "text": "Sign up online in about 3 minutes. A video call is optional."
+    },
+    {
+      "title": "A small studio",
+      "text": "You deal with the people who build it. Built with Claude; not affiliated with Anthropic."
+    }
+  ],
+  "band": {
+    "title": "Start with *FirstRing*.",
+    "text": "Try the demo, then get a fixed quote in about 3 minutes.",
+    "cta": "Meet FirstRing",
+    "secondary": "Try the demo",
+    "secondary_href": "/firstring/#demo"
+  }
+}

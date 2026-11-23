@@ -11,7 +11,7 @@ const args = process.argv.slice(2);
 const base = (args.find(a => !a.startsWith('--')) || 'http://localhost:8787').replace(/\/$/, '');
 const engineName = args.includes('--engine') ? args[args.indexOf('--engine') + 1] : 'chromium';
 const engine = { chromium, webkit, firefox }[engineName];
-const PAGES = ['/', '/home-services/', '/real-estate/', '/demo/'];
+const PAGES = ['/firstring/', '/home-services/', '/real-estate/', '/demo/'];  // / (house page, 2026-11-23) has no demo widget
 
 function paths(scn) {
   const out = [];

@@ -99,7 +99,7 @@ try {
   ok(!brand.analytics.ga4_id && !brand.analytics.clarity_id && !brand.analytics.meta_pixel_id, 'shipped brand.json has empty GA4 / Clarity / Meta Pixel IDs');
   ok('meta_pixel_id' in brand.analytics, 'brand.json analytics declares meta_pixel_id');
   withIds = false;
-  for (const u of ['/', '/real-estate/', '/demo/', '/start/', '/quote/#t=fixture']) {
+  for (const u of ['/', '/firstring/', '/real-estate/', '/demo/', '/start/', '/quote/#t=fixture']) {
     const { page, rec } = await newPage(browser);
     await page.goto(BASE + u, { waitUntil: 'load' }); await settle();
     const g = await page.evaluate(() => ({ gtag: typeof window.gtag, clarity: typeof window.clarity, fbq: typeof window.fbq, m: !!window.Measure }));

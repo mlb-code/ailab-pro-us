@@ -374,3 +374,86 @@ main>.section:nth-of-type(odd):not(.section--amber){background:linear-gradient(1
 .bundle--soon{border-style:dashed}
 .bundle--soon .split li{align-items:flex-start}
 .bundle--soon .split li>b{color:var(--fg-3)}
+
+/* ---------- house-brand home (2026-11-23): AI Lab Pro home, FirstRing featured ----------
+   Hero = one headline + one button + the live demo line as a call card. Then the three areas (Service / Sales /
+   Operations) with FirstRing as the large card, three trust points, the band. Same tokens; no new colors. */
+.hero--house h1{max-width:12ch}
+.hero--house .hero__copy{gap:22px}
+.hero--house .btn-row .btn{min-width:220px}
+.ring{position:relative;display:grid;gap:16px;padding:clamp(22px,2.6vw,32px);border:1px solid var(--line-2);border-radius:28px;background:radial-gradient(90% 70% at 100% 0%,rgba(91,69,230,.32),transparent 65%),linear-gradient(170deg,rgba(30,30,41,.92),rgba(12,12,16,.96));box-shadow:inset 0 1px 0 rgba(242,240,247,.08),0 40px 80px -40px rgba(0,0,0,.85),0 0 0 8px rgba(21,21,28,.35)}
+.ring__k{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2)}
+.ring__dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(127,209,168,.18)}
+.ring__who{display:flex;align-items:center;gap:14px}
+.ring__who b{display:block;color:var(--fg);font-size:1.02rem;line-height:1.25}
+.ring__who small{display:block;color:var(--fg-3);font-size:.84rem}
+.ring__av{position:relative;flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--ink-3);border:1px solid var(--line-2);color:var(--acc);font-weight:800;font-size:1.2rem}
+.ring__av i{position:absolute;inset:-1px;border-radius:50%;border:1px solid rgba(149,131,255,.55);opacity:0}
+.motion .ring__av i{animation:ringPulse 2.4s var(--ease) infinite}
+.motion .ring__av i+i{animation-delay:1.2s}
+@keyframes ringPulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.9);opacity:0}}
+.ring__num{display:block;font-family:var(--sans-head);font-weight:800;font-size:clamp(1.9rem,3.6vw,2.7rem);line-height:1.05;letter-spacing:-.03em;color:var(--fg);text-decoration:none;font-variation-settings:"wdth" 86}
+.ring__num:hover{color:var(--violet-2)}
+.ring__btn{width:100%;border-color:var(--ok);color:var(--ok);background:rgba(127,209,168,.08)}
+.ring__btn svg{width:20px;height:20px}
+.ring__btn:hover{background:var(--ok);border-color:var(--ok);color:var(--ink)}
+.ring__fine{font-size:.78rem;line-height:1.5;color:var(--fg-3)}
+@media (max-width:900px){.ring{max-width:520px}}
+@media (max-width:560px){.hero--house .btn-row .btn{min-width:0}.ring{gap:12px;padding:18px;border-radius:22px}.ring__num{font-size:1.75rem}}
+
+.areas{display:grid;gap:clamp(14px,2vw,22px);grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:auto auto}
+.area{display:grid;align-content:start;gap:18px;padding:clamp(20px,2.4vw,28px);border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,rgba(30,30,41,.7),rgba(21,21,28,.7))}
+.area--service{grid-row:span 2}
+.area__k{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg)}
+.area__ic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(149,131,255,.12);color:var(--acc)}
+.area__ic svg{width:18px;height:18px}
+.area__n{color:var(--fg-3)}
+.feat{position:relative;display:grid;gap:16px;padding:clamp(22px,2.8vw,34px);border:1px solid rgba(149,131,255,.45);border-radius:20px;background:radial-gradient(80% 90% at 100% 0%,rgba(91,69,230,.34),transparent 70%),var(--ink-2);box-shadow:0 30px 60px -36px rgba(91,69,230,.6)}
+.feat__top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.feat__kicker{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
+.feat__name{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:clamp(2.4rem,5vw,3.8rem);line-height:1;letter-spacing:-.04em;font-variation-settings:"wdth" 86}
+.feat__name small{font-family:var(--sans);font-size:1rem;font-weight:500;letter-spacing:0;color:var(--fg-3)}
+.feat__text{font-size:1.08rem;color:var(--fg-2);max-width:44ch}
+.feat__chips{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.feat__chips li{padding:7px 14px;border:1px solid var(--line-2);border-radius:var(--pill);font-size:.88rem;color:var(--fg);background:rgba(242,240,247,.04)}
+.feat__foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding-top:6px}
+.feat__price{color:var(--fg-2);font-size:.95rem}
+.feat__price b{font-family:var(--serif);font-size:1.5rem;color:var(--num);font-weight:700}
+.mini{list-style:none;display:grid}
+.mini li{display:grid;gap:2px;padding:14px 0;border-top:1px solid var(--line)}
+.mini li:first-child{border-top:0;padding-top:0}
+.mini b{color:var(--fg);font-weight:600}
+.mini span{color:var(--fg-2);font-size:.92rem}
+.mini__go{position:relative;display:grid;gap:2px;padding-right:32px;text-decoration:none}
+.mini__go .mini__arrow{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--acc);font-size:1.1rem;transition:transform .2s var(--ease)}
+.mini__go:hover b{color:var(--violet-2)}
+.mini__go:hover .mini__arrow{transform:translate(4px,-50%)}
+.mini__link{justify-self:start;margin-top:4px;color:var(--acc);font-weight:600;font-size:.92rem;text-decoration:none}
+.mini__link:hover{color:var(--violet-2)}
+@media (max-width:900px){.areas{grid-template-columns:1fr}.area--service{grid-row:auto}}
+@media (max-width:560px){.feat__foot .btn{width:100%}}
+
+#trust{padding-block:clamp(40px,6vh,72px)}
+.trust3{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,24px)}
+.trust3 li{display:grid;gap:6px;padding-left:18px;border-left:2px solid var(--acc)}
+.trust3 b{color:var(--fg);font-size:1.05rem}
+.trust3 span{color:var(--fg-2);font-size:.94rem}
+@media (max-width:760px){.trust3{grid-template-columns:1fr}}
+
+/* FirstRing page (2026-11-23): the three kinds of calls + what the owner gets */
+.calls{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,22px)}
+.calls li{display:grid;align-content:start;gap:10px;padding:clamp(20px,2.4vw,28px);border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,rgba(30,30,41,.7),rgba(21,21,28,.7))}
+.calls__ic{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:rgba(149,131,255,.12);color:var(--acc)}
+.calls__ic svg{width:26px;height:26px}
+.calls p{font-size:.96rem}
+.calls__get{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-top:clamp(18px,3vh,28px)}
+.calls__k{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.calls__get ul{list-style:none;display:flex;flex-wrap:wrap;gap:10px}
+.calls__get li{display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border:1px solid var(--line-2);border-radius:var(--pill);color:var(--fg);font-size:.92rem}
+.calls__get .calls__ic{width:30px;height:30px;border-radius:50%}
+.calls__get .calls__ic svg{width:17px;height:17px}
+@media (max-width:860px){.calls{grid-template-columns:1fr}.calls li{grid-template-columns:46px minmax(0,1fr);column-gap:16px}.calls li .calls__ic{grid-row:span 2}}
+.hero--house .lead{margin-top:6px}
+@media (max-width:560px){.feat{padding:20px 18px}.feat__chips{gap:6px}.feat__chips li{padding:6px 11px;font-size:.82rem}}
+/* FirstRing page on phones: the call thread is dropped from the hero (the demo two sections down shows the same thing); less scrolling */
+@media (max-width:760px){.hero--fr .clock{display:none}}
