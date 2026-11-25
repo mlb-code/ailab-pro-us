@@ -27,6 +27,9 @@ RULES = [
     # PayPal: a REST app secret has no prefix, so catch the env-style line it would be pasted in, and OAuth access tokens
     ('paypal-client-secret', re.compile(r'\bPAYPAL_[A-Z_]*SECRET\s*[=:]\s*["\']?[A-Za-z0-9_\-]{20,}')),
     ('paypal-access-token', re.compile(r'\bA21AA[A-Za-z0-9_\-]{40,}')),
+    # Paddle Billing: server API keys and notification-destination (webhook) secrets have fixed prefixes
+    ('paddle-api-key', re.compile(r'\bpdl_(?:live|sdbx)_apikey_[A-Za-z0-9_]{20,}')),
+    ('paddle-webhook-secret', re.compile(r'\bpdl_ntfset_[A-Za-z0-9_]{20,}')),
 ]
 
 SKIP_DIRS = {'.git', 'node_modules', 'qa-shots', '.venv', 'venv', '__pycache__', '.pytest_cache', '.mypy_cache'}
@@ -112,6 +115,8 @@ def self_test():
         'stripe-secret-key': 'sk' + '_live_' + alnum,
         'paypal-client-secret': 'PAYPAL_' + 'LIVE_CLIENT_' + 'SECRET=' + 'EK' + alnum + alnum,
         'paypal-access-token': 'Authorization: Bearer ' + 'A21' + 'AA' + alnum + alnum + alnum,
+        'paddle-api-key': 'PADDLE_API_KEY=' + 'pdl' + '_sdbx_' + 'apikey_' + alnum + alnum,
+        'paddle-webhook-secret': 'PADDLE_WEBHOOK_SECRET=' + 'pdl' + '_ntfset_' + alnum + alnum,
     }
     negatives = [
         'const pre_render = are_you_sure_about_this;',      # "re_" inside words
@@ -121,6 +126,7 @@ def self_test():
         'ANTHROPIC_API_KEY=',                                 # empty example value
         'PAYPAL_LIVE_CLIENT_SECRET=',                         # empty example value (.secrets.env.example)
         'secrets PAYPAL_CLIENT_SECRET, PAYPAL_ENV',           # a name in prose
+        'API keys start with pdl_live_apikey_ or pdl_sdbx_apikey_',   # prefix mention only
     ]
     bad = 0
     for rule, sample in positives.items():

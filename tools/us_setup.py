@@ -92,7 +92,7 @@ SUPABASE_JS_DEFAULT = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.
 # Public endpoints (no Supabase JWT): quote page, lead form, the unsubscribe link in e-mails (A8), card / PayPal checkout
 # from the quote page and portal (the quote token is the key) and PayPal's webhook (signature checked with PayPal).
 # pay-refund keeps verify_jwt: the admin's session JWT.
-NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe", "pay-create", "pay-capture", "pay-upwork", "paypal-webhook"}
+NO_VERIFY_JWT = {"quote-view", "quote-accept", "lead", "email-unsubscribe", "pay-create", "pay-capture", "pay-upwork", "paypal-webhook", "paddle-webhook"}
 STEPS = ["migrate", "test", "settings", "auth", "google", "apple", "storage", "vault", "secrets",
          "functions", "cron", "config", "ping"]
 APPLE_KEYS = ("APPLE_SERVICES_ID", "APPLE_TEAM_ID", "APPLE_KEY_ID", "APPLE_P8_PATH")

@@ -253,7 +253,7 @@ begin
   v := private.install_email_jobs();
   v := private.install_email_jobs();
   select count(*) into n from cron.job where jobname like 'ailab-us-%';
-  if n <> 7 then raise exception 'FAIL cron jobs installed idempotently (got %)', n; end if;
+  if n <> 9 then raise exception 'FAIL cron jobs installed idempotently (got %)', n; end if;  -- 7 + ailab-us-billing-sync + ailab-us-number-release (2026-11-25)
   select schedule into t from cron.job where jobname = 'ailab-us-quote-expiring';
   if t <> '30 14 * * *' then raise exception 'FAIL quote-expiring daily'; end if;
   begin perform private.call_edge_function('../x'); raise exception 'FAIL bad function name';

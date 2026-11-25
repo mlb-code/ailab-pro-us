@@ -58,7 +58,7 @@
       "code": "BNDL",
       "name": "Receptionist + Website bundle",
       "list": [
-        "Everything in the Missed-Call AI Receptionist",
+        "Everything in the FirstRing AI Receptionist",
         "Everything in the Business Website",
         "Your AI receptionist's phone number on the website",
         "A chat box on your website (same answers as your phone line) included"
@@ -134,7 +134,7 @@
     "deposit": null,
     "final": null
   },
-  "agreement_version": "1.1",
+  "agreement_version": "2.0",
   "accepted": null,
   "call_offer_prominent": true,
   "currency": "USD",

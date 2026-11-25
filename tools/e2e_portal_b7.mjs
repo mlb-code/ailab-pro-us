@@ -140,7 +140,11 @@ async function main() {
     ok(/doesn’t look like a Calendly booking link/.test(await page.$eval('#msg_calendar', e => e.innerText)), 'calendar: bad Calendly link rejected');
     await setVal(page, '#ob_cly', 'https://calendly.com/coolbreeze/service-call'); await save(page, 'calendar');
     let it = (await db(page)).onboarding_items.find(o => o.key === 'calendar');
-    ok(it.status === 'done' && it.data.booking_link === 'https://calendly.com/coolbreeze/service-call' && it.data.provider === 'calendly', 'calendar: Calendly link saved, step done');
+    // 2026-11-25: the link alone is not a connection -> the step stays open until the Calendly account is connected (OAuth)
+    ok(it.status === 'todo' && it.data.booking_link === 'https://calendly.com/coolbreeze/service-call' && it.data.provider === 'calendly', 'calendar: Calendly link saved, step stays open (no OAuth yet)');
+    ok(/Link saved\. Last step: press “Connect Calendly account”/.test(await page.$eval('#msg_calendar', e => e.innerText)), 'calendar: tells the client to connect the account');
+    ok(await page.evaluate(() => window.Backend.listOnboarding().then(ob => window.Backend.updateOnboarding(ob.find(o => o.key === 'calendar').id, 'done', { provider: 'calendly' })).then(() => 'ok', e => e.message)) === 'calendar_not_connected',
+       'calendar: done refused by the backend without a connected calendar');
     // hours: order check + timezone + after hours
     await openStep(page, 'hours');
     await setVal(page, '#obh_mon_o', '18:00'); await setVal(page, '#obh_mon_c', '08:00'); await save(page, 'hours');

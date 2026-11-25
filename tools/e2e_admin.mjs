@@ -118,7 +118,7 @@ async function main() {
     const tiles = await page.$$eval('#digest [data-go] b', bs => bs.map(b => b.textContent.trim()));
     ok(tiles[2] === '1' && tiles[3] === '1', 'digest: 1 draft to approve, 1 needs manual price');
     ok(tiles[0] === '1', 'digest: 1 new lead in 24 h that has not started');
-    ok(await page.$$eval('[role=tab]', t => t.length) === 8, '8 tabs (leads, questionnaires, quotes, clients, retainer, tenants, events, settings)');
+    ok(await page.$$eval('[role=tab]', t => t.length) === 9, '9 tabs (leads, questionnaires, quotes, clients, retainer, tenants, subscriptions, events, settings)');
     // keyboard: RTL arrows
     await page.focus('#tab-quotes'); await page.keyboard.press('ArrowLeft'); await sleep(150);
     ok(await page.evaluate(() => document.activeElement.id === 'tab-clients' && document.querySelector('#tab-clients').getAttribute('aria-selected') === 'true'), 'ArrowLeft moves to the next tab (RTL) and selects it');

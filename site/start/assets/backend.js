@@ -37,6 +37,9 @@
      getResults(tenantId, month) -> Results panel numbers (client_results RPC)
      markNoShow(bookingId, noShow) -> {id, status} (client_mark_no_show RPC: started visits only, undo allowed)
      setAvgJobValue(tenantId, usd|null) -> {avg_job_value_usd} (client_set_avg_job_value RPC)
+   Sign-up + Paddle (SQL in supabase/migrations/*_us_paddle.sql):
+     checkoutStart(plan, phone, agreementVersion, consentText, trial) -> {ref, plan_code, trial, business_phone} (billing_checkout_start)
+     paddleAction(action, {plan_code}) -> Edge Function paddle-billing (change_plan | start_now | cancel | resume | update_card | manage)
    Error messages carry the same codes the DB guards raise (questionnaire_locked, offer_required, too_many_files, ...). */
 (function () {
   const C = window.SITE_CONFIG || {};   // /assets/config.js (written by tools/us_setup.py, task A2)
@@ -184,6 +187,20 @@
       },
       async getUsage(tenantId, month) { return must(await sb.rpc('client_tenant_usage', { p_tenant_id: tenantId, p_month: month || null })); },
       // appointment manager (migration *_us_appointments.sql)
+      // FirstRing monthly plans (migration *_us_subscriptions.sql)
+      async getBilling() { return must(await sb.rpc('client_billing')); },
+      async trialEligible(phone) { return must(await sb.rpc('billing_trial_eligible', { p_business_phone: phone || null })); },
+      async mockCheckout(plan, trialDays, phone) { return must(await sb.rpc('billing_mock_checkout', { p_plan_code: plan, p_trial_days: trialDays == null ? 14 : trialDays, p_business_phone: phone || null })); },
+      async changePlan(plan, startNow) { return must(await sb.rpc('billing_change_plan', { p_plan_code: plan, p_start_now: !!startNow })); },
+      async cancelPlan() { return must(await sb.rpc('billing_cancel')); },
+      async resumePlan() { return must(await sb.rpc('billing_resume')); },
+      // sign-up + Paddle (migration *_us_paddle.sql, Edge Function paddle-billing; the server holds the Paddle API key)
+      async checkoutStart(plan, phone, agreementVersion, consentText, trial) {
+        return must(await sb.rpc('billing_checkout_start', { p_plan_code: plan, p_business_phone: phone, p_agreement_version: agreementVersion,
+          p_consent_text: consentText, p_trial: trial !== false, p_user_agent: (navigator.userAgent || '').slice(0, 300) }));
+      },
+      async paddleAction(action, extra) { return invoke('paddle-billing', Object.assign({ action }, extra || {})); },
+      async confirmForwardingTest(id) { return must(await sb.rpc('confirm_forwarding_test', { p_item: id })); },
       async getResults(tenantId, month) { return must(await sb.rpc('client_results', { p_tenant_id: tenantId, p_month: month || null })); },
       async markNoShow(bookingId, noShow) { return must(await sb.rpc('client_mark_no_show', { p_booking_id: bookingId, p_no_show: noShow !== false })); },
       async setAvgJobValue(tenantId, value) { return must(await sb.rpc('client_set_avg_job_value', { p_tenant_id: tenantId, p_value: value })); },
@@ -253,7 +270,11 @@
     'listRequestAttachments', 'uploadRequestAttachment', 'removeRequestAttachment',
     'saveDispatch', 'listDispatchEvents', 'markDispatchHandled',
     // appointment manager
-    'getResults', 'markNoShow', 'setAvgJobValue'].forEach(fn => {
+    'getResults', 'markNoShow', 'setAvgJobValue',
+    // FirstRing monthly plans
+    'getBilling', 'trialEligible', 'mockCheckout', 'changePlan', 'cancelPlan', 'resumePlan', 'confirmForwardingTest',
+    // sign-up + Paddle
+    'checkoutStart', 'paddleAction'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
   });
   window.Backend = api;

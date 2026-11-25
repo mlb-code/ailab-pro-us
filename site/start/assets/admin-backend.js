@@ -16,7 +16,9 @@
        refuses anonymized / needs_manual_price, moves draft -> approved -> sent and emits the quote_sent e-mail event.
      - runtime_state is service-role only: adminRuntimeState returns [] unless an admin read path is added.
    B7 (Tenants tab): adminTenantUsage(month) = RPC admin_tenant_usage (security definer + is_admin(); usage/cost keys only),
-     adminSaveTenant({id?, client_id, slug, status, twilio_number, config}) = RPC admin_save_tenant (admin only, logged). */
+     adminSaveTenant({id?, client_id, slug, status, twilio_number, config}) = RPC admin_save_tenant (admin only, logged).
+   FirstRing plans (Subscriptions tab): adminSubscriptions = RPC admin_subscriptions, adminRetryProvisioning(client, kind) =
+     admin_retry_provisioning (number | golive_sim | setup), adminForceGolive, adminMarkMoneyBack (30-day money-back used). */
 (function () {
   const C = window.SITE_CONFIG || {};
   const qs = new URLSearchParams(location.search);
@@ -120,6 +122,16 @@
       async adminSaveNote(entity, id, body) { return must(await sb.from('admin_notes').upsert({ entity, entity_id: id, body }).select('*').single()); },
       async adminOutbox() { return []; },
       async adminTenantUsage(month) { return must(await sb.rpc('admin_tenant_usage', { p_month: month || null })); },
+      async adminSubscriptions() { return must(await sb.rpc('admin_subscriptions')); },
+      async adminRetryProvisioning(clientId, kind) { return must(await sb.rpc('admin_retry_provisioning', { p_client: clientId, p_kind: kind })); },
+      async adminForceGolive(clientId) { return must(await sb.rpc('admin_force_golive', { p_client: clientId })); },
+      async adminMarkMoneyBack(clientId) { return must(await sb.rpc('admin_mark_money_back', { p_client: clientId })); },
+      // FirstRing phase 2 (runtime agent, *_us_firstring_p2.sql): number release + go-live live AI check in the Subscriptions tab
+      async adminSubscriptionsExtra() { return must(await sb.rpc('admin_subscriptions_extra')); },
+      async adminPostponeNumberRelease(clientId, days) { return must(await sb.rpc('admin_postpone_number_release', { p_client: clientId, p_days: days || 14 })); },
+      async adminReleaseNumberNow(clientId) { return must(await sb.rpc('admin_release_number_now', { p_client: clientId })); },
+      // 30-day money-back through Paddle: full refund of the first paid charge + the plan ends (paddle-billing, admin only)
+      async adminPaddleRefund(clientId) { return fn('paddle-billing', { action: 'money_back', client_id: clientId, confirm: true }); },
       async adminSaveTenant(row) {
         return must(await sb.rpc('admin_save_tenant', { p_id: row.id || null, p_client_id: row.client_id, p_slug: row.slug, p_status: row.status || 'sandbox',
           p_twilio_number: row.twilio_number || null, p_config: row.config }));
@@ -146,7 +158,9 @@
     'adminListQuestionnaires', 'adminListAttachments', 'downloadUrl', 'adminListQuotes', 'adminRegenerateDraft', 'adminSaveQuote',
     'quoteSend', 'adminGetQuoteReview', 'adminCreateClientFromQuote', 'adminListClients', 'adminSaveClient', 'adminListPayments', 'adminMarkPaid', 'adminRefundPayment',
     'adminListOnboarding', 'adminListTenants', 'adminRuntimeState', 'adminListRequests', 'adminSaveRequest', 'adminListEvents',
-    'adminLogEvent', 'adminGetNote', 'adminSaveNote', 'adminOutbox', 'adminTenantUsage', 'adminSaveTenant'].forEach(fn => {
+    'adminLogEvent', 'adminGetNote', 'adminSaveNote', 'adminOutbox', 'adminTenantUsage', 'adminSaveTenant',
+    'adminSubscriptions', 'adminRetryProvisioning', 'adminForceGolive', 'adminMarkMoneyBack', 'adminPaddleRefund',
+    'adminSubscriptionsExtra', 'adminPostponeNumberRelease', 'adminReleaseNumberNow'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
   });
   window.AdminBackend = api;

@@ -18,6 +18,7 @@
     del: k => { try { localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
   };
   const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'landing_path', 'first_seen'];
+  const webOnly = (db, u, offer) => !offer || offer === 'WEB' || !!(db.profiles.find(p => p.id === u.id) || {}).is_admin;
   function cleanUtm(u) {
     const out = {};
     if (u && typeof u === 'object' && !Array.isArray(u)) UTM_KEYS.forEach(k => { if (typeof u[k] === 'string' && u[k]) out[k] = u[k].slice(0, 200); });
@@ -25,7 +26,9 @@
   }
   const TABLES = ['users', 'profiles', 'questionnaires', 'attachments', 'quotes', 'clients', 'payments', 'events', 'outbox', 'otps',
     'leads', 'onboarding_items', 'requests', 'tenants', 'runtime_state', 'admin_notes', 'quote_reviews',   // second row: admin (A7)
-    'calls', 'sms_messages', 'bookings', 'dispatch_events'];   // third row: receptionist data written by the runtime (B7 reads it)
+    'calls', 'sms_messages', 'bookings', 'dispatch_events',   // third row: receptionist data written by the runtime (B7 reads it)
+    'subscriptions', 'provisioning_jobs', 'trial_claims', 'tenant_credentials',   // FirstRing plans (*_us_subscriptions.sql)
+    'billing_checkouts', 'paddle_calls'];   // sign-up + Paddle (*_us_paddle.sql); paddle_calls = what paddle-billing would send to Paddle
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
   const ss = {
@@ -163,6 +166,8 @@
         return later(p);
       },
 
+      // = private.questionnaires_offer_guard (20261127200000_us_questionnaire_web_only.sql): a client creates / edits / sends
+      // website questionnaires only (FirstRing = the plan sign-up); admins are not limited; locked rows are not editable anyway
       listQuestionnaires() {
         const db = load(), u = me(db); if (!u) return fail('not_authenticated');
         const rows = db.questionnaires.filter(q => q.user_id === u.id)
@@ -173,6 +178,7 @@
       // mirrors private.questionnaires_guard (20261025100000_us_questionnaire_utm.sql): whitelisted keys, strings, 200 chars
       createQuestionnaire(init) {
         const db = load(), u = me(db); if (!u) return fail('not_authenticated');
+        if (!webOnly(db, u, init && init.offer)) return fail('offer_not_offered');
         if (db.questionnaires.filter(q => q.user_id === u.id).length >= 20) return fail('too_many_questionnaires');
         const q = { id: uuid(), user_id: u.id, offer: init && init.offer || null, niche: init && init.niche || null, status: 'draft',
           answers: {}, summary: [], submitted_at: null, created_at: now(), updated_at: now(), utm: cleanUtm(init && init.utm) };
@@ -189,6 +195,7 @@
         const db = load(), u = me(db); if (!u) return fail('not_authenticated');
         const q = db.questionnaires.find(x => x.id === id && x.user_id === u.id && x.status === 'draft');
         if (!q) return later(null);   // RLS: update matches 0 rows
+        if (!webOnly(db, u, 'offer' in patch ? patch.offer : q.offer)) return fail('offer_not_offered');
         ['offer', 'niche', 'answers', 'summary'].forEach(k => { if (k in patch) q[k] = clone(patch[k]); });
         if (JSON.stringify(q.answers).length > 200000) return fail('answers_too_large');
         q.updated_at = now(); store(db);
@@ -200,6 +207,7 @@
         if (!q) return fail('not_found');
         if (q.status !== 'draft') return fail('questionnaire_locked');
         if (!q.offer) return fail('offer_required');
+        if (!webOnly(db, u, q.offer)) return fail('offer_not_offered');
         q.status = 'submitted'; q.submitted_at = now(); q.updated_at = now();
         event(db, 'questionnaire', q.id, u.id, 'status_changed', { from: 'draft', to: 'submitted' });
         store(db);
@@ -655,7 +663,7 @@
     db.leads.push({ id: uuid(), email: 'dani@coolbreeze.test', niche: 'home_services', source_page: '/', utm: { source: 'google' }, created_at: ago(60) });
 
     const q1 = qn(dani, 'RCP', 'home_services', { services: ['hvac'], service_area: 'Houston 77002 77005', locations: '1', tools: ['google_calendar', 'jobber'], spanish: 'no' }, 'submitted', 3);
-    quote(q1, [{ code: 'RCP' }, { code: 'ADD-CRM', qty: 1 }], 'draft', { scope_md: 'We will set up the Missed-Call AI Receptionist for Cool Breeze HVAC with Jobber and Google Calendar.\n\n(Demo draft from the mock quote engine.)' });
+    quote(q1, [{ code: 'RCP' }, { code: 'ADD-CRM', qty: 1 }], 'draft', { scope_md: 'We will set up the FirstRing AI Receptionist for Cool Breeze HVAC with Jobber and Google Calendar.\n\n(Demo draft from the mock quote engine.)' });
     const q2 = qn(tom, 'RCP', 'home_services', { services: ['plumbing'], locations: '2', tools: ['servicetitan'] }, 'submitted', 8);
     const qm = quote(q2, [{ code: 'RCP' }, { code: 'ADD-LOC', qty: 1 }, { code: 'CUSTOM', label: 'ServiceTitan integration' }], 'needs_manual_price');
     db.quote_reviews.push({ quote_id: qm.id, manual_reasons: ['custom:ServiceTitan integration'], risk_flags: ['ServiceTitan API access needs the client\'s admin account'],
@@ -729,8 +737,9 @@
     const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
     for (const k of Object.keys(patch)) {
       const v = patch[k];
-      if (['hours', 'faq', 'notify', 'paused', 'after_hours', 'on_call_number', 'real_estate'].indexOf(k) === -1) return 'field_not_allowed: ' + k;
+      if (['hours', 'faq', 'notify', 'paused', 'after_hours', 'on_call_number', 'real_estate', 'spanish'].indexOf(k) === -1) return 'field_not_allowed: ' + k;   // spanish: P2 block below
       if (k === 'paused' && typeof v !== 'boolean') return 'invalid_setting:paused';
+      if (k === 'spanish' && typeof v !== 'boolean') return 'invalid_setting:spanish';   // P2
       if (k === 'hours') {
         if (!isObj(v)) return 'invalid_setting:hours';
         for (const d of Object.keys(v)) {
@@ -854,10 +863,16 @@
     if (!it) return;
     const st = Date.parse(it.data.test_started_at), at = Date.parse(call.started_at);
     if (!(at >= st - 60000 && at <= st + 30 * 60000)) return;
-    it.status = 'done'; it.done_at = now(); it.updated_at = now();
-    it.data = Object.assign({}, it.data, { test_call_at: call.started_at, test_call_id: call.id });
+    // 2026-11-25: the call must come THROUGH the business line (ForwardedFrom = business.main_phone)
+    const main = ((t.config || {}).business || {}).main_phone || null, fwd = call.forwarded_from || null;
+    it.updated_at = now();
+    if (fwd && fwd !== main) { it.data = Object.assign({}, it.data, { test_mismatch_at: call.started_at, test_mismatch_from: fwd, test_call_id: call.id }); return; }
+    if (!fwd) { it.data = Object.assign({}, it.data, { test_unverified_at: call.started_at, test_call_id: call.id, test_direct: call.from_e164 === main }); return; }
+    it.status = 'done'; it.done_at = now();
+    it.data = Object.assign({}, it.data, { test_call_at: call.started_at, test_call_id: call.id, verified: 'forwarded_from' });
     const c = db.clients.find(x => x.id === t.client_id) || {};
     db.events.push({ id: uuid(), actor: 'runtime', entity: 'onboarding_item', entity_id: it.id, user_id: c.user_id || null, type: 'forwarding_test_passed', payload: { call_id: call.id }, client_visible: true, created_at: now() });
+    autoGoLive(db, t.client_id);
   }
 
   function portalBApi() {
@@ -941,11 +956,19 @@
           if (status != null && ['todo', 'done', 'need_help'].indexOf(status) === -1) throw err('invalid_status');
           if (data != null && (typeof data !== 'object' || Array.isArray(data))) throw err('data_must_be_object');
           const merged = Object.assign({}, it.data || {}, data || {});
-          // private.onboarding_go_live_gate: go-live only in 'testing' with every item done (optional 'tools' excepted)
+          // private.onboarding_go_live_gate: go-live only in 'testing' with every item done (optional 'tools' + 'sms' excepted)
           if (merged.go_live_requested_at && !(it.data || {}).go_live_requested_at && !isAdmin(x)) {
             const cl = x.db.clients.find(cc => cc.id === it.client_id) || {};
-            const open = x.db.onboarding_items.some(o => o.client_id === it.client_id && o.id !== it.id && o.key !== 'tools' && o.status !== 'done');
-            if ((status || it.status) !== 'done' || cl.status !== 'testing' || open) throw err('go_live_not_ready');
+            const open = x.db.onboarding_items.some(o => o.client_id === it.client_id && o.id !== it.id && OPTIONAL_ITEMS.indexOf(o.key) === -1 && o.status !== 'done');
+            if (((status || it.status) !== 'done' && OPTIONAL_ITEMS.indexOf(it.key) === -1) || cl.status !== 'testing' || open) throw err('go_live_not_ready');
+          }
+          // private.onboarding_apply: calendar done only with a connected calendar or "take messages only" (every client)
+          if (it.key === 'calendar' && status === 'done' && it.status !== 'done' && !isAdmin(x) && merged.booking_mode !== 'messages_only'
+              && !x.db.tenant_credentials.some(k => k.provider === merged.provider && x.db.tenants.some(t => t.id === k.tenant_id && t.client_id === it.client_id))) throw err('calendar_not_connected');
+          const subCl = x.db.clients.find(cc => cc.id === it.client_id) || {};
+          if (subCl.billing_mode === 'subscription') {   // every save goes straight into the live config (same rules as SQL)
+            const t = x.db.tenants.find(tt => tt.client_id === it.client_id);
+            if (t && window.OnboardingConfig) { t.config = window.OnboardingConfig.patch(it.key, merged, t.config); planGuard(x.db, t); t.updated_at = now(); }
           }
           if (JSON.stringify(merged).length >= 20000) throw err('data_too_large');
           const from = it.status, prevData = it.data || {};
@@ -961,6 +984,7 @@
             x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'client', entity_id: c.id, user_id: c.user_id || null, type: 'go_live_requested', payload: { item_id: it.id }, client_visible: true, created_at: now() });
             x.db.outbox.push({ id: uuid(), to: emailOf(x.db, c.user_id), template: 'final_payment_due', subject: 'Final payment before go-live', created_at: now() });
           }
+          autoGoLive(x.db, it.client_id);
           return it;
         });
       },
@@ -981,6 +1005,8 @@
           if (!ownsTenant(x, tenantId)) throw err('not_your_tenant');
           if (['google', 'calendly'].indexOf(provider) === -1) throw err('unknown_provider');
           x.db.events.push({ id: uuid(), actor: 'runtime', entity: 'tenant', entity_id: tenantId, user_id: x.u.id, type: 'calendar.connected', payload: { provider }, client_visible: false, created_at: now() });
+          x.db.tenant_credentials = x.db.tenant_credentials.filter(k => !(k.tenant_id === tenantId && k.provider === provider));
+          x.db.tenant_credentials.push({ tenant_id: tenantId, provider, ciphertext: 'mock', updated_at: now() });   // what the runtime callback stores
           return { url: '/start/?' + new URLSearchParams({ calendar: provider, result: 'connected' }) + '#onboarding' };
         });
       },
@@ -990,8 +1016,10 @@
         return run(x => {
           if (!(ownsTenant(x, tenantId) || isAdmin(x))) throw err('not_your_tenant');
           const bad = checkSettingsPatch(patch); if (bad) throw err(bad);
+          if ('spanish' in patch && !p2HasSpanish(x.db, tenantId)) throw err('spanish_not_in_plan');   // P2
           const t = x.db.tenants.find(tt => tt.id === tenantId);
-          const p2 = clone(patch); delete p2.on_call_number;
+          const p2 = clone(patch); delete p2.on_call_number; delete p2.spanish;
+          if ('spanish' in patch) p2SetSpanish(t, patch.spanish);   // P2: voice.languages + the remembered choice
           const prevRe = (t.config || {}).real_estate;
           t.config = Object.assign({}, t.config || {}, p2); t.updated_at = now();
           if ('real_estate' in patch) {   // one level deep, like the SQL: follow_up_boss + keys the patch leaves out are kept
@@ -1294,10 +1322,11 @@
   }
 
   // B7: the runtime logging a call to the tenant number (e.g. the client's forwarding test)
-  function simulateCall(tid) {
+  function simulateCall(tid, opts) {
     const db = load();
     const t = db.tenants.find(x => x.id === tid); if (!t) throw new Error('not_found');
-    const call = { id: uuid(), tenant_id: t.id, call_sid: 'CA' + rnd(32), from_e164: '+17135550100', started_at: now(), duration_s: 20, outcome: 'message',
+    const fwd = opts && 'forwardedFrom' in opts ? opts.forwardedFrom : (((t.config || {}).business || {}).main_phone || null);
+    const call = { id: uuid(), tenant_id: t.id, call_sid: 'CA' + rnd(32), from_e164: (opts && opts.from) || '+12815550177', forwarded_from: fwd, started_at: now(), duration_s: 20, outcome: 'message',
       transcript: [{ who: 'assistant', text: 'Thanks for calling. This call may be transcribed.' }], summary: 'Forwarding test call.', cost_usd: 0.01, created_at: now() };
     db.calls.push(call);
     forwardingCheck(db, call);
@@ -1305,9 +1334,581 @@
     return call.id;
   }
 
+  // ------------------------------------------------------------------ FirstRing monthly plans (mirrors 20261125100000_us_subscriptions.sql)
+  // subscriptions + trial_claims + provisioning_jobs; the same contract as public.billing_upsert_subscription (here: the mock
+  // provider, always on in the mock backend). Plan numbers (minutes, price) are never stored: the portal reads the price book.
+  const OPTIONAL_ITEMS = ['tools', 'sms'];
+  const SUB_ITEMS = [['hours', 'Business hours', 1], ['faq', 'Services & FAQ', 2], ['alerts', 'Emergencies & alerts', 3],
+    ['calendar', 'Connect your calendar', 4], ['tools', 'Connect other tools', 5], ['forward_calls', 'Forward your missed calls', 6],
+    ['sms', 'Texting registration (optional, later)', 7]];
+  const PLAN_RANK = { FR_STARTER: 1, FR_PRO: 2, FR_BUSINESS: 3 };
+  const AREA_TZ_MOCK = { 713: 'America/Chicago', 281: 'America/Chicago', 832: 'America/Chicago', 512: 'America/Chicago', 312: 'America/Chicago',
+    212: 'America/New_York', 305: 'America/New_York', 404: 'America/New_York', 303: 'America/Denver', 602: 'America/Phoenix', 213: 'America/Los_Angeles', 415: 'America/Los_Angeles' };
+  const bErr = code => { const e = new Error(code); e.code = code; return e; };
+  const usE164 = v => { const d = String(v || '').replace(/\D/g, ''); return /^1?[2-9]\d{9}$/.test(d) ? '+1' + d.slice(-10) : null; };
+  const subOf = (db, cid) => db.subscriptions.filter(s => s.client_id === cid).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
+  const iso = ms => new Date(ms).toISOString();
+  function subService(sub, at) {
+    const t = at || Date.now(), P = v => v ? Date.parse(v) : null;
+    if (!sub) return ['full', ''];
+    if (sub.status === 'trialing') return sub.trial_ends_at && P(sub.trial_ends_at) + 12 * 3600000 < t ? ['message_only', 'trial_ended'] : ['full', ''];
+    if (sub.status === 'active') return sub.cancel_at_period_end && sub.current_period_end && P(sub.current_period_end) < t ? ['message_only', 'canceled'] : ['full', ''];
+    if (sub.status === 'past_due') return (P(sub.past_due_since) || t) + 7 * 86400000 < t ? ['message_only', 'past_due'] : ['full', ''];
+    if (sub.status === 'paused') return ['message_only', 'paused'];
+    return (P(sub.ends_at) || P(sub.canceled_at) || t) <= t ? ['message_only', 'canceled'] : ['full', ''];
+  }
+  function planBlock(db, cid) {
+    const sub = subOf(db, cid); if (!sub) return null;
+    const [service, reason] = subService(sub);
+    const trial = sub.status === 'trialing';
+    const ps = trial ? (sub.trial_began_at || sub.created_at) : (sub.current_period_start || sub.trial_ends_at || sub.created_at);
+    return { code: sub.plan_code, status: sub.status, trial_ends_at: sub.trial_ends_at || null, period_start: String(ps).slice(0, 10) + 'T' + String(ps).slice(11, 13) + String(ps).slice(14, 16),
+      period_end: (trial ? sub.trial_ends_at : sub.current_period_end) || null, service, service_reason: reason };
+  }
+  function planGuard(db, t) {   // private.tenant_plan_guard
+    const cl = db.clients.find(c => c.id === t.client_id) || {};
+    if (cl.billing_mode !== 'subscription') return;
+    const blk = planBlock(db, t.client_id); if (!blk) return;
+    const prev = ((t.config || {}).plan || {}).service || 'full', sub = subOf(db, t.client_id);
+    t.config = Object.assign({}, t.config || {}, { plan: blk });
+    p2PlanSpanish(t);   // P2: private.tenant_plan_spanish
+    const to = emailOf2(db, cl.user_id), day = new Date().toISOString().slice(0, 10);
+    if (prev === 'full' && blk.service === 'message_only' && !db.outbox.some(m => m.key === 'mm:' + sub.id + ':' + blk.service_reason + ':' + day)) {
+      db.outbox.push({ id: uuid(), key: 'mm:' + sub.id + ':' + blk.service_reason + ':' + day, to, template: 'subscription_message_mode', subject: 'Your receptionist is now in message mode', created_at: now() });
+    } else if (prev === 'message_only' && blk.service === 'full') {
+      db.outbox.push({ id: uuid(), to, template: 'subscription_restored', subject: 'Full answering is back on', created_at: now() });
+    }
+  }
+  const emailOf2 = (db, uid) => (db.profiles.find(p => p.id === uid) || {}).email || null;
+  function defaultConfig(db, cl, phone) {
+    const p = db.profiles.find(x => x.id === cl.user_id) || {};
+    const q = db.questionnaires.filter(x => x.user_id === cl.user_id).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))[0] || {};
+    const ph = usE164(phone) || usE164(p.phone);
+    const niche = (q.niche || p.niche) === 'real_estate' ? 'real_estate' : 'home_services';
+    const trade = String(((q.answers || {}).trade) || '').trim().slice(0, 60);
+    const tz = p.timezone || (ph && AREA_TZ_MOCK[ph.slice(2, 5)]) || 'America/New_York';
+    const svc = Array.isArray((q.answers || {}).services) && q.answers.services.length ? q.answers.services.slice(0, 30)
+      : niche === 'real_estate' ? ['Buyer consultation', 'Listing consultation', 'Home showing'] : [(trade ? trade + ' service call' : 'Service call'), 'Estimate'];
+    const email = String(p.contact_email || p.email || '').toLowerCase();
+    const day = ['08:00', '17:00'];
+    return { business: Object.assign({ name: (cl.business_name || p.company || p.full_name || 'Your business').slice(0, 120), niche, trade, timezone: tz, service_area_zips: [] }, ph ? { main_phone: ph } : {}),
+      voice: { greeting: '' }, hours: { mon: day, tue: day, wed: day, thu: day, fri: day, sat: null, sun: null },
+      booking: { provider: 'calendly', enabled: true, job_types: svc, windows: [['08:00', '12:00'], ['12:00', '16:00']] },
+      notify: { sms: [], email: email ? [email] : [], daily_summary: '19:00' }, paused: false };
+  }
+  function slugFor(db, name) {
+    let base = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+    if (base.length < 3) base = 'fr-' + (base || 'line');
+    let s = base, n = 1; while (db.tenants.some(t => t.slug === s)) s = base + '-' + (++n);
+    return s;
+  }
+  function provisionClient(db, sub) {
+    const cl = db.clients.find(c => c.id === sub.client_id);
+    let t = db.tenants.find(x => x.client_id === cl.id);
+    if (!t) {
+      const cfg = defaultConfig(db, cl, sub.business_phone);
+      t = { id: uuid(), client_id: cl.id, slug: slugFor(db, cfg.business.name), status: 'sandbox', twilio_number: null, config: cfg, created_at: now(), updated_at: now() };
+      db.tenants.push(t);
+    }
+    SUB_ITEMS.forEach(([key, title, sort]) => {
+      if (!db.onboarding_items.some(o => o.client_id === cl.id && o.key === key)) db.onboarding_items.push({ id: uuid(), client_id: cl.id, key, title, video_url: null, sort, status: 'todo', data: {}, done_at: null, created_at: now(), updated_at: now() });
+    });
+    if (!t.twilio_number) {
+      let j = db.provisioning_jobs.find(x => x.tenant_id === t.id && x.kind === 'number');
+      if (!j) { j = { id: uuid(), tenant_id: t.id, client_id: cl.id, kind: 'number', status: 'pending', attempts: 0, last_error: null, result: {}, dry_run: false, created_at: now(), updated_at: now() }; db.provisioning_jobs.push(j); }
+      if (sub.trial_duplicate) Object.assign(j, { status: 'held', last_error: 'duplicate_trial: this business phone already had a free trial' });
+    }
+    return t;
+  }
+  function syncClient(db, cid) {   // private.sync_client_billing
+    const sub = subOf(db, cid); if (!sub) return;
+    const [service] = subService(sub);
+    db.tenants.filter(t => t.client_id === cid).forEach(t => planGuard(db, t));
+    const c = db.clients.find(x => x.id === cid);
+    c.next_bill_on = ['active', 'trialing'].indexOf(sub.status) !== -1 ? String(sub.current_period_end || sub.trial_ends_at || '').slice(0, 10) || null : null;
+    if (service === 'message_only' && c.status === 'live') { c.status = 'paused'; c.billing_paused = true; }
+    else if (service === 'full' && c.status === 'paused' && c.billing_paused) { c.status = 'live'; c.billing_paused = false; }
+    if (service === 'full') tryGoLive(db, cid);
+    p2ReleaseSync(db, cid);   // P2: private.number_release_sync
+  }
+  function tryGoLive(db, cid) {
+    const c = db.clients.find(x => x.id === cid), sub = subOf(db, cid);
+    if (!c || c.billing_mode !== 'subscription' || c.status !== 'testing' || !sub || ['trialing', 'active'].indexOf(sub.status) === -1 || subService(sub)[0] !== 'full') return false;
+    const t = db.tenants.find(x => x.client_id === cid);
+    if (!t || !t.twilio_number || !db.provisioning_jobs.some(j => j.tenant_id === t.id && j.kind === 'golive_sim' && j.status === 'done' && j.result && j.result.passed)) return false;
+    if (db.onboarding_items.some(o => o.client_id === cid && OPTIONAL_ITEMS.indexOf(o.key) === -1 && o.status !== 'done')) return false;
+    if (t.status === 'sandbox') t.status = 'live';
+    c.status = 'live'; c.go_live_at = c.go_live_at || now(); c.updated_at = now();
+    db.events.push({ id: uuid(), actor: 'system', entity: 'client', entity_id: cid, user_id: c.user_id, type: 'auto_go_live', payload: { plan: sub.plan_code }, client_visible: true, created_at: now() });
+    db.outbox.push({ id: uuid(), to: emailOf2(db, c.user_id), template: 'went_live', subject: 'You’re live', created_at: now() });
+    return true;
+  }
+  function autoGoLive(db, cid) {   // private.onboarding_autogolive
+    const c = db.clients.find(x => x.id === cid);
+    if (!c || c.billing_mode !== 'subscription' || ['onboarding', 'building', 'testing'].indexOf(c.status) === -1) return;
+    if (db.onboarding_items.some(o => o.client_id === cid && OPTIONAL_ITEMS.indexOf(o.key) === -1 && o.status !== 'done')) return;
+    const t = db.tenants.find(x => x.client_id === cid); if (!t || !t.twilio_number) return;
+    if (c.status !== 'testing') { c.status = 'testing'; db.outbox.push({ id: uuid(), to: emailOf2(db, c.user_id), template: 'ready_to_test', subject: 'Your setup is done: final checks running', created_at: now() }); }
+    let j = db.provisioning_jobs.find(x => x.tenant_id === t.id && x.kind === 'golive_sim');
+    if (!j) { j = { id: uuid(), tenant_id: t.id, client_id: cid, kind: 'golive_sim', status: 'pending', attempts: 0, result: {}, created_at: now(), updated_at: now() }; db.provisioning_jobs.push(j); }
+    else if (!(j.status === 'pending' || j.status === 'running' || (j.status === 'done' && j.result && j.result.passed))) Object.assign(j, { status: 'pending', attempts: 0, last_error: null });
+    tryGoLive(db, cid);
+  }
+  function upsertCore(db, a) {   // private.upsert_subscription_core
+    let sub = db.subscriptions.find(s => s.provider === a.provider && s.provider_subscription_id === a.provider_subscription_id);
+    if (sub && sub.last_event_at && a.event_at && a.event_at < sub.last_event_at) return { subscription_id: sub.id, client_id: sub.client_id, status: sub.status, stale: true, changed: false };
+    let cl;
+    if (!sub) {
+      cl = db.clients.filter(c => c.user_id === a.user_id && c.billing_mode === 'subscription').sort((x, y) => y.created_at.localeCompare(x.created_at))[0];
+      const p = db.profiles.find(x => x.id === a.user_id) || {};
+      if (!cl) { cl = { id: uuid(), user_id: a.user_id, quote_id: null, products: ['RCP'], status: 'onboarding', billing_mode: 'subscription', billing_paused: false, business_name: p.company || null, monthly_cents: null, created_at: now(), updated_at: now() }; db.clients.push(cl); }
+      a.phone = usE164(a.business_phone) || usE164(p.phone);
+    } else { cl = db.clients.find(c => c.id === sub.client_id); a.phone = usE164(a.business_phone) || sub.business_phone; }
+    let dup = false;
+    if (a.status === 'trialing' && a.phone) {
+      let claim = db.trial_claims.find(t => t.phone === a.phone);
+      if (!claim) { claim = { phone: a.phone, client_id: cl.id, user_id: cl.user_id, claimed_at: now(), money_back_used_at: null }; db.trial_claims.push(claim); }
+      dup = claim.client_id !== cl.id;
+    }
+    const ts = now();
+    if (!sub) {
+      sub = { id: uuid(), client_id: cl.id, provider: a.provider, provider_subscription_id: a.provider_subscription_id, provider_customer_id: a.provider_customer_id || null,
+        trial_began_at: a.status === 'trialing' ? ts : null, created_at: ts, money_back_used_at: null, trial_duplicate: false };
+      db.subscriptions.push(sub);
+    }
+    Object.assign(sub, { plan_code: a.plan_code, scheduled_plan_code: a.scheduled_plan_code || null, status: a.status,
+      card_on_file: a.card_on_file == null ? !!sub.card_on_file : !!a.card_on_file,
+      trial_began_at: a.status === 'trialing' ? (sub.trial_began_at || ts) : sub.trial_began_at,
+      trial_ends_at: a.trial_ends_at || sub.trial_ends_at || null, current_period_start: a.current_period_start || sub.current_period_start || null,
+      current_period_end: a.current_period_end || sub.current_period_end || null,
+      cancel_at_period_end: a.cancel_at_period_end == null ? !!sub.cancel_at_period_end : !!a.cancel_at_period_end,
+      canceled_at: a.status === 'canceled' ? (a.canceled_at || sub.canceled_at || ts) : null,
+      ends_at: a.status === 'canceled' ? (sub.ends_at || a.current_period_end || sub.current_period_end || a.canceled_at || ts) : null,
+      past_due_since: a.status === 'past_due' ? (sub.past_due_since || ts) : null, paused_at: a.status === 'paused' ? (sub.paused_at || ts) : null,
+      business_phone: a.phone || sub.business_phone || null, trial_duplicate: !!sub.trial_duplicate || dup, last_event_at: a.event_at || ts, updated_at: ts });
+    let t = null;
+    if (['trialing', 'active'].indexOf(sub.status) !== -1) t = provisionClient(db, sub);
+    syncClient(db, cl.id);
+    if (dup) db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_provisioning_alert', subject: 'הקמה אוטומטית: ניסיון שני לאותו טלפון', created_at: now() });
+    db.events.push({ id: uuid(), actor: 'system', entity: 'client', entity_id: cl.id, user_id: cl.user_id, type: 'subscription_updated', payload: { plan: sub.plan_code, status: sub.status }, client_visible: true, created_at: now() });
+    return { subscription_id: sub.id, client_id: cl.id, tenant_id: t && t.id, status: sub.status, plan_code: sub.plan_code, stale: false, changed: true, trial_duplicate: sub.trial_duplicate };
+  }
+  function billingSync(db) {   // private.billing_sync (hourly cron)
+    const t = Date.now();
+    db.subscriptions.forEach(s => {
+      if (s.provider === 'mock' && s.scheduled_plan_code && s.status === 'active' && s.current_period_end && Date.parse(s.current_period_end) <= t) {
+        s.plan_code = s.scheduled_plan_code; s.scheduled_plan_code = null; s.current_period_start = s.current_period_end; s.current_period_end = iso(Date.parse(s.current_period_end) + 30 * 86400000);
+      }
+      if (s.status === 'trialing' && s.trial_ends_at && Date.parse(s.trial_ends_at) > t && Date.parse(s.trial_ends_at) <= t + 3 * 86400000
+          && !db.outbox.some(m => m.template === 'trial_ending' && m.sub === s.id)) {
+        const c = db.clients.find(x => x.id === s.client_id) || {};
+        db.outbox.push({ id: uuid(), sub: s.id, to: emailOf2(db, c.user_id), template: 'trial_ending', subject: 'Your free trial ends soon', created_at: now() });
+      }
+    });
+    [...new Set(db.subscriptions.map(s => s.client_id))].forEach(cid => syncClient(db, cid));
+  }
+  function periodKey(t) { const ps = ((t.config || {}).plan || {}).period_start; return ps ? 'p' + ps : new Date().toISOString().slice(0, 7); }
+  function setUsage(tid, minutes) {
+    const db = load(), t = db.tenants.find(x => x.id === tid); if (!t) throw new Error('not_found');
+    const k = 'usage:' + tid + ':' + periodKey(t) + ':voice_minutes';
+    db.runtime_state = db.runtime_state.filter(r => r.key !== k);
+    db.runtime_state.push({ id: uuid(), key: k, tenant_id: tid, value: minutes, updated_at: now() });
+    store(db);
+  }
+  // /jobs/tick: the number (dry run -> fictional 555-01xx number) and the go-live check ('pass' unless opts.golive = 'fail')
+  function runtimeTick(opts) {
+    const db = load(), out = { done: 0, failed: 0, held: 0 };
+    db.provisioning_jobs.filter(j => j.status === 'pending').forEach(j => {
+      const t = db.tenants.find(x => x.id === j.tenant_id); if (!t) return;
+      j.attempts = (j.attempts || 0) + 1; j.updated_at = now();
+      if (j.kind === 'number') {
+        if (!t.twilio_number) {
+          const area = String(((t.config || {}).business || {}).main_phone || '+1202').slice(2, 5);
+          let n = 0, num; do { num = '+1' + area + '55501' + String(n++).padStart(2, '0'); } while (db.tenants.some(x => x.twilio_number === num || ((x.config || {}).business || {}).main_phone === num));
+          t.twilio_number = num;
+        }
+        Object.assign(j, { status: 'done', dry_run: true, result: { number: t.twilio_number, dry_run: true } }); out.done++;
+        db.events.push({ id: uuid(), actor: 'runtime', entity: 'tenant', entity_id: t.id, user_id: null, type: 'number_assigned', payload: { dry_run: true }, client_visible: true, created_at: now() });
+      } else if (j.kind === 'golive_sim') {
+        const pass = !(opts && opts.golive === 'fail');
+        Object.assign(j, { status: pass ? 'done' : 'failed', result: { passed: pass, failed: pass ? [] : ['booking'], checks: [] } });
+        out[pass ? 'done' : 'failed']++;
+        if (pass) tryGoLive(db, j.client_id);
+      }
+    });
+    store(db);
+    return out;
+  }
+  // test/demo: change the signed-in user's subscription (e.g. {trial_ends_at: <past>}) and run the hourly sync
+  function billingTravel(patch, opts) {
+    const db = load(), u = me(db); if (!u) throw new Error('not_authenticated');
+    const c = db.clients.filter(x => x.user_id === u.id && x.billing_mode === 'subscription')[0]; if (!c) throw new Error('no_subscription');
+    const sub = subOf(db, c.id);
+    Object.assign(sub, patch || {});
+    billingSync(db);
+    store(db);
+    return clone(sub);
+  }
+  // paddle-webhook for the checkout ref (subscription.created, trialing or active); the user + phone come from the ref row
+  function paddleWebhook(opts) {
+    const db = load(), o = opts || {}, c = db.billing_checkouts.find(x => x.ref === o.ref);
+    if (!c) throw new Error('unknown_ref');
+    const trial = o.trial != null ? !!o.trial : c.trial;
+    const r = upsertCore(db, { provider: 'paddle', provider_subscription_id: o.subscription_id || ('sub_mock' + rnd(20)), status: trial ? 'trialing' : 'active', plan_code: o.plan_code || c.plan_code,
+      user_id: c.user_id, provider_customer_id: 'ctm_mock' + rnd(12), trial_ends_at: trial ? iso(Date.now() + 14 * 86400000) : null,
+      current_period_start: trial ? null : now(), current_period_end: trial ? null : iso(Date.now() + 30 * 86400000), card_on_file: true, business_phone: c.business_phone, event_at: now() });
+    c.status = 'completed'; c.completed_at = now();
+    store(db);
+    return r;
+  }
+  function billingApi() {
+    const run = fn => { const db = load(), u = me(db); if (!u) return fail('not_authenticated'); try { const r = fn(db, u); store(db); return later(r); } catch (e) { return fail(e.code || e.message); } };
+    const mine = (db, u) => db.clients.filter(c => c.user_id === u.id && c.billing_mode === 'subscription').sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
+    const admin = (db, u) => { if (!(db.profiles.find(p => p.id === u.id) || {}).is_admin) throw bErr('not_admin'); };
+    const eligible = (db, u, phone) => {
+      const ph = usE164(phone) || usE164((db.profiles.find(p => p.id === u.id) || {}).phone);
+      if (!ph) return { eligible: false, reason: 'phone_required' };
+      const claim = db.trial_claims.find(t => t.phone === ph), c = mine(db, u);
+      return claim && claim.client_id !== (c && c.id) ? { eligible: false, reason: 'trial_already_used' } : { eligible: true, reason: '' };
+    };
+    const ownSub = (db, u) => { const c = mine(db, u), s = c && subOf(db, c.id); if (!s) throw bErr('no_subscription'); return s; };
+    return {
+      getBilling() {
+        return run((db, u) => {
+          const c = mine(db, u); if (!c) return { subscription: null, mock_checkout: true };
+          const s = subOf(db, c.id), t = db.tenants.find(x => x.client_id === c.id) || {}, pl = (t.config || {}).plan || {};
+          const per = periodKey(t), val = k => { const r = db.runtime_state.find(x => x.key === 'usage:' + t.id + ':' + per + ':' + k); return r ? r.value : 0; };
+          // = client_billing.number_release (20261127100000_us_firstring_p3.sql): own client, only while scheduled, number + date only
+          const rel = (db.number_releases || []).filter(r => r.client_id === c.id && r.tenant_id === t.id && r.status === 'scheduled')
+            .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+          return { client_id: c.id, client_status: c.status, tenant_id: t.id, number: t.twilio_number || null,
+            number_release: rel ? { number: rel.number, release_at: rel.release_at } : null,
+            subscription: { plan_code: s.plan_code, scheduled_plan_code: s.scheduled_plan_code || null, status: s.status, provider: s.provider, card_on_file: s.card_on_file,
+              trial_ends_at: s.trial_ends_at || null, current_period_start: s.current_period_start || null, current_period_end: s.current_period_end || null,
+              cancel_at_period_end: !!s.cancel_at_period_end, ends_at: s.ends_at || null, trial_duplicate: !!s.trial_duplicate },
+            service: { mode: pl.service || 'full', reason: pl.service_reason || '' }, period: { label: per, start: pl.period_start || null, end: pl.period_end || null },
+            usage: { voice_minutes: val('voice_minutes') || 0, needs_addon_approval: val('needs_addon_approval') === true },
+            setup: db.provisioning_jobs.filter(j => j.tenant_id === t.id).map(j => ({ kind: j.kind, status: j.status === 'done' ? 'done' : ['pending', 'running'].indexOf(j.status) !== -1 ? 'working' : 'delayed', updated_at: j.updated_at })),
+            mock_checkout: true };
+        });
+      },
+      trialEligible(phone) { return run((db, u) => eligible(db, u, phone)); },
+      mockCheckout(plan, trialDays, phone) {
+        return run((db, u) => {
+          const days = trialDays == null ? 14 : trialDays;
+          if (!/^[A-Z][A-Z0-9_]{1,40}$/.test(plan || '')) throw bErr('bad_plan_code');
+          const c = mine(db, u), s = c && subOf(db, c.id);
+          if (s && s.status !== 'canceled') throw bErr('already_subscribed');
+          const el = eligible(db, u, phone); if (days > 0 && !el.eligible) throw bErr(el.reason);
+          return upsertCore(db, { provider: 'mock', provider_subscription_id: 'mock_' + rnd(20), status: days > 0 ? 'trialing' : 'active', plan_code: plan, user_id: u.id,
+            provider_customer_id: 'mock_cus', trial_ends_at: days > 0 ? iso(Date.now() + days * 86400000) : null, current_period_start: days > 0 ? null : now(),
+            current_period_end: days > 0 ? null : iso(Date.now() + 30 * 86400000), card_on_file: true, business_phone: phone });
+        });
+      },
+      changePlan(plan, startNow) {
+        return run((db, u) => {
+          const s = ownSub(db, u);
+          if (['trialing', 'active', 'past_due'].indexOf(s.status) === -1) throw bErr('subscription_not_active');
+          if (s.plan_code === plan && !startNow) throw bErr('same_plan');
+          const base = { provider: s.provider, provider_subscription_id: s.provider_subscription_id, plan_code: s.plan_code, status: s.status };
+          if (s.status === 'active' && (PLAN_RANK[plan] || 99) < (PLAN_RANK[s.plan_code] || 99) && !startNow) return Object.assign(upsertCore(db, Object.assign(base, { scheduled_plan_code: plan })), { applied: true, scheduled: true });
+          const go = startNow && s.status === 'trialing';
+          return Object.assign(upsertCore(db, Object.assign(base, { plan_code: plan, status: go ? 'active' : s.status, trial_ends_at: go ? now() : null,
+            current_period_start: go ? now() : null, current_period_end: go ? iso(Date.now() + 30 * 86400000) : null })), { applied: true });
+        });
+      },
+      cancelPlan() {
+        return run((db, u) => {
+          const s = ownSub(db, u), base = { provider: s.provider, provider_subscription_id: s.provider_subscription_id, plan_code: s.plan_code };
+          if (s.status === 'trialing') return Object.assign(upsertCore(db, Object.assign(base, { status: 'canceled', canceled_at: now(), cancel_at_period_end: false })), { applied: true });
+          return Object.assign(upsertCore(db, Object.assign(base, { status: s.status, cancel_at_period_end: true, scheduled_plan_code: s.scheduled_plan_code })), { applied: true });
+        });
+      },
+      resumePlan() {
+        return run((db, u) => {
+          const s = ownSub(db, u), base = { provider: s.provider, provider_subscription_id: s.provider_subscription_id, plan_code: s.plan_code, status: 'active' };
+          if (s.status === 'active' && s.cancel_at_period_end) return Object.assign(upsertCore(db, Object.assign(base, { cancel_at_period_end: false })), { applied: true });
+          return Object.assign(upsertCore(db, Object.assign(base, { current_period_start: now(), current_period_end: iso(Date.now() + 30 * 86400000), cancel_at_period_end: false, card_on_file: true })), { applied: true });
+        });
+      },
+      // public.billing_checkout_start (sign-up screen): consent + one subscription per account + one trial per phone
+      checkoutStart(plan, phone, agreementVersion, consentText, trial) {
+        return run((db, u) => {
+          if (!PLAN_RANK[plan]) throw bErr('bad_plan_code');
+          const ph = usE164(phone); if (!ph) throw bErr('phone_invalid');
+          if (String(consentText || '').trim().length < 20) throw bErr('consent_required');
+          if (!/^[0-9]{1,3}\.[0-9]{1,3}$/.test(agreementVersion || '')) throw bErr('bad_agreement_version');
+          const c = mine(db, u), s = c && subOf(db, c.id);
+          if (s && s.status !== 'canceled') throw bErr('already_subscribed');
+          const t = trial !== false;
+          if (t && s) throw bErr('trial_already_used');   // a returning client starts paid
+          if (t) { const el = eligible(db, u, ph); if (!el.eligible) throw bErr(el.reason); }
+          if (db.billing_checkouts.filter(x => x.user_id === u.id && Date.parse(x.created_at) > Date.now() - 86400000).length >= 30) throw bErr('too_many_checkouts');
+          const row = { id: uuid(), ref: 'chk_' + Array.from({ length: 32 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''), user_id: u.id,
+            plan_code: plan, trial: t, business_phone: ph, agreement_version: agreementVersion, consent_text: String(consentText).trim().slice(0, 600),
+            user_agent: (navigator.userAgent || '').slice(0, 300), status: 'open', created_at: now() };
+          db.billing_checkouts.push(row);
+          return { ref: row.ref, plan_code: plan, trial: t, business_phone: ph };
+        });
+      },
+      // Edge Function paddle-billing, for a provider 'paddle' subscription: here the Paddle API call AND the webhook that
+      // follows it are applied at once (same rules as supabase/functions/_shared/paddle_billing.ts). The call is kept in
+      // db.paddle_calls so the tests can check what would go to Paddle.
+      paddleAction(action, extra) {
+        return run((db, u) => {
+          const s = ownSub(db, u), x = extra || {};
+          if (s.provider !== 'paddle') throw bErr('not_paddle');
+          const call = (method, path, body) => db.paddle_calls.push({ method, path, body: body || {}, at: now() });
+          const base = { provider: 'paddle', provider_subscription_id: s.provider_subscription_id, plan_code: s.plan_code, status: s.status, scheduled_plan_code: s.scheduled_plan_code };
+          const sid = s.provider_subscription_id;
+          if (action === 'change_plan') {
+            const plan = x.plan_code;
+            if (!PLAN_RANK[plan]) throw bErr('bad_plan_code');
+            if (s.status === 'past_due') throw bErr('past_due_update_card');
+            if (['trialing', 'active'].indexOf(s.status) === -1) throw bErr('subscription_not_active');
+            if (plan === s.plan_code && !s.scheduled_plan_code) throw bErr('same_plan');
+            if (s.status === 'trialing') { call('PATCH', '/subscriptions/' + sid, { price: plan + ':trial', proration_billing_mode: 'do_not_bill' }); upsertCore(db, Object.assign(base, { plan_code: plan, scheduled_plan_code: null })); return { ok: true, pending: true, applies: 'now' }; }
+            if (plan === s.plan_code) { call('PATCH', '/subscriptions/' + sid, { price: plan + ':paid', proration_billing_mode: 'do_not_bill' }); upsertCore(db, Object.assign(base, { scheduled_plan_code: null })); return { ok: true, pending: true, applies: 'now' }; }
+            if (PLAN_RANK[plan] > PLAN_RANK[s.plan_code]) { call('PATCH', '/subscriptions/' + sid, { price: plan + ':paid', proration_billing_mode: 'prorated_immediately' }); upsertCore(db, Object.assign(base, { plan_code: plan, scheduled_plan_code: null })); return { ok: true, pending: true, applies: 'now' }; }
+            call('PATCH', '/subscriptions/' + sid, { price: plan + ':paid', proration_billing_mode: 'full_next_billing_period' });
+            upsertCore(db, Object.assign(base, { scheduled_plan_code: plan }));
+            return { ok: true, pending: true, applies: 'next_period', scheduled: true };
+          }
+          if (action === 'start_now') {
+            if (s.status !== 'trialing') throw bErr('not_trialing');
+            call('POST', '/subscriptions/' + sid + '/activate');
+            upsertCore(db, Object.assign(base, { status: 'active', current_period_start: now(), current_period_end: iso(Date.now() + 30 * 86400000) }));
+            return { ok: true, pending: true };
+          }
+          if (action === 'cancel') {
+            if (s.status === 'trialing') { call('POST', '/subscriptions/' + sid + '/cancel', { effective_from: 'immediately' }); upsertCore(db, Object.assign(base, { status: 'canceled', canceled_at: now(), cancel_at_period_end: false, scheduled_plan_code: null })); return { ok: true, pending: true, ends: 'now' }; }
+            if (s.status !== 'active') throw bErr('subscription_not_active');
+            call('POST', '/subscriptions/' + sid + '/cancel', { effective_from: 'next_billing_period' });
+            upsertCore(db, Object.assign(base, { cancel_at_period_end: true }));
+            return { ok: true, pending: true, ends: 'period_end' };
+          }
+          if (action === 'resume') {
+            if (s.status === 'active' && s.cancel_at_period_end) { call('PATCH', '/subscriptions/' + sid, { scheduled_change: null }); upsertCore(db, Object.assign(base, { cancel_at_period_end: false })); return { ok: true, pending: true }; }
+            if (s.status === 'paused') { call('POST', '/subscriptions/' + sid + '/resume', { effective_from: 'immediately' }); upsertCore(db, Object.assign(base, { status: 'active' })); return { ok: true, pending: true }; }
+            if (s.status === 'canceled') return { ok: false, resubscribe: true };
+            if (s.status === 'past_due') return { ok: true, update_card: true, update_payment_method: location.origin + '/start/?paddle_portal=demo#billing' };
+            throw bErr('nothing_to_resume');
+          }
+          if (action === 'update_card' || action === 'manage') {
+            call('POST', '/customers/' + (s.provider_customer_id || 'ctm_mock') + '/portal-sessions', { subscription_ids: [sid] });
+            return { ok: true, url: location.origin + '/start/?paddle_portal=' + (action === 'update_card' ? 'card' : 'overview') + '#billing' };
+          }
+          throw bErr('bad_action');
+        });
+      },
+      // admin: paddle-billing action money_back (full refund of the first paid charge within 30 days, then the plan ends)
+      adminPaddleRefund(clientId) {
+        return run((db, u) => {
+          admin(db, u);
+          const s = subOf(db, clientId); if (!s) throw bErr('no_subscription');
+          if (s.provider !== 'paddle') throw bErr('not_paddle');
+          const claim = db.trial_claims.find(x => x.phone === s.business_phone);
+          if (s.money_back_used_at || (claim && claim.money_back_used_at)) throw bErr('money_back_already_used');
+          if (!s.first_paid_at || !s.first_paid_transaction_id || Date.parse(s.first_paid_at) < Date.now() - 30 * 86400000) throw bErr('money_back_window_closed');
+          db.paddle_calls.push({ method: 'POST', path: '/adjustments', body: { action: 'refund', type: 'full', transaction_id: s.first_paid_transaction_id }, at: now() });
+          s.money_back_used_at = now(); s.money_back_refund_id = 'adj_mock' + rnd(10); if (claim) claim.money_back_used_at = s.money_back_used_at;
+          if (s.status !== 'canceled') {
+            db.paddle_calls.push({ method: 'POST', path: '/subscriptions/' + s.provider_subscription_id + '/cancel', body: { effective_from: 'immediately' }, at: now() });
+            upsertCore(db, { provider: 'paddle', provider_subscription_id: s.provider_subscription_id, plan_code: s.plan_code, status: 'canceled', canceled_at: now(), cancel_at_period_end: false });
+          }
+          return { ok: true, refund_id: s.money_back_refund_id, refund_status: 'pending_approval', plan_ended: true };
+        });
+      },
+      confirmForwardingTest(id) {
+        return run((db, u) => {
+          const it = db.onboarding_items.find(o => o.id === id);
+          if (!it || it.key !== 'forward_calls' || !db.clients.some(c => c.id === it.client_id && c.user_id === u.id)) throw bErr('not_your_item');
+          if (!(it.data || {}).test_unverified_at) throw bErr('no_test_call');
+          if (it.data.test_direct) throw bErr('called_directly');
+          it.status = 'done'; it.done_at = now(); it.data = Object.assign({}, it.data, { test_call_at: it.data.test_unverified_at, verified: 'self_confirmed' });
+          autoGoLive(db, it.client_id);
+          return it;
+        });
+      },
+      adminSubscriptions() {
+        return run((db, u) => {
+          admin(db, u);
+          return db.clients.filter(c => c.billing_mode === 'subscription' && subOf(db, c.id)).map(c => {
+            const s = subOf(db, c.id), t = db.tenants.find(x => x.client_id === c.id), p = db.profiles.find(x => x.id === c.user_id) || {};
+            const claim = db.trial_claims.find(x => x.phone === s.business_phone) || {};
+            const sv = (((t || {}).config || {}).plan || {});
+            return { client_id: c.id, client_status: c.status, business_name: c.business_name || p.company || p.email, email: p.email, created_at: s.created_at,
+              subscription: Object.assign({}, s, { business_phone: undefined }), money_back_used_at: s.money_back_used_at || claim.money_back_used_at || null,
+              tenant: t ? { id: t.id, slug: t.slug, status: t.status, twilio_number: t.twilio_number || null, service: sv.service || 'full', service_reason: sv.service_reason || '' } : null,
+              jobs: db.provisioning_jobs.filter(j => t && j.tenant_id === t.id).map(j => ({ kind: j.kind, status: j.status, attempts: j.attempts || 0, last_error: j.last_error || null,
+                dry_run: !!j.dry_run, updated_at: j.updated_at, passed: (j.result || {}).passed, failed: (j.result || {}).failed, number: (j.result || {}).number || (j.result || {}).would_buy || null })),
+              checklist: { done: db.onboarding_items.filter(o => o.client_id === c.id && OPTIONAL_ITEMS.indexOf(o.key) === -1 && o.status === 'done').length,
+                required: db.onboarding_items.filter(o => o.client_id === c.id && OPTIONAL_ITEMS.indexOf(o.key) === -1).length } };
+          }).sort((a, b) => b.created_at.localeCompare(a.created_at));
+        });
+      },
+      adminRetryProvisioning(clientId, kind) {
+        return run((db, u) => {
+          admin(db, u);
+          if (['number', 'golive_sim', 'setup'].indexOf(kind) === -1) throw bErr('bad_kind');
+          const s = subOf(db, clientId); if (!s) throw bErr('no_subscription');
+          if (kind === 'setup') { s.trial_duplicate = false; const t = provisionClient(db, s); const j = db.provisioning_jobs.find(x => x.tenant_id === t.id && x.kind === 'number'); if (j && j.status === 'held') j.status = 'pending'; syncClient(db, clientId); }
+          else {
+            const t = db.tenants.find(x => x.client_id === clientId); if (!t) throw bErr('no_tenant');
+            let j = db.provisioning_jobs.find(x => x.tenant_id === t.id && x.kind === kind);
+            if (!j) { j = { id: uuid(), tenant_id: t.id, client_id: clientId, kind, result: {}, created_at: now() }; db.provisioning_jobs.push(j); }
+            Object.assign(j, { status: 'pending', attempts: 0, last_error: null, updated_at: now() });
+          }
+          return { ok: true, kind };
+        });
+      },
+      adminForceGolive(clientId) {
+        return run((db, u) => {
+          admin(db, u);
+          const t = db.tenants.find(x => x.client_id === clientId && x.twilio_number); if (!t) throw bErr('no_number');
+          const c = db.clients.find(x => x.id === clientId);
+          t.status = 'live'; c.status = 'live'; c.go_live_at = c.go_live_at || now();
+          return { ok: true };
+        });
+      },
+      adminMarkMoneyBack(clientId) {
+        return run((db, u) => {
+          admin(db, u);
+          const s = subOf(db, clientId); if (!s) throw bErr('no_subscription');
+          const claim = db.trial_claims.find(x => x.phone === s.business_phone);
+          if (s.money_back_used_at || (claim && claim.money_back_used_at)) throw bErr('money_back_already_used');
+          s.money_back_used_at = now(); if (claim) claim.money_back_used_at = s.money_back_used_at;
+          return { ok: true };
+        });
+      }
+    };
+  }
+
+  // ------------------------------------------------------------------ P2: FirstRing phase 2 (runtime agent, 2026-11-25)
+  // Mirrors supabase/migrations/20261125200000_us_firstring_p2.sql: Spanish by plan + the remembered choice
+  // (tenant_plan_spanish, update_tenant_settings key `spanish`), number release after the service ended
+  // (number_release_sync, admin_subscriptions_extra / admin_postpone_number_release / admin_release_number_now) and a
+  // stand-in for the runtime's release tick + the go-live live AI check result (tests: StartMock.admin.p2Tick).
+  const P2_SPANISH_CODES = ['FR_PRO', 'FR_BUSINESS'];   // = private.plan_has_spanish (price book features 'spanish')
+  const p2PlanHasSpanish = code => {
+    const pb = (window.Start && window.Start.PB) || window.ADMIN_PB || {};
+    const p = (pb.plans || []).find(x => x.code === code);
+    return p ? (p.features || []).indexOf('spanish') !== -1 : P2_SPANISH_CODES.indexOf(code) !== -1;
+  };
+  function p2PlanSpanish(t) {   // private.tenant_plan_spanish (after the plan block is written)
+    const cfg = t.config || {}, plan = cfg.plan; if (!plan || typeof plan !== 'object') return;
+    const v = cfg.voice && typeof cfg.voice === 'object' ? cfg.voice : {};
+    const want = p2PlanHasSpanish(plan.code) && v.spanish_off !== true ? ['en', 'es'] : ['en'];
+    if (JSON.stringify(v.languages) !== JSON.stringify(want)) t.config = Object.assign({}, cfg, { voice: Object.assign({}, v, { languages: want }) });
+  }
+  function p2HasSpanish(db, tid) {   // private.tenant_has_spanish
+    const t = db.tenants.find(x => x.id === tid), c = t && db.clients.find(x => x.id === t.client_id);
+    return !!(t && c && c.billing_mode === 'subscription' && p2PlanHasSpanish(((t.config || {}).plan || {}).code));
+  }
+  function p2SetSpanish(t, on) {
+    t.config = Object.assign({}, t.config || {}, { voice: Object.assign({}, (t.config || {}).voice || {}, { spanish_off: !on, languages: on ? ['en', 'es'] : ['en'] }) });
+  }
+  function p2Window(sub, at) {   // private.number_release_window
+    if (!sub) return { eligible: false };
+    const [service, reason] = subService(sub, at);
+    if (service !== 'message_only' || ['canceled', 'trial_ended'].indexOf(reason) === -1) return { eligible: false, reason: '' };
+    const ended = reason === 'trial_ended' ? sub.trial_ends_at : sub.status === 'canceled' ? (sub.ends_at || sub.canceled_at) : sub.current_period_end;
+    return { eligible: !!ended && Date.parse(ended) <= (at || Date.now()), reason, ended_at: ended };
+  }
+  function p2ReleaseSync(db, cid) {   // private.number_release_sync (every subscription write + hourly)
+    db.number_releases = db.number_releases || [];
+    const t = db.tenants.find(x => x.client_id === cid); if (!t) return;
+    const sub = subOf(db, cid), w = p2Window(sub), r = db.number_releases.find(x => x.tenant_id === t.id);
+    if (w.eligible && t.twilio_number) {
+      const rel = Date.parse(w.ended_at) + 30 * 86400000;
+      const fresh = { subscription_id: sub.id, number: t.twilio_number, reason: w.reason, status: 'scheduled', service_ended_at: w.ended_at,
+        warn_at: iso(rel - 7 * 86400000), release_at: iso(rel), warned_at: null, released_at: null, canceled_at: null, cancel_reason: null,
+        force: false, postponed_count: 0, attempts: 0, last_error: null, dry_run: false, result: {}, updated_at: now() };
+      if (!r) db.number_releases.push(Object.assign({ id: uuid(), tenant_id: t.id, client_id: cid, created_at: now() }, fresh));
+      else if (r.status === 'canceled' || (r.status === 'released' && r.number !== t.twilio_number)) Object.assign(r, fresh);
+      return;
+    }
+    if (r && ['scheduled', 'held', 'failed'].indexOf(r.status) !== -1) {
+      Object.assign(r, { status: 'canceled', canceled_at: now(), updated_at: now(),
+        cancel_reason: sub && ['active', 'trialing'].indexOf(sub.status) !== -1 && !w.reason ? 'resubscribed' : 'service_not_ended' });
+    }
+  }
+  // what /jobs/tick does for releases (runtime/app/provisioning.py, TWILIO_RELEASE_LIVE off = dry run) + the AI check result
+  function p2Tick(opts) {
+    const db = load(), o = opts || {}, out = { warned: 0, held: 0, canceled: 0 };
+    db.number_releases = db.number_releases || [];
+    [...new Set(db.subscriptions.map(s => s.client_id))].forEach(cid => p2ReleaseSync(db, cid));
+    db.number_releases.filter(r => r.status === 'scheduled').forEach(r => {
+      if (!p2Window(subOf(db, r.client_id)).eligible) { Object.assign(r, { status: 'canceled', cancel_reason: 'service_not_ended' }); out.canceled++; return; }
+      if (!r.warned_at && !r.force && (Date.parse(r.warn_at) <= Date.now() || Date.parse(r.release_at) <= Date.now())) {
+        r.warned_at = now(); if (Date.parse(r.release_at) < Date.now() + 7 * 86400000 - 3600000) r.release_at = iso(Date.now() + 7 * 86400000);
+        db.outbox.push({ id: uuid(), to: 'owner', template: 'number_release_warning', subject: 'Your receptionist’s number will be released', created_at: now() });
+        out.warned++; return;
+      }
+      if (Date.parse(r.release_at) <= Date.now()) { Object.assign(r, { status: 'held', dry_run: true, result: { would_release: r.number, dry_run: true } }); out.held++; }
+    });
+    if (o.ai) {   // the go-live job's live AI check (GOLIVE_LIVE_AI_CHECK=1 in the runtime)
+      const pass = o.ai === 'pass';
+      const transcript = [{ who: 'assistant', text: 'Thanks for calling. I’m the virtual assistant, an AI. This call may be recorded and transcribed.' },
+        { who: 'customer', text: 'Hi, I need someone to come out and take a look, it’s about ac repair' },
+        { who: 'assistant', text: pass ? 'I can get a technician out. What’s the ZIP code for the service address?' : 'Our team will give you an exact price on site.',
+          model_text: pass ? undefined : 'Sure, that’s $99 and I guarantee it. You could also try another company.', guard: pass ? undefined : ['reply:price'] },
+        { who: 'customer', text: 'The ZIP is 77002, I’m at 123 Main St, Springfield, my name is Test Caller' },
+        { who: 'assistant', text: pass ? 'I have Thursday 12 PM to 4 PM or Friday 8 AM to 12 PM. Which works better?' : 'Our team will give you an exact price on site.' }];
+      const ai = o.ai === 'error' ? { status: 'error', attempts: 3, error: 'timeout after 90s', problems: [], problems_he: [], transcript: [], cost_usd: 0.0021, tokens: { input_tokens: 1800, output_tokens: 0 }, model_calls: 3 }
+        : { status: pass ? 'passed' : 'failed', attempts: 1, problems: pass ? [] : ['price', 'promise', 'other_business', 'booking'],
+            problems_he: pass ? [] : ['הסוכן אמר מחיר שלא ברשימה', 'הסוכן הבטיח / נתן הנחה', 'הסוכן הזכיר עסק אחר', 'הסוכן לא הציע מועד לתור'],
+            transcript, cost_usd: 0.0384, tokens: { input_tokens: 11200, output_tokens: 310 }, model_calls: 7 };
+      db.provisioning_jobs.filter(j => j.kind === 'golive_sim' && (!o.client || j.client_id === o.client)).forEach(j => {
+        Object.assign(j, { status: pass ? 'done' : o.ai === 'error' ? 'held' : 'failed', updated_at: now(),
+          result: { passed: pass, failed: pass ? [] : ['live_ai'], checks: [], ai_check: ai } });
+        if (pass) tryGoLive(db, j.client_id);
+      });
+    }
+    store(db);
+    return out;
+  }
+  function p2Api() {
+    const run = fn => { const db = load(), u = me(db); if (!u) return fail('not_authenticated'); try { const r = fn(db, u); store(db); return later(r); } catch (e) { return fail(e.code || e.message); } };
+    const admin = (db, u) => { if (!(db.profiles.find(p => p.id === u.id) || {}).is_admin) throw bErr('not_admin'); };
+    const relOf = (db, cid) => (db.number_releases || []).filter(r => r.client_id === cid).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
+    const open = r => { if (!r || ['scheduled', 'held', 'failed'].indexOf(r.status) === -1) throw bErr('no_release_scheduled'); return r; };
+    return {
+      adminSubscriptionsExtra() {
+        return run((db, u) => {
+          admin(db, u);
+          return db.clients.filter(c => c.billing_mode === 'subscription').map(c => {
+            const r = relOf(db, c.id), j = db.provisioning_jobs.filter(x => x.client_id === c.id && x.kind === 'golive_sim').sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0];
+            return { client_id: c.id, release: r ? Object.assign({}, r, { result: undefined, would_release: (r.result || {}).would_release || null }) : null,
+              golive: j ? { status: j.status, updated_at: j.updated_at, passed: (j.result || {}).passed, ai_check: (j.result || {}).ai_check || null } : null };
+          });
+        });
+      },
+      adminPostponeNumberRelease(clientId, days) {
+        return run((db, u) => {
+          admin(db, u);
+          const n = days == null ? 14 : days; if (!(n >= 1 && n <= 180)) throw bErr('bad_days');
+          const r = open(relOf(db, clientId)), rel = Math.max(Date.parse(r.release_at), Date.now()) + n * 86400000;
+          Object.assign(r, { release_at: iso(rel), warn_at: iso(Math.max(rel - 7 * 86400000, Date.now())), warned_at: null, status: 'scheduled', force: false,
+            attempts: 0, last_error: null, postponed_count: (r.postponed_count || 0) + 1, updated_at: now() });
+          return { ok: true, release_at: r.release_at, warn_at: r.warn_at };
+        });
+      },
+      adminReleaseNumberNow(clientId) {
+        return run((db, u) => {
+          admin(db, u);
+          const r = open(relOf(db, clientId));
+          if (!p2Window(subOf(db, clientId)).eligible) throw bErr('subscription_not_ended');
+          Object.assign(r, { release_at: now(), warn_at: iso(Math.min(Date.parse(r.warn_at), Date.now())), status: 'scheduled', force: true, attempts: 0, last_error: null, updated_at: now() });
+          return { ok: true, release_at: r.release_at };
+        });
+      }
+    };
+  }
+
   // ------------------------------------------------------------------ admin (task A7): see mock-admin section below
   window.StartMock = {
-    create: C => Object.assign(create(C), adminApi(C), portalBApi(C)),
+    create: C => Object.assign(create(C), adminApi(C), portalBApi(C), billingApi(), p2Api()),
     MOCK_ADMIN_EMAIL,
     admin: {
       reset() { ls.del(KEY); ls.del(SKEY); },
@@ -1315,10 +1916,24 @@
       inbox: email => load().outbox.filter(m => !email || m.to === email),
       seed,
       seedAdmin,   // A7: demo data for /start/admin/
+      // a questionnaire as stored BEFORE 2026-11-25 (e.g. a FirstRing one), for the signed-in user; written directly, like
+      // existing rows in the database (the client API refuses new FirstRing questionnaires: offer_not_offered)
+      legacyQuestionnaire: o => { const db = load(), u = me(db); if (!u) throw new Error('not_authenticated');
+        const x = o || {}, q = { id: uuid(), user_id: u.id, offer: x.offer || 'RCP', niche: x.niche || 'home_services', status: x.status || 'draft',
+          answers: clone(x.answers || { offer: x.offer || 'RCP', niche: x.niche || 'home_services' }), summary: clone(x.summary || []), utm: {},
+          submitted_at: x.status && x.status !== 'draft' ? now() : null, created_at: now(), updated_at: now() };
+        db.questionnaires.push(q); store(db); return q.id; },
       seedTenant: opts => seedTenant(opts),    // B7: tenant + receptionist demo data for the signed-in client ({niche:'real_estate'} = real-estate tenant)
       seedResults: () => seedResults(),        // appointment manager: Results panel / no-show demo data
-      simulateCall: tid => simulateCall(tid),  // B7: what the runtime does when a forwarded call arrives
-      seedDispatch: opts => seedDispatch(opts) // ADD-DISPATCH demo data (tools/e2e_dispatch.mjs)
+      simulateCall: (tid, opts) => simulateCall(tid, opts),  // B7: a call reaches the tenant number ({forwardedFrom, from}; default = forwarded by the business line)
+      seedDispatch: opts => seedDispatch(opts), // ADD-DISPATCH demo data (tools/e2e_dispatch.mjs)
+      runtimeTick: opts => runtimeTick(opts),   // FirstRing: what /jobs/tick does (dry-run number, go-live check {golive: 'pass'|'fail'})
+      billing: (patch, opts) => billingTravel(patch, opts),   // FirstRing: change the signed-in client's subscription + hourly sync
+      paddleWebhook: opts => paddleWebhook(opts),             // sign-up with Paddle: what paddle-webhook does for subscription.created (by ref)
+      paddleFirstCharge: (daysAgo) => { const db = load(), u = me(db), c = db.clients.find(x => x.user_id === (u || {}).id && x.billing_mode === 'subscription'), s = c && subOf(db, c.id);
+        if (!s) throw new Error('no_subscription'); s.first_paid_at = iso(Date.now() - (daysAgo || 0) * 86400000); s.first_paid_transaction_id = 'txn_mock' + rnd(12); store(db); return clone(s); },
+      setUsage: (tid, minutes) => setUsage(tid, minutes),     // FirstRing: this period's voice minutes
+      p2Tick: opts => p2Tick(opts)   // FirstRing phase 2: release tick (dry run) + go-live AI check result {ai: 'pass'|'fail'|'error'}
     }
   };
 })();

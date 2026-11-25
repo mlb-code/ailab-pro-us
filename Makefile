@@ -83,10 +83,34 @@ qa-phase-a:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_phase_a.mjs
 	PORT=$(FREE) $(NODE) tools/e2e_quote.mjs
 
+# FirstRing monthly plans (2026-11-25): sign-up -> automatic setup -> checklist into the live config -> forwarding test via the
+# business line -> automatic go-live -> Billing minutes / upgrade / cancel -> message mode -> admin "מנויים" (mock backend).
+# SHOTS_DIR=<dir> also saves screenshots (usage meter, message mode, admin) at 1440 and 390.
+qa-subscription:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_subscription.mjs
+
+# Monthly-plan sign-up + Paddle (2026-11-26): /start/?plan=FR_X -> your business (plan switch, consent) -> your card (demo box
+# with Paddle off; with brand.json served ON, Paddle.js FAKED locally) -> portal; one trial per phone; Paddle billing actions;
+# admin Paddle ids + 30-day refund. SHOTS_DIR=<dir> saves screenshots. The webhook + API side: qa-deno (paddle_test.ts), qa-sql.
+qa-signup:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_signup.mjs
+
+# FirstRing phase 2 (2026-11-25): "Answer in Spanish too" by plan (remembered choice), number release after the service
+# ended (admin postpone / release now, dry-run tick, resubscribe cancels), go-live live AI check result in the admin (mock).
+# SHOTS_DIR=<dir> also saves p2-* screenshots at 1440 and 390. Phase 3 (2026-11-25): the customer's Billing card and home status
+# show the date the number is kept until (client_billing.number_release), gone after the restart (p3-portal-release-*).
+qa-firstring-p2:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_firstring_p2.mjs
+
 # Card / PayPal checkout on the mock backend with brand.json payments.paypal served ON and PayPal's SDK faked locally (nothing
 # reaches paypal.com): the portal's final payment + the admin refund. The quote page's PayPal step is in tools/e2e_quote.mjs.
 qa-paypal:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_paypal_portal.mjs
+
+# ---------- runtime (Python): pytest + the simulator scenarios (replay) ----------
+qa-runtime:
+	cd runtime && .venv/bin/python -m pytest -q
+	cd runtime && .venv/bin/python -m sim run --all
 
 # ---------- Deno + offline Postgres ----------
 qa-deno:
@@ -99,6 +123,12 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/paypal_run.ts
 	$(DENO_RUN) supabase/tests/offline/dispatch_run.ts
 	$(DENO_RUN) supabase/tests/offline/questionnaire_utm_run.ts
+	$(DENO_RUN) supabase/tests/offline/subscriptions_run.ts
+	$(DENO_RUN) supabase/tests/offline/paddle_run.ts
+	$(DENO_RUN) supabase/tests/offline/onboarding_parity_run.ts
+	$(DENO_RUN) supabase/tests/offline/firstring_p2_run.ts
+	$(DENO_RUN) supabase/tests/offline/firstring_p3_run.ts
+	$(DENO_RUN) supabase/tests/offline/questionnaire_web_only_run.ts
 
 # Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity + Meta Pixel load, events fire,
 # GPC/DNT blocks everything, Clarity masks forms, the pixel maps funnel events and stays off the quote page, first-touch UTM
@@ -106,7 +136,7 @@ qa-sql:
 qa-measure:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_measure.mjs
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal qa-measure
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal qa-measure qa-subscription qa-firstring-p2 qa-signup qa-runtime
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------

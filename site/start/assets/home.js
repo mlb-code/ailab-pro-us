@@ -13,11 +13,19 @@
   const APPLE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>';
   const GOOGLE_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true" width="18" height="18"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 
-  // intent from the landing pages: /start/?offer=WEB&niche=home_services
+  // intent from the landing pages: /start/?offer=WEB&niche=home_services (the website questionnaire). FirstRing is sold as a
+  // monthly plan since 2026-11-25: an old link with offer=RCP / BNDL / UNSURE goes to the plan sign-up (plan picked there).
+  const SU = window.StartSignup;
   (function keepIntent() {
+    if (SU) SU.readUrl();   // /start/?plan=FR_PRO&niche=... (monthly-plan sign-up, signup.js)
     const p = new URLSearchParams(location.search);
     const offer = (p.get('offer') || '').toUpperCase(), niche = p.get('niche') || '';
-    if (['RCP', 'WEB', 'BNDL', 'UNSURE'].indexOf(offer) !== -1 || niche) S.ss.set('start_intent', JSON.stringify({ offer: offer || null, niche: niche || null }));
+    if (Q.LEGACY_OFFERS.indexOf(offer) !== -1) {
+      if (SU && !p.get('plan')) SU.setIntent('PICK', niche || null);   // a plan in the same link wins (readUrl above)
+      S.ss.del('start_intent');
+      return;
+    }
+    if (offer === 'WEB' || niche) S.ss.set('start_intent', JSON.stringify({ offer: offer || null, niche: niche || null }));
   })();
 
   // ------------------------------------------------------------ sign in
@@ -30,10 +38,24 @@
       '<p class="muted small center trust" id="trustLine">Secure sign-in. We never see or store your password. ' +
       '<a href="/legal/privacy/">Privacy</a> · <a href="/legal/terms/">Terms</a></p>' +
       '<div class="or">or with your email</div>' : '';
-    app.innerHTML =
-      '<span class="eyebrow">Fixed quote · no sales call</span>' +
-      '<h1 class="t">Get your written fixed quote.</h1>' +
-      '<p class="lead">Sign in' + (providers.length ? ' with ' + providers.map(SI.providerName).join(' or ') + ', or' : '') + ' with your email, and answer a short questionnaire (about 3 minutes, 3 screens). You’ll get a written fixed quote ' + S.esc(S.sla()) + '. No password, no phone call.</p>' +
+    const it = SU && SU.intent(), plan = it && (SU.planOf(it.plan) || (it.plan === 'PICK' ? { pick: true } : null));
+    const sr = (S.PB.rules || {}).subscription || {}, prod = sr.product || '';
+    let web = false; try { web = !plan && (JSON.parse(S.ss.get('start_intent') || 'null') || {}).offer === 'WEB'; } catch (e) { /* no intent */ }
+    const how = 'Sign in' + (providers.length ? ' with ' + providers.map(SI.providerName).join(' or ') + ', or' : '') + ' with your email';
+    app.innerHTML = (plan
+      ? '<span class="eyebrow">' + (plan.pick ? S.esc(prod ? prod + ' · ' : '') + 'monthly plan' : S.esc(plan.name) + ' · ' + S.money(plan.monthly_cents) + '/mo') + ' · free trial</span>' +
+        '<h1 class="t">Start your free trial.</h1>' +
+        '<p class="lead">' + how + '. Then one short screen about your business, and your card. No charge today.</p>'
+      : web
+      // /start/?offer=WEB (the website page): the website questionnaire, then a deposit link (no quote)
+      ? '<span class="eyebrow">Business Website · no sales call</span>' +
+        '<h1 class="t">Get your business website.</h1>' +
+        '<p class="lead">' + how + ', and answer 3 short screens (about 3 minutes). We email your deposit link ' + S.esc(S.sla()) + '.</p>'
+      // no plan or offer in the link: the FirstRing plans first, the website as the second path
+      : '<span class="eyebrow">' + S.esc(prod ? prod + ' · ' : '') + 'monthly plans · free trial</span>' +
+        '<h1 class="t">Sign in to start your free trial.</h1>' +
+        '<p class="lead" id="loginLead">' + how + '. Then pick your plan: ' + S.esc(String(sr.trial_days || 14)) + ' days free, cancel anytime. ' +
+        'Need a business website instead? Sign in the same way and start the website questionnaire.</p>') +
       '<div class="card login">' + social +
       '<form id="emailForm" novalidate><div class="field"><label for="email">Email address</label>' +
       '<input class="input" type="email" id="email" name="email" autocomplete="email" inputmode="email" placeholder="you@yourbusiness.com" required></div>' +
@@ -44,9 +66,9 @@
       '<button class="btn btn--primary btn--block" type="submit" id="verifyBtn">Sign in</button>' +
       '<div class="row linkrow"><button type="button" class="linkbtn" id="resendBtn">Send a new code</button><span class="spacer"></span>' +
       '<button type="button" class="linkbtn" id="changeEmail">Use a different email</button></div>' +
-      '<p class="muted small">Don’t see it? Check your spam or promotions folder. You can click the link or type the code. The code helps if the link opens in a different browser.</p></form>' +
+      '<p class="muted small">Don’t see it? Check your spam or promotions folder.</p></form>' +
       '<div id="mockInbox"></div><div id="loginMsg"></div></div>' +
-      '<p class="muted small fine">We use your answers only to prepare your quote. You can ask us to delete them at any time. See our <a href="/legal/privacy/">Privacy Policy</a>.</p>';
+      '<p class="muted small fine">' + (web ? 'We use your answers only to prepare your website.' : 'We use your details only to set up and run your account.') + ' You can ask us to delete them at any time. See our <a href="/legal/privacy/">Privacy Policy</a>.</p>';
 
     const loginMsg = S.$('#loginMsg'), emailForm = S.$('#emailForm'), codeForm = S.$('#codeForm'), emailIn = S.$('#email'), codeIn = S.$('#code');
     if (errText) setMsg(loginMsg, errText.kind ? errText.text : 'Sign-in didn’t finish: ' + errText);
@@ -126,9 +148,18 @@
     try { profile = await B.getProfile(); }
     catch (err) { app.innerHTML = S.msgHtml(S.errText(err)); return; }
     S.renderHeader(session, { email: SI.displayEmail(profile, session) });
+    if (SU && SU.intent()) { await startSignup(); return; }   // plan button: the sign-up screen asks the profile fields itself
     if (!profileDone(profile) || SI.needsContactEmail(profile)) { showProfile(true); return; }
     if (await followIntent()) return;
     showPortal();
+  }
+
+  // monthly plan sign-up (signup.js); an account that already has a running plan goes to Billing instead
+  async function startSignup() {
+    let b = null; try { b = await B.getBilling(); } catch (e) { /* no billing yet */ }
+    if (b && b.subscription && b.subscription.status !== 'canceled') { SU.clearIntent(); S.toast('You already have a plan.'); showPortal('billing'); return; }
+    S.ss.del('start_intent');
+    SU.show({ app, profile, session, onProfile: p => { profile = p; S.renderHeader(session, { email: SI.displayEmail(profile, session) }); }, onDone: tab => showPortal(tab) });
   }
 
   // landing CTA → straight into a questionnaire (reuses an open draft)
@@ -147,8 +178,9 @@
   async function startNew(init) {
     const niches = (S.PB._niches || []).map(n => n.key);
     const utm = (window.Measure && window.Measure.firstTouch()) || null;   // first-touch utm_* kept by /assets/measure.js
-    const r = await B.createQuestionnaire({ offer: init && init.offer || null, niche: init && niches.indexOf(init.niche) !== -1 ? init.niche : null, utm });
-    S.trackFunnel(['quote', 'start'], { offer: init && init.offer || '' });
+    const offer = Q.NEW_OFFERS[0];   // new questionnaires: the website only (FirstRing = the monthly plan sign-up)
+    const r = await B.createQuestionnaire({ offer, niche: init && niches.indexOf(init.niche) !== -1 ? init.niche : null, utm });
+    S.trackFunnel(['quote', 'start'], { offer });
     location.href = '/start/q/?id=' + r.id;
   }
 
@@ -181,8 +213,8 @@
     const relay = SI.needsContactEmail(profile);
     app.innerHTML = '<span class="eyebrow">' + (first ? 'Step 1 of 3 · About you' : 'Your details') + '</span>' +
       '<h1 class="t">' + (first ? 'Nice to meet you.' : 'Your details') + '</h1>' +
-      '<p class="lead">' + (first ? 'About 3 minutes. Everything saves as you go.' : 'Update them any time.') + '</p>' +
-      (relay ? '<div class="notice notice--info" role="status" id="relayNote">You signed in with Apple and chose to hide your email. Tell us where to send your quote and receipts; your Apple sign-in keeps working.</div>' : '') +
+      '<p class="lead">' + (first ? 'About 3 minutes. Saves as you go.' : 'Update them any time.') + '</p>' +
+      (relay ? '<div class="notice notice--info" role="status" id="relayNote">You chose to hide your email at Apple. Where should we send your quote and receipts? Your Apple sign-in keeps working.</div>' : '') +
       '<form id="profileForm" class="card" novalidate><div class="pgrid">' + profileFields().map(profileField).join('') + '</div>' +
       '<div id="profileMsg"></div><div class="navbtns">' +
       (first ? '' : '<button type="button" class="btn btn--ghost" id="pCancel">Cancel</button>') +
@@ -228,7 +260,27 @@
   const quoteUrl = q => '/quote/#t=' + encodeURIComponent(q.public_token || '');   // token in the fragment: never sent to servers/logs
   const offerName = (code, niche) => { const o = Q.offerOpts({ niche }).find(x => x.v === code); return o ? o.l : 'Questionnaire'; };
 
+  // FirstRing monthly plan (portal-b.js): free trial -> setup checklist -> automatic test calls -> live. No quote, no deposit.
+  function planStage(d) {
+    const t = window.PortalB.planTerms(d), ob = d.ob || [], req = ob.filter(o => o.key !== 'tools' && o.key !== 'sms');
+    const left = req.filter(o => o.status !== 'done').length, plan = (t && t.plan && t.plan.name) || 'Your plan';
+    const trial = t && t.trial ? ' Free trial until ' + S.fmtDate(t.sub.trial_ends_at) + '.' : '';
+    const rl = window.PortalB.numberRelease && window.PortalB.numberRelease(d);   // the number is kept until a date (plan ended)
+    // plan steps (no questionnaire / quote / deposit): Plan started (trial until X) -> Setup checklist -> Test call -> Live
+    const stages = [t && t.trial ? 'Plan started · trial until ' + S.fmtDate(t.sub.trial_ends_at) : 'Plan started', 'Setup checklist', 'Test call', 'Live'];
+    const r = planStageOf(d, t, req, left, plan, trial, rl);
+    return Object.assign(r, { stages });
+  }
+  function planStageOf(d, t, req, left, plan, trial, rl) {
+    if (window.PortalB.messageMode(d)) return { i: 3, text: 'Your receptionist is in message mode: calls are answered and messages are emailed to you. ' +
+      (rl ? rl.text :'See Billing to restart full answering.'), action: { id: 'goBilling', label: 'Open Billing' } };
+    if (d.client.status === 'live') return { i: 3, text: 'You’re live on ' + plan + '. Calls you miss are answered for you.' + trial, action: null };
+    if (d.client.status === 'testing') return { i: 2, text: 'Setup done. We’re running automatic test calls against your settings; you’ll be live within minutes.' + trial, action: null };
+    return { i: 1, text: plan + ' is set up.' + trial + ' Setup checklist: ' + (req.length - left) + ' of ' + req.length + ' steps done. You go live automatically when it’s done.',
+      action: { id: 'goOnboarding', label: left ? 'Continue the setup checklist' : 'Review your setup' } };
+  }
   function stageOf(d) {
+    if (d.client && window.PortalB && window.PortalB.isPlan && window.PortalB.isPlan(d)) return planStage(d);
     const live = d.quotes.find(q => q.status === 'accepted');
     const open = d.quotes.find(q => q.status === 'sent' || q.status === 'viewed');
     const dep = d.payments.find(p => p.kind === 'deposit');
@@ -264,12 +316,13 @@
     if (sub) return { i: 1, text: 'Questionnaire received. You’ll get a written fixed quote ' + S.sla() + '.', action: { href: '/start/q/?id=' + sub.id, label: 'View your answers' } };
     const draft = d.qs.find(q => q.status === 'draft');
     if (draft) return { i: 0, text: 'Your questionnaire is saved. Pick up where you left off.', action: { href: '/start/q/?id=' + draft.id, label: 'Continue the questionnaire' } };
-    return { i: 0, text: 'About 3 minutes, saved as you go. You’ll get a written fixed quote ' + S.sla() + '.', action: { id: 'startQ', label: 'Start the questionnaire' } };
+    // a new questionnaire is the website one (FirstRing = the plan picker above it)
+    return { i: 0, text: 'About 3 minutes for the website questionnaire, saved as you go. We email your deposit link ' + S.sla() + '.', action: { id: 'startQ', label: 'Start the questionnaire' } };
   }
 
   function homeHtml(d) {
     const st = stageOf(d);
-    const steps = STAGES.map((s, i) => '<li class="' + (i < st.i ? 'is-done' : i === st.i ? 'is-current' : '') + '"' + (i === st.i ? ' aria-current="step"' : '') + '><span>' + s + '</span></li>').join('');
+    const steps = (st.stages || STAGES).map((s, i) => '<li class="' + (i < st.i ? 'is-done' : i === st.i ? 'is-current' : '') + '"' + (i === st.i ? ' aria-current="step"' : '') + '><span>' + s + '</span></li>').join('');
     const a = st.action;
     const btn = !a ? '' : a.id ? '<button type="button" class="btn btn--primary" id="' + a.id + '">' + S.esc(a.label) + '</button>'
       : '<a class="btn btn--primary" href="' + S.esc(a.href) + '"' + (a.ext ? ' target="_blank" rel="noopener"' : '') + (a.pay ? ' data-pay="' + S.esc(a.pay) + '"' : '') + ' id="nextAction">' + S.esc(a.label) + '</a>';
@@ -285,8 +338,10 @@
       }).join('') + '</ul>' +
       (d.qs.some(q => q.status === 'draft') ? '' : '<p class="spaced"><button type="button" class="linkbtn" id="anotherQ">Start another questionnaire</button></p>');
     }
+    // nothing started yet: the monthly plans first (sign-up), the website questionnaire stays below
+    const pick = SU && !d.client && !d.qs.length && !d.quotes.length ? SU.plansCardHtml() : '';
     const cal = S.BRAND.calendly_url ? '<p class="muted small spaced">Prefer a quick 15-min video call? <a href="' + S.esc(S.BRAND.calendly_url) + '" target="_blank" rel="noopener">Pick a time</a>.</p>' : '';
-    return '<section class="card status"><h2 class="h-card">Where things stand</h2><ol class="stepper" aria-label="Progress">' + steps + '</ol>' +
+    return pick + '<section class="card status"><h2 class="h-card">' + (pick ? 'Need a business website instead?' : 'Where things stand') + '</h2>' + (pick ? '' : '<ol class="stepper" aria-label="Progress" style="--steps:' + (st.stages || STAGES).length + '">' + steps + '</ol>') +
       '<p class="status__text">' + S.esc(st.text) + '</p>' + (btn ? '<div class="btn-row">' + btn + '</div>' : '') + '</section>' +
       '<div id="homeMsg"></div>' + list + cal;
   }
@@ -313,6 +368,7 @@
     if (fp && (fp.state === 'due' || fp.state === 'pending') && (glr || d.client.status === 'live')) {
       h = '<section class="card ppay-card" aria-label="Final payment">' + window.PortalB.finalPayHtml(fp, 'billing') + '</section>' + h;
     }
+    if (!d.payments.length && window.PortalB && window.PortalB.isPlan && window.PortalB.isPlan(d)) return h + '<p class="muted small">Your monthly plan is billed by our payment provider; every receipt comes by email.</p>';
     if (!d.payments.length) return h + '<div class="empty"><b>No payments yet.</b> Payments you make (deposit, final payment, monthly fees) are listed here.</div>';
     return h + '<div class="table-wrap"><table class="table"><caption class="sr-only">Payments</caption><thead><tr><th scope="col">Payment</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead><tbody>' +
       d.payments.map(p => '<tr><td>' + S.esc(payKind(p.kind)) + '</td><td class="num">' + S.money(p.amount_cents) + '</td><td>' +
@@ -393,6 +449,7 @@
     if (gbill) gbill.addEventListener('click', () => { switchTab(d, 'billing'); S.$('#tab-billing').focus(); });
     if (tab === 'billing' && window.PortalB && window.PortalB.mountFinalPay) window.PortalB.mountFinalPay(d, document, () => showPortal('billing'));
     if (tab !== 'home') return;
+    if (SU) SU.bindPlansCard(code => { SU.setIntent(code, profile.niche || null); startSignup(); });
     ['#startQ', '#anotherQ'].forEach(sel => {
       const b = S.$(sel); if (!b) return;
       b.addEventListener('click', async () => {

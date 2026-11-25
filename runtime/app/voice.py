@@ -45,6 +45,8 @@ from twilio.twiml.voice_response import VoiceResponse
 from . import _stubs_b56 as hooks
 from . import guard
 from .conversation import Convo
+from .message_mode import MessageMode, insert_call
+from .message_mode import reason as message_mode_reason
 from .runtime_ctx import Runtime, who
 from .sms_outbound import after_turn
 from .tenants import TenantRecord
@@ -180,16 +182,19 @@ class VoiceFlow:
         return "reject"
 
     # --- call lifecycle --------------------------------------------------------------------------
-    def start(self, tenant: TenantRecord, call_sid: str, caller: str, now: datetime, mode: str) -> Convo:
+    def start(self, tenant: TenantRecord, call_sid: str, caller: str, now: datetime, mode: str,
+              forwarded_from: str = "") -> Convo:
         eng = self.rt.engine
         c = eng.convo(tenant, "voice", caller, call_sid)
         if c.meta.get("call_row_id"):
             return c  # Twilio retried the webhook
         ts = self.rt.store.for_tenant(tenant.id)
         existing = ts.select("calls", call_sid=call_sid)
-        row = existing[0] if existing else ts.insert("calls", {
-            "call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(), "transcript": [],
-            "outcome": None})
+        new_row = {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(), "transcript": [],
+                   "outcome": None}
+        if forwarded_from:  # Twilio's ForwardedFrom: the line that forwarded the call (the forwarding test checks it)
+            new_row["forwarded_from"] = forwarded_from
+        row = existing[0] if existing else insert_call(ts, new_row)
         c.meta.update({"call_row_id": row["id"], "started_at": now.isoformat(), "mode": mode, "turns": 0,
                        "timing": []})
         c.transcript.append({"who": "assistant", "text": greeting(tenant)})
@@ -481,16 +486,23 @@ async def voice_incoming(request: Request) -> Response:
         return _xml(twiml_say_hangup(NOT_IN_SERVICE))
     if problem == "invalid_config":
         return _xml(await _safe_voice(rt, form, "incoming"))
+    now = rt.now()
+    forwarded = _e164(form.get("ForwardedFrom"))
+    # FirstRing plan tenants: trial ended / cancelled / past due / paused / trial minutes used -> short message flow
+    why = await run_in_threadpool(message_mode_reason, tenant, rt.engine.usage, now)
+    if why:
+        if caller in tenant.config.guard.blocklist:
+            return _xml(twiml_reject())
+        return _xml(await run_in_threadpool(MessageMode(rt).voice_incoming, tenant, call_sid, caller, why, now, forwarded))
     if not tenant.active:
         return _xml(twiml_say_hangup(UNAVAILABLE))
-    now = rt.now()
     admitted = await run_in_threadpool(rt.flow.admit, tenant, caller, now)
     if admitted == "reject":
         return _xml(twiml_reject())
     if admitted == "capped":
         return _xml(twiml_say_hangup(CALL_CAP_TEXT, tenant.config.voice.tts_voice))
     mode = rt.settings.voice_mode
-    await run_in_threadpool(rt.flow.start, tenant, call_sid, caller, now, mode)
+    await run_in_threadpool(rt.flow.start, tenant, call_sid, caller, now, mode, forwarded)
     if mode == "stream":
         from .voice_stream import relay_twiml
         return _xml(relay_twiml(rt, request, tenant, call_sid))
@@ -508,6 +520,31 @@ async def _safe_voice(rt: Runtime, form: Any, step: str) -> str:
     if step == "message":
         return await run_in_threadpool(safe.voice_message, bt, call_sid, caller, str(form.get("SpeechResult", "") or ""), now)
     return await run_in_threadpool(safe.voice_incoming, bt, call_sid, caller, now)
+
+
+def _e164(v: Any) -> str:
+    """Twilio's ForwardedFrom comes as E.164 or as 10/11 digits, depending on the carrier."""
+    raw = str(v or "").strip()
+    digits = re.sub(r"\D", "", raw)
+    if raw.startswith("+") and 8 <= len(digits) <= 15:
+        return "+" + digits
+    if len(digits) == 10:
+        return "+1" + digits
+    if len(digits) == 11 and digits.startswith("1"):
+        return "+" + digits
+    return ""
+
+
+@router.post("/voice/message-mode")
+async def voice_message_mode(request: Request) -> Response:
+    """The caller's one speech turn in message-only mode (app.message_mode)."""
+    rt = _rt(request)
+    form = await request.form()
+    tenant, problem = rt.resolve_tenant(str(form.get("To", "")))
+    if problem or not tenant:
+        return _xml(twiml_say_hangup(UNAVAILABLE))
+    return _xml(await run_in_threadpool(MessageMode(rt).voice_message, tenant, str(form.get("CallSid", "")),
+                                        str(form.get("From", "")), str(form.get("SpeechResult", "") or ""), rt.now()))
 
 
 @router.post("/voice/safe-message")
@@ -572,6 +609,10 @@ async def voice_status(request: Request, background: BackgroundTasks) -> Respons
             duration = int(form.get("CallDuration") or 0)
         except ValueError:
             duration = 0
+        mm = MessageMode(rt)
+        if await run_in_threadpool(mm.is_call, call_sid):
+            await run_in_threadpool(mm.voice_finished, tenant, call_sid, duration, now)
+            return Response(status_code=204)
         await run_in_threadpool(rt.flow.finalize, tenant, call_sid, now)
         await run_in_threadpool(rt.dispatcher.on_finalize, tenant, call_sid, now)
         await run_in_threadpool(rt.flow.record_minutes, tenant, call_sid, duration, now)

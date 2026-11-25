@@ -520,3 +520,25 @@ Deno.test("email-unsubscribe: valid token opts out; any token gets the same plai
   eq((await db.recipient("dani@example.com")).unsubscribed, true);
   eq((await h(new Request("http://x/?u=1", { method: "DELETE" }))).status, 405);
 });
+
+Deno.test("FirstRing plan mails: trial reminder, message mode, restored, no go-live button / final payment wording", async () => {
+  const s = await samples();
+  const plans = (PRICEBOOK as unknown as { plans?: Array<{ code: string; name: string; monthly_cents: number }> }).plans ?? [];
+  const pro = plans.find((p) => p.code === "FR_PRO");
+  const t = render("trial_ending", s.trial_ending.ctx);
+  has(t, ["December 9, 2026", "Cancel in your portal", "pay nothing"], "trial_ending");
+  if (pro) has(t, [pro.name, `${usd(pro.monthly_cents)}/mo`], "trial_ending plan from the price book");
+  const mm = render("subscription_message_mode", s.subscription_message_mode.ctx);
+  has(mm, ["message mode", "name, number and reason", "does not book visits", "Turn off call forwarding", "Restart my plan"], "message mode");
+  for (const [reason, line] of [["trial_ended", "free trial ended"], ["past_due", "update your payment details"], ["paused", "paused"]]) {
+    const ctx = { ...s.subscription_message_mode.ctx, subscription: { plan_code: "FR_STARTER", status: "x", reason } };
+    assert(render("subscription_message_mode", ctx).text.includes(line), `message mode ${reason}`);
+  }
+  has(render("subscription_restored", s.subscription_restored.ctx), ["back to full answering", "active again"], "restored");
+  const ready = render("ready_to_test", { ...s.ready_to_test.ctx, client: { ...s.ready_to_test.ctx.client!, billing_mode: "subscription" } });
+  assert(!ready.text.includes("Request go-live") && ready.text.includes("goes live on its own"), "plan ready_to_test is automatic");
+  const live = render("went_live", { ...s.went_live.ctx, client: { ...s.went_live.ctx.client!, billing_mode: "subscription" },
+    subscription: { plan_code: "FR_PRO", status: "active" } });
+  assert(!/Monthly/.test(live.text) && (!pro || live.text.includes(pro.name)), "plan went_live shows the plan, not a quote fee");
+  eq([TEMPLATES.admin_provisioning_alert.audience, TEMPLATES.admin_billing_request.audience, TEMPLATES.trial_ending.transactional], ["admin", "admin", true]);
+});

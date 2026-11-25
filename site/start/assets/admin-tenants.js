@@ -111,7 +111,7 @@
       '<button type="button" class="btn btn--primary btn--sm" id="tSave">' + (t ? 'שמירה' : 'יצירת tenant') + '</button></div>' +
       '<p class="muted small">בדיקות שקיימות רק במודל של ה-runtime (פתיחה לפני סגירה, "listed" צריך פריטים, dial צריך מספר, לפחות איש קשר אחד להתראות) רצות כשה-runtime טוען את ה-tenant.</p>' +
       '<div class="btnrow"><button type="button" class="btn btn--ghost btn--sm" id="tSim" disabled aria-describedby="tSimNote">הרץ 20 תרחישי סימולטור</button></div>' +
-      '<p class="muted small" id="tSimNote">דורש endpoint ‏<bdi dir="ltr">/admin/sim-run</bdi> ב-runtime (עוד לא קיים; B12). בינתיים: <bdi dir="ltr">python -m sim run --all</bdi>.</p>' +
+      '<p class="muted small" id="tSimNote">הבדיקה רצה ב-runtime ‏(<bdi dir="ltr">POST /admin/sim-run/&lt;slug&gt;</bdi>, דורש טוקן אדמין). ללקוחות במנוי: לשונית "מנויים" ← "הרץ בדיקת עלייה לאוויר".</p>' +
       '<h3>נתוני הקליטה מהלקוח</h3>' + (ob.length ? '<ul class="plist obdata">' + ob.map(o => '<li><span class="grow"><b dir="ltr" lang="en">' + esc(o.title) + '</b> ' + C.pill('ob', o.status) +
         (o.data && o.data.help_message ? '<br><span class="small">בקשת עזרה: <bdi dir="auto">' + esc(o.data.help_message) + '</bdi></span>' : '') +
         (o.data && Object.keys(o.data).length ? '<details><summary class="small">נתונים</summary><pre dir="ltr" class="mono small">' + esc(JSON.stringify(o.data, null, 2)) + '</pre></details>' : '') + '</span></li>').join('') + '</ul>'
@@ -167,28 +167,24 @@
     return v.value;
   }
 
-  // client checklist data -> tenant config (review in the editor, then save)
+  // client checklist data -> tenant config (review in the editor, then save). Quote clients only: FirstRing plan clients'
+  // saves are merged by the database at once (private.onboarding_apply). The step rules are OnboardingConfig.patch
+  // (onboarding-config.js = the SQL rules): free-text prices -> pricing.items (or the safe "none"), cities/counties kept in
+  // business.service_area_places next to the ZIPs, business phone, calendar "messages only"; trade + greeting carried.
   function fromOnboarding(c, items, base) {
-    const cfg = JSON.parse(JSON.stringify(base || {}));
+    const cfg0 = JSON.parse(JSON.stringify(base || {}));
     const get = key => (items.find(i => i.key === key) || {}).data || {};
     const p = C.prof(c.user_id) || {};
     const q = C.D.qs.filter(x => x.user_id === c.user_id).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))[0] || {};
-    cfg.business = Object.assign({}, { name: c.business_name || p.company || '', niche: p.niche || q.niche || 'home_services', timezone: p.timezone || '' }, toE164(p.phone) ? { main_phone: toE164(p.phone) } : {}, cfg.business || {});
-    const h = get('hours'); if (h.hours) cfg.hours = h.hours; if (h.timezone) cfg.business.timezone = h.timezone; if (h.after_hours) cfg.after_hours = h.after_hours;
-    const f = get('faq'); if (f.faq) cfg.faq = f.faq;
-    cfg.booking = Object.assign({}, cfg.booking || {});
-    if (f.services) cfg.booking.job_types = f.services;
-    // asked in the checklist since 2026-10-29: 5-digit ZIPs from the free-text service area; prices on the phone (mode only — items are typed here)
-    const zips = String(f.service_area || '').match(/\b\d{5}\b/g) || [];
-    if (zips.length) cfg.business.service_area_zips = [...new Set(zips)].slice(0, 500);
-    if (f.price_on_phone) cfg.pricing = Object.assign({}, cfg.pricing || {}, { mode: f.price_on_phone === 'fixed' ? 'listed' : 'none' });
-    const cal = get('calendar'); if (cal.provider) cfg.booking.provider = cal.provider; if (cal.booking_link) cfg.booking.booking_link = cal.booking_link;
-    if (!cfg.booking.windows) cfg.booking.windows = [['08:00', '12:00'], ['12:00', '16:00']];
-    const a = get('alerts');
-    if (a.notify) cfg.notify = a.notify;
-    if (a.emergency) cfg.emergency = Object.assign({}, cfg.emergency || {}, a.emergency);
-    if (a.on_call_number !== undefined) cfg.handoff = Object.assign({}, cfg.handoff || {}, { mode: a.on_call_number ? 'dial' : 'message', number: a.on_call_number || null });
-    const z = get('tools'); if (z.zapier_webhook_url) cfg.zapier = Object.assign({}, cfg.zapier || {}, { webhook_url: z.zapier_webhook_url });
+    const ans = q.answers || {};
+    cfg0.business = Object.assign({}, { name: c.business_name || p.company || '', niche: p.niche || q.niche || 'home_services', timezone: p.timezone || '' },
+      toE164(p.phone) ? { main_phone: toE164(p.phone) } : {}, ans.trade ? { trade: String(ans.trade).slice(0, 60) } : {}, cfg0.business || {});
+    if (ans.greeting && !(cfg0.voice && cfg0.voice.greeting)) cfg0.voice = Object.assign({}, cfg0.voice || {}, { greeting: String(ans.greeting).slice(0, 400) });
+    cfg0.booking = Object.assign({}, cfg0.booking || {});
+    if (!cfg0.booking.windows) cfg0.booking.windows = [['08:00', '12:00'], ['12:00', '16:00']];
+    let cfg = window.OnboardingConfig ? window.OnboardingConfig.merge(cfg0, items) : cfg0;
+    // calendar: the provider/link from the checklist even before OAuth (the old merge did the same)
+    const cal = get('calendar'); if (cal.provider) cfg.booking = Object.assign({}, cfg.booking, { provider: cal.provider });
     return cfg;
   }
 

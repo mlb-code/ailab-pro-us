@@ -2,6 +2,7 @@
 /legal/terms/
 /legal/privacy/
 /legal/service-agreement/
+/legal/refund/
 /quote/?t=fixture
 /quote/?t=fixture-bundle
 /quote/?t=fixture-dispatch

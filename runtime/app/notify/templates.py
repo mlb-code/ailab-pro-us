@@ -215,8 +215,57 @@ KIND_EN = {"voice_minutes": "voice minutes", "sms_segments": "SMS segments"}
 KIND_HE = {"voice_minutes": "דקות שיחה", "sms_segments": "מקטעי SMS"}
 
 
+def upgrade_url(plan_code: str | None = None) -> str:
+    """The portal's usage card (Billing tab) with the one-click upgrade; `plan` preselects the next plan."""
+    return f"{portal_url()}?upgrade={plan_code}#billing" if plan_code else f"{portal_url()}#billing"
+
+
+def usage_owner_plan(business: str, a: dict[str, Any], sms_business: str | None = None) -> tuple[str, str, str, str]:
+    """FirstRing plan clients: minutes only, the upgrade link, never a per-minute charge. Names and minutes come from
+    the price book (app.plans); nothing is charged automatically."""
+    from .. import plans as plans_mod
+    pct = 100 if a["kind"] == "usage_100" else 80
+    p = plans_mod.plan(a.get("plan_code")) or {}
+    nxt = plans_mod.upgrade_target(a.get("plan_code"))
+    name = str(p.get("name") or a.get("plan_code") or "")
+    used, inc = f"{a['used']:g}", f"{a['included']:g}"
+    nxt_min = ((nxt or {}).get("included_usage") or {}).get("voice_minutes")
+    up = (f"Upgrade to {nxt['name']} ({nxt_min:,} minutes a month, {money(nxt['monthly_cents'], cents=True)}/month) with one click: "
+          f"{upgrade_url(nxt['code'])}" if nxt and nxt_min and nxt.get("monthly_cents") else
+          f"Need more minutes? Reply to this e-mail and we'll work it out with you. Your usage: {upgrade_url()}")
+    message = plans_mod.usage_cap_mode() == "message"
+    mm = ("Your receptionist still answers every call, in message mode: it takes the caller's name, number and reason "
+          "and e-mails them to you. It does not book visits or answer other questions.")
+    if a.get("trial"):
+        subject = f"You've used {pct}% of your free-trial minutes"
+        lines = [f"{business} has used {used} of the {inc} minutes included in the free trial."]
+        if pct >= 100:
+            lines.append(f"{mm} This lasts until your trial ends or you start your paid plan." if message else
+                         "Your receptionist keeps answering as usual.")
+            lines.append(f"To get full answering back right away, start your plan now: {upgrade_url(a.get('plan_code'))}")
+        else:
+            lines.append("We'll let you know again if you reach 100%. Nothing is charged during the trial.")
+    else:
+        subject = f"You've used {pct}% of this month's {name} minutes"
+        lines = [f"{business} has used {used} of the {inc} minutes included in your {name} plan this billing period."]
+        if pct >= 100 and message:
+            until = f" ({str(a['period_end'])[:10]})" if a.get("period_end") else ""
+            lines.append(f"{mm} This lasts until your next billing date{until} or until you upgrade.")
+        lines.append("We never charge per minute and never add charges without your yes.")
+        if nxt or pct >= 100:
+            lines.append(up)
+        if pct < 100:
+            lines.append("We'll let you know again if you reach 100%.")
+    text = "\n\n".join([subject, *lines, f"Portal: {portal_url()}"])
+    html_ = _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "en", _footer_en())
+    sms = f"{sms_business or business}: {pct}% of {'trial' if a.get('trial') else 'included'} minutes used ({used}/{inc}). No extra charge. Details by email."
+    return subject, text, html_, sms[:SMS_MAX]
+
+
 def usage_owner(business: str, a: dict[str, Any], sms_business: str | None = None) -> tuple[str, str, str, str]:
     """`sms_business` = the tenant's SMS display name (`sms_business_name`); the e-mail keeps `business`."""
+    if a.get("plan_code"):
+        return usage_owner_plan(business, a, sms_business)
     pct = 100 if a["kind"] == "usage_100" else 80
     what = KIND_EN.get(a["usage_kind"], a["usage_kind"])
     block = pricebook_item("ADD-USAGE")
@@ -238,10 +287,19 @@ def usage_admin(business: str, slug: str, a: dict[str, Any]) -> tuple[str, str, 
     pct = 100 if a["kind"] == "usage_100" else 80
     what = KIND_HE.get(a["usage_kind"], a["usage_kind"])
     subject = f"שימוש {pct}%: {business} · {what}"
-    lines = [f"ללקוח {business} ({slug}) נוצלו {a['used']:g} מתוך {a['included']:g} {what} החודש.",
-             "אין חיוב אוטומטי. אם צריך, מציעים ללקוח בלוק ADD-USAGE, ורק באישורו."]
-    if pct >= 100:
-        lines.append("החודש מסומן needs_addon_approval. הסוכן ממשיך לענות.")
+    if a.get("plan_code"):
+        trial = " (תקופת ניסיון)" if a.get("trial") else ""
+        lines = [f"ללקוח {business} ({slug}) נוצלו {a['used']:g} מתוך {a['included']:g} {what} בחבילה {a['plan_code']}{trial}.",
+                 "אין חיוב אוטומטי ואין חיוב לפי דקה. הלקוח קיבל מייל עם כפתור שדרוג."]
+        if pct >= 100:
+            lines.append("השיחות עוברות למצב הודעות (שם, טלפון, סיבה, נשלח במייל לבעל העסק) עד סוף הניסיון או תחילת החבילה."
+                         if a.get("trial") else
+                         "השיחות עוברות למצב הודעות עד תאריך החיוב הבא או עד שדרוג. אם זה חוזר, כדאי להציע ללקוח שדרוג.")
+    else:
+        lines = [f"ללקוח {business} ({slug}) נוצלו {a['used']:g} מתוך {a['included']:g} {what} החודש.",
+                 "אין חיוב אוטומטי. אם צריך, מציעים ללקוח בלוק ADD-USAGE, ורק באישורו."]
+        if pct >= 100:
+            lines.append("החודש מסומן needs_addon_approval. הסוכן ממשיך לענות.")
     return subject, "\n".join(lines), _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "he")
 
 
@@ -260,7 +318,12 @@ def calendar_owner(business: str, provider: str) -> tuple[str, str, str, str]:
 # --- admin (Hebrew) ------------------------------------------------------------------------------
 ADMIN_KIND_HE = {"calendar_reconnect": "היומן התנתק", "admin_budget": "תקציב יומי נוצל",
                  "tenant_config_invalid": "קונפיג לקוח לא תקין, הקו במצב חירום",
-                 "zapier_dead_letter": "Zapier נכשל", "notify_failed": "שליחת התראה נכשלה"}
+                 "zapier_dead_letter": "Zapier נכשל", "notify_failed": "שליחת התראה נכשלה",
+                 "provisioning_failed": "הקמה אוטומטית נכשלה", "number_dry_run": "רכישת מספר במצב ניסוי",
+                 "golive_check_failed": "בדיקת עלייה לאוויר נכשלה",
+                 "golive_ai_manual": "בדיקת שיחה אמיתית לא רצה: צריך אישור ידני",
+                 "number_release_dry_run": "שחרור מספר במצב ניסוי", "number_released": "מספר שוחרר",
+                 "number_release_failed": "שחרור מספר נכשל", "number_release_warn_failed": "אזהרת שחרור מספר לא נשלחה"}
 
 
 def admin_alert(kind: str, business: str, slug: str, summary: str) -> tuple[str, str, str]:
@@ -269,7 +332,32 @@ def admin_alert(kind: str, business: str, slug: str, summary: str) -> tuple[str,
     lines = [f"לקוח: {business} ({slug})", f"מה קרה: {summary}"]
     if kind == "calendar_reconnect":
         lines.append("הסוכן עבר ל-take_message. הלקוח קיבל מייל עם הוראה לחבר מחדש.")
-    return subject, "\n".join(lines), _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "he")
+    if kind in ("provisioning_failed", "number_dry_run", "golive_check_failed"):
+        lines.append("לטיפול: באדמין, לשונית 'מנויים', כפתור 'נסה שוב' ליד השלב.")
+    if kind in ("number_release_dry_run", "number_release_failed"):
+        lines.append("לטיפול: באדמין, לשונית 'מנויים', 'שחרור מספר': 'דחה' או 'שחרר עכשיו'.")
+    # a summary may carry several lines (e.g. a test-call transcript): each line on its own row, every value escaped
+    body = "".join(f"<p>{'<br>'.join(esc(y) for y in x.split(chr(10)))}</p>" for x in lines)
+    return subject, "\n".join(lines), _wrap(subject, body, "he")
+
+
+# --- number release after the service ended (owner, English) -----------------------------------------------------
+def number_release_warning(business: str, number: str, release_at: Any) -> tuple[str, str, str]:
+    """7 days before the receptionist's number is released (plan ended / trial ended unpaid and not restarted)."""
+    m = re.match(r"^\+1(\d{3})(\d{3})(\d{4})$", number or "")
+    pretty = f"({m.group(1)}) {m.group(2)}-{m.group(3)}" if m else number
+    when = f"{release_at:%B} {release_at.day}, {release_at.year}" if hasattr(release_at, "strftime") else str(release_at)[:10]
+    subject = f"Your receptionist's number {pretty} will be released on {when}"
+    lines = [f"{business}: your plan has ended, so we're keeping your receptionist's number {pretty} for a little longer, "
+             f"until {when}. On that date we release it and it stops working.",
+             "Please turn off call forwarding on your business phone before then, so your missed calls go back to your "
+             "voicemail instead of a number that no longer answers. The “Forward your missed calls” step in your online "
+             "account shows how for your phone provider.",
+             f"Want to keep this number? Restart your plan before {when} and the same number keeps working: {upgrade_url()}",
+             "Want to take the number with you to another provider? Reply to this e-mail before that date and we'll help "
+             "you transfer it where the carrier allows (carrier fees apply)."]
+    text = "\n\n".join([subject, *lines, f"Portal: {portal_url()}"])
+    return subject, text, _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "en", _footer_en())
 
 
 def admin_daily(d: dict[str, Any]) -> tuple[str, str, str]:

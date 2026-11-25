@@ -1,0 +1,12 @@
+description: FirstRing trial with every trial minute used (TRIAL_CAP_MODE default = message) -> calls get the short message flow until the plan starts; no Claude.
+kind: flow
+channel: voice
+patch: {config: {plan: {code: FR_STARTER, status: trialing, period_start: "2026-10-10", trial_ends_at: "2026-10-24T00:00:00+00:00", period_end: "2026-10-24T00:00:00+00:00"}}}
+setup: {voice_minutes_used: 100}
+steps:
+  - call: {}
+    expect: {reply_contains: ["can't take your call live"]}
+  - say: "Hi, it's Sam, please call me back about a furnace tune-up"
+    expect: {reply_contains: ["passed your message on"]}
+  - hangup: {duration_s: 30}
+expect: {outcome: message, alerts: [lead], claude_calls_max: 0, events: {message_mode.call: 1}}

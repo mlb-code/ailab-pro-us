@@ -18,7 +18,7 @@
 
   // ------------------------------------------------------------ labels (Hebrew UI; product names come from the price book)
   const TABS = [['leads', 'לידים'], ['questionnaires', 'שאלונים'], ['quotes', 'הצעות'], ['clients', 'לקוחות'], ['requests', 'תור ריטיינר'],
-    ['tenants', 'Tenants'], ['events', 'יומן'], ['settings', 'הגדרות']];
+    ['tenants', 'Tenants'], ['subscriptions', 'מנויים'], ['events', 'יומן'], ['settings', 'הגדרות']];
   const ST = {
     q: { draft: 'טיוטה', submitted: 'הוגש', quoted: 'קיבל הצעה', closed: 'סגור' },
     quote: { draft: 'טיוטה', needs_manual_price: 'צריך תמחור ידני', approved: 'אושר', sent: 'נשלח', viewed: 'נצפה', accepted: 'התקבל', expired: 'פג תוקף', void: 'בוטל' },
@@ -294,7 +294,7 @@
   function renderTab(keepList) {
     const p = $('#panel');
     p.setAttribute('aria-labelledby', 'tab-' + tab);
-    ({ leads: tLeads, questionnaires: tQs, quotes: tQuotes, clients: tClients, requests: tRequests, tenants: tTenants, events: tEvents, settings: tSettings }[tab])(p, keepList);
+    ({ leads: tLeads, questionnaires: tQs, quotes: tQuotes, clients: tClients, requests: tRequests, tenants: tTenants, subscriptions: tSubs, events: tEvents, settings: tSettings }[tab])(p, keepList);
   }
   // generic list + detail
   function split(p, filtersHtml, onFilter) {
@@ -835,6 +835,12 @@
       (D.tenants.length ? '<ul class="plist spaced">' + D.tenants.map(t => '<li><span class="grow"><b dir="ltr">' + esc(t.slug) + '</b> · ' + esc(clientName(D.clients.find(c => c.id === t.client_id))) + '</span>' +
         pill('tenant', t.status) + '<span dir="ltr">' + esc(t.twilio_number || '') + '</span><button type="button" class="btn btn--ghost btn--sm" data-tc="' + esc(t.client_id) + '">לכרטיס הלקוח</button></li>').join('') + '</ul>' : '<p class="empty spaced">אין tenants עדיין.</p>');
     $$('[data-tc]', p).forEach(b => b.addEventListener('click', () => go('clients', b.dataset.tc)));
+  }
+
+  // ------------------------------------------------------------ מנויים (FirstRing monthly plans: admin-subscriptions.js)
+  function tSubs(p) {
+    if (window.AdminSubscriptions) { window.AdminSubscriptions.render(p, { AB, PB, $, $$, esc, pill, moneyText, fmtDate, toast, errText, go }); return; }
+    p.innerHTML = '<p class="empty">admin-subscriptions.js לא נטען.</p>';
   }
 
   // ------------------------------------------------------------ יומן

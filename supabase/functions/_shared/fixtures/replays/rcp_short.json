@@ -31,7 +31,7 @@
         "custom_label": ""
       }
     ],
-    "scope_md": "A Missed-Call AI Receptionist for Bayou Plumbing, on two lines. Unanswered calls are answered in English or Spanish, the caller's details and the job are collected, and appointments go into your Google Calendar and Jobber. Urgent callers get a message taken and you are alerted right away.",
+    "scope_md": "A FirstRing AI Receptionist for Bayou Plumbing, on two lines. Unanswered calls are answered in English or Spanish, the caller's details and the job are collected, and appointments go into your Google Calendar and Jobber. Urgent callers get a message taken and you are alerted right away.",
     "assumptions": [
       "Standard scope: service area, after-hours handling, prices on the phone and the FAQ list are collected in the setup checklist after the deposit.",
       "Both locations share one Google Calendar and one Jobber account.",

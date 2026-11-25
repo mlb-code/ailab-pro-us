@@ -1,8 +1,9 @@
 // A10 phase-A gate: the whole sale journey end to end on the MOCK backend (Puppeteer + local Chrome, offline).
-//   landing / → /firstring/ → "Get my fixed quote" → /start/ sign-in (link + 6-digit code) → profile → RCP questionnaire → submit
-//   → admin: draft → approve & send → client opens /quote/#t=<token> → accept (name + consent) → portal "Pay deposit"
-//   → admin: client card + mark deposit paid → 7-step checklist → early go-live refused → testing → go-live request
-//   → final payment card. Plus the WEB self-serve path and the real-estate branch.
+//   landing / → /firstring/ "Start free trial" links; an old /start/?offer=RCP link → sign-in → the plan sign-up (no questionnaire).
+//   LEGACY quote client (2026-11-25: FirstRing is plan-only; a FirstRing questionnaire sent before then, stored via the API)
+//   → read-only answers → admin: draft → approve & send → client opens /quote/#t=<token> → accept (name + consent) → portal
+//   "Pay deposit" → admin: client card + mark deposit paid → 7-step checklist → early go-live refused → testing → go-live
+//   request → final payment card. Plus the WEB self-serve path and the real-estate website questionnaire.
 // Runs at 390 and 1280. Fails on any assertion, any console error / uncaught exception / local HTTP >= 400,
 // any horizontal overflow, or any request to Supabase / Anthropic / Resend.
 //   node tools/e2e_phase_a.mjs              (own static server on E2E_PORT, default: a free port)
@@ -109,34 +110,45 @@ async function run(browser, width) {
   ok(toFr === '/firstring/', 'home hero button → /firstring/ (' + toFr + ')');
   await goto('/firstring/');
   await noOverflow('landing /firstring/');
-  const cta = await page.$$eval('a', as => (as.find(a => /Get my fixed quote/i.test(a.textContent)) || {}).getAttribute?.('href') || null);
-  ok(cta === '/start/?offer=RCP&niche=home_services', 'FirstRing CTA "Get my fixed quote" → /start/?offer=RCP&niche=home_services (' + cta + ')');
-  await goto(cta);
+  // 2026-11-25: FirstRing is sold only as a monthly plan: "Start free trial" per plan (/start/?plan=FR_*&niche=...). An old quote link
+  // (/start/?offer=RCP) now opens the plan sign-up. The quote journey below is the LEGACY one: a quote client whose FirstRing
+  // questionnaire was sent before 2026-11-25 (stored through the API, as the old form saved it) keeps quote, deposit, checklist.
+  const trials = await page.$$eval('a[data-ev="trial_start"]', as => as.map(a => a.getAttribute('href')));
+  ok(trials.length === 3 && trials.every(h => /^\/start\/\?plan=FR_(STARTER|PRO|BUSINESS)&niche=home_services$/.test(h)), 'FirstRing "Start free trial" buttons → /start/?plan=FR_*&niche=home_services (' + trials.join(' ') + ')');
+  await goto('/start/?offer=RCP&niche=home_services');
   ok(await page.evaluate(() => window.Backend && window.Backend.mode) === 'mock', '/start/ runs on the mock backend');
   await page.waitForSelector('#email');
-  await page.type('#email', 'dani@coolbreeze.test'); await page.click('#sendBtn'); await page.waitForSelector('#mockCode');
+  ok(await waitText('Start your free trial.') && !(await waitText('Get your written fixed quote', 300)), 'old FirstRing quote link: the sign-in screen is the free-trial one (no quote promise)');
+  await page.type('#email', 'oldlink@coolbreeze.test'); await page.click('#sendBtn'); await page.waitForSelector('#mockCode');
   ok(!!(await page.$eval('#mockLink', a => a.href).catch(() => '')), 'sign-in: magic link in the mock inbox');
   await page.type('#code', (await page.$eval('#mockCode', e => e.textContent)).trim());
+  await page.waitForSelector('#suForm', { timeout: 10000 }).catch(() => null);
+  ok(!!(await page.$('#suForm')) && !page.url().includes('/start/q/') && (await page.$$('input[name=su_plan]')).length === 3, 'old FirstRing quote link → the plan sign-up (plan choice), not a questionnaire');
+  ok(await page.$eval('input[name=su_niche][value=home_services]', i => i.checked).catch(() => false), 'old link: the niche is kept');
+  ok(!((await db()).questionnaires || []).length, 'old link: no questionnaire created');
+  await noOverflow('old link → sign-up');
+  await page.evaluate(() => window.StartSignup.clearIntent());
+  await signOut();
+  // the legacy quote client
+  await goto('/start/?mock=1'); await page.waitForSelector('#email');
+  await page.type('#email', 'dani@coolbreeze.test'); await page.click('#sendBtn'); await page.waitForSelector('#mockCode');
+  await page.type('#code', (await page.$eval('#mockCode', e => e.textContent)).trim());
   await profile('Dani Levi', 'Cool Breeze HVAC', '(713) 555-0100');
-  ok(page.url().includes('/start/q/'), 'landing intent opens the questionnaire right after the profile');
-  await page.waitForSelector('#stepTitle');
-  ok(await page.$eval('input[name=offer][value=RCP]', i => i.checked).catch(() => false), 'intent: RCP preselected');
-  ok(await page.$eval('input[name=niche][value=home_services]', i => i.checked).catch(() => false), 'intent: home services preselected');
-  // 3 screens (spec 2026-10-29): profile, then "What you need" and "Extras that change the price"; no review screen
-  ok(await waitText('Step 2 of 3'), 'questionnaire opens on step 2 of 3');
-  await pick('input[name=offer][value=RCP]'); await pick('input[name=niche][value=home_services]');
-  await pick('input[name=services][value=hvac]'); await pick('input[name=locations][value="1"]'); await noOverflow('q/need'); await next();
-  ok(await page.evaluate(() => location.hash) === '#extras' && await waitText('Step 3 of 3'), 'RCP questionnaire: step 3 of 3 is the last screen');
-  for (const [k, v] of [['calls_week', '20_50'], ['spanish', 'no'], ['dispatch', 'no']]) await pick(`input[name=${k}][value="${v}"]`);
-  await pick('input[name=tools][value=google_calendar]'); await pick('input[name=tools][value=jobber]'); await noOverflow('q/extras');
-  ok(!(await page.$('#nextBtn')) && await page.$eval('#submitBtn', b => b.textContent) === 'Get my fixed quote', 'step 3 ends with "Get my fixed quote" (no review screen)');
-  await page.click('#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 10000 });
-  ok(await waitText('written fixed quote ' + brand.quote_sla_text), 'done screen: quote promise from brand.quote_sla_text');
-  await noOverflow('q/done');
+  ok(await waitText('Pick your plan') && await waitText('Need a business website instead?'), 'a new account: the plan picker first, the website questionnaire below');
+  const legacy = { offer: 'RCP', niche: 'home_services', locations: '1', calls_week: '20_50', spanish: 'no', dispatch: 'no', tools: ['google_calendar', 'jobber'] };
+  ok((await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'RCP', niche: 'home_services' }).then(() => 'created', e => e.message))) === 'offer_not_offered', 'a new FirstRing questionnaire is refused (server rule, mock mirror)');
+  // the legacy row as it was stored before 2026-11-25 (written directly, like existing rows in the database)
+  const qnId = await page.evaluate(a => window.StartMock.admin.legacyQuestionnaire({ offer: a.offer, niche: a.niche, status: 'submitted', answers: a,
+    summary: window.StartQ.buildSummary(a, window.Start.PB) }), legacy);
+  await goto('/start/q/?id=' + qnId); await page.waitForSelector('#roTitle', { timeout: 10000 });
+  const roTxt = await page.$eval('.sum', e => e.innerText);
+  ok(roTxt.includes('FirstRing AI Receptionist') && roTxt.includes('Jobber') && roTxt.includes('Google Calendar') && !(await page.$('#planNote')), 'legacy FirstRing questionnaire: read-only view as sent');
+  await noOverflow('legacy questionnaire read-only');
+  await goto('/start/'); await page.waitForSelector('.status', { timeout: 10000 });
+  ok(/Questionnaire received/.test(await page.$eval('.status', e => e.innerText)) && await waitText('FirstRing AI Receptionist'), 'portal: legacy questionnaire received, listed by its name');
   let d = await db();
   const qn = d.questionnaires.find(q => q.status === 'submitted' && q.offer === 'RCP');
-  ok(!!qn && qn.niche === 'home_services', 'questionnaire submitted with offer RCP + niche');
-  ok(d.outbox.some(m => m.template === 'q_received' && m.subject.endsWith(brand.quote_sla_text)), 'q_received e-mail (mock) uses quote_sla_text');
+  ok(!!qn && qn.id === qnId && qn.niche === 'home_services', 'legacy questionnaire stored with offer RCP + niche');
 
   // ---------------------------------------------------------------- admin: draft → approve & send
   await signOut();
@@ -222,7 +234,8 @@ async function run(browser, width) {
   ok(steps.join() === 'forward_calls,calendar,hours,faq,alerts,tools,sms', 'checklist = 7 steps in SPEC §6.8 order');
   ok(await page.$eval('#ob_golive', b => b.disabled).catch(() => true), 'go-live button disabled before testing');
   await noOverflow('checklist');
-  await page.evaluate(async () => { const ob = await window.Backend.listOnboarding(); for (const o of ob) if (o.key !== 'sms') await window.Backend.updateOnboarding(o.id, 'done', {}).catch(() => {}); });
+  // calendar: done only with a connected calendar or the explicit "messages only" choice (2026-11-25)
+  await page.evaluate(async () => { const ob = await window.Backend.listOnboarding(); for (const o of ob) if (o.key !== 'sms') await window.Backend.updateOnboarding(o.id, 'done', o.key === 'calendar' ? { booking_mode: 'messages_only' } : {}).catch(() => {}); });
   const early = await page.evaluate(() => window.Backend.listOnboarding().then(ob => window.Backend.updateOnboarding(ob.find(o => o.key === 'sms').id, 'done', { go_live_requested_at: new Date().toISOString() })).then(() => 'ok', e => e.message));
   ok(early === 'go_live_not_ready', 'early go-live request refused (' + early + ')');
   await signOut();
@@ -254,15 +267,17 @@ async function run(browser, width) {
   const web = await page.$$eval('a', as => (as.find(a => /Choose this package/i.test(a.textContent)) || {}).getAttribute?.('href') || null);
   ok(web === '/start/?offer=WEB' || /^\/start\/\?offer=WEB/.test(web || ''), '/website/ CTA → /start/?offer=WEB (' + web + ')');
   await goto(web); await page.waitForSelector('#email');
+  ok(await waitText('Get your business website.') && !(await waitText('fixed quote', 300)), 'website link: sign-in speaks of the website (deposit link), no quote promise');
   await page.type('#email', 'web@shine.test'); await page.click('#sendBtn'); await page.waitForSelector('#mockCode');
   await page.type('#code', (await page.$eval('#mockCode', e => e.textContent)).trim());
   await profile('Wendy Ward', 'Shine Cleaning', '(512) 555-0100');
   ok(page.url().includes('/start/q/'), 'WEB intent opens the content questionnaire');
   await page.waitForSelector('#stepTitle');
   await pick('input[name=offer][value=WEB]'); await pick('input[name=niche][value=home_services]');
-  await pick('input[name=services][value=cleaning]'); await next();
+  await next();
   ok(await page.evaluate(() => location.hash) === '#extras' && await waitText('Step 3 of 3'), 'WEB questionnaire: 2 screens, no review');
-  await pick('input[name=has_website][value=no]'); await pick('input[name=content_have][value=logo]'); await noOverflow('WEB q/extras');
+  ok(!(await page.$('input[name=content_have]')), 'WEB step 3 no longer asks "What can you send us?"');
+  await pick('input[name=has_website][value=no]'); await noOverflow('WEB q/extras');
   ok(/deposit link/i.test(await page.$eval('#submitBtn', b => b.textContent).catch(() => '')), 'WEB submit button asks for the deposit link (no quote)');
   await page.click('#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 10000 });
   const wd = await body();
@@ -275,17 +290,25 @@ async function run(browser, width) {
   await signOut();
   await goto('/real-estate/');
   ok(!/receptionist/i.test(await body()), '/real-estate/ never says "receptionist"');
-  const re = await page.$$eval('a', as => (as.find(a => /fixed quote/i.test(a.textContent)) || {}).getAttribute?.('href') || null);
-  ok(re === '/start/?offer=RCP&niche=real_estate', 'real-estate CTA keeps the niche (' + re + ')');
+  const reTrials = await page.$$eval('a[data-ev="trial_start"]', as => as.map(a => a.getAttribute('href')));
+  ok(reTrials.length > 0 && reTrials.every(h => /^\/start\/\?plan=FR_[A-Z]+&niche=real_estate$/.test(h)), 'real-estate trial buttons keep the niche (' + reTrials.join(' ') + ')');
+  const re = '/start/?offer=RCP&niche=real_estate';   // an old lead-assistant quote link: the plan sign-up now
   await goto(re); await page.waitForSelector('#email');
+  ok(await waitText('Start your free trial.'), 'old real-estate quote link: free-trial sign-in');
   await page.type('#email', 'amy@lonestar.test'); await page.click('#sendBtn'); await page.waitForSelector('#mockCode');
   await page.type('#code', (await page.$eval('#mockCode', e => e.textContent)).trim());
+  await page.waitForSelector('#suForm', { timeout: 10000 }).catch(() => null);
+  ok(!!(await page.$('#suForm')) && await page.$eval('input[name=su_niche][value=real_estate]', i => i.checked).catch(() => false), 'old real-estate link → the plan sign-up, real estate kept');
+  await page.evaluate(() => window.StartSignup.clearIntent());
+  // the real-estate website questionnaire (the only questionnaire now)
+  await goto('/start/?offer=WEB&niche=real_estate');
   await profile('Amy Carter', 'Lone Star Homes', '(214) 555-0100');
   await page.waitForSelector('#stepTitle');
   ok(await page.$eval('input[name=niche][value=real_estate]', i => i.checked).catch(() => false), 'real-estate niche preselected');
-  await pick('input[name=locations][value="1"]'); await next();
-  ok((await page.$eval('#f_calls_week legend', e => e.textContent)) === 'Leads per week' && !!(await page.$('input[name=re_crm]')), 'real-estate branch: leads per week + CRM question');
+  ok((await page.$$eval('input[name=offer]', i => i.map(x => x.value))).join() === 'WEB' && await waitText('Agent Website'), 'real-estate questionnaire: "Agent Website" only');
   ok(!/receptionist/i.test(await body()), 'real-estate questionnaire never says "receptionist"');
+  await next();
+  ok(!(await page.$('input[name=re_crm]')) && !(await page.$('input[name=tools]')) && !(await page.$('input[name=calls_week]')), 'real-estate website questionnaire: no CRM / tools / leads questions');
   await noOverflow('real-estate questionnaire');
   await page.close();
 }

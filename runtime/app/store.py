@@ -41,7 +41,7 @@ for _name in ("httpx", "httpx2", "httpcore"):
     logging.getLogger(_name).setLevel(logging.WARNING)
 
 TABLES = ("tenants", "calls", "sms_messages", "bookings", "opt_outs", "events", "tenant_credentials", "runtime_state",
-          "sms_consent", "dispatch_events")
+          "sms_consent", "dispatch_events", "provisioning_jobs", "number_releases", "subscriptions")
 CONSENT_TYPES = ("text_back", "booking_texts", "opt_out", "opt_in", "staff_alerts")
 CONSENT_DECISIONS = ("yes", "no", "unclear", "no_answer", "notice", "revoked")
 CONSENT_CHANNELS = ("voice", "sms", "carrier", "manual")
@@ -124,6 +124,12 @@ class Store(ABC):
 
     def opt_in(self, tenant_id: str, contact_e164: str) -> None:
         self.delete("opt_outs", tenant_id=tenant_id, contact_e164=contact_e164)
+
+    def account_email(self, client_id: str | None) -> str | None:
+        """The account owner's e-mail for a client (contact e-mail when set, else the sign-in address), or None.
+        Production: the service-role RPC runtime_account_email (20261127100000_us_firstring_p3.sql). The JSON store has no
+        accounts (simulator, tests): None."""
+        return None
 
     def log_event(self, actor: str, entity: str, entity_id: str | None, type_: str,
                   payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -268,6 +274,13 @@ class SupabaseStore(Store):
             return self._client.post("/rpc/ping", json={}).status_code < 400
         except httpx.HTTPError:
             return False
+
+    def account_email(self, client_id):
+        if not client_id:
+            return None
+        resp = self._ok(self._client.post("/rpc/runtime_account_email", json={"p_client": client_id}))
+        v = resp.json() if resp.content else None
+        return v.strip() if isinstance(v, str) and v.strip() else None
 
     def put_credential(self, tenant_id, provider, ciphertext, expires_at=None):
         self._ok(self._client.post("/rpc/runtime_put_credential", json={

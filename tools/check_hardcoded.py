@@ -78,7 +78,8 @@ def brand_values(brand):
 def price_values(pricebook):
     """Whole-dollar amounts that appear in the price book (setup and monthly), excluding 0."""
     out = set()
-    for it in pricebook.get('items', []):
+    # FirstRing monthly plans (v2.0, 2026-11-25) count as price-book prices too
+    for it in pricebook.get('items', []) + pricebook.get('plans', []):
         for k in ('setup_cents', 'monthly_cents'):
             c = it.get(k)
             if isinstance(c, int) and c > 0:

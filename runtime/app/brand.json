@@ -27,21 +27,22 @@
     "governing_law": "the State of New York"
   },
   "legal_final": true,
-  "agreement_version": "1.1",
+  "agreement_version": "2.0",
   "physical_address": "7 Sokolov St., Apt 3, Herzliya 4649711, Israel",
   "display_address": "7 Sokolov St., Herzliya, Israel",
   "calendly_url": "https://calendar.app.google/eJdAx1dAqnp9cjPD7",
   "analytics": {
     "ga4_id": "G-5TBZG2PQGB",
     "clarity_id": "z58x8dddg7",
-    "meta_pixel_id": "1107052935634034",
+    "meta_pixel_id": "1331547079064674",
     "events": [
       "demo_start",
       "quote_start",
       "quote_submit",
       "quote_accept",
       "quote_open",
-      "pay_click"
+      "pay_click",
+      "trial_start"
     ]
   },
   "claude": {
@@ -97,20 +98,35 @@
     }
   ],
   "fonts": {
-    "google_css": "https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap"
+    "google_css": "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..700&display=swap",
+    "$comment": "Design 'Workday' (2026-11-25), whole site: Bricolage Grotesque for headlines, Inter for text. google_css is linked by the sign-up, quote page, portal, legal pages and the styleguide (the admin adds Noto Sans Hebrew); landing_css (same URL) by the generated marketing pages and their OG images.",
+    "landing_css": "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..700&display=swap"
+  },
+  "landing_theme": {
+    "$comment": "Design 'Workday' (2026-11-25), the palette of the whole site under its marketing names: warm off-white page, near-black ink, one cobalt blue block color, warm yellow accent. site/assets/landing.css :root must use these exact values (tools/build_landing.py --check verifies); base.css holds the same colors (see 'theme'). AA contrast: ink on bg 17.2:1, muted on bg 5.7:1 and on white 6.2:1, white on blue 6.7:1 (small text on blue at least 86% white, 5.4:1), ink on sun 10.3:1, blue text on bg 6.2:1, sun on ink 10.3:1; sun on blue is 3.7:1, so yellow on blue only for large text (headline word, big prices).",
+    "bg": "#F7F6F2",
+    "card": "#FFFFFF",
+    "ink": "#11131A",
+    "ink_2": "#20232F",
+    "muted": "#5D6170",
+    "line": "#E4E2DA",
+    "blue": "#1D3BFF",
+    "blue_soft": "#EEF0FF",
+    "sun": "#FFB21A",
+    "sun_soft": "#FFF6E0"
   },
   "theme": {
-    "$comment": "Design tokens (design v2, 2026-10-12): near-black ink + violet accent, amber only for prices and numbers. site/assets/base.css :root must use these exact values (tools/build_landing.py --check verifies). AA contrast checked: fg 17.3:1, fg-3 6.0:1+, violet text 5.4:1+ on every surface, ink on violet 6.5:1, amber 8.9:1+.",
-    "ink": "#0C0C10",
-    "ink_2": "#15151C",
-    "ink_3": "#1E1E29",
-    "screen": "#09090C",
-    "paper": "#F2F0F7",
-    "violet": "#9583FF",
-    "violet_2": "#AE9FFF",
-    "violet_deep": "#5B45E6",
-    "amber": "#F2B256",
-    "amber_2": "#F7C77A"
+    "$comment": "Site-wide palette, design 'Workday' (2026-11-25): warm off-white page, near-black ink, one cobalt blue accent, warm yellow for highlights. site/assets/base.css :root must use these exact values (tools/build_landing.py --check verifies); the key names are historic (design v2): ink/ink_2/ink_3 = near-black steps, paper = page background, screen = card white, violet = cobalt blue accent, violet_2 = soft blue tint, violet_deep = blue hover, amber = warm yellow, amber_2 = yellow hover. Same colors as landing_theme. AA contrast: ink on paper 17.2:1, muted #5D6170 on paper 5.7:1 and on white 6.2:1, blue text on paper 6.2:1, white on blue 6.7:1, ink on yellow 10.3:1, form field borders #8E8B80 3.2:1+ on paper and white.",
+    "ink": "#11131A",
+    "ink_2": "#20232F",
+    "ink_3": "#2A2E3C",
+    "screen": "#FFFFFF",
+    "paper": "#F7F6F2",
+    "violet": "#1D3BFF",
+    "violet_2": "#EEF0FF",
+    "violet_deep": "#1530DB",
+    "amber": "#FFB21A",
+    "amber_2": "#FFC547"
   },
   "social": {
     "$comment": "Public profile URLs for the footer. Empty = not shown. Fill in only real profiles.",
@@ -120,12 +136,12 @@
     "youtube": "",
     "x": ""
   },
-  "show_founder_price": true,
+  "show_founder_price": false,
   "quote_sla_text": "within 1 business day",
   "business_days_text": "Sunday–Thursday, Israel time",
   "proof": {
-    "worked_with": "Worked with Samsung and Haier in Israel (through their Israeli distributor) and with other Israeli corporate clients.",
-    "worked_with_status": "pending owner approval"
+    "worked_with": "Worked with corporate clients in Israel, including a home-appliance importer.",
+    "worked_with_status": "owner decision 2026-11-25: description only, no client names until the client agrees"
   },
   "demo": {
     "runtime_url": "https://runtime-production-7097.up.railway.app",
@@ -155,6 +171,17 @@
       "enabled": false,
       "env": "sandbox",
       "client_id": ""
+    },
+    "paddle": {
+      "$comment": "FirstRing monthly plans through Paddle Billing (merchant of record). PUBLIC values only, all PLACEHOLDERS until Meir fills them in from his Paddle account: client_token = Paddle > Developer tools > Authentication > client-side token (test_... in sandbox, live_... in production; Paddle.js only, never an API key). prices = 6 price IDs (pri_...): per plan one 'trial' price (monthly, 14-day trial, card required) for sign-up, and one 'paid' price (same monthly amount, NO trial) for 'Start paid plan' (trial already used) and for plan changes. Secrets are ONLY Edge Function secrets, typed by Meir in Supabase: PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET, PADDLE_ENV (sandbox|production). enabled=false (default), an empty client_token or any empty price = the Paddle checkout is off and the mock / demo path stays (local, tests).",
+      "enabled": false,
+      "env": "sandbox",
+      "client_token": "",
+      "prices": {
+        "FR_STARTER": { "trial": "", "paid": "" },
+        "FR_PRO": { "trial": "", "paid": "" },
+        "FR_BUSINESS": { "trial": "", "paid": "" }
+      }
     }
   }
 }

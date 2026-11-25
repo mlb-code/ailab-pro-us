@@ -6,7 +6,15 @@
    after_hours, on_call_number). Everything else (time zone, emergency words, calendar link, services, SMS registration, ...)
    is saved as the checklist item's data (update_onboarding_item RPC) and merged into the tenant config by the owner in
    the admin. The go-live request is gated on the server too (private.onboarding_go_live_gate).
-   Client-facing text: US English. No prices or brand strings typed here (pricebook/brand JSON only). */
+   Client-facing text: US English. No prices or brand strings typed here (pricebook/brand JSON only).
+   FirstRing monthly plans (2026-11-25, clients.billing_mode = 'subscription', Backend.getBilling = RPC client_billing):
+   every checklist save goes straight into the live config on the server (private.onboarding_apply; no owner merge), the
+   checklist order is hours -> FAQ -> alerts -> calendar -> (tools) -> forward calls last -> (texting, optional), go-live
+   is automatic (simulator checks, no "Request go-live", no final payment), and Billing shows the plan, this period's
+   minutes, days left, Upgrade / Start now / Cancel / Restart (Backend.changePlan / cancelPlan / resumePlan). Message
+   mode (trial ended, cancelled, past due, paused, minutes used up) is shown at the top of every tab. After the service
+   ended, while the number release is scheduled (client_billing.number_release), the plan card says until when the number
+   is kept, with the restart button (numberRelease; home.js adds the same line to the home status). */
 (function () {
   const S = window.Start, B = window.Backend, TS = window.TenantSchema, Q = window.StartQ;
   const esc = s => S.esc(s);
@@ -61,6 +69,50 @@
   const SMS_CONSENT = 'I confirm that my business will text only people who contacted us first (a call or a text), to reply about their request, confirm a booking and send one reminder — no marketing. Every first message names my business and says “Reply STOP to opt out”, and anyone who replies STOP gets no more texts. I am responsible for my business’s use of text messages under the Service Agreement.';
 
   let state = { open: null, testPoll: null, calendarReturn: null };
+  // ------------------------------------------------------------ FirstRing plan helpers (numbers from the price book)
+  const isPlan = d => !!(d.client && d.client.billing_mode === 'subscription');
+  const plansPB = () => (S.PB && S.PB.plans) || [];
+  const planOf = code => plansPB().find(p => p.code === code) || null;
+  const subOf = d => (d.billing && d.billing.subscription) || null;
+  function planTerms(d) {
+    const sub = subOf(d); if (!sub) return null;
+    const p = planOf(sub.plan_code) || {}, trial = sub.status === 'trialing';
+    const included = trial ? (p.trial_minutes || ((S.PB.rules || {}).subscription || {}).trial_minutes || 0) : ((p.included_usage || {}).voice_minutes || 0);
+    const used = ((d.billing || {}).usage || {}).voice_minutes || 0;
+    const end = (d.billing.period || {}).end || (trial ? sub.trial_ends_at : sub.current_period_end);
+    const days = end ? Math.max(0, Math.ceil((Date.parse(end) - Date.now()) / 86400000)) : null;
+    return { sub, plan: p, trial, included, used, end, days, next: planOf(p.upgrade_to), capped: !!included && used >= included };
+  }
+  // why calls get the short message flow right now ('' = full answering); the minutes cap mirrors the runtime (app/message_mode.py)
+  function messageMode(d) {
+    if (!isPlan(d) || !d.billing) return '';
+    const sv = d.billing.service || {};
+    if (sv.mode === 'message_only') return sv.reason || 'message_only';
+    const t = planTerms(d);
+    return t && t.capped ? (t.trial ? 'trial_minutes_used' : 'plan_minutes_used') : '';
+  }
+  const MM_WHY = { trial_ended: 'Your free trial ended and no paid plan has started.', canceled: 'Your plan has ended.',
+    past_due: 'We couldn’t collect your monthly payment and the grace period is over.', paused: 'Your plan is paused.',
+    trial_minutes_used: 'You’ve used all the minutes included in your free trial. This lasts until your trial ends or you start your paid plan.',
+    plan_minutes_used: 'You’ve used all the minutes included in your plan this billing period. This lasts until your next billing date or until you upgrade.' };
+  // the plan ended and the number is kept for a while (client_billing.number_release, only while a release is scheduled)
+  function numberRelease(d) {
+    const r = isPlan(d) && d.billing && d.billing.number_release;
+    return r && r.number && r.release_at ? { number: r.number, release_at: r.release_at,
+      text: 'Your ' + ((((S.PB || {}).rules || {}).subscription || {}).product || 'FirstRing') + ' number ' + fmtPhone(r.number) + ' is kept until ' + S.fmtDate(r.release_at) + '. Restart your plan to keep it.' } : null;
+  }
+  function messageModeHtml(d, noAct) {
+    const why = messageMode(d); if (!why) return '';
+    const t = planTerms(d);
+    const act = noAct ? '' : why === 'trial_minutes_used' ? '<button type="button" class="btn btn--primary btn--sm" data-plan-act="start">Start my plan now</button>'
+      : why === 'plan_minutes_used' ? (t && t.next ? '<button type="button" class="btn btn--primary btn--sm" data-plan-act="upgrade" data-plan="' + esc(t.next.code) + '">Upgrade to ' + esc(t.next.name) + '</button>' : '')
+      : '<button type="button" class="btn btn--primary btn--sm" data-plan-act="resume">' + (why === 'past_due' ? 'Update payment and restart' : 'Restart my plan') + '</button>';
+    return '<section class="card mmode" role="status" aria-labelledby="mmH"><h2 class="h-card" id="mmH">Your receptionist is in message mode</h2>' +
+      '<p>' + esc(MM_WHY[why] || 'Your plan isn’t active right now.') + '</p>' +
+      '<p>Calls are still answered: it takes the caller’s name, number and reason and emails them to you. It doesn’t book visits or answer other questions.</p>' +
+      '<p class="muted small">Don’t want calls to reach it at all? Turn off call forwarding on your business phone (the “Forward your missed calls” step shows how for your provider).</p>' +
+      '<div id="msg_plan_mm" aria-live="polite"></div>' + (act ? '<div class="btn-row">' + act + '</div>' : '') + '</section>';
+  }
 
   // ------------------------------------------------------------ data
   const isRcp = d => !!(d.client && (d.client.products || []).some(p => p === 'RCP' || p === 'BNDL'));
@@ -83,6 +135,7 @@
     try { await TS.load(); d.schemaOk = true; } catch (e) { d.schemaOk = false; }
     const [ob, tenant, reqs] = await Promise.all([B.listOnboarding(), B.getTenant().catch(() => null), B.listRequests()]);
     d.ob = (ob || []).filter(o => o.client_id === d.client.id || !o.client_id); d.tenant = tenant; d.requests = reqs || [];
+    d.billing = isPlan(d) && B.getBilling ? await B.getBilling().catch(() => null) : null;
     if (tenant && isRcp(d)) {
       const [usage, calls, sms, bookings] = await Promise.all([B.getUsage(tenant.id).catch(() => null), B.listCalls(tenant.id), B.listSms(tenant.id), B.listBookings(tenant.id)]);
       Object.assign(d, { usage, calls: calls || [], sms: sms || [], bookings: bookings || [] });
@@ -241,13 +294,27 @@
     const done = items.filter(i => i.status === 'done').length;
     const pct = items.length ? Math.round(done / items.length * 100) : 0;
     if (!state.open || !items.some(i => i.key === state.open)) state.open = (items.find(i => i.status !== 'done') || {}).key || null;
-    return '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p>' + done + ' of ' + items.length + ' steps done. Each step has a short video and saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
+    return messageModeHtml(d) + '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p>' + done + ' of ' + items.length + ' steps done. Each step has a short video and saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
       '<div class="bar" role="progressbar" aria-label="Setup checklist progress" aria-valuemin="0" aria-valuemax="' + items.length + '" aria-valuenow="' + done + '"><i style="width:' + pct + '%"></i></div>' +
       '<div class="vslot spaced" data-video="onb-welcome" data-script="01-welcome"><div class="vslot__ph" role="img" aria-label="Welcome video coming soon"><span aria-hidden="true">▶</span> Welcome — what happens now (video coming soon)</div></div></section>' +
-      (d.schemaOk === false ? S.msgHtml('Some settings can’t be checked right now. Please reload the page.') : '') +
+      (d.schemaOk === false ? S.msgHtml('Some settings can’t be checked right now. Please reload the page.') : '') + autoGoLiveHtml(d) +
       '<div id="calReturn"></div><ol class="obsteps">' + items.map((it, i) => '<li><details class="obstep" id="ob-' + esc(it.key) + '" data-key="' + esc(it.key) + '"' + (state.open === it.key ? ' open' : '') + '>' +
         '<summary><span class="obstep__n" aria-hidden="true">' + (i + 1) + '</span><span class="obstep__t">' + esc(it.title) + '</span>' + pill(it.status, OB_STATUS[it.status] || it.status) + '</summary>' +
         '<div class="obstep__b">' + videoSlot(it) + stepBody(it, d) + helpBox(it) + '</div></details></li>').join('') + '</ol>';
+  }
+  // plan clients: no "Request go-live" and no final payment; the server goes live after the automatic test calls
+  function autoGoLiveHtml(d) {
+    if (!isPlan(d)) return '';
+    const req = d.ob.filter(o => o.key !== 'tools' && o.key !== 'sms'), left = req.filter(o => o.status !== 'done');
+    const job = k => ((d.billing || {}).setup || []).find(j => j.kind === k) || {};
+    const num = job('number'), sim = job('golive_sim'), st = d.client.status;
+    let text, kind = 'info';
+    if (st === 'live') { text = 'You’re live. Calls forwarded from your business line are answered.'; kind = 'ok'; }
+    else if (!(d.tenant && d.tenant.twilio_number)) text = num.status === 'delayed' ? 'Getting your receptionist’s phone number is taking longer than usual. We’re on it and will email you.' : 'We’re getting your receptionist’s phone number (usually a few minutes). You can fill in the other steps now.';
+    else if (left.length) text = 'Go-live is automatic: finish the ' + left.length + ' step' + (left.length === 1 ? '' : 's') + ' left (the test call through your business line is the last one), then we run test calls against your settings and switch you live. No extra payment.';
+    else if (sim.status === 'delayed') text = 'Our final checks found something to fix. We’re looking at it and will email you shortly.';
+    else text = 'All steps done. We’re running automatic test calls against your settings now; you’ll be live within minutes and get an email.';
+    return '<div class="golive golive--auto" id="autoGoLive">' + S.msgHtml(text, kind) + '</div>';
   }
   function helpBox(it) {
     const sent = it.status === 'need_help' && it.data && it.data.help_message;
@@ -260,9 +327,9 @@
   // the go-live request sits in the LAST checklist item (sms for the receptionist, web_content for websites)
   const lastItem = d => d.ob.slice().sort((x, y) => x.sort - y.sort).pop();
   function goLiveHtml(it, d) {
-    if (lastItem(d) !== it) return '';
+    if (lastItem(d) !== it || isPlan(d)) return '';   // plan clients: go-live is automatic (autoGoLiveHtml)
     const data = it.data || {};
-    const left = d.ob.filter(o => o.status !== 'done' && o.key !== 'tools');   // 'tools' (Zapier) is optional
+    const left = d.ob.filter(o => o.status !== 'done' && o.key !== 'tools' && o.key !== 'sms');   // 'tools' (Zapier) and texting are optional
     const testing = d.client && d.client.status === 'testing';
     const why = left.length ? 'Finish the checklist first (' + left.length + ' step' + (left.length === 1 ? '' : 's') + ' left).' : !testing ? 'This opens once your receptionist is ready to test — we’ll email you.' : '';
     const fp = finalPay(d);   // card / PayPal checkout for the final payment (null = Upwork / a link from us, as before)
@@ -280,7 +347,7 @@
   // amount comes from our payment row. Same rule as paypalOn() in /assets/quote_view.mjs.
   const ppOn = () => { const p = S.BRAND.payments && S.BRAND.payments.paypal; return !!(p && p.enabled === true && /^[A-Za-z0-9_-]{16,128}$/.test(p.client_id || '')); };
   function finalPay(d) {
-    if (!d.client || !ppOn()) return null;
+    if (!d.client || !ppOn() || isPlan(d)) return null;
     const quotes = d.quotes || [];
     const q = quotes.find(x => x.id === d.client.quote_id) || quotes.find(x => x.status === 'accepted');
     if (!q || q.pay_method !== 'paypal_checkout' || !q.public_token) return null;
@@ -339,11 +406,15 @@
           (num ? '<p>Your receptionist’s number: <b class="mono bignum" id="ob_fwdnum">' + esc(fmtPhone(num)) + '</b></p>' : S.msgHtml('Your receptionist’s number appears here when your receptionist is ready to test. We’ll email you. You can do the other steps first.', 'info')) +
           '<div class="field"><label for="ob_car">Your phone provider</label><select class="select" id="ob_car"><option value="">Choose…</option>' + carrierOptions(car) + '</select></div>' +
           '<div id="ob_carhow">' + carrierHow(car, num) + '</div>' +
-          (num ? '<h3 class="h-sub">Test call</h3><p>Press “Test call”. You then have 30 minutes: call your business number from another phone, let it ring out, and say a few words to the receptionist. This step turns to Done when the call arrives.</p>' +
+          (num ? '<h3 class="h-sub">Try it first</h3><p>Call <b class="mono">' + esc(fmtPhone(num)) + '</b> yourself and talk to your receptionist like a customer would. Then turn on forwarding above.</p>' : '') +
+          '<div class="field"><label for="ob_bizphone">Your business phone number</label><span class="hint" id="ob_bizphoneH">The number your customers call, the one you forward. The test below checks the call really comes from this line.</span>' +
+          '<input class="input" id="ob_bizphone" inputmode="tel" autocomplete="tel" aria-describedby="ob_bizphoneH" value="' + esc(fmtPhone(data.business_phone || ((cfg.business || {}).main_phone) || '')) + '"></div>' +
+          '<div id="msg_bizphone" aria-live="polite"></div><div class="btn-row"><button type="button" class="btn btn--ghost btn--sm" id="ob_bizsave">Save business number</button></div>' +
+          (num ? '<h3 class="h-sub">Test call</h3><p>Press “Test call”. You then have 30 minutes: from another phone, call your <b>business</b> number (not the receptionist’s number), let it ring out, and say a few words to the receptionist. This step turns to Done when the call arrives through your business line.</p>' +
             '<p class="notice" role="note" id="ob_textback">Heads-up: once business texting is live (after US carrier registration), hanging up without speaking sends the phone you called from our “Sorry we missed your call” text-back message. That’s expected during a test. Until then, nothing is texted.</p>' +
             '<div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_test"' + (it.status === 'done' ? ' disabled' : '') + ' aria-describedby="ob_textback">Test call</button>' +
             (B.mode === 'mock' ? '<button type="button" class="btn btn--ghost btn--sm" id="ob_testsim" hidden>Simulate the forwarded call (demo mode)</button>' : '') + '</div><div id="msg_forward_calls" aria-live="polite">' +
-            (data.test_call_at ? S.msgHtml('Call received ' + when(data.test_call_at, d) + '. Forwarding works.', 'ok') : '') + '</div>' : '');
+            (data.test_call_at ? S.msgHtml('Call received ' + when(data.test_call_at, d) + ' through your business line. Forwarding works.', 'ok') : forwardStateHtml(it, data, d)) + '</div>' : '');
       }
       case 'calendar': {
         const prov = data.provider || '';
@@ -351,7 +422,10 @@
         const cly = data.provider === 'calendly' && data.connected_at && data.oauth_at;  // OAuth done (not just the link)
         return '<p>Your receptionist books into your calendar: <b>Calendly (paid plan) or Google Calendar (free)</b>. Calendly’s booking connection needs a paid Calendly plan on your account.</p>' +
           '<fieldset class="field"><legend class="label">Your calendar</legend><div class="choices choices--compact" role="radiogroup" aria-label="Your calendar">' +
-          ['calendly', 'google'].map(v => '<label class="choice"><input type="radio" name="ob_prov" value="' + v + '"' + (prov === v ? ' checked' : '') + '><span class="choice__t">' + (v === 'calendly' ? 'Calendly (paid plan)' : 'Google Calendar (free)') + '</span></label>').join('') + '</div></fieldset>' +
+          ['calendly', 'google', 'none'].map(v => '<label class="choice"><input type="radio" name="ob_prov" value="' + v + '"' + ((v === 'none' ? data.booking_mode === 'messages_only' && !prov : prov === v) ? ' checked' : '') + '><span class="choice__t">' + (v === 'calendly' ? 'Calendly (paid plan)' : v === 'google' ? 'Google Calendar (free)' : 'No calendar: take messages only') + '</span></label>').join('') + '</div></fieldset>' +
+          '<div id="ob_cal_none"' + (data.booking_mode === 'messages_only' && !prov ? '' : ' hidden') + '><p>Your receptionist won’t offer times or book visits. It takes every caller’s name, number and what they need, and emails it to you. You can connect a calendar later.</p>' +
+          (data.booking_mode === 'messages_only' && it.status === 'done' ? S.msgHtml('Messages only: nothing is booked.', 'ok') : '') +
+          '<div id="msg_calnone" aria-live="polite"></div><div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_calnone" data-item="' + esc(it.id) + '">Use messages only</button></div></div>' +
           '<div id="ob_cal_calendly"' + (prov === 'calendly' ? '' : ' hidden') + '><div class="field"><label for="ob_cly">Your Calendly booking link</label><span class="hint" id="ob_clyH">Looks like https://calendly.com/your-name/service-call</span>' +
           '<input class="input" id="ob_cly" inputmode="url" aria-describedby="ob_clyH" value="' + esc(data.booking_link || '') + '"></div>' + saveBtn(it, 'Save Calendly link') +
           '<h3 class="h-sub">Allow booking</h3>' + (cly ? S.msgHtml('Connected — Calendly account, ' + S.fmtDate(data.oauth_at) + '.', 'ok') : '') +
@@ -423,6 +497,20 @@
         return saveBtn(it, 'Mark as done');
     }
   }
+  // the test call arrived, but not (provably) through the business line
+  function forwardStateHtml(it, data, d) {
+    if (it.status === 'done') return '';
+    if (data.test_mismatch_from && (!data.test_unverified_at || data.test_mismatch_at >= data.test_unverified_at)) {
+      return S.msgHtml('A call reached your receptionist forwarded from ' + fmtPhone(data.test_mismatch_from) + ', not from your business number ' +
+        fmtPhone(((d.tenant || {}).config || {}).business ? d.tenant.config.business.main_phone : '') + '. If that is your business line, save it as your business number above and test again.', 'err');
+    }
+    if (data.test_unverified_at) {
+      if (data.test_direct) return S.msgHtml('That call came straight from your business phone to the receptionist’s number, so it doesn’t test forwarding. From another phone, call your business number and let it ring out.', 'err');
+      return S.msgHtml('A call reached your receptionist, but your phone company didn’t tell us which line forwarded it. Did you call your business number (not the receptionist’s number) and let it ring out?', 'info') +
+        '<div class="btn-row"><button type="button" class="btn btn--primary btn--sm" id="ob_fwdconfirm" data-item="' + esc(it.id) + '">Yes, I called my business number</button></div>';
+    }
+    return '';
+  }
   // <option>s grouped by CARRIERS[i][3] (optgroup label) in first-seen order; ungrouped entries stand alone
   function carrierOptions(car) {
     const opt = c => '<option value="' + c[0] + '"' + (c[0] === car ? ' selected' : '') + '>' + esc(c[1]) + '</option>';
@@ -452,7 +540,15 @@
         if (errs.length) return { errs };
         const data = { services, faq: f.faq, service_area: S.$('#ob_area').value.trim() || null };
         if (isRE(d)) { data.re_lead_types = picked('ob_relead'); data.re_qualify = picked('ob_requal'); }
-        else { data.price_on_phone = picked('ob_price')[0] || null; data.fixed_prices = data.price_on_phone === 'fixed' ? list(S.$('#ob_prices').value) : []; }
+        else {
+          data.price_on_phone = picked('ob_price')[0] || null;
+          data.fixed_prices = data.price_on_phone === 'fixed' ? S.$('#ob_prices').value.split('\n').map(x => x.trim()).filter(Boolean) : [];
+          if (data.price_on_phone === 'fixed' && window.OnboardingConfig) {   // same reader as the server (private.parse_price_lines)
+            const bad = data.fixed_prices.filter(l => !window.OnboardingConfig.parsePrices([l]).length);
+            if (!data.fixed_prices.length) return { errs: ['Add at least one price, like “Service call: $89”, or choose “No”.'] };
+            if (bad.length) return { errs: bad.map(l => 'Fixed prices: “' + l + '” needs a name and a price, like “Service call: $89”.') };
+          }
+        }
         return { data, settings: { faq: f.faq } };
       }
       case 'alerts': {
@@ -472,10 +568,14 @@
         return errs.length ? { errs } : { data: { zapier_webhook_url: zap, skipped: false } };
       }
       case 'calendar': {
+        // the link alone is not a connection: the step stays open until the Calendly account is connected (OAuth)
         const link = S.$('#ob_cly').value.trim();
         if (!CALENDLY_RX.test(link)) return { errs: ['That doesn’t look like a Calendly booking link (https://calendly.com/your-name/event).'] };
         const e = schemaErrs(link, '#/$defs/Booking/properties/booking_link');
-        return e.length ? { errs: e } : { data: { provider: 'calendly', booking_link: link, connected_at: new Date().toISOString() } };
+        const it = d.ob.find(o => o.key === 'calendar') || {};
+        const connected = (it.data || {}).provider === 'calendly' && (it.data || {}).oauth_at;
+        return e.length ? { errs: e } : { status: connected ? 'done' : 'todo', data: { provider: 'calendly', booking_link: link, booking_mode: null },
+          saved: connected ? null : 'Link saved. Last step: press “Connect Calendly account” below so your receptionist can book.' };
       }
       case 'sms': {
         const legal = S.$('#ob_legal').value.trim(), ein = S.$('#ob_ein').value.trim(), addr = S.$('#ob_addr').value.trim(), web = S.$('#ob_web').value.trim();
@@ -507,7 +607,7 @@
     const btn = S.$('[data-save="' + key + '"]'); if (btn) btn.disabled = true;
     try {
       // whitelisted receptionist settings go to the live config too (only once a tenant exists)
-      if (r.settings && d.tenant) await B.updateTenantSettings(d.tenant.id, r.settings);
+      if (r.settings && d.tenant && !isPlan(d)) await B.updateTenantSettings(d.tenant.id, r.settings);   // plan clients: the server merges the step
       const wf = key === 'web_content' ? S.$('#ob_wfiles') : null;
       if (wf && wf.files && wf.files.length) {
         const req = await B.createRequest({ title: 'Website content files', body: 'Files for my website, sent from the Website content step.' });
@@ -515,8 +615,9 @@
         if (errs.length) { errBox('msg_' + key, ['Some files weren’t attached: ' + errs.join(' ')]); if (btn) btn.disabled = false; return; }
         r.data.files_request_at = new Date().toISOString();
       }
-      await B.updateOnboarding(it.id, 'done', Object.assign({ saved_at: new Date().toISOString() }, r.data));
+      await B.updateOnboarding(it.id, r.status || 'done', Object.assign({ saved_at: new Date().toISOString() }, r.data));
       S.toast('Saved');
+      if (r.saved) { state.open = key; state.savedNote = { key, text: r.saved }; await api.refresh('onboarding', ['#ob-' + key + ' > summary']); return; }
       const next = d.ob.slice().sort((a, b) => a.sort - b.sort).find(o => o.status !== 'done' && o.key !== key);
       state.open = next ? next.key : key;
       await api.refresh('onboarding', ['#ob-' + state.open + ' > summary']);
@@ -538,6 +639,14 @@
       return what + ' wasn’t accepted. Please check it and save again.';
     }
     if (/data_too_large/.test(m)) return 'This is too long to save. Please shorten some answers.';
+    if (/calendar_not_connected/.test(m)) return 'Connect your calendar account first (the button below), or choose “No calendar: take messages only”.';
+    if (/called_directly/.test(m)) return 'That call came straight from your business phone, so it doesn’t test forwarding. Call your business number from another phone.';
+    if (/no_test_call/.test(m)) return 'We haven’t seen a test call yet. Press “Test call” and call your business number.';
+    const inv2 = /invalid_setting:(business\.timezone|booking\.job_types|emergency\.keywords|booking\.booking_link|booking\.provider|zapier\.webhook_url|business\.main_phone)/.exec(m);
+    if (inv2) return ({ 'business.timezone': 'Time zone wasn’t accepted. Pick one from the list.', 'booking.job_types': 'Services weren’t accepted (1 to 30 services, each up to 80 characters).',
+      'emergency.keywords': 'Emergency words weren’t accepted (up to 40 words, each up to 60 characters).', 'booking.booking_link': 'That Calendly link wasn’t accepted (https://calendly.com/your-name/event).',
+      'booking.provider': 'Choose Calendly or Google Calendar.', 'zapier.webhook_url': 'The Zapier webhook URL must start with https://',
+      'business.main_phone': 'Your business number should be a US phone number, like (713) 555-0100.' })[inv2[1]];
     if (/go_live_not_ready/.test(m)) return 'Go-live opens once every step is done and your receptionist is ready to test.';
     if (/no_forwarding_number/.test(m)) return 'Your forwarding number isn’t ready yet. We’ll email you when it is.';
     return S.errText(e);
@@ -554,7 +663,30 @@
       const v = (S.$('input[name=ob_prov]:checked') || {}).value;
       S.$('#ob_cal_calendly').hidden = v !== 'calendly';
       S.$('#ob_cal_google').hidden = v !== 'google';
+      if (S.$('#ob_cal_none')) S.$('#ob_cal_none').hidden = v !== 'none';
     }));
+    const cn = S.$('#ob_calnone');
+    if (cn) cn.addEventListener('click', async () => {
+      cn.disabled = true;
+      try { await B.updateOnboarding(cn.dataset.item, 'done', { booking_mode: 'messages_only', provider: null, saved_at: new Date().toISOString() }); S.toast('Saved'); state.open = null; await api.refresh('onboarding', ['#ob-calendar > summary']); }
+      catch (e) { cn.disabled = false; errBox('msg_calnone', [settingsErr(e)]); }
+    });
+    const bz = S.$('#ob_bizsave');
+    if (bz) bz.addEventListener('click', async () => {
+      const it = d.ob.find(o => o.key === 'forward_calls'), n = toE164(S.$('#ob_bizphone').value);
+      if (!n || /^invalid:/.test(n) || !/^\+1[2-9]\d{9}$/.test(n)) { errBox('msg_bizphone', ['Your business number should be a US phone number, like (713) 555-0100.']); return; }
+      bz.disabled = true;
+      try { await B.updateOnboarding(it.id, null, { business_phone: n }); S.toast('Saved'); state.open = 'forward_calls'; await api.refresh('onboarding', ['#ob_bizphone']); }
+      catch (e) { bz.disabled = false; errBox('msg_bizphone', [settingsErr(e)]); }
+    });
+    const fc = S.$('#ob_fwdconfirm');
+    if (fc) fc.addEventListener('click', async () => {
+      fc.disabled = true;
+      try { await B.confirmForwardingTest(fc.dataset.item); S.toast('Forwarding confirmed'); state.open = null; await api.refresh('onboarding', ['#ob-forward_calls > summary']); }
+      catch (e) { fc.disabled = false; errBox('msg_forward_calls', [settingsErr(e)]); }
+    });
+    bindPlanActions(d, api, 'onboarding');
+    if (state.savedNote && S.$('#msg_' + state.savedNote.key)) { okBox('msg_' + state.savedNote.key, state.savedNote.text); state.savedNote = null; }
     const gb = S.$('#ob_google');
     if (gb) gb.addEventListener('click', async () => {
       gb.disabled = true;
@@ -619,6 +751,7 @@
       try {
         const ob = await B.listOnboarding(); const it = ob.find(o => o.id === itemId);
         if (it && it.status === 'done') { clearInterval(state.testPoll); S.toast('Test call received'); state.open = 'forward_calls'; await api.refresh('onboarding', ['#ob-forward_calls > summary']); }
+        else if (it && ((it.data || {}).test_unverified_at || (it.data || {}).test_mismatch_at)) { clearInterval(state.testPoll); state.open = 'forward_calls'; await api.refresh('onboarding', ['#ob-forward_calls > summary']); }
       } catch (e) { /* keep polling */ }
     }, B.mode === 'mock' ? 700 : 5000);
   }
@@ -631,7 +764,7 @@
     const it = d.ob.find(o => o.key === 'calendar');
     if (res === 'connected' && it && ['google', 'calendly'].indexOf(prov) !== -1) {
       const at = new Date().toISOString();  // data is merged server-side: the saved Calendly link stays
-      try { await B.updateOnboarding(it.id, 'done', Object.assign({ provider: prov, connected_at: at }, prov === 'calendly' ? { oauth_at: at } : {})); } catch (e) { /* shown below */ }
+      try { await B.updateOnboarding(it.id, 'done', Object.assign({ provider: prov, connected_at: at, booking_mode: null }, prov === 'calendly' ? { oauth_at: at } : {})); } catch (e) { /* shown below */ }
       state.calendarReturn = { text: (prov === 'google' ? 'Google Calendar' : 'Calendly account') + ' connected. Thank you!' + (prov === 'calendly' ? ' Remember the “Job details” question in Calendly.' : ''), kind: 'ok' };
     } else state.calendarReturn = { text: res === 'cancelled' ? 'Calendar connection was cancelled. You can try again any time.' : 'The calendar didn’t connect. Please try again or use “Need help”.', kind: res === 'cancelled' ? 'info' : 'err' };
     state.open = 'calendar';
@@ -657,7 +790,7 @@
     }).join('');
     const bookings = d.bookings.map(b => '<li class="bk"><div><b>' + esc(b.job_type || 'Job') + '</b> · ' + esc(b.customer_name || '') + '</div><div class="muted small">' + esc(when(b.start_at, d)) +
       (b.address ? ' · ' + esc(b.address) : '') + (b.contact_e164 ? ' · <span class="mono">' + esc(fmtPhone(b.contact_e164)) + '</span>' : '') + '</div>' + (b.status !== 'confirmed' || b.confirmed_at ? pill.apply(null, window.PortalResults ? window.PortalResults.statusOf(b) : [b.status, b.status]) : '') + '</li>').join('');
-    return '<section class="card rx"><div class="rx__h"><div><h2 class="h-card">Your receptionist</h2><p>' + pill(paused ? 'paused' : t.status, st) + (t.twilio_number ? ' <span class="mono">' + esc(fmtPhone(t.twilio_number)) + '</span>' : '') + '</p></div>' +
+    return messageModeHtml(d) + '<section class="card rx"><div class="rx__h"><div><h2 class="h-card">Your receptionist</h2><p>' + pill(paused ? 'paused' : t.status, st) + (t.twilio_number ? ' <span class="mono">' + esc(fmtPhone(t.twilio_number)) + '</span>' : '') + '</p></div>' +
       '<button type="button" class="btn btn--sm ' + (paused ? 'btn--primary' : 'btn--ghost') + '" id="rxPause" aria-pressed="' + paused + '">' + (paused ? 'Resume AI' : 'Pause AI') + '</button></div>' +
       '<p class="muted small" id="rxPauseHint">While paused, the AI assistant doesn’t talk to callers or send texts. Resume any time.</p><div id="rxMsg" aria-live="polite"></div></section>' +
       '<h2 class="h-sec">Recent calls</h2>' + (calls ? '<ul class="calls">' + calls + '</ul>' : '<div class="empty">No calls yet. Calls your receptionist answers show up here with a summary and transcript.</div>') +
@@ -669,11 +802,12 @@
       '<details class="card set" id="setNotify"><summary>Who gets alerts</summary>' + notifyEditor('rxn', cfg.notify) + '<div id="rxMsg_notify" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="notify">Save alerts</button></details>' +
       '<details class="card set" id="setAfter"><summary>After hours & on-call number</summary>' + afterHoursEditor('rxah', (cfg.after_hours || {}).mode) + onCallEditor('rxoc', (cfg.handoff || {}).number || (cfg.emergency || {}).dial) +
       '<div id="rxMsg_after" aria-live="polite"></div><button type="button" class="btn btn--primary btn--sm" data-rxsave="after">Save</button></details>' +
-      (isRealEstate(cfg) ? screeningHtml(cfg) : '') + webchatHtml(t, cfg) +
+      spanishHtml(d, cfg) +
+      (isRealEstate(cfg) ? screeningHtml(cfg) : '') + webchatHtml(t, planChat(d, cfg)) +
       (window.PortalDispatch ? window.PortalDispatch.html(d) : '');
   }
   function bindReceptionist(d, api) {
-    bindHours('rxh'); bindFaq('rxf'); bindNotify('rxn'); bindScreening(); bindWebchat();
+    bindHours('rxh'); bindFaq('rxf'); bindNotify('rxn'); bindScreening(); bindWebchat(); bindPlanActions(d, api, 'receptionist'); bindSpanish(d, api);
     if (window.PortalDispatch) window.PortalDispatch.bind(d, api);
     S.$('#rxPause').addEventListener('click', async e => {
       const b = e.currentTarget, next = b.getAttribute('aria-pressed') !== 'true';
@@ -706,6 +840,43 @@
       try { await B.updateTenantSettings(d.tenant.id, patch); S.toast('Saved'); await api.refresh('receptionist', ['[data-rxsave="' + k + '"]'], true); }
       catch (er) { b.disabled = false; errBox('rxMsg_' + k, [k === 'screen' ? screeningErr(er) : settingsErr(er)]); }
     }));
+  }
+
+  // ------------------------------------------------------------ "Answer in Spanish too" (FirstRing plans, 2026-11-25)
+  // Plans whose price-book features include 'spanish' (Pro, Business): an on/off switch saved straight into the live config
+  // (update_tenant_settings key `spanish` -> voice.languages + voice.spanish_off, the remembered choice). Other plans see it
+  // locked with the name of the cheapest plan that has it. Quote clients: not shown (ADD-ES stays a Request).
+  function spanishPlan(d) {
+    if (!isPlan(d)) return null;
+    const sub = subOf(d), p = sub && planOf(sub.plan_code);
+    if (!p) return null;
+    const has = pl => (pl.features || []).indexOf('spanish') !== -1;
+    const first = plansPB().filter(has).sort((a, b) => (a.monthly_cents || 0) - (b.monthly_cents || 0))[0] || null;
+    return { on: has(p), plan: p, first };
+  }
+  function spanishHtml(d, cfg) {
+    const sp = spanishPlan(d); if (!sp) return '';
+    const v = cfg.voice || {}, checked = sp.on && (v.languages || []).indexOf('es') !== -1;
+    const hint = sp.on ? 'Your receptionist answers Spanish-speaking callers in Spanish, with the call notice in Spanish too. English stays on.'
+      : 'Your ' + esc(sp.plan.name || 'current') + ' plan answers in English only.';
+    return '<section class="card set" id="setSpanish" aria-labelledby="rxEsH"><h3 class="h-sub" id="rxEsH">Spanish</h3>' +
+      '<label class="check spaced"><input type="checkbox" role="switch" id="rxEs"' + (checked ? ' checked' : '') + (sp.on ? '' : ' disabled aria-describedby="rxEsLock"') + '> <span>Answer in Spanish too</span></label>' +
+      (sp.on ? '' : '<p class="small" id="rxEsLock"><span class="pill pill--todo">Locked</span> Available on ' + esc((sp.first && sp.first.name) || 'Pro') + '. <a href="#billing">See plans</a></p>') +
+      '<p class="muted small" id="rxEsHint">' + hint + '</p><div id="rxMsg_es" aria-live="polite"></div></section>';
+  }
+  function bindSpanish(d, api) {
+    const box = S.$('#rxEs'); if (!box || box.disabled) return;
+    box.addEventListener('change', async () => {
+      const on = box.checked;
+      box.disabled = true;
+      try { await B.updateTenantSettings(d.tenant.id, { spanish: on }); S.toast(on ? 'Spanish is on' : 'Spanish is off'); await api.refresh('receptionist', ['#rxEs']); }
+      catch (er) {
+        box.checked = !on; box.disabled = false;
+        const m = (er && (er.code || er.message)) || '';
+        const names = plansPB().filter(p => (p.features || []).indexOf('spanish') !== -1).map(p => p.name).join(' and ');
+        errBox('rxMsg_es', [/spanish_not_in_plan/.test(m) ? 'Spanish is available on ' + (names || 'other plans') + '. See plans on the Billing tab.' : settingsErr(er)]);
+      }
+    });
   }
 
   // ------------------------------------------------------------ add-ons in "My receptionist": real-estate lead screening
@@ -764,6 +935,11 @@
   }
   // Chat box for the client's website (ADD-CHAT). The snippet is <script src="<runtime>/chat/widget.js" data-tenant="<slug>" async>
   // — the runtime URL comes from brand.json demo.runtime_url; allowed website addresses are set by us (Request).
+  // FirstRing Pro / Business include the website chat (the runtime switches it on from the price book)
+  const planChat = (d, cfg) => {
+    const sub = subOf(d), p = sub && planOf(sub.plan_code);
+    return p && (p.features || []).indexOf('web_chat') !== -1 ? Object.assign({}, cfg, { webchat: Object.assign({ allowed_origins: [] }, cfg.webchat || {}, { enabled: true }) }) : cfg;
+  };
   function webchatHtml(t, cfg) {
     const wc = cfg.webchat; if (!wc || !wc.enabled) return '';
     const base = String((S.BRAND.demo && S.BRAND.demo.runtime_url) || '').replace(/\/+$/, '');
@@ -875,7 +1051,103 @@
   }
 
   // ------------------------------------------------------------ Billing: usage card
+  function planHtml(d) {
+    const t = planTerms(d); if (!t) return '';
+    const sub = t.sub, p = t.plan, fmt = v => v ? S.fmtDate(v) : '', paddle = sub.provider === 'paddle';
+    const pct = t.included ? Math.min(100, Math.round(t.used / t.included * 100)) : 0;
+    // the service ended and the number is kept until a date: that box holds the only action (restart), the rest is hidden
+    const rl = numberRelease(d);
+    const relBox = rl ? '<div class="notice notice--info plan-release" id="planRelease" role="status"><p id="planReleaseText">' + esc(rl.text) + '</p>' +
+      '<div class="btn-row"><button type="button" class="btn btn--primary btn--sm" data-plan-act="resume" id="planReleaseRestart">Restart my plan</button></div></div>' : '';
+    const statusLine = sub.status === 'trialing' ? (rl ? 'Free trial ended ' + fmt(sub.trial_ends_at) + '.' : 'Free trial until ' + fmt(sub.trial_ends_at) + '. No charge before then.')
+      : sub.status === 'active' ? (sub.cancel_at_period_end ? (Date.parse(sub.current_period_end) < Date.now() ? 'Ended ' : 'Cancelled: works until ') + fmt(sub.current_period_end) + '.' : 'Renews ' + fmt(sub.current_period_end) + '.')
+      : sub.status === 'past_due' ? 'Payment due: please update your card.' : sub.status === 'paused' ? 'Paused.' : 'Ended ' + fmt(sub.ends_at) + '.';
+    const live = ['trialing', 'active'].indexOf(sub.status) !== -1 && !sub.cancel_at_period_end && !rl;
+    const nextBtn = t.next && ['trialing', 'active', 'past_due'].indexOf(sub.status) !== -1
+      ? '<button type="button" class="btn btn--primary btn--sm" data-plan-act="upgrade" data-plan="' + esc(t.next.code) + '">Upgrade to ' + esc(t.next.name) + ' · ' + S.money(t.next.monthly_cents) + '/mo · ' +
+        Number((t.next.included_usage || {}).voice_minutes || 0).toLocaleString('en-US') + ' min</button>' : '';
+    const acts = rl ? '' : [nextBtn,
+      sub.status === 'trialing' ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="start">Start my paid plan now</button>' : '',
+      paddle && ['active', 'past_due', 'trialing'].indexOf(sub.status) !== -1 ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="card">Update card</button>' : '',
+      ['trialing', 'active'].indexOf(sub.status) !== -1 && !sub.cancel_at_period_end ? '<button type="button" class="linkbtn" data-plan-act="cancel">Cancel plan</button>' : '',
+      sub.cancel_at_period_end || ['canceled', 'past_due', 'paused'].indexOf(sub.status) !== -1 ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="resume">' + (sub.cancel_at_period_end ? 'Keep my plan' : 'Restart my plan') + '</button>' : ''].filter(Boolean).join('');
+    const sched = sub.scheduled_plan_code && planOf(sub.scheduled_plan_code) ? '<p class="muted small" id="planSched">Changes to ' + esc(planOf(sub.scheduled_plan_code).name) + ' on ' + fmt(sub.current_period_end) + '.' +
+      (paddle ? ' <button type="button" class="linkbtn" data-plan-act="keep" data-plan="' + esc(sub.plan_code) + '">Keep ' + esc(p.name || sub.plan_code) + '</button>' : '') + '</p>' : '';
+    // every other plan: up = now (prorated in a paid month), down = from the next billing date (in the trial: now, still free)
+    const others = live ? plansPB().filter(x => x.code !== sub.plan_code && x.code !== sub.scheduled_plan_code && (((S.PB.rules || {}).subscription || {}).plan_codes || []).indexOf(x.code) !== -1) : [];
+    const change = others.length ? '<details class="plan-change" id="planChange"><summary>Change plan</summary><ul class="plist">' + others.map(x => {
+      const up = (x.monthly_cents || 0) > (p.monthly_cents || 0);
+      const when = t.trial ? 'now, still free in your trial' : up ? 'now, you pay the difference for this month' : 'from ' + fmt(sub.current_period_end);
+      return '<li class="row"><span class="grow"><b>' + esc(x.name) + '</b> · ' + S.money(x.monthly_cents) + '/mo · ' + Number((x.included_usage || {}).voice_minutes || 0).toLocaleString('en-US') + ' min<br><span class="muted small">' + esc(when) + '</span></span>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="' + (up ? 'upgrade' : 'downgrade') + '" data-plan="' + esc(x.code) + '">Switch</button></li>';
+    }).join('') + '</ul></details>' : '';
+    const manage = paddle ? '<p class="muted small"><button type="button" class="linkbtn" data-plan-act="manage">Receipts and invoices</button></p>' : '';
+    return '<section class="card usage plan" aria-labelledby="planH"><h2 class="h-card" id="planH">This month’s usage</h2>' +
+      '<p class="plan__name"><b>' + esc(p.name || sub.plan_code) + '</b>' + (p.monthly_cents ? ' · ' + S.money(p.monthly_cents) + '/mo' : '') + ' · <span id="planStatus">' + esc(statusLine) + '</span></p>' + relBox + sched +
+      '<div class="meter"><div class="meter__l"><span>' + (t.trial ? 'Trial minutes' : 'Call minutes') + '</span><span class="num" id="planMinutes">' + Math.round(t.used).toLocaleString('en-US') + ' of ' + Number(t.included).toLocaleString('en-US') + ' min</span></div>' +
+      '<div class="bar" role="progressbar" aria-label="' + (t.trial ? 'Trial minutes used' : 'Call minutes used') + '" aria-valuemin="0" aria-valuemax="' + t.included + '" aria-valuenow="' + Math.round(t.used) + '"><i class="' + (pct >= 100 ? 'is-full' : pct >= 80 ? 'is-high' : '') + '" style="width:' + pct + '%"></i></div></div>' +
+      (t.days != null && !rl ? '<p class="small" id="planDays">' + t.days + ' day' + (t.days === 1 ? '' : 's') + ' left in this ' + (t.trial ? 'trial' : 'billing period') + (t.end ? ' (until ' + fmt(t.end) + ')' : '') + '.</p>' : '') +
+      '<p class="muted small">We never charge per minute. You get an email at 80% and 100%. At 100%, calls switch to message mode (name, number and reason, emailed to you) until ' + (t.trial ? 'your trial ends or you start your plan' : 'your next billing date or an upgrade') + '.</p>' +
+      '<div id="msg_plan" aria-live="polite"></div>' + (acts ? '<div class="btn-row">' + acts + '</div>' : '') + change + manage + '</section>';
+  }
+  // Billing buttons. Mock / manual subscriptions: the phase-1 RPCs (applied at once). Paddle: Backend.paddleAction = the Edge
+  // Function paddle-billing (server API key); the change reaches this page through Paddle's webhook a few seconds later.
+  const PLAN_ERR = { same_plan: 'You’re already on that plan.', not_active: 'Restart your plan first.', past_due_update_card: 'Please update your card first.',
+    paddle_off: 'Online plan changes open soon. Email us and we’ll do it for you.', not_trialing: 'Your paid plan has already started.',
+    no_customer: 'Your card details aren’t ready yet. Please try again in a minute.', paddle_error: 'The payment provider couldn’t do that right now. Please try again in a minute.' };
+  function confirmText(act, t, code) {
+    const x = planOf(code) || {}, price = S.money(x.monthly_cents);
+    if (act === 'cancel') return t.trial ? 'Cancel your free trial? Nothing is charged. Calls switch to message mode right away.' : 'Cancel your plan? It keeps working until ' + S.fmtDate(t.sub.current_period_end) + ', then calls switch to message mode.';
+    if (act === 'start') return 'Start your paid plan now? Your card is charged ' + S.money(t.plan.monthly_cents) + ' today and your plan minutes start now.';
+    if (act === 'upgrade') return t.trial ? 'Switch to ' + x.name + '? Your trial stays free until ' + S.fmtDate(t.sub.trial_ends_at) + ', then ' + price + '/mo.'
+      : 'Upgrade to ' + x.name + ' now? Today you pay the difference for the rest of this month, then ' + price + '/mo.';
+    if (act === 'downgrade') return t.trial ? 'Switch to ' + x.name + '? Your trial stays free until ' + S.fmtDate(t.sub.trial_ends_at) + ', then ' + price + '/mo.'
+      : 'Switch to ' + x.name + ' from ' + S.fmtDate(t.sub.current_period_end) + '? Until then you keep ' + (t.plan.name || '') + '. Nothing is charged today.';
+    return '';
+  }
+  function openLink(url) {   // Paddle's customer portal (temporary link): a new tab, this page stays
+    if (!url) return;
+    const w = window.open(url, '_blank', 'noopener');
+    if (!w) location.href = url;
+  }
+  function bindPlanActions(d, api, tab) {
+    S.$$('[data-plan-act]').forEach(b => b.addEventListener('click', async () => {
+      const act = b.dataset.planAct, t = planTerms(d); if (!t) return;
+      const paddle = t.sub.provider === 'paddle';
+      const ask = confirmText(act, t, b.dataset.plan);
+      if (ask && !confirm(ask)) return;
+      b.disabled = true;
+      const box = S.$('#msg_plan') ? 'msg_plan' : 'msg_plan_mm';
+      try {
+        let r;
+        if (paddle) {
+          const map = { upgrade: ['change_plan', b.dataset.plan], downgrade: ['change_plan', b.dataset.plan], keep: ['change_plan', b.dataset.plan],
+            start: ['start_now'], cancel: ['cancel'], resume: ['resume'], card: ['update_card'], manage: ['manage'] }[act];
+          r = await B.paddleAction(map[0], map[1] ? { plan_code: map[1] } : {});
+        } else {
+          r = act === 'upgrade' || act === 'downgrade' ? await B.changePlan(b.dataset.plan, false) : act === 'start' ? await B.changePlan(t.sub.plan_code, true)
+            : act === 'cancel' ? await B.cancelPlan() : await B.resumePlan();
+        }
+        if (r && (r.url || r.update_payment_method)) { b.disabled = false; okBox(box, 'We opened your secure billing page in a new tab.'); openLink(r.url || r.update_payment_method); return; }
+        if (r && r.resubscribe) {   // an ended Paddle plan can't be restarted: a new sign-up, paid from today (no second trial)
+          if (window.StartSignup) window.StartSignup.setIntent(t.sub.plan_code, nicheOf(d));
+          location.href = '/start/?plan=' + encodeURIComponent(t.sub.plan_code); return;
+        }
+        if (r && r.pending && !paddle) { okBox(box, 'Request received. We’ll confirm by email shortly.'); return; }
+        S.toast(act === 'upgrade' ? 'Plan upgraded' : act === 'downgrade' ? (t.trial ? 'Plan changed' : 'Plan change scheduled') : act === 'keep' ? 'Plan kept'
+          : act === 'start' ? 'Your plan has started' : act === 'cancel' ? 'Plan cancelled' : 'Plan restarted');
+        if (paddle) await new Promise(res => setTimeout(res, 2500));   // Paddle's webhook updates our records a moment later
+        await api.refresh(tab, ['#planH', '#mmH']);
+      } catch (e) {
+        b.disabled = false;
+        const m = (e && (e.code || e.message)) || '';
+        const k = Object.keys(PLAN_ERR).find(x => m.indexOf(x) !== -1);
+        errBox(box, [k ? PLAN_ERR[k] : S.errText(e)]);
+      }
+    }));
+  }
   function usageHtml(d) {
+    if (isPlan(d)) return messageModeHtml(d, !!numberRelease(d)) + planHtml(d);   // one restart button: in the plan card's release box
     if (!d.usage || !isRcp(d)) return '';
     const inc = (S.PB.rules && S.PB.rules.included_usage) || {};
     const meter = (label, v, max, unit) => {
@@ -895,7 +1167,8 @@
     if (tab === 'receptionist') { bindReceptionist(d, api); return true; }
     if (tab === 'requests') { bindRequests(d, api); return true; }
     if (tab === 'results' && window.PortalResults) return window.PortalResults.bind(d, api);
+    if (tab === 'billing') bindPlanActions(d, api, 'billing');   // home.js binds the rest of Billing
     return false;
   }
-  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay };
+  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay, isPlan, planTerms, messageMode, numberRelease };
 })();

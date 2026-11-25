@@ -1,10 +1,10 @@
 {
-  "$comment": "Home page (/) since 2026-11-23: the house brand. Blocks: hero (one headline, one line, one button to FirstRing, the live demo line as a call card), three areas (Service with FirstRing as the featured product, Sales, Operations), three trust points, closing band. Only what the price book sells today is listed with a price; anything else is one 'by request' line. Client proof is NOT shown: the owner has not decided which clients or in what form. If approved, it goes between #areas and #trust. Tokens: see _shared.json. Never type a price or the brand name here.",
+  "$comment": "Home page (/) since 2026-11-23: the house brand. Blocks: hero (one headline, one line, one button to FirstRing, the live demo line as a call card), three areas (Service with FirstRing as the featured product, Sales, Operations), three trust points, closing band. Only what the price book sells today is listed with a price; anything else is one 'by request' line. Client proof: owner decision 2026-11-25 = a description with no client names ({worked_with}), shown in the third trust point; names only after the client agrees. Tokens: see _shared.json. Never type a price or the brand name here. areas.service.feature: 'cta' is the yellow tile's button, which goes to the FirstRing plans on this page (#pricing; v2.0, 2026-11-25); 'href' is the FirstRing page, used by the FirstRing line in the Service tile.",
   "key": "home",
   "tagline": "AI for small business service, sales and operations",
   "seo": {
     "title": "{brand}: AI for Small Businesses, Starting with an AI Receptionist",
-    "description": "{brand} sets up AI for small US businesses: service, sales and operations. Start with FirstRing, our AI receptionist for small businesses. Fixed prices, in writing.",
+    "description": "{brand} sets up AI for small US businesses: service, sales and operations. Start with FirstRing, our AI receptionist for small businesses. Monthly plans from {from_price}/mo, {trial_days}-day free trial.",
     "og_title": "Put AI to work in your business."
   },
   "hero": {
@@ -36,14 +36,15 @@
           "Wants a quote",
           "Already a customer"
         ],
-        "price_code": "RCP",
-        "cta": "Meet FirstRing",
-        "href": "/firstring/"
+        "cta": "Start free trial",
+        "href": "/firstring/",
+        "service_type": "AI phone receptionist for small businesses",
+        "audience": "Small businesses in the United States"
       },
       "items": [
         {
           "title": "Chat box on your website",
-          "text": "Same answers as FirstRing. Add-on: {price:ADD-CHAT.setup} + {price:ADD-CHAT.monthly}/mo."
+          "text": "Same answers as FirstRing. In the Pro and Business plans."
         }
       ]
     },
@@ -67,7 +68,7 @@
       "items": [
         {
           "title": "Bookings into your job app",
-          "text": "Jobber, Housecall Pro, GoHighLevel or HubSpot. FirstRing add-on: {price:ADD-CRM.setup} + {price:ADD-CRM.monthly}/mo."
+          "text": "Jobber, Housecall Pro, GoHighLevel or HubSpot. In the FirstRing Business plan."
         },
         {
           "title": "Something else?",
@@ -80,8 +81,8 @@
   },
   "trust": [
     {
-      "title": "Fixed prices, in writing",
-      "text": "The price on the page is the price on your quote."
+      "title": "One monthly price",
+      "text": "No setup fee. {trial_days}-day free trial. Cancel anytime."
     },
     {
       "title": "No sales calls",
@@ -89,14 +90,18 @@
     },
     {
       "title": "A small studio",
-      "text": "You deal with the people who build it. Built with Claude; not affiliated with Anthropic."
+      "text": "You deal with the people who build it. {worked_with}. Built with Claude; not affiliated with Anthropic."
     }
   ],
   "band": {
     "title": "Start with *FirstRing*.",
-    "text": "Try the demo, then get a fixed quote in about 3 minutes.",
+    "text": "Try the demo, then start your {trial_days}-day free trial.",
     "cta": "Meet FirstRing",
     "secondary": "Try the demo",
     "secondary_href": "/firstring/#demo"
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Three plans. *No setup fee*."
   }
 }

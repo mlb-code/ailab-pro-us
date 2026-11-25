@@ -1,0 +1,7 @@
+description: FirstRing plan past due beyond the grace period (message-only service) -> a text gets one fixed reply and the owner gets the message; no Claude.
+channel: sms
+patch: {config: {plan: {code: FR_PRO, status: past_due, service: message_only, service_reason: past_due}}}
+turns:
+  - say: "Can someone come fix my water heater tomorrow?"
+    expect: {reply_contains: ["passed it on"], claude_calls: 0, guard: ["message_mode:past_due"]}
+expect: {claude_calls_total: 0, actions: [lead], bookings: 0}

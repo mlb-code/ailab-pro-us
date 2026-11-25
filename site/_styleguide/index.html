@@ -7,7 +7,7 @@
 <title>Style guide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Noto+Sans:wdth,wght@62.5..100,100..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/base.css">
 <style>
   /* styleguide-only helpers */
@@ -15,7 +15,7 @@
   .sg-swatch{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
   .sg-swatch i{display:block;height:64px}
   .sg-swatch div{padding:10px 12px;font-size:.8rem;color:var(--fg-2)}
-  .sg-swatch code{font-family:var(--mono);color:var(--fg)}
+  .sg-swatch code{color:var(--fg)}
   .sg-pairs{list-style:none;display:grid;gap:8px;font-size:.88rem}
   .sg-pairs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:10px 12px;border-radius:var(--radius-sm)}
   .sg-two{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));align-items:start}
@@ -36,15 +36,15 @@
 <main id="main">
   <section class="section">
     <div class="wrap section__head">
-      <span class="eyebrow">Design system · v1</span>
+      <span class="eyebrow">Design system · Workday</span>
       <h1>Style guide</h1>
-      <p class="lead">Tokens and components from <code class="mono">/assets/base.css</code>. Brand and prices on this page are read from <code class="mono">/assets/brand.json</code> and <code class="mono">/assets/pricebook.json</code>, never typed in.</p>
+      <p class="lead">Tokens and components from <code>/assets/base.css</code> (the whole site; the marketing pages add their layouts in <code>/assets/landing.css</code>). Brand and prices on this page are read from <code>/assets/brand.json</code> and <code>/assets/pricebook.json</code>, never typed in.</p>
     </div>
   </section>
 
   <section class="section" id="color">
     <div class="wrap">
-      <div class="section__head"><span class="eyebrow">01 · Color</span><h2>Ink, paper, one <em class="em">violet</em> accent</h2></div>
+      <div class="section__head"><span class="eyebrow">01 · Color</span><h2>Ink, warm paper, one <em class="em">blue</em> accent</h2></div>
       <div class="sg-swatches" id="swatches"></div>
       <h3 style="margin:32px 0 12px">Contrast (WCAG AA ≥ 4.5 for text)</h3>
       <ul class="sg-pairs" id="pairs"></ul>
@@ -57,9 +57,9 @@
       <h1>Never miss another job call</h1>
       <h2>What happens to a missed call</h2>
       <h3>Booked into your calendar</h3>
-      <p class="lead">Lead paragraph in Noto Sans Light. Concrete, plain American English.</p>
-      <p>Body copy in Noto Sans. <b>Bold for the one fact that matters.</b> Secondary text uses <span class="muted">muted paper</span>, which still passes AA.</p>
-      <p class="mono small">Space Mono for labels, codes and numbers · RCP · 10 business days</p>
+      <p class="lead">Lead paragraph in Inter. Concrete, plain American English.</p>
+      <p>Body copy in Inter, headlines in Bricolage Grotesque. <b>Bold for the one fact that matters.</b> Secondary text uses <span class="muted">muted ink</span>, which still passes AA.</p>
+      <p class="small"><span class="eyebrow">Labels</span> are small caps in Inter; numbers use tabular figures <span class="num">· RCP · 10 business days · $1,234</span></p>
     </div>
   </section>
 
@@ -164,9 +164,9 @@
 
   <section class="section section--amber">
     <div class="wrap stack">
-      <span class="eyebrow">10 · Amber section</span>
-      <h2>One CTA block per page, on the <em class="em">grid</em></h2>
-      <p><code class="mono">.section--amber</code> (name kept from v1) is now the dark violet-glow band; amber is reserved for prices and numbers.</p>
+      <span class="eyebrow">10 · Closing section</span>
+      <h2>One CTA block per <em class="em">page</em></h2>
+      <p><code>.section--amber</code> (name kept from v1) is a plain section here; the marketing pages draw it as one blue band with a yellow circle (<code>landing.css .band</code>).</p>
       <div class="row btn-row"><a class="btn btn--primary" href="#forms">Get a fixed quote</a><a class="btn" href="#chat">Try the demo</a></div>
     </div>
   </section>
@@ -188,7 +188,7 @@
 
   // color tokens + contrast
   var css = getComputedStyle(document.documentElement);
-  var tokens = ['--ink', '--ink-2', '--ink-3', '--paper', '--violet', '--violet-2', '--amber', '--amber-2', '--ok', '--err'];
+  var tokens = ['--wd-ink', '--wd-ink-2', '--wd-bg', '--wd-card', '--wd-blue', '--wd-blue-soft', '--wd-sun', '--wd-sun-soft', '--wd-muted', '--wd-line', '--ok', '--err'];
   var sw = document.getElementById('swatches');
   tokens.forEach(function (t) {
     var v = css.getPropertyValue(t).trim(), box = el('div', 'sg-swatch'), i = el('i'), d = el('div'), c = el('code', null, t);
@@ -200,10 +200,10 @@
   function lum(c) { var l = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; }
   function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
   var pairs = [
-    ['paper on ink', '#F2F0F7', '#0C0C10'], ['fg-2 on ink', 'rgba(242,240,247,.72)', '#0C0C10'],
-    ['fg-3 on ink', 'rgba(242,240,247,.60)', '#0C0C10'], ['fg-3 on surface-2', 'rgba(242,240,247,.60)', '#1E1E29'],
-    ['violet on ink', '#9583FF', '#0C0C10'], ['violet on surface-2', '#9583FF', '#1E1E29'], ['ink on violet', '#0C0C10', '#9583FF'],
-    ['amber (numbers) on ink', '#F2B256', '#0C0C10'], ['amber on surface-2', '#F2B256', '#1E1E29'], ['error on ink', '#F28B7A', '#0C0C10']
+    ['ink on page', '#11131A', '#F7F6F2'], ['fg-2 on page', '#3B3F4C', '#F7F6F2'],
+    ['muted on page', '#5D6170', '#F7F6F2'], ['muted on white', '#5D6170', '#FFFFFF'], ['placeholder on white', '#6B6F7D', '#FFFFFF'],
+    ['blue text on page', '#1D3BFF', '#F7F6F2'], ['white on blue', '#FFFFFF', '#1D3BFF'], ['ink on yellow', '#11131A', '#FFB21A'],
+    ['white on ink', '#FFFFFF', '#11131A'], ['ok on page', '#0F7A45', '#F7F6F2'], ['error on page', '#C2321F', '#F7F6F2']
   ];
   var ul = document.getElementById('pairs');
   pairs.forEach(function (p) {

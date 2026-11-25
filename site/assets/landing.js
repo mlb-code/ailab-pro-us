@@ -107,38 +107,32 @@
     });
   });
 
-  // "What happens to a missed call": desktop = scroll-scrubbed with GSAP (cdnjs); phones = a timed sequence in view.
-  var steps = document.querySelector('.steps3');
-  if (steps && motion) {
-    var desktop = window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
-    if (!desktop) {
-      steps.setAttribute('data-seq', '');
-      once(steps, 0.25, function () { steps.classList.add('is-in'); });
-    } else {
-      var cdn = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/';
-      var load = function (src, cb) {
-        var s = document.createElement('script');
-        s.src = src; s.async = true; s.onload = cb; s.onerror = function () { /* steps stay fully visible */ };
-        document.head.appendChild(s);
-      };
-      load(cdn + 'gsap.min.js', function () {
-        load(cdn + 'ScrollTrigger.min.js', function () {
-          var g = window.gsap;
-          if (!g || !window.ScrollTrigger) return;
-          g.registerPlugin(window.ScrollTrigger);
-          var tl = g.timeline({ scrollTrigger: { trigger: steps, start: 'top 82%', end: 'bottom 50%', scrub: 0.6 } });
-          tl.fromTo(steps, { '--p': 0 }, { '--p': 1, ease: 'none', duration: 3 }, 0);
-          [].forEach.call(steps.children, function (li, i) {
-            tl.fromTo(li, { opacity: 0.22 }, { opacity: 1, duration: 0.7, ease: 'power1.out' }, i);
-            var n = li.querySelector('.n');
-            if (n) tl.fromTo(n, { yPercent: 35, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.8, ease: 'power2.out' }, i);
-          });
-          var live = document.querySelector('.hero .live');
-          if (live) g.to(live, { yPercent: -5, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
-        });
-      });
+  // Folds (2026-11-25): closed <details class="fold"> sections. A link to #id opens the fold it points at (or sits in)
+  // and scrolls to it; printing opens every closed fold (and FAQ answer), then puts them back.
+  function openFor(hash) {
+    var id = (hash || '').replace(/^#/, '');
+    if (!id) return;
+    var el;
+    try { el = document.getElementById(decodeURIComponent(id)); } catch (e) { return; }
+    if (!el) return;
+    var opened = false;
+    for (var d = el; d; d = d.parentElement) {
+      if (d.tagName === 'DETAILS' && !d.open) { d.open = true; opened = true; }
     }
+    if (opened) el.scrollIntoView({ block: 'start' });
   }
+  openFor(location.hash);
+  window.addEventListener('hashchange', function () { openFor(location.hash); });
+  document.addEventListener('click', function (e) {  // a same-page link to the hash already in the URL fires no hashchange
+    var a = e.target.closest && e.target.closest('a[href*="#"]');
+    if (a && a.pathname === location.pathname && a.hash && a.hash === location.hash) openFor(a.hash);
+  });
+  var printed = [];
+  window.addEventListener('beforeprint', function () {
+    printed = [].filter.call(document.querySelectorAll('main details'), function (d) { return !d.open; });
+    printed.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () { printed.forEach(function (d) { d.open = false; }); printed = []; });
 
   // "Why" stats (design v2): numbers count up once in view. The final value is the DOM text (no-JS / reduced motion).
   document.querySelectorAll('[data-count]').forEach(function (el) {

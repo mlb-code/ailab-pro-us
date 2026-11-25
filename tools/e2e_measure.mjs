@@ -2,8 +2,12 @@
 // MOCK backend. Puppeteer + local Chrome. Nothing reaches Google, Microsoft or Meta: googletagmanager.com / clarity.ms /
 // connect.facebook.net are answered locally with an empty script, every gtag() call is recorded through a dataLayer spy
 // installed before any page script, and fbq() calls stay in the stub's queue (window.fbq.queue) because the real script never runs.
-//   1. IDs empty (the shipped config): no tag request, no gtag/clarity/fbq on landing, portal and quote pages.
-//   2. IDs set (served as a patched brand.json / landing data-measure): both tags load with the right IDs, GA config has
+//   0. Shipped config (2026-11-25): brand.json carries the real IDs (well-formed), every generated landing page's
+//      data-measure equals brand.json analytics, and served UNCHANGED the landing page loads GA4 + Clarity + Meta with the
+//      shipped IDs while the quote page loads GA4 only. (Before 2026-11-25 this file assumed the shipped IDs were empty.)
+//   1. IDs empty (served as a patched brand.json / landing data-measure with the three IDs blanked, whatever is shipped):
+//      no tag request, no gtag/clarity/fbq, nothing pushed (not even after a CTA click) on landing, portal and quote pages.
+//   2. IDs set (served as a patched brand.json / landing data-measure with TEST IDs): both tags load with the right IDs, GA config has
 //      Google signals off, the demo-line tel: click and CTA clicks fire events, Clarity masks every form (and the whole
 //      portal), the quote page gets GA only with a token-free page_location and fires quote_open + pay_click.
 //   2b. Meta Pixel: fbevents.js requested, queue = set autoConfig false -> init (no advanced matching) -> PageView; track()
@@ -29,17 +33,29 @@ const brand = JSON.parse(brandRaw);
 const EV = brand.analytics.events;   // funnel event names live only in brand.json
 const evName = (...p) => { const n = p.join('_'); if (!EV.includes(n)) throw new Error('event not in brand.json: ' + n); return n; };
 
-let withIds = false;
+// What the server hands out as the analytics IDs: 'shipped' = files as they are, 'empty' = the three IDs blanked,
+// 'test' = the TEST IDs above. Patches go to /assets/brand.json (portal, quote page) and to the data-measure attribute of
+// generated landing pages (parsed and re-encoded, so the patch works whatever IDs are shipped). Every patch is counted:
+// a phase asserts its patch really reached the page, so a test can never silently run on the shipped IDs again.
+let idMode = 'shipped';
+const patched = { brand: 0, html: 0 };
+const IDS = { empty: { ga4_id: '', clarity_id: '', meta_pixel_id: '' }, test: { ga4_id: GA, clarity_id: CL, meta_pixel_id: PX } };
+const unesc = s => s.replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const escAttr = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+const MEASURE_ATTR = /data-measure="([^"]*)"/;
 const server = http.createServer((req, rsp) => {
   let p = decodeURIComponent(req.url.split('?')[0].split('#')[0]);
   if (p.endsWith('/')) p += 'index.html';
   const full = path.normalize(path.join(SITE, p));
   if (!full.startsWith(SITE) || !fs.existsSync(full) || fs.statSync(full).isDirectory()) { rsp.writeHead(404); rsp.end('not found'); return; }
   let body = fs.readFileSync(full);
-  if (withIds && p === '/assets/brand.json') {
-    const b = JSON.parse(brandRaw); b.analytics.ga4_id = GA; b.analytics.clarity_id = CL; b.analytics.meta_pixel_id = PX; body = JSON.stringify(b);
-  } else if (withIds && p.endsWith('.html')) {
-    body = String(body).replace(/(data-measure="\{&quot;ga4_id&quot;:&quot;)(&quot;,&quot;clarity_id&quot;:&quot;)(&quot;,&quot;meta_pixel_id&quot;:&quot;)(&quot;)/, `$1${GA}$2${CL}$3${PX}$4`);
+  if (idMode !== 'shipped' && p === '/assets/brand.json') {
+    const b = JSON.parse(brandRaw); Object.assign(b.analytics, IDS[idMode]); body = JSON.stringify(b); patched.brand++;
+  } else if (idMode !== 'shipped' && p.endsWith('.html') && MEASURE_ATTR.test(String(body))) {
+    body = String(body).replace(MEASURE_ATTR, (_, enc) => {
+      const cfg = JSON.parse(unesc(enc)); Object.assign(cfg, IDS[idMode]); patched.html++;
+      return 'data-measure="' + escAttr(JSON.stringify(cfg)) + '"';
+    });
   }
   rsp.writeHead(200, { 'Content-Type': TYPES[path.extname(full)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
   rsp.end(body);
@@ -94,30 +110,71 @@ const clickNoNav = (page, sel) => page.$eval(sel, el => {
 
 const browser = await puppeteer.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
 try {
-  // ------------------------------------------------------------------ 1. IDs empty (shipped config)
+  // ------------------------------------------------------------------ 0. shipped config (real IDs, served unchanged)
+  CASE = 'shipped';
+  const A = brand.analytics;
+  const idOk = s => typeof s === 'string' && /^[A-Za-z0-9-]{4,40}$/.test(s);   // same rule as measure.js
+  ok('ga4_id' in A && 'clarity_id' in A && 'meta_pixel_id' in A, 'brand.json analytics declares ga4_id, clarity_id, meta_pixel_id');
+  ok(!A.ga4_id || (idOk(A.ga4_id) && /^G-/.test(A.ga4_id)), 'shipped GA4 ID is empty or a well-formed G- measurement ID');
+  ok(!A.clarity_id || idOk(A.clarity_id), 'shipped Clarity ID is empty or well-formed');
+  ok(!A.meta_pixel_id || /^[0-9]{6,20}$/.test(A.meta_pixel_id), 'shipped Meta Pixel ID is empty or numeric');
+  ok(![A.ga4_id, A.clarity_id, A.meta_pixel_id].some(v => [GA, CL, PX].includes(v)), 'shipped IDs are not the test IDs');
+  const LANDING = ['/', '/firstring/', '/home-services/', '/real-estate/', '/website/', '/demo/'];
+  const want = JSON.stringify({ ga4_id: A.ga4_id || '', clarity_id: A.clarity_id || '', meta_pixel_id: A.meta_pixel_id || '', events: A.events || [] });
+  for (const u of LANDING) {
+    const html = fs.readFileSync(path.join(SITE, u, 'index.html'), 'utf8');
+    const m = html.match(MEASURE_ATTR);
+    ok(m && JSON.stringify(JSON.parse(unesc(m[1]))) === want, u + ': generated data-measure equals brand.json analytics (rebuild if not)');
+  }
+  idMode = 'shipped';
+  if (A.ga4_id && A.clarity_id && A.meta_pixel_id) {
+    {
+      const { page, rec } = await newPage(browser);
+      await page.goto(BASE + '/', { waitUntil: 'load' }); await settle();
+      ok(rec.tags.some(u => u.includes('googletagmanager.com/gtag/js?id=' + A.ga4_id)), '/: GA4 tag requested with the shipped ID');
+      ok(rec.tags.some(u => u.includes('clarity.ms/tag/' + A.clarity_id)), '/: Clarity tag requested with the shipped ID');
+      ok(rec.tags.some(u => u.includes('connect.facebook.net/en_US/fbevents.js')), '/: Meta Pixel script requested');
+      const cf = configs(rec)[0];
+      ok(cf && cf[1] === A.ga4_id && cf[2].allow_google_signals === false && cf[2].allow_ad_personalization_signals === false, '/: gtag config = shipped ID, signals off');
+      ok((await fbqCalls(page)).some(c => c[0] === 'init' && c[1] === A.meta_pixel_id && c.length === 2), '/: fbq init with the shipped ID, no advanced matching');
+      await page.browserContext().close();
+    }
+    {
+      const { page, rec } = await newPage(browser);
+      await page.goto(BASE + '/quote/#t=fixture', { waitUntil: 'load' }); await settle();
+      ok(rec.tags.length === 1 && rec.tags[0].includes('googletagmanager.com/gtag/js?id=' + A.ga4_id), '/quote/: GA4 only, with the shipped ID (' + rec.tags.join(', ') + ')');
+      await page.browserContext().close();
+    }
+  } else {
+    console.log('  note: shipped brand.json has an empty ID; the shipped-config load check is skipped (phase 1 covers empty IDs)');
+  }
+
+  // ------------------------------------------------------------------ 1. IDs empty (patched, whatever is shipped)
   CASE = 'ids empty';
-  ok(!brand.analytics.ga4_id && !brand.analytics.clarity_id && !brand.analytics.meta_pixel_id, 'shipped brand.json has empty GA4 / Clarity / Meta Pixel IDs');
-  ok('meta_pixel_id' in brand.analytics, 'brand.json analytics declares meta_pixel_id');
-  withIds = false;
-  for (const u of ['/', '/firstring/', '/real-estate/', '/demo/', '/start/', '/quote/#t=fixture']) {
+  idMode = 'empty'; patched.brand = 0; patched.html = 0;
+  for (const u of [...LANDING, '/start/', '/quote/#t=fixture']) {
     const { page, rec } = await newPage(browser);
     await page.goto(BASE + u, { waitUntil: 'load' }); await settle();
+    if (u === '/') { const cta = await page.$('[data-ev]'); if (cta) { await clickNoNav(page, '[data-ev]'); await sleep(100); } }
     const g = await page.evaluate(() => ({ gtag: typeof window.gtag, clarity: typeof window.clarity, fbq: typeof window.fbq, m: !!window.Measure }));
     ok(g.m, u + ': measure.js loaded');
     ok(rec.tags.length === 0, u + ': no tag request (' + rec.tags.join(', ') + ')');
     ok(g.gtag === 'undefined' && g.clarity === 'undefined' && g.fbq === 'undefined', u + ': no gtag / clarity / fbq function');
-    ok(rec.calls.length === 0, u + ': nothing pushed to dataLayer');
+    ok(rec.calls.length === 0, u + ': nothing pushed to dataLayer' + (u === '/' ? ' (also after a CTA click)' : ''));
     await page.browserContext().close();
   }
+  ok(patched.html === LANDING.length, 'empty IDs reached every landing page (' + patched.html + '/' + LANDING.length + ')');
+  ok(patched.brand >= 2, 'empty IDs reached brand.json for portal + quote (' + patched.brand + ')');
 
   // ------------------------------------------------------------------ 2. IDs set: landing
-  withIds = true;
+  idMode = 'test'; patched.brand = 0; patched.html = 0;
   CASE = 'landing ids set';
   {
     const { page, rec } = await newPage(browser);
     await page.goto(BASE + '/?utm_source=facebook&utm_medium=paid&utm_campaign=launch_oct', { waitUntil: 'load' }); await settle();
     ok(rec.tags.some(u => u.includes('googletagmanager.com/gtag/js?id=' + GA)), 'GA4 tag requested with the configured ID');
     ok(rec.tags.some(u => u.includes('clarity.ms/tag/' + CL)), 'Clarity tag requested with the configured ID');
+    ok(patched.html >= 1 && !rec.tags.some(u => [A.ga4_id, A.clarity_id].filter(Boolean).some(id => u.includes(id))), 'test IDs reached the page; no shipped ID used');
     const cf = configs(rec)[0];
     ok(cf && cf[1] === GA, 'gtag config uses the configured ID');
     ok(cf && cf[2] && cf[2].allow_google_signals === false && cf[2].allow_ad_personalization_signals === false, 'Google signals + ad personalisation off');
@@ -135,11 +192,14 @@ try {
     await clickNoNav(page, 'a[href^="tel:"][data-ev]'); await sleep(100);
     const telEv = await page.$eval('a[href^="tel:"][data-ev]', a => a.getAttribute('data-ev'));
     ok(events(rec).includes(telEv), 'demo line click -> event "' + telEv + '"');
-    await clickNoNav(page, '[data-ev="' + evName('quote', 'start') + '"]'); await sleep(100);
-    ok(events(rec).includes(evName('quote', 'start')), 'CTA click -> quote_start');
+    // 2026-11-25: the landing CTAs are "Start free trial" (FirstRing monthly plans) -> trial_start, pointing to /start/?plan=FR_*
+    ok(await page.$$eval('[data-ev="' + evName('trial', 'start') + '"]', as => as.length > 0 && as.every(a => /^\/start\/\?plan=FR_[A-Z]+/.test(a.getAttribute('href') || ''))),
+       'trial CTAs carry data-ev trial_start and point to /start/?plan=FR_*');
+    await clickNoNav(page, '[data-ev="' + evName('trial', 'start') + '"]'); await sleep(100);
+    ok(events(rec).includes(evName('trial', 'start')), 'CTA click -> trial_start');
     {
       const q = await fbqCalls(page);
-      ok(q.some(c => c[0] === 'trackCustom' && c[1] === evName('quote', 'start')), 'quote_start -> fbq trackCustom quote_start (unmapped event)');
+      ok(q.some(c => c[0] === 'trackCustom' && c[1] === evName('trial', 'start')), 'trial_start -> fbq trackCustom trial_start (unmapped event)');
       ok(q.some(c => c[0] === 'trackCustom' && c[1] === telEv), 'demo line click -> fbq trackCustom ' + telEv);
       // mapped funnel events -> standard Meta events (fired through the public API: the submit / pay steps live on other pages)
       await page.evaluate((a, b) => { window.Measure.track(a, { page: '/x' }); window.Measure.track(b, { method: 'upwork' }); }, evName('quote', 'submit'), evName('pay', 'click'));
@@ -158,7 +218,7 @@ try {
     // ---------------------------------------------------------------- portal: sign in (mock), questionnaire start
     CASE = 'portal ids set';
     rec.tags.length = 0; rec.calls.length = 0;
-    await page.goto(BASE + '/start/?offer=RCP', { waitUntil: 'load' });
+    await page.goto(BASE + '/start/?offer=WEB', { waitUntil: 'load' });   // the questionnaire is the website one since 2026-11-25
     await page.waitForSelector('#email');
     await page.type('#email', 'measure-e2e@example.com'); await page.click('#sendBtn'); await page.waitForSelector('#mockCode');
     const code = (await page.$eval('#mockCode', e => e.textContent)).trim();

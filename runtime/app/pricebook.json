@@ -1,8 +1,8 @@
 {
   "$schema": "./pricebook.schema.json",
-  "$comment": "Machine source of truth for prices (built from docs/PRICEBOOK.md). Claude never invents a price: it picks codes, code computes totals. Change = PRICEBOOK.md + this file, approved by Meir; tools/pricebook_test.py diffs the two.",
-  "version": "1.1",
-  "updated": "2026-10-25",
+  "$comment": "Machine source of truth for prices (built from docs/PRICEBOOK.md). Claude never invents a price: it picks codes, code computes totals. Change = PRICEBOOK.md + this file, approved by Meir; tools/pricebook_test.py diffs the two. v2.0 (2026-11-25): FirstRing is sold only as a monthly plan (plans[], rules.subscription); the setup-fee items RCP / BNDL and the FirstRing add-ons stay below for existing quotes and are marked retired.",
+  "version": "2.0",
+  "updated": "2026-11-25",
   "currency": "USD",
   "rules": {
     "core_codes": [
@@ -61,7 +61,8 @@
       "coming_soon_text": "Coming soon, after US carrier registration for business texting. Not available to buy yet.",
       "reasons": {
         "us_texting_registration": "Needs business texting, which starts only after US phone carriers approve our texting registration (A2P 10DLC)."
-      }
+      },
+      "retired_label": "Retired for FirstRing"
     },
     "plan_b_enabled": false,
     "term_plan": {
@@ -85,7 +86,60 @@
       ],
       "eligible": "fixed core and add-on items that have a monthly fee; one-time items (ADD-PAGE, ADD-LOGO, ADD-BLOG, ADD-RUSH) stay one-time"
     },
-    "overage_policy": "no_auto_billing_alert_80_100_addon_with_approval"
+    "overage_policy": "no_auto_billing_alert_80_100_addon_with_approval",
+    "subscription": {
+      "status": "approved by Meir 2026-11-25: FirstRing = monthly plan only, 3 packages, no setup fee, 14-day free trial with a card at sign-up, cancel anytime",
+      "product": "FirstRing",
+      "product_names": {
+        "home_services": "FirstRing",
+        "real_estate": "FirstRing AI Lead Assistant"
+      },
+      "plan_codes": [
+        "FR_STARTER",
+        "FR_PRO",
+        "FR_BUSINESS"
+      ],
+      "setup_cents": 0,
+      "billing": "monthly_in_advance",
+      "auto_renew": "monthly",
+      "trial_days": 14,
+      "trial_minutes": 100,
+      "trial_card_required": true,
+      "first_charge": "trial_end",
+      "cancel": "anytime_effective_end_of_paid_period",
+      "cancel_during_trial": "no_charge",
+      "partial_month_refunds": false,
+      "minutes_roll_over": false,
+      "per_minute_billing": false,
+      "usage_alert_pct": [
+        80,
+        100
+      ],
+      "upgrade": "one_click_next_plan",
+      "go_live_business_days": 1,
+      "retired_codes": [
+        "RCP",
+        "BNDL",
+        "BNDL-NM",
+        "BNDL-GROW",
+        "ADD-DISPATCH",
+        "ADD-LOC",
+        "ADD-ES",
+        "ADD-CRM",
+        "ADD-CHAT",
+        "ADD-USAGE",
+        "ADD-LEAD",
+        "ADD-QUOTE",
+        "ADD-REV"
+      ],
+      "texts": {
+        "trial": "14-day free trial (up to 100 minutes). Card needed to start; first charge when the trial ends, unless you cancel.",
+        "cancel": "Cancel anytime in your online account; it stops at the end of the month you paid for.",
+        "minutes": "Never billed per minute: alerts at 80% and 100% of your minutes, a one-click upgrade, and never an extra charge without your yes.",
+        "go_live": "Live in 1 business day.",
+        "no_setup": "No setup fee."
+      }
+    }
   },
   "refund_rules": {
     "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)",
@@ -123,13 +177,30 @@
       "not_for": "WEB keeps only the 7-day deposit rule: content work starts immediately",
       "label": "30-day satisfaction guarantee",
       "text": "30-day satisfaction guarantee: not happy within 30 days of go-live (the day it starts answering real customers)? We refund the setup fee for your AI assistant and turn it off. On the bundle, we refund only the AI assistant's part of the setup fee, and you keep the website. Monthly fees you already used are not refunded.",
-      "legal": "If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid for the AI Receptionist and switch the AI line off. On the Receptionist + Website bundle, we refund only the AI Receptionist part of the setup fee: the AI Receptionist's stand-alone setup price, less the same percentage discount (if any) you received on the bundle. The website stays yours, and its monthly plan continues unless you cancel it. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the bundle, not to the website on its own."
+      "legal": "If you are not satisfied within 30 days after go-live, tell us in writing (email or the portal) and we will refund the setup fee you paid for the AI Receptionist and switch the AI line off. On the Receptionist + Website bundle, we refund only the AI Receptionist part of the setup fee: the AI Receptionist's stand-alone setup price, less the same percentage discount (if any) you received on the bundle. The website stays yours, and its monthly plan continues unless you cancel it. Monthly fees for the period used are not refunded. This applies to the AI Receptionist and the bundle, not to the website on its own.",
+      "applies": "quotes for RCP / BNDL (setup fee + monthly) accepted before 2026-11-25"
+    },
+    "subscription": {
+      "status": "draft 2026-11-25 for the monthly plans; owner to confirm, no attorney review yet",
+      "codes": [
+        "FR_STARTER",
+        "FR_PRO",
+        "FR_BUSINESS"
+      ],
+      "money_back_days": 30,
+      "window_from": "first_charge",
+      "refunds": "first_paid_month",
+      "trial_charge": "none",
+      "partial_months_refunded": false,
+      "label": "30-day money-back guarantee",
+      "text": "30-day money-back guarantee: not happy? Ask within 30 days of your first payment and we refund that first monthly payment in full.",
+      "legal": "If you are not satisfied with your FirstRing plan, ask us in writing (email or your online account) within 30 days after your first paid charge, and we will refund that first monthly payment in full and end the plan. This applies once per business, to the first paid month only. After that, monthly fees are not refunded for partial months or for months already started, unless a refund is legally required."
     }
   },
   "items": [
     {
       "code": "RCP",
-      "name": "Missed-Call AI Receptionist",
+      "name": "FirstRing AI Receptionist",
       "group": "core",
       "kind": "fixed",
       "setup_cents": 350000,
@@ -139,7 +210,7 @@
       "availability": "available",
       "delivery_business_days": 10,
       "delivery_starts": "after access is complete",
-      "marketed": true,
+      "marketed": false,
       "includes": [
         "1 location and 1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
         "Answers the calls you miss (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
@@ -164,7 +235,16 @@
         "Usage above the included 400 minutes (and 1,000 texts, once business texting is live); we alert you at 80% and 100% and add more only if you say yes",
         "Call recordings (we keep a written copy of each call, not the audio)",
         "Medical records or patient health information (we can't sign a HIPAA agreement)"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_STARTER",
+          "FR_PRO",
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "WEB",
@@ -208,13 +288,13 @@
       "availability": "available",
       "delivery_business_days": 14,
       "delivery_starts": "after access and content are complete",
-      "marketed": true,
+      "marketed": false,
       "contains": [
         "RCP",
         "WEB"
       ],
       "includes": [
-        "Everything in the Missed-Call AI Receptionist",
+        "Everything in the FirstRing AI Receptionist",
         "Everything in the Business Website",
         "Your AI receptionist's phone number on the website",
         "A chat box on your website (same answers as your phone line) included"
@@ -234,7 +314,16 @@
         "Blog section and articles (add-on ADD-BLOG)",
         "Ongoing SEO campaigns and paid advertising",
         "More than 1 small content edit per month"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_STARTER",
+          "FR_PRO",
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "BNDL-NM",
@@ -249,14 +338,14 @@
       "requires": [
         "us_texting_registration"
       ],
-      "marketed": true,
+      "marketed": false,
       "contains": [
         "RCP",
         "ADD-DISPATCH",
         "ADD-LEAD"
       ],
       "includes": [
-        "Everything in the Missed-Call AI Receptionist",
+        "Everything in the FirstRing AI Receptionist",
         "After-hours dispatch to your on-call tech",
         "Fast follow-up for new leads"
       ],
@@ -269,7 +358,14 @@
         "Usage above the included 400 minutes (and 1,000 texts, once business texting is live); we alert you at 80% and 100% and add more only if you say yes",
         "Call recordings (we keep a written copy of each call, not the audio)",
         "Medical records or patient health information (we can't sign a HIPAA agreement)"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "BNDL-GROW",
@@ -284,7 +380,7 @@
       "requires": [
         "us_texting_registration"
       ],
-      "marketed": true,
+      "marketed": false,
       "contains": [
         "RCP",
         "ADD-DISPATCH",
@@ -306,7 +402,14 @@
         "Usage above the included 400 minutes (and 1,000 texts, once business texting is live); we alert you at 80% and 100% and add more only if you say yes",
         "Call recordings (we keep a written copy of each call, not the audio)",
         "Medical records or patient health information (we can't sign a HIPAA agreement)"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-DISPATCH",
@@ -328,7 +431,14 @@
       ],
       "excludes": [
         "Text-message alerts to your techs"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-LOC",
@@ -345,7 +455,14 @@
       "includes": [
         "1 more location with its own phone number, hours and answers to common questions"
       ],
-      "excludes": []
+      "excludes": [],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-ES",
@@ -362,7 +479,15 @@
       "includes": [
         "Callers can speak in Spanish (texting in Spanish too, once business texting is live); summaries to you stay in English"
       ],
-      "excludes": []
+      "excludes": [],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_PRO",
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-CRM",
@@ -382,7 +507,14 @@
       ],
       "excludes": [
         "Apps not listed here (quoted separately)"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-CHAT",
@@ -399,7 +531,15 @@
       "includes": [
         "A chat box for your website that uses the same answers, rules and booking as your phone line"
       ],
-      "excludes": []
+      "excludes": [],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_PRO",
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-LEAD",
@@ -420,7 +560,12 @@
         "New leads from your website form or lead sites get a reply within 60 seconds, and a call from your AI assistant when they have agreed to one",
         "Up to 300 new leads a month from up to 2 lead sources"
       ],
-      "excludes": []
+      "excludes": [],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": []
+      }
     },
     {
       "code": "ADD-QUOTE",
@@ -442,7 +587,12 @@
       ],
       "excludes": [
         "Discounts or price changes in the reminders"
-      ]
+      ],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": []
+      }
     },
     {
       "code": "ADD-REV",
@@ -462,7 +612,12 @@
       "includes": [
         "After each completed job, the customer gets a short request to leave a Google review"
       ],
-      "excludes": []
+      "excludes": [],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": []
+      }
     },
     {
       "code": "ADD-USAGE",
@@ -479,7 +634,15 @@
       "includes": [
         "400 more voice minutes every month (and 1,000 more texts once business texting is live)"
       ],
-      "excludes": []
+      "excludes": [],
+      "retired": {
+        "since": "2026-11-25",
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
+        "replaced_by": [
+          "FR_PRO",
+          "FR_BUSINESS"
+        ]
+      }
     },
     {
       "code": "ADD-PAGE",
@@ -780,6 +943,155 @@
       "niches": [
         "real_estate"
       ]
+    }
+  },
+  "plans": [
+    {
+      "code": "FR_STARTER",
+      "product": "FirstRing",
+      "name": "Starter",
+      "badge": "",
+      "monthly_cents": 14900,
+      "setup_cents": 0,
+      "included_usage": {
+        "voice_minutes": 200
+      },
+      "trial_days": 14,
+      "trial_minutes": 100,
+      "go_live_business_days": 1,
+      "features": [
+        "answer_calls",
+        "calendar_booking",
+        "email_summary",
+        "online_account"
+      ],
+      "upgrade_to": "FR_PRO",
+      "availability": "available"
+    },
+    {
+      "code": "FR_PRO",
+      "product": "FirstRing",
+      "name": "Pro",
+      "badge": "Most popular",
+      "monthly_cents": 24900,
+      "setup_cents": 0,
+      "included_usage": {
+        "voice_minutes": 500
+      },
+      "trial_days": 14,
+      "trial_minutes": 100,
+      "go_live_business_days": 1,
+      "features": [
+        "answer_calls",
+        "calendar_booking",
+        "email_summary",
+        "online_account",
+        "spanish",
+        "web_chat"
+      ],
+      "upgrade_to": "FR_BUSINESS",
+      "availability": "available"
+    },
+    {
+      "code": "FR_BUSINESS",
+      "product": "FirstRing",
+      "name": "Business",
+      "badge": "",
+      "monthly_cents": 39900,
+      "setup_cents": 0,
+      "included_usage": {
+        "voice_minutes": 1000
+      },
+      "trial_days": 14,
+      "trial_minutes": 100,
+      "go_live_business_days": 5,
+      "go_live_note": "CRM links and a second line take longer to set up.",
+      "features": [
+        "answer_calls",
+        "calendar_booking",
+        "email_summary",
+        "online_account",
+        "spanish",
+        "web_chat",
+        "dispatch",
+        "second_line",
+        "crm_link"
+      ],
+      "upgrade_to": null,
+      "availability": "available"
+    }
+  ],
+  "plan_features": {
+    "answer_calls": {
+      "label": "Answers your calls and takes the details",
+      "niches": [
+        "*"
+      ],
+      "label_by_niche": {
+        "real_estate": "Answers buyer and seller calls and screens each lead"
+      }
+    },
+    "calendar_booking": {
+      "label": "Books visits into your calendar",
+      "niches": [
+        "*"
+      ],
+      "label_by_niche": {
+        "real_estate": "Books showings and calls into your calendar"
+      }
+    },
+    "email_summary": {
+      "label": "An email summary of every call",
+      "niches": [
+        "*"
+      ]
+    },
+    "online_account": {
+      "label": "Online account: your hours, FAQs and call transcripts",
+      "niches": [
+        "*"
+      ]
+    },
+    "spanish": {
+      "label": "Answers calls in Spanish, too",
+      "niches": [
+        "*"
+      ],
+      "replaces": "ADD-ES"
+    },
+    "web_chat": {
+      "label": "Chat box on your website",
+      "niches": [
+        "*"
+      ],
+      "replaces": "ADD-CHAT"
+    },
+    "dispatch": {
+      "label": "Urgent night calls put through to your on-call tech",
+      "niches": [
+        "home_services"
+      ],
+      "replaces": "ADD-DISPATCH"
+    },
+    "second_line": {
+      "label": "A second location or line",
+      "niches": [
+        "*"
+      ],
+      "replaces": "ADD-LOC",
+      "label_by_niche": {
+        "real_estate": "A second line or team number"
+      }
+    },
+    "crm_link": {
+      "label": "A direct link to your CRM",
+      "niches": [
+        "*"
+      ],
+      "replaces": "ADD-CRM",
+      "label_by_niche": {
+        "real_estate": "A direct link to your CRM (for example Follow Up Boss)"
+      }
     }
   }
 }

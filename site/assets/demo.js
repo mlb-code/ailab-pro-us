@@ -85,13 +85,31 @@
   Demo.prototype.reset = function (focusPicks) {
     this.run++;
     this.chat.textContent = '';
-    this.chat.appendChild(el('p', 'bubble bubble--system', 'Pick a situation to start. You play the customer.'));
+    this.chat.appendChild(el('p', 'bubble bubble--system', 'Pick a situation to start. You play the caller.'));
     this.end.hidden = true;
+    this.clock(false);
     this.picks.querySelectorAll('[data-scenario]').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
     if (focusPicks) {
       var first = this.picks.querySelector('[data-scenario]');
       if (first) first.focus({ preventScroll: true });
     }
+  };
+
+  // Call header: true = on call (timer runs), null = call ended (timer stays), false = idle.
+  Demo.prototype.clock = function (on) {
+    var t = this.root.querySelector('[data-demo-timer]');
+    var s = this.root.querySelector('[data-demo-status]');
+    clearInterval(this.tick);
+    if (!t) return;
+    if (s) s.textContent = on ? 'On call' : (on === null ? 'Call ended' : 'Demo call');
+    if (on === null) return;
+    t.textContent = '0:00';
+    if (!on) return;
+    var t0 = Date.now();
+    this.tick = setInterval(function () {
+      var n = Math.floor((Date.now() - t0) / 1000);
+      t.textContent = Math.floor(n / 60) + ':' + ('0' + (n % 60)).slice(-2);
+    }, 1000);
   };
 
   Demo.prototype.scroll = function () {
@@ -117,6 +135,7 @@
     if (byUser) this.touched = true;
     if (byUser && !this.started) { this.started = true; track(this.root.getAttribute('data-ev-start') || 'demo', { niche: this.niche }); }
     this.root.setAttribute('data-state', 'running');
+    this.clock(true);
     this.step(scn, scn.start, {}, this.run);
   };
 
@@ -127,7 +146,7 @@
     for (var i = 0; i < (node.bot || []).length; i++) {
       var text = fill(node.bot[i], vars);
       var typing = this.add(el('p', 'bubble bubble--in bubble--typing'));
-      typing.setAttribute('aria-label', 'typing');
+      typing.setAttribute('aria-label', 'speaking');
       typing.innerHTML = '<i></i><i></i><i></i>';
       await wait(Math.min(1300, 450 + text.length * 9));
       if (run !== this.run) return;
@@ -169,6 +188,7 @@
     if (this.kbd) { card.tabIndex = -1; card.focus({ preventScroll: true }); this.kbd = false; }
     this.add(el('p', 'bubble bubble--system', 'This is a demo. No real booking was made.'));
     this.end.hidden = false;
+    this.clock(null);
     this.root.setAttribute('data-state', 'booked');
     this.scroll();
   };
@@ -256,7 +276,7 @@
     input.id = 'demo-live-input';
     input.type = 'text';
     input.maxLength = MAX_CHARS;
-    input.placeholder = 'Or type your own message…';
+    input.placeholder = 'Or type what you would say…';
     input.setAttribute('enterkeyhint', 'send');
     input.style.cssText = 'flex:1 1 auto;min-width:0;min-height:44px';
     var send = el('button', 'btn btn--primary btn--sm', 'Send');
@@ -288,11 +308,11 @@
   Live.prototype.sync = function () {
     if (!this.form) return;
     this.form.hidden = !this.ready();
-    if (!this.token && this.input) this.input.placeholder = 'Or type your own message…';
+    if (!this.token && this.input) this.input.placeholder = 'Or type what you would say…';
     this.form.style.display = this.form.hidden ? 'none' : 'flex';
     var first = this.demo.chat.querySelector('.bubble--system');
     if (this.ready() && first && this.demo.chat.children.length === 1) {
-      first.textContent = 'Pick a situation, or type your own message below. You play the customer.';
+      first.textContent = 'Pick a situation, or type what you would say below. You play the caller.';
     }
   };
 
@@ -316,7 +336,7 @@
 
   Live.prototype.typing = function () {
     var t = this.demo.add(el('p', 'bubble bubble--in bubble--typing'));
-    t.setAttribute('aria-label', 'typing');
+    t.setAttribute('aria-label', 'speaking');
     t.innerHTML = '<i></i><i></i><i></i>';
     return t;
   };
@@ -341,8 +361,9 @@
       d.chat.textContent = '';
       d.end.hidden = true;
       d.picks.querySelectorAll('[data-scenario]').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
-      d.add(el('p', 'bubble bubble--system', 'Live demo: you are texting the AI assistant. No real booking is made.'));
+      d.add(el('p', 'bubble bubble--system', 'Live demo: you type, the AI assistant answers as it would on a call. No real booking is made.'));
       d.root.setAttribute('data-state', 'running');
+      d.clock(true);
       d.touched = true;
       if (!d.started) { d.started = true; track(d.root.getAttribute('data-ev-start') || 'demo', { niche: d.niche, mode: 'live' }); }
     }

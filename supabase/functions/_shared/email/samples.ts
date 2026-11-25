@@ -28,6 +28,7 @@ export async function samples(): Promise<Record<string, Sample>> {
   const accepted = await sampleQuote({ payLink: true, accepted: true });
   const client = { id: "6f1c2a0e-1b7d-4d55-9a51-3c2b9a0e7d11", status: "onboarding", products: ["RCP"], monthly_cents: sent.monthly_cents,
     business_name: "Cool Breeze HVAC", go_live_at: null, next_bill_on: null };
+  const planClient = { ...client, billing_mode: "subscription", monthly_cents: null };
   const left = ["Connect your calendar", "Text messaging registration", "Forward your missed calls"];
   const onboarding = { total: 8, done: 5, left: 3, left_titles: left };
   // a deposit paid through PayPal checkout (pay_record_capture), amounts from the replayed quote
@@ -65,6 +66,15 @@ export async function samples(): Promise<Record<string, Sample>> {
       payment: { ...paid, payer_email: "dani.payer@example.com" }, pay_method: "paypal_checkout" }, payload: { source: "capture" } },
     admin_paypal_alert: { ctx: { to: "owner@example.com", profile, client, payment: paid }, payload: { kind: "dispute", ref: "PP-D-27803",
       reason: "MERCHANDISE_OR_SERVICE_NOT_RECEIVED", paypal_amount: ppAmount, capture_id: paid.provider_capture_id, response_due: "2026-10-22T23:59:59Z" } },
+    trial_ending: { ctx: { to: profile.email, profile, client: planClient, subscription: { plan_code: "FR_PRO", status: "trialing", trial_ends_at: "2026-12-09T15:00:00Z" } } },
+    subscription_message_mode: { ctx: { to: profile.email, profile, client: { ...planClient, status: "paused" }, tenant_number: "+17135550142",
+      subscription: { plan_code: "FR_STARTER", status: "canceled", service: "message_only", service_reason: "canceled", reason: "canceled" } } },
+    subscription_restored: { ctx: { to: profile.email, profile, client: { ...planClient, status: "live" }, tenant_number: "+17135550142",
+      subscription: { plan_code: "FR_STARTER", status: "active", service: "full" } } },
+    admin_provisioning_alert: { ctx: { to: "owner@example.com", profile, client: planClient, subscription: { plan_code: "FR_STARTER", status: "trialing" } },
+      payload: { step: "duplicate_trial", error: "This business phone already had a free trial" } },
+    admin_billing_request: { ctx: { to: "owner@example.com", profile, client: planClient, subscription: { plan_code: "FR_STARTER", status: "active" } },
+      payload: { what: "plan_change", to: "FR_PRO", start_now: false } },
     admin_upwork_requested: { ctx: { to: "owner@example.com", profile, quote: { ...accepted, pay_method: "upwork", pay_link: null } } },
   };
 }

@@ -211,8 +211,13 @@ begin
     ('spend:' || ta || ':' || to_char(now() at time zone 'utc', 'YYYY-MM') || '-01x', ta, '{"usd": 1.16}'),
     ('cost:twilio:' || ta || ':' || to_char(now() at time zone 'utc', 'YYYY-MM-DD'), ta, '2.5'),
     ('convo:' || ta || ':secret', ta, '{"history":"private"}');
-  insert into public.calls (tenant_id, call_sid, from_e164, started_at, outcome) values (ta, 'CA_b7_test', '+17135550100', now(), 'message');
-  select status = 'done' and data ? 'test_call_id' into ok from public.onboarding_items where id = it;
+  -- 2026-11-25: only a call forwarded FROM the business line (calls.forwarded_from = business.main_phone) passes the test
+  update public.tenants set config = config || '{"business": {"main_phone": "+17135550111"}}' where id = ta;
+  insert into public.calls (tenant_id, call_sid, from_e164, started_at, outcome) values (ta, 'CA_b7_direct', '+17135550100', now(), 'message');
+  select status <> 'done' and data ? 'test_unverified_at' into ok from public.onboarding_items where id = it;
+  if not ok then raise exception 'FAIL a call without ForwardedFrom marked forward_calls done'; end if; c := c + 1;
+  insert into public.calls (tenant_id, call_sid, from_e164, started_at, outcome, forwarded_from) values (ta, 'CA_b7_test', '+17135550100', now(), 'message', '+17135550111');
+  select status = 'done' and data ? 'test_call_id' and data ->> 'verified' = 'forwarded_from' into ok from public.onboarding_items where id = it;
   if not ok then raise exception 'FAIL forwarded test call did not mark forward_calls done'; end if; c := c + 1;
   -- a call with garbage test data never breaks the runtime insert
   update public.onboarding_items set status = 'todo', data = '{"test_started_at":"not a date"}' where id = it;

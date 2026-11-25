@@ -102,6 +102,12 @@
           "description": "Public self-booking link used in text-back",
           "title": "Booking Link"
         },
+        "enabled": {
+          "default": true,
+          "description": "False = take messages only, never book (no calendar connected)",
+          "title": "Enabled",
+          "type": "boolean"
+        },
         "self_service": {
           "default": false,
           "description": "Callers can move or cancel a booking the assistant made",
@@ -173,6 +179,17 @@
           },
           "maxItems": 500,
           "title": "Service Area Zips",
+          "type": "array"
+        },
+        "service_area_places": {
+          "description": "Cities / counties / neighborhoods served (prompt only)",
+          "items": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Service Area Places",
           "type": "array"
         },
         "main_phone": {
@@ -762,6 +779,96 @@
       "title": "Notify",
       "type": "object"
     },
+    "Plan": {
+      "additionalProperties": false,
+      "description": "`config.plan` of a subscription tenant. Numbers (included minutes, trial cap, features) are NOT stored here:\napp.plans reads them from the price book by `code`.",
+      "properties": {
+        "code": {
+          "pattern": "^[A-Z][A-Z0-9_]{1,40}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "trialing",
+            "active",
+            "past_due",
+            "paused",
+            "canceled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "trial_ends_at": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trial Ends At"
+        },
+        "period_start": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{4})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Start of the current billing (or trial) period; usage is metered per period",
+          "title": "Period Start"
+        },
+        "period_end": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period End"
+        },
+        "service": {
+          "default": "full",
+          "description": "message_only = the line answers with a short message flow (no AI minutes)",
+          "enum": [
+            "full",
+            "message_only"
+          ],
+          "title": "Service",
+          "type": "string"
+        },
+        "service_reason": {
+          "default": "",
+          "enum": [
+            "",
+            "trial_ended",
+            "canceled",
+            "past_due",
+            "paused"
+          ],
+          "title": "Service Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "Plan",
+      "type": "object"
+    },
     "PriceItem": {
       "additionalProperties": false,
       "properties": {
@@ -939,6 +1046,12 @@
           "maxLength": 400,
           "title": "Greeting Es",
           "type": "string"
+        },
+        "spanish_off": {
+          "default": false,
+          "description": "The customer switched Spanish off in the portal (remembered across plan changes)",
+          "title": "Spanish Off",
+          "type": "boolean"
         }
       },
       "title": "Voice",
@@ -1078,6 +1191,18 @@
     },
     "review_requests": {
       "$ref": "#/$defs/ReviewRequests"
+    },
+    "plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Plan"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "FirstRing monthly plan (set by the database; absent = quote client)"
     }
   },
   "required": [

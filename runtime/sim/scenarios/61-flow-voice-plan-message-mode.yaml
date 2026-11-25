@@ -1,0 +1,11 @@
+description: FirstRing plan cancelled (message-only service) -> the line still answers - fixed greeting with the call notice, one turn for name/number/reason, owner lead alert, no AI and no booking.
+kind: flow
+channel: voice
+patch: {config: {plan: {code: FR_STARTER, status: canceled, service: message_only, service_reason: canceled, period_start: "2026-10-01"}}}
+steps:
+  - call: {}
+    expect: {reply_contains: ["can't take your call live", "recorded and transcribed"]}
+  - say: "This is Dana Miller, 713 555 0123, my AC is blowing warm air"
+    expect: {reply_contains: ["passed your message on"], end: true}
+  - hangup: {duration_s: 45}
+expect: {outcome: message, alerts: [lead], bookings: 0, claude_calls_max: 0, usage_voice_min: 1, events: {message_mode.call: 1}}

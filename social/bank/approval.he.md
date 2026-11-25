@@ -22,7 +22,7 @@
 | 15 | איך זה עובד | איך זה עובד 3: הסרה — STOP ודומיו עוצרים את כל ההודעות האוטומטיות | How it works, part 3: STOP. | `slot-15.png` |
 | 16 | טיפ | טיפ: להציע שני חלונות זמן במקום "מתי נוח לך?" | Tip: when you book a job by text, offer two specific windows instea... | `slot-16.png` |
 | 17 | שאלה נפוצה | שאלה נפוצה: מקרי חירום — 911 קודם, והתראה דחופה לבעל העסק | "What about emergencies?" | `slot-17.png` |
-| 18 | מוצר/מחיר | ערבות שביעות רצון 30 יום על המענה החכם (החזר דמי הקמה) | 30-day satisfaction guarantee on the Missed-Call AI Receptionist. | `slot-18.png` |
+| 18 | מוצר/מחיר | ערבות שביעות רצון 30 יום על המענה החכם (החזר דמי הקמה) | 30-day satisfaction guarantee on the FirstRing AI Receptionist. | `slot-18.png` |
 | 19 | נתון | נתון 71% (SimpleTexting): רוצים לענות לעסק בהודעה | 71% of consumers want to be able to text a business back (SimpleTex... | `slot-19.png` |
 | 20 | איך זה עובד | איך זה עובד 4: סיכום לכל ליד בהודעה ובמייל + סיכום יומי | How it works, part 4: the summary. | `slot-20.png` |
 | 21 | טיפ | טיפ: להתקשר למספר של העסק אחרי שעות העבודה ולשמוע מה הלקוח שומע | Tip: check what callers hear when you can't pick up. | `slot-21.png` |
@@ -33,7 +33,7 @@
 | 26 | נתון | נתון רגולטורי: 10 ימי עסקים לכבד בקשת הסרה (כלל FCC) — אצלנו מיד | 10 business days: the longest a business may take to honor a text o... | `slot-26.png` |
 | 27 | שאלה נפוצה | שאלה נפוצה: חייבים שיחת מכירה? לא — שאלון, הצעה בכתב, צ'קליסט | "Do I have to get on a call with you?" | `slot-27.png` |
 | 28 | טיפ | טיפ: איך נראית הסכמה לקבלת הודעות (הודעה בפתיח, שאלה לפני אישור, תיעוד) | Tip: what text consent looks like for a service business. | `slot-28.png` |
-| 29 | מוצר/מחיר | חבילה: מענה חכם + אתר, 4,900$ הקמה + 400$ לחודש | The bundle: Missed-Call AI Receptionist + 5-page website. | `slot-29.png` |
+| 29 | מוצר/מחיר | חבילה: מענה חכם + אתר, 4,900$ הקמה + 400$ לחודש | The bundle: FirstRing AI Receptionist + 5-page website. | `slot-29.png` |
 | 30 | טיפ | טיפ: להחליט מי עונה בשבת (כלל כתוב לסופ"ש) | Tip: decide who answers on Saturday. | `slot-30.png` |
 
 אישור: ____  (תאריך: ____)
@@ -58,7 +58,7 @@
 | 39 | נתון | נתון 83% (BrightLocal 2026): מי שהתבקש לכתוב ביקורת כתב. + תוסף בקשת ביקורת 400$ | 83% of consumers who were asked to leave a review went on to leave ... | `slot-39.png` |
 | 40 | סיפור היפותטי | סיפור היפותטי: חשמלאי על סולם, שלוש שיחות בשעה — דחוף, הצעת מחיר, ספאם | Picture an electrician on a ladder at 11 AM. This is a made-up exam... | `slot-40.png` |
 | 41 | מיתוס מול עובדה | מיתוס מול עובדה: "רק לחברות גדולות" — בנוי לעסק קטן, מחיר קבוע וכמויות כלולות | Myth: AI receptionists are only for big companies with call centers. | `slot-41.png` |
-| 42 | מוצר/מחיר | מוצר: מה כלול במענה החכם, בשפה פשוטה (כולל רישום הודעות מול הספקים) | What's included in the Missed-Call AI Receptionist, in plain words: | `slot-42.png` |
+| 42 | מוצר/מחיר | מוצר: מה כלול במענה החכם, בשפה פשוטה (כולל רישום הודעות מול הספקים) | What's included in the FirstRing AI Receptionist, in plain words: | `slot-42.png` |
 | 43 | טיפ | טיפ: חלונות תיאום שאפשר לעמוד בהם (חלונות, זמן נסיעה, משבצת לדחופים) | Tip: set booking windows you can actually keep. | `slot-43.png` |
 | 44 | סיפור היפותטי | סיפור היפותטי: חברת גגות ביום שני אחרי ברד — כל השיחות העודפות נענות | Picture a roofing company the Monday after a hailstorm. A made-up e... | `slot-44.png` |
 | 45 | נתון | נתון 89% (BrightLocal 2026): מצפים שבעל העסק יענה לביקורות; 50% נרתעים מתשובה גנרית | 89% of consumers expect business owners to respond to reviews, and ... | `slot-45.png` |

@@ -49,3 +49,26 @@ with `calls.transcript_withheld`; opt-outs by keyword, sentence or voice; textin
 zone; locked SMS templates; every decision in `sms_consent` (5 years, `supabase/migrations/20261012100000_us_sms_consent.sql`).
 B5/B6 hooks used by voice/SMS: `app/_stubs_b56.py` (`get_provider`, `owner_alert`, `emit`).
 Model and brand name come from `app/brand.json` (synced from `config/brand.json`).
+FirstRing monthly plans (2026-11-25; `app/plans.py`, `app/usage.py`, `app/message_mode.py`, `app/provisioning.py`, `app/golive.py`):
+`config.plan` (written only by the database from `public.subscriptions`) carries plan code, status, period and service mode; minutes,
+trial cap and features (Spanish, website chat, dispatch, CRM) come from the price book `plans` by code. Usage is metered per billing
+period (`usage:<tenant>:p<period start>:voice_minutes`); 80%/100% e-mails go to the customer with the upgrade link + a Hebrew note to
+Meir (not gated by `CLIENT_EMAILS_ENABLED`). Message mode (`/voice/message-mode`; SMS/chat one fixed reply; owner gets each message as
+a lead alert; no AI, no booking): trial ended unpaid, cancelled, past due beyond grace, paused, and `USAGE_CAP_MODE=message` (default;
+`keep` = full answering past 100%) once the trial's 100 minutes or the plan's minutes are used (until the trial ends / the plan starts,
+or the next billing period / an upgrade). Calls record Twilio `ForwardedFrom` in `calls.forwarded_from` (forwarding test).
+`POST /jobs/tick` also runs `provisioning_jobs`: `number` = buy a US local number near the client's area code with the 4 webhooks
+(**only with `TWILIO_PROVISION_LIVE=1`**; unset = dry run: sim/`TWILIO_PROVISION_DRY_WRITE=1` writes a fictional 555-01xx number,
+production holds the job and e-mails Meir), `golive_sim` = the go-live simulator checks on the real config (mock model, temp store).
+`POST /admin/sim-run/{slug}` (Bearer) runs the same checks on demand. Failures: 3 tries, then `failed` + Hebrew e-mail to Meir.
+FirstRing phase 2 (2026-11-25; `supabase/migrations/*_us_firstring_p2.sql`, tests `tests/test_firstring_p2.py`):
+- Number release: the database schedules `number_releases` (service ended = cancelled after the paid month, or the trial ended
+  unpaid; release 30 days later, warning 7 days before; a resubscribe cancels). `POST /jobs/tick` sends the customer's 7-day
+  warning e-mail (once), re-checks the subscription, and releases the number **only with `TWILIO_RELEASE_LIVE=1`**; unset = dry run
+  (row `held` + Hebrew note to Meir with the number). Admin: postpone / release now in the "מנויים" tab.
+- Live AI check before go-live (**`GOLIVE_LIVE_AI_CHECK=1`**, default off): one scripted ~5-turn conversation on the real model
+  through the live-call engine (voice prompt, text only). Fail -> job `failed`, client stays in testing, Hebrew e-mail with the
+  transcript. Model error / timeout: `GOLIVE_AI_RETRIES` (2) retries of `GOLIVE_AI_TIMEOUT_S` (90) each, then the job is `held`
+  for manual approval. Token use and the cost estimate are logged and kept in the job result (`ai_check`).
+- Spanish: on for plans with the `spanish` feature unless the customer switched it off in the portal (`voice.spanish_off`,
+  remembered across plan changes; the database trigger `tenants_plan_spanish` and `app.plans.apply` say the same).

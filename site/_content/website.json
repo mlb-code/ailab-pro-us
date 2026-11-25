@@ -14,8 +14,8 @@
   "hero": {
     "eyebrow": "Websites for local service businesses",
     "title": "A website that makes the phone *ring*.",
-    "lead": "Five fast pages with one job: getting customers to call, text or fill in your form. We write it from your answers and you approve it. First draft in 3 business days, live in {days:WEB} business days after we have your content.",
-    "fine": "{web_flow} No sales calls."
+    "lead": "Five fast pages with one job: getting customers to call, text or fill in your form. We write it from your answers, you approve it. Live {days:WEB} business days after we have your content.",
+    "fine": "No quote step. No sales calls."
   },
   "pages": [
     {
@@ -66,10 +66,6 @@
       }
     ]
   },
-  "bundle": {
-    "title": "Want missed calls *answered* too?",
-    "text": "The bundle adds the Missed-Call AI Receptionist, shows its phone number on your site, and adds a chat box to your site. You save {bundle_save_setup} on setup and {bundle_save_monthly} a month."
-  },
   "faq": [
     {
       "q": "What does it cost?",
@@ -104,37 +100,26 @@
       "a": "The monthly plan cancels with {cancel_days} days' notice. {refund}"
     }
   ],
-  "proof_rows": [
+  "trust": [
     {
-      "k": "Built with Claude",
-      "v": "Your text is drafted with Claude, an AI made by the company Anthropic, then approved by you. We are a small independent studio. We are not part of Anthropic, and Anthropic does not endorse us."
+      "title": "Fixed price, no quote step",
+      "text": "The price on this page is the final price. Extras have fixed prices too. No hourly billing."
     },
     {
-      "k": "Real clients",
-      "v": "{worked_with}."
+      "title": "You approve every page",
+      "text": "We draft your text with Claude, an AI made by Anthropic, from your answers. Nothing goes live without your OK."
     },
     {
-      "k": "No quote step",
-      "v": "{web_flow}"
-    },
-    {
-      "k": "Fixed price",
-      "v": "The price on this page is the final price. Extras are listed with their prices. No hourly billing."
-    },
-    {
-      "k": "{refund_label}",
-      "v": "{refund}"
+      "title": "A small studio",
+      "text": "{worked_with}. Built with Claude; not affiliated with Anthropic, and not endorsed by it."
     }
   ],
+  "extras_note": "Choosing an extra adds a short written quote step.",
   "band": {
     "title": "Choose your *package*.",
-    "text": "{web_flow}"
+    "text": "{web_band}"
   },
   "variants": {
-    "web_flow": {
-      "link": "No waiting for a quote. Answer about 3 minutes of questions and we email your deposit link {quote_sla}. You add your content later in your portal. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content.",
-      "online": "No waiting for a quote. Pay the deposit online and answer about 3 minutes of questions; you add your content later in your portal. Your first draft is ready in 3 business days, and the site is live in {days:WEB} business days after we have your content."
-    },
     "web_step1": {
       "link": "Pick the package and answer a 3-minute questionnaire. We email your 50% deposit link {quote_sla}. Your content comes later, in your portal.",
       "online": "Accept the terms and pay the 50% deposit online."
@@ -162,6 +147,16 @@
     "web_step1_num": {
       "link": "10 min",
       "online": "1 click"
+    },
+    "web_band": {
+      "link": "No quote step. Answer about 3 minutes of questions and we email your deposit link {quote_sla}.",
+      "online": "No quote step. Pay the deposit online and answer about 3 minutes of questions."
     }
+  },
+  "firstring": {
+    "title": "Want missed calls *answered* too?",
+    "text": "Add FirstRing, our AI receptionist, from {from_price}/mo. No setup fee, {trial_days}-day free trial.",
+    "link": "Add FirstRing from {from_price}/mo",
+    "href": "/firstring/#pricing"
   }
 }

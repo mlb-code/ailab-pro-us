@@ -23,7 +23,8 @@ if (!process.argv[2]) {
   await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 }
 const WIDTHS = [375, 390, 414, 1280];
-const PATHS = [['RCP', 'home_services'], ['RCP', 'real_estate'], ['WEB', 'home_services'], ['BNDL', 'real_estate'], ['UNSURE', 'home_services']];
+// new questionnaires offer the website only (2026-11-25); an old FirstRing draft (RCP) opens moved to the website with a notice
+const PATHS = [['WEB', 'home_services'], ['WEB', 'real_estate'], ['RCP', 'real_estate'], ['BNDL', 'home_services']];
 let checks = 0; const problems = [];
 
 async function runEngine(name, type) {
@@ -59,11 +60,12 @@ async function runEngine(name, type) {
   await measure('profile');
   await page.evaluate(() => window.Backend.saveProfile({ full_name: 'Quinn Averylongfamilyname-Hyphenated', company: 'A Very Long Business Name Heating Cooling & Plumbing LLC', phone: '7135550100' }));
   for (const [offer, niche] of PATHS) {
-    const id = await page.evaluate(([o, n]) => window.Backend.createQuestionnaire({ offer: o, niche: n }).then(r => r.id), [offer, niche]);
-    // long answers to stress wrapping
-    await page.evaluate(([qid, o, n]) => window.Backend.saveQuestionnaire(qid, { offer: o, niche: n, answers: { offer: o, niche: n,
-      services: ['hvac', 'plumbing', 'electrical', 'roofing', 'garage_doors', 'locksmith', 'pest', 'cleaning', 'landscaping', 'other'], locations: '2',
-      tools: ['google_calendar', 'jobber', 'other'], tools_other: 'SuperLongToolNameWithoutAnySpacesAtAllToTestWrapping', more: 'x'.repeat(400) } }), [id, offer, niche]);
+    // long answers to stress wrapping; a FirstRing draft is an old row (written directly: the API refuses new ones)
+    const answers = { offer, niche, services: ['hvac', 'plumbing', 'electrical', 'roofing', 'garage_doors', 'locksmith', 'pest', 'cleaning', 'landscaping', 'other'], locations: '2',
+      tools: ['google_calendar', 'jobber', 'other'], tools_other: 'SuperLongToolNameWithoutAnySpacesAtAllToTestWrapping', more: 'x'.repeat(400) };
+    const id = offer === 'WEB'
+      ? await page.evaluate(([o, n, a]) => window.Backend.createQuestionnaire({ offer: o, niche: n }).then(r => window.Backend.saveQuestionnaire(r.id, { offer: o, niche: n, answers: a }).then(() => r.id)), [offer, niche, answers])
+      : await page.evaluate(([o, n, a]) => window.StartMock.admin.legacyQuestionnaire({ offer: o, niche: n, answers: a }), [offer, niche, answers]);
     const steps = await page.evaluate(([o, n]) => window.StartQ.stepsFor({ offer: o, niche: n }).map(s => s.id), [offer, niche]);
     for (const s of steps) {
       await go(`/start/q/?id=${id}#${s}`, '#stepTitle');
@@ -73,6 +75,10 @@ async function runEngine(name, type) {
   const sub = await page.evaluate(() => window.Backend.listQuestionnaires().then(l => l[0].id));
   await page.evaluate(id => window.Backend.submitQuestionnaire(id), sub);
   await go(`/start/q/?id=${sub}`, '#roTitle'); await measure('read-only');
+  // an older SUBMITTED FirstRing questionnaire (legacy quote client) still renders read-only
+  const old = await page.evaluate(() => window.StartMock.admin.legacyQuestionnaire({ offer: 'RCP', niche: 'home_services', status: 'submitted',
+    answers: { offer: 'RCP', niche: 'home_services', locations: '2', calls_week: '20_50', tools: ['google_calendar', 'jobber', 'other'], tools_other: 'SuperLongToolNameWithoutAnySpacesAtAllToTestWrapping', more: 'x'.repeat(400) } }));
+  await go(`/start/q/?id=${old}`, '#roTitle'); await measure('read-only (FirstRing, legacy)');
   await go('/start/?mock_seed=deposit_paid', '[role=tablist]'); await measure('portal home');
   for (const t of ['quotes', 'billing']) { await page.click('#tab-' + t); await measure('portal ' + t); }
   await page.click('#editProfile'); await page.waitForSelector('#profileForm'); await measure('profile edit');

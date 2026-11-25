@@ -211,6 +211,61 @@ def main():
               f'{code}: costs less than its parts')
     check('Appointment manager' in md and any(s.startswith('Appointment manager') for s in items['RCP']['includes']), 'appointment manager is part of RCP (no code, no fee)')
 
+    # 3c. FirstRing monthly plans (owner decision 2026-11-25): 3 plans, no setup fee, 14-day trial (100 min), cancel anytime
+    plans = {p['code']: p for p in pb.get('plans', [])}
+    S = R.get('subscription') or {}
+    check(list(plans) == ['FR_STARTER', 'FR_PRO', 'FR_BUSINESS'] == S.get('plan_codes'), 'plans: FR_STARTER, FR_PRO, FR_BUSINESS (rules.subscription.plan_codes)')
+    rows = []
+    lines = md.splitlines()
+    for n, line in enumerate(lines):
+        if line.startswith('| Plan code |'):
+            k = n + 2
+            while k < len(lines) and lines[k].startswith('|'):
+                rows.append([x.strip() for x in lines[k].strip().strip('|').split('|')])
+                k += 1
+    check(len(rows) == len(plans), f'PRICEBOOK.md plan table has {len(rows)} rows')
+    for r in rows:
+        code = r[0].strip('`')
+        p = plans.get(code)
+        check(p is not None, f'{code}: plan present in pricebook.json')
+        if not p:
+            continue
+        mk, mv = money(r[2])
+        check(p['name'] == r[1] and p['monthly_cents'] == mv, f'{code}: name {r[1]!r} + monthly {r[2]} equal the table')
+        check(p['included_usage']['voice_minutes'] == int(r[3].replace(',', '')), f'{code}: {r[3]} voice minutes')
+        check(p['go_live_business_days'] == num(r'(\d+) business day', r[4]), f'{code}: go-live {r[4]}')
+    want = {'FR_STARTER': 14900, 'FR_PRO': 24900, 'FR_BUSINESS': 39900}
+    check({c: p['monthly_cents'] for c, p in plans.items()} == want, 'plans: $149 / $249 / $399 a month (approved 2026-11-25)')
+    check([p['included_usage']['voice_minutes'] for p in plans.values()] == [200, 500, 1000], 'plans: 200 / 500 / 1,000 voice minutes')
+    for c, p in plans.items():
+        check(p['setup_cents'] == 0 and p['trial_days'] == S.get('trial_days') == 14 and p['trial_minutes'] == S.get('trial_minutes') == 100,
+              f'{c}: no setup fee, 14-day trial capped at 100 minutes')
+        check(all(f in pb.get('plan_features', {}) for f in p['features']), f'{c}: every feature key has a label in plan_features')
+    pl = list(plans.values())
+    for a, b in zip(pl, pl[1:]):
+        check(set(a['features']) < set(b['features']) and a.get('upgrade_to') == b['code'], f'{b["code"]}: everything in {a["code"]} plus more; {a["code"]} upgrades to it')
+    check(plans['FR_PRO'].get('badge') == 'Most popular' and not plans['FR_STARTER'].get('badge') and not plans['FR_BUSINESS'].get('badge'), 'plans: only Pro has the "Most popular" badge')
+    check([p['go_live_business_days'] for p in pl] == [1, 1, 5], 'plans: live in 1 business day (Business: 5)')
+    PF = pb.get('plan_features', {})
+    check(PF.get('dispatch', {}).get('niches') == ['home_services'], 'plan feature dispatch: home services only (no on-call dispatch for real estate)')
+    check(S.get('setup_cents') == 0 and S.get('first_charge') == 'trial_end' and S.get('trial_card_required') is True, 'subscription: card at sign-up, first charge when the trial ends')
+    check(S.get('partial_month_refunds') is False and S.get('minutes_roll_over') is False and S.get('per_minute_billing') is False
+          and S.get('usage_alert_pct') == [80, 100], 'subscription: no partial-month refunds, no roll-over, never per minute, alerts at 80/100')
+    for f, meta in PF.items():
+        if meta.get('replaces'):
+            rc = meta['replaces']
+            check(rc in items and bool((items[rc].get('retired') or {}).get('replaced_by')), f'plan feature {f}: replaces {rc}, which is marked retired')
+    for code in ('RCP', 'BNDL', 'ADD-ES', 'ADD-CHAT', 'ADD-DISPATCH', 'ADD-LOC', 'ADD-CRM', 'ADD-USAGE'):
+        check(code in items and bool(items[code].get('retired')) and code in S.get('retired_codes', []), f'{code}: kept for old quotes, retired for FirstRing')
+    check(items['WEB'].get('retired') is None, 'WEB is not retired (website keeps setup + monthly)')
+    RS = RR.get('subscription') or {}
+    check(RS.get('codes') == list(plans) and RS.get('partial_months_refunded') is False, 'refund: subscription rule covers the three plans, no partial months')
+    for k in ('label', 'text', 'legal'):
+        nums = {int(x) for x in re.findall(r'(\d+)[- ]day', RS.get(k, ''))}
+        check(nums <= {RS.get('money_back_days')}, f'refund: subscription {k} uses {RS.get("money_back_days")} days only ({sorted(nums)})')
+    check(str(S.get('trial_days')) + '-day free trial' in S.get('texts', {}).get('trial', ''), 'subscription: trial text carries trial_days')
+    check('Live in 1 business day' in md and '14-day free trial' in md, 'PRICEBOOK.md: trial + go-live rule written down')
+
     # 4. semantics
     for it in pb['items']:
         if it['kind'] == 'fixed':

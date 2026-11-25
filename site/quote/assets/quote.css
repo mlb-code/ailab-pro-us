@@ -1,49 +1,59 @@
-/* Quote page (/quote/?t=…). Builds on /assets/base.css tokens; LTR, mobile-first, print-friendly. */
+/* Quote page (/quote/?t=…). Builds on /assets/base.css (design "Workday"); LTR, mobile-first, print-friendly.
+   One white sheet of facts on the warm page; the price summary is the featured card (ink border, yellow offset). */
 .q{padding-block:clamp(28px,6vh,64px) clamp(40px,8vh,96px)}
 .q-loading{padding:40px 0}
 .q-head{display:grid;gap:12px;margin-bottom:clamp(24px,4vh,40px)}
-.q-head h1{font-size:clamp(2rem,4.6vw,3.4rem)}
-.q-meta{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;color:var(--fg-3);font-size:.92rem}
+.q-head h1{font-size:clamp(2.2rem,5.4vw,3.8rem);line-height:.98;letter-spacing:-.045em;max-width:18ch}
+.q-meta{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;color:var(--fg-3);font-size:.92rem;font-weight:500}
 .q-layout{display:grid;gap:clamp(20px,3vw,40px);grid-template-columns:minmax(0,1fr)}
 @media (max-width:979px){.q-aside{order:-1}}
-@media (min-width:980px){.q-layout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}.q-aside{position:sticky;top:88px}}
+@media (min-width:980px){.q-layout{grid-template-columns:minmax(0,1fr) 380px;align-items:start}.q-aside{position:sticky;top:96px}}
+/* the quote itself: one white sheet with hairline section rules */
+.q-main{min-width:0;padding:clamp(20px,3vw,40px);background:var(--wd-card);border:1px solid var(--line);border-radius:var(--tile-r)}
+@media (max-width:560px){.q-main{padding:20px 18px;border-radius:22px}}
 .q-main>section{padding-block:clamp(22px,3.4vh,34px);border-top:1px solid var(--line)}
 .q-main>section:first-child{border-top:0;padding-top:0}
-.q-main h2{font-size:clamp(1.35rem,2.4vw,1.85rem);margin-bottom:14px}
-.q-main h3{font-size:1.05rem;margin:16px 0 10px;font-family:var(--sans);font-weight:600}
+.q-main h2{font-size:clamp(1.45rem,2.6vw,2rem);line-height:1.05;letter-spacing:-.035em;margin-bottom:14px}
+.q-main h3{font-size:1.05rem;margin:18px 0 10px;font-family:var(--sans);font-weight:700;letter-spacing:-.01em}
 .q-prose p+p{margin-top:12px}
 .q-list{list-style:none;display:grid;gap:8px;color:var(--fg-2)}
 .q-list li{position:relative;padding-left:20px;overflow-wrap:anywhere}
-.q-list li::before{content:"";position:absolute;left:2px;top:.68em;width:7px;height:7px;border-radius:50%;background:var(--fg-3)}
+.q-list li::before{content:"";position:absolute;left:2px;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--wd-blue)}
 
 /* price lines: grid rows instead of a wide table (no horizontal scroll at 375 px) */
 .q-lines{display:grid;border-top:1px solid var(--line-2)}
 .q-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:12px 0;border-bottom:1px solid var(--line)}
 .q-line__name{color:var(--fg);overflow-wrap:anywhere}
-.q-line__name small{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;color:var(--fg-3)}
+.q-line__name small{display:block;font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.06em;color:var(--fg-3)}
 .q-line__amt{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--fg-2)}
 .q-line__amt b{color:var(--fg);font-weight:600}
-.q-line--total .q-line__name,.q-line--total .q-line__amt{color:var(--fg);font-weight:600}
+.q-line--total{border-bottom:0;border-top:1.5px solid var(--fg)}
+.q-line--total .q-line__name,.q-line--total .q-line__amt{color:var(--fg);font-weight:700}
 .q-line--minus .q-line__amt{color:var(--ok)}
 .q-sched{display:grid;gap:10px;margin-top:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
-.q-sched div{padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
-.q-sched span{display:block;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
-.q-sched b{font-family:var(--serif);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.q-sched div{padding:14px 16px;border:0;border-radius:var(--radius-sm);background:var(--wd-blue-soft)}
+.q-sched span{display:block;font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-2)}
+.q-sched b{font-family:var(--sans-head);font-size:1.5rem;font-weight:800;letter-spacing:-.035em;color:var(--wd-ink);font-variant-numeric:tabular-nums}
 
 .q-incl{display:grid;gap:clamp(14px,2vw,22px);grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
-.q-incl .card h3{margin-top:0}
+.q-incl .card{background:var(--wd-bg);border-color:transparent}
+.q-incl .card h3{margin-top:0;font-family:var(--sans-head);font-size:1.05rem;font-weight:800;letter-spacing:-.02em;color:var(--fg)}   /* no text-transform: tests read the text as written */
 
 /* summary card */
 .q-sum .price-card__amount b{font-size:clamp(2.1rem,6vw,2.8rem)}
 .q-sum dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;font-size:.95rem}
+.q-sum dl{padding-top:14px;border-top:1px solid var(--line)}
 .q-sum dt{color:var(--fg-2)}
-.q-sum dd{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--fg)}
+.q-sum dd{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--fg);font-weight:600}
 .q-call{font-size:.92rem;color:var(--fg-2)}
-.q-call a{color:var(--fg)}
+.q-call a{color:var(--wd-blue);font-weight:600}
+.q>p.q-call{margin:-8px 0 20px}
 
 /* accept */
-.q-accept{border:1px solid var(--acc);border-radius:var(--radius);padding:clamp(18px,3vw,30px);background:var(--surface)}
-.q-accept .check a{color:var(--fg)}
+.q-accept{border:2px solid var(--wd-blue);border-radius:var(--radius);padding:clamp(18px,3vw,30px);background:var(--wd-card)}
+.q-accept h2{margin-bottom:10px}
+.q-accept .check{color:var(--fg-2)}
+.q-accept .check a{color:var(--wd-blue);font-weight:600}
 .q-accept .btn{margin-top:6px}
 .q-signed{display:grid;gap:6px}
 #pay-slot{margin-top:18px;display:grid;gap:10px}
@@ -51,15 +61,15 @@
 .q-upwork>div{display:grid;gap:10px;min-width:0}
 .q-steps{display:grid;gap:6px;padding-left:1.4em;color:var(--fg-2)}
 .q-steps li{overflow-wrap:anywhere}
-.q-steps li::marker{color:var(--acc);font-weight:600}
+.q-steps li::marker{color:var(--wd-blue);font-weight:700}
 .q-assure{margin-top:4px}
 .q-assure li{overflow-wrap:anywhere}
 .q-badge-row{display:flex;flex-wrap:wrap;gap:8px}
 /* payment step by card / PayPal (PayPal JS SDK buttons: card first, then PayPal). PayPal's iframes take the box width,
    so the boxes must be allowed to shrink (min-width:0) or a 320 px phone scrolls sideways. */
 #pay-slot>*{min-width:0}
-.q-pay{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--bg)}
-.q-pay__h{margin:0;font-family:var(--sans);font-size:1.15rem;font-weight:600}
+.q-pay{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--wd-bg)}
+.q-pay__h{margin:0;font-family:var(--sans-head);font-size:1.2rem;font-weight:800;letter-spacing:-.025em}
 .q-pay__h:focus{outline:none}
 .q-pay__btns{display:grid;gap:10px;min-width:0;max-width:100%}
 .q-pay__btns>div{min-width:0;max-width:100%;overflow:hidden;border-radius:6px}
@@ -68,12 +78,24 @@
 .q-pay__note{color:var(--fg-2);overflow-wrap:anywhere}
 .q-pay__retry{margin-top:8px}
 .q-pay__alt{margin-top:2px}
-.q-linkbtn{background:none;border:0;padding:4px 0;font:inherit;font-size:.92rem;color:var(--fg-2);text-align:left;cursor:pointer;
-  border-bottom:1px solid var(--line-2);overflow-wrap:anywhere;max-width:100%}
-.q-linkbtn:hover,.q-linkbtn:focus-visible{color:var(--fg);border-color:var(--acc)}
-.q-linkbtn[disabled]{opacity:.5;cursor:not-allowed}
+.q-linkbtn{display:inline-flex;align-items:center;min-height:44px;background:none;border:0;padding:0 2px;font:inherit;font-size:.92rem;font-weight:500;color:var(--fg);text-align:left;cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--field-line);text-decoration-thickness:1.5px;text-underline-offset:5px;overflow-wrap:anywhere;max-width:100%}
+.q-linkbtn:hover,.q-linkbtn:focus-visible{color:var(--wd-blue);text-decoration-color:currentColor}
+.q-linkbtn[disabled]{color:var(--fg-3);cursor:not-allowed}
 .q-paid>div{display:grid;gap:6px;min-width:0}
 .q-paid p{overflow-wrap:anywhere}
+
+/* ---------- folded sections: heading + one-line gist, full text on tap ---------- */
+.q-fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;min-height:44px;cursor:pointer;list-style:none;border-radius:12px}
+.q-fold>summary::-webkit-details-marker{display:none}
+.q-fold>summary h2{margin:0}
+.q-fold__gist{color:var(--fg-2);font-size:.95rem}
+.q-fold__more{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.9rem;color:var(--acc)}
+.q-fold__more::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s}
+.q-fold[open] .q-fold__more{font-size:0;gap:0}
+.q-fold[open] .q-fold__more::after{transform:translateY(2px) rotate(-135deg)}
+.q-fold__body{padding-top:18px}
+@media (prefers-reduced-motion:reduce){.q-fold__more::after{transition:none}}
 
 @media (max-width:560px){.q-print{display:none}}
 
@@ -86,6 +108,7 @@
   .q{padding:0}
   .q-layout{display:block}
   .q-aside{position:static;margin-top:16px}
+  .q-main{padding:0;border:0;border-radius:0}
   .price-card,.card,.q-accept,.q-sched div{box-shadow:none!important;border-color:#888!important;background:#fff!important;break-inside:avoid}
   .price-card__amount b{color:#000}
   .q-main>section{break-inside:avoid-page}

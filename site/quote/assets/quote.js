@@ -375,6 +375,13 @@
     return '<div class="notice notice--ok" role="status">We’ll email your secure payment link for the ' + dep + ' deposit ' + esc(BRAND.quote_sla_text || 'soon') + '.</div>';
   }
 
+  // A closed section: heading + a one-line gist; the full text opens on tap (and always when printing).
+  function fold(id, title, gist, body) {
+    return '<section aria-labelledby="' + id + '"><details class="q-fold"><summary><h2 id="' + id + '">' + title + '</h2>' +
+      (gist ? '<span class="q-fold__gist">' + esc(gist) + '</span>' : '') + '<span class="q-fold__more q-noprint" aria-hidden="true">Show</span></summary>' +
+      '<div class="q-fold__body">' + body + '</div></details></section>';
+  }
+
   function acceptHtml(q) {
     if (q.status === 'accepted') {
       return '<div class="q-accept" id="accept"><div class="q-signed"><span class="badge badge--ok">Accepted</span>' +
@@ -388,11 +395,12 @@
         ' and we’ll send you a fresh one.</div>';
     }
     return '<form class="q-accept" id="acceptForm" novalidate><h2 id="accept">Accept your quote</h2>' +
-      '<p class="small muted" style="margin-bottom:16px">Type your full name and tick the box. This is your electronic signature. We save the time you signed and a unique code that shows which exact terms you agreed to.</p>' +
+      '<p class="small muted" style="margin-bottom:16px">Type your full name and tick the box. This is your electronic signature.</p>' +
       '<div class="field"><label for="accName">Full name</label><input class="input" id="accName" name="name" autocomplete="name" maxlength="200" required value="' + esc(q.client.name) + '"></div>' +
       '<label class="check" style="margin-bottom:16px"><input type="checkbox" id="accAgree" required><span>I agree to the <a href="/legal/service-agreement/" target="_blank" rel="noopener">Service Agreement v' + esc(q.agreement_version) + '</a>, the <a href="/legal/terms/" target="_blank" rel="noopener">Terms of Service</a> and this quote, including individual arbitration, the class-action waiver and the 30-day opt-out (Terms §17), and I’m authorized to sign for ' + esc(q.client.company || 'my business') + ' and buying for its business use.</span></label>' +
       '<div id="accMsg"></div>' +
       '<button class="btn btn--primary btn--block" type="submit" id="accBtn">Accept &amp; pay deposit ' + money(q.totals.deposit_cents) + '</button>' +
+      '<p class="small muted" style="margin-top:12px">We keep a record of when you signed and the exact terms.</p>' +
       '<div id="pay-slot" hidden></div></form>';
   }
 
@@ -406,6 +414,8 @@
       : '<p class="q-call">' + call + '</p>') : '';
     const days = q.delivery_business_days ? '<p><b>' + esc(q.delivery_business_days) + ' business days</b> to deliver, counted from when your setup checklist is complete.</p>' : '';
     const refund = (q.refund.guarantee ? '<p><b>' + esc(q.refund.guarantee) + '</b></p>' : '') + '<p>' + esc(q.refund.deposit) + '</p>' + (q.refund.retainer ? '<p>' + esc(q.refund.retainer) + '</p>' : '');
+    const nIncl = q.includes.reduce((n, g) => n + g.list.length, 0);
+    const nExcl = q.excludes.length + q.not_included_extra.length;
     $('#app').innerHTML =
       '<div class="q-head"><span class="eyebrow">Fixed quote' + (q.client.company ? ' · ' + esc(q.client.company) : '') + '</span>' +
       '<h1>' + (q.client.company ? 'Your quote, ' + esc(q.client.company) : 'Your fixed quote') + '</h1>' +
@@ -416,10 +426,11 @@
       '<div class="q-layout"><div class="q-main">' +
       '<section aria-labelledby="h-scope"><h2 id="h-scope">What we’ll build</h2><div class="q-prose">' + md(q.scope_md) + '</div></section>' +
       '<section aria-labelledby="h-price"><h2 id="h-price">Price</h2>' + linesHtml(q) + '</section>' +
-      '<section aria-labelledby="h-incl"><h2 id="h-incl">What’s included</h2>' + inclHtml(q) + '</section>' +
-      (q.assumptions.length ? '<section aria-labelledby="h-ass"><h2 id="h-ass">Assumptions</h2><ul class="q-list">' + q.assumptions.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul></section>' : '') +
-      '<section aria-labelledby="h-time"><h2 id="h-time">Timeline</h2><div class="q-prose">' + days + md(q.timeline_text) + '</div></section>' +
-      '<section aria-labelledby="h-refund"><h2 id="h-refund">Refunds</h2><div class="q-prose">' + refund + '</div></section>' +
+      // The details sit in closed folds (2026-11-25: the page was too long to read); printing opens them all.
+      fold('h-incl', 'What’s included', 'Included: ' + nIncl + (nIncl === 1 ? ' item' : ' items') + (nExcl ? ' · Not included: ' + nExcl + (nExcl === 1 ? ' item' : ' items') : ''), inclHtml(q)) +
+      (q.assumptions.length ? fold('h-ass', 'Assumptions', q.assumptions.length + (q.assumptions.length === 1 ? ' item' : ' items'), '<ul class="q-list">' + q.assumptions.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>') : '') +
+      fold('h-time', 'Timeline', q.delivery_business_days ? q.delivery_business_days + ' business days' : '', '<div class="q-prose">' + days + md(q.timeline_text) + '</div>') +
+      fold('h-refund', 'Refunds', q.refund.deposit_label || '', '<div class="q-prose">' + refund + '</div>') +
       '<section aria-label="Accept">' + acceptHtml(q) + '</section>' +
       '</div>' +
       '<aside class="q-aside" aria-label="Summary"><div class="price-card price-card--featured q-sum">' +
@@ -489,6 +500,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     const p = $('#printBtn'); if (p) p.addEventListener('click', () => window.print());
   });
+  // Paper and PDF show every section: open the folds for printing, then put them back.
+  window.addEventListener('beforeprint', () => document.querySelectorAll('details.q-fold').forEach(d => { d.dataset.was = d.open ? '1' : '0'; d.open = true; }));
+  window.addEventListener('afterprint', () => document.querySelectorAll('details.q-fold').forEach(d => { if (d.dataset.was === '0') d.open = false; }));
   (async function init() {
     await loadBrand();
     if (!token) return fail('not_found');

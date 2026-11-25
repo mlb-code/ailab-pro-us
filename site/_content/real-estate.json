@@ -5,7 +5,7 @@
   "offer": "RCP",
   "seo": {
     "title": "Never Miss a Buyer or Seller Call: AI Lead Response for Agents | {brand}",
-    "description": "Missed callers get answered, screened, and booked into your calendar. Leads can go to Follow Up Boss. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
+    "description": "Missed callers get answered, screened, and booked into your calendar. Leads can go to Follow Up Boss. Monthly plans from {from_price}/mo, {trial_days}-day free trial.",
     "og_title": "Never miss a buyer or seller call.",
     "og_kicker": "AI lead response for real estate",
     "service_type": "AI lead response and qualification for real estate agents",
@@ -14,8 +14,8 @@
   "hero": {
     "eyebrow": "AI lead response · agents · teams · brokerages",
     "title": "Never miss a *buyer* or seller call.",
-    "lead": "Even when you're at a showing, every caller gets answered right away. It asks if they're buying or selling, where, when, and if they're pre-approved. Then it books them into your calendar and can send the lead to Follow Up Boss.",
-    "fine": "No sales calls. Fixed quote in writing {quote_sla}."
+    "lead": "At a showing? Every caller still gets answered right away and asked: buying or selling, where, when, pre-approved. Then it books them into your calendar and can send the lead to Follow Up Boss.",
+    "fine": "No sales calls. {trial_days}-day free trial. Cancel anytime."
   },
   "clock": {
     "caption": "One missed call during an open house. Illustration.",
@@ -47,7 +47,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you can't take go to your AI assistant's number. It answers with your name or your team's name, so sign calls don't go cold. (Texting callers who hang up is coming soon, after US carrier registration.)"
+      "text": "Calls you can't take go to your AI assistant. It answers with your name or your team's name, so sign calls don't go cold. (Texting callers who hang up is coming soon, after US carrier registration.)"
     },
     {
       "icon": "chat",
@@ -57,13 +57,14 @@
     {
       "icon": "calendar",
       "title": "It books, you get an email",
-      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by email (and by text, once business texting is live). Each lead can also be added to Follow Up Boss automatically (through Zapier, an app that connects apps)."
+      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by email (text once business texting is live), and it can go to Follow Up Boss through Zapier."
     }
   ],
+  "missed_gist": "3 steps: it answers, qualifies, books",
   "demo": {
     "eyebrow": "Try it",
     "title": "Be the *caller*. See what your leads would get.",
-    "lead": "Pick a situation and tap the replies. This is a scripted demo of the text conversation after a missed call, once business texting is live (coming soon, after US carrier registration).",
+    "lead": "Pick a situation and tap what you'd say. This is a scripted demo of how the call goes.",
     "business": "Jenna Harper · Maple & Main Realty",
     "business_line": "Austin, TX",
     "scenarios": [
@@ -73,9 +74,9 @@
         "start": "s",
         "nodes": {
           "s": {
-            "system": "Missed call from (512) 555-0182 · 2:14 PM",
+            "system": "Incoming call from (512) 555-0182 · 2:14 PM",
             "bot": [
-              "Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry Jenna missed you, she's at a showing. I'm the virtual assistant and I can help right now. What are you calling about? Reply STOP to opt out."
+              "Thanks for calling Maple & Main Realty. I'm Jenna Harper's AI assistant. Jenna is at a showing, and I can help right now. What are you calling about?"
             ],
             "chips": [
               {
@@ -175,7 +176,7 @@
           },
           "done": {
             "bot": [
-              "You're set, {name}. Showing at 1420 Oak Ridge Dr, {slot}. Jenna will text you to confirm. Reply STOP to opt out."
+              "You're set, {name}. Showing at 1420 Oak Ridge Dr, {slot}. Jenna will call you to confirm."
             ],
             "booked": {
               "title": "Showing · 1420 Oak Ridge Dr",
@@ -191,9 +192,9 @@
         "start": "s",
         "nodes": {
           "s": {
-            "system": "Missed call from (737) 555-0124 · 6:48 PM",
+            "system": "Incoming call from (737) 555-0124 · 6:48 PM",
             "bot": [
-              "Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry we missed you! I'm the virtual assistant. How can I help? Reply STOP to opt out."
+              "Thanks for calling Maple & Main Realty. I'm Jenna Harper's AI assistant. How can I help?"
             ],
             "chips": [
               {
@@ -315,9 +316,9 @@
         "start": "s",
         "nodes": {
           "s": {
-            "system": "Missed call from (512) 555-0157 · 9:05 PM",
+            "system": "Incoming call from (512) 555-0157 · 9:05 PM",
             "bot": [
-              "Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry we missed you! I'm the virtual assistant. What can I help with? Reply STOP to opt out."
+              "Thanks for calling Maple & Main Realty. I'm Jenna Harper's AI assistant. What can I help with?"
             ],
             "chips": [
               {
@@ -423,7 +424,7 @@
           },
           "done": {
             "bot": [
-              "Booked, {name}. Buyer call {slot}. Jenna will send a short prep list by text."
+              "Booked, {name}. Buyer call {slot}. Jenna will send a short prep list by email."
             ],
             "booked": {
               "title": "Buyer consult",
@@ -437,14 +438,18 @@
   },
   "included": {
     "eyebrow": "What's included",
-    "title": "One price. Every lead gets *screened* and booked.",
     "tools_title": "Works with your tools",
-    "tools_extra": [{"label": "Apple iCloud Calendar", "status": "Via Calendly · included", "after": "calendly"}]
+    "tools_extra": [
+      {
+        "label": "Apple iCloud Calendar",
+        "status": "Via Calendly · included",
+        "after": "calendly"
+      }
+    ]
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "title": "The price is on the *page*.",
-    "note": "Team with several phone numbers? Each extra number has a fixed price, listed below."
+    "title": "Three plans. *No setup fee*."
   },
   "faq": [
     {
@@ -461,7 +466,7 @@
     },
     {
       "q": "Does it work with Follow Up Boss?",
-      "a": "Yes. A Zapier link is included (Zapier is an app that connects apps): each new lead and booking can add a contact and a to-do in Follow Up Boss. Booking into Google Calendar or Calendly is included too."
+      "a": "Yes. Every plan includes a Zapier link (Zapier is an app that connects apps): each new lead and booking can add a contact and a to-do in Follow Up Boss. The Business plan adds a direct link to your CRM. Booking into Google Calendar or Calendly is included too."
     },
     {
       "q": "Can it answer questions about my listings?",
@@ -478,7 +483,7 @@
     }
   ],
   "service_name": "AI Lead Response & Qualification",
-  "product_name": "Missed-Call AI Lead Assistant",
+  "product_name": "FirstRing AI Lead Assistant",
   "page_tokens": {
     "assistant": "lead assistant",
     "tagline": "AI lead response and websites for real estate agents and local businesses"
@@ -490,12 +495,6 @@
     "kvcore",
     "zapier"
   ],
-  "addons_hide": [
-    "ADD-CRM",
-    "ADD-REV",
-    "ADD-DISPATCH",
-    "ADD-QUOTE"
-  ],
   "included_items": [
     "1 new US phone number for your lead assistant, for you or your team. You keep your own number; calls you miss are sent to the new one.",
     "Answers the calls you miss, right away (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
@@ -504,10 +503,9 @@
     "Answers to up to 25 common questions (listings, open houses, your process), your business hours, and a nights-and-weekends mode",
     "An email alert for every new lead, plus a daily summary email (text alerts too, once business texting is live)",
     "Leads sent to Follow Up Boss or kvCORE through 1 included Zapier link",
-    "English only. Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
+    "Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
     "When US carrier registration for business texting opens, we register your business for you (fees included)",
     "{usage_text}",
     "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
-  ],
-  "bundle_name": "Lead Assistant + Website bundle"
+  ]
 }

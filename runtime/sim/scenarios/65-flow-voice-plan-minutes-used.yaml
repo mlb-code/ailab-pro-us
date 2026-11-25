@@ -1,0 +1,12 @@
+description: FirstRing Starter plan with every included minute of this billing period used -> message mode (name, number, reason e-mailed to the owner; no booking, no AI) until the next billing date or an upgrade.
+kind: flow
+channel: voice
+patch: {config: {plan: {code: FR_STARTER, status: active, period_start: "2026-10-01", period_end: "2026-11-01T00:00:00+00:00"}}}
+setup: {voice_minutes_used: 200}
+steps:
+  - call: {}
+    expect: {reply_contains: ["can't take your call live"]}
+  - say: "This is Lee, 832 555 0101, I need my furnace looked at"
+    expect: {reply_contains: ["passed your message on"]}
+  - hangup: {duration_s: 30}
+expect: {outcome: message, alerts: [lead], bookings: 0, claude_calls_max: 0, events: {message_mode.call: 1}}

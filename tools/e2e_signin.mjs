@@ -116,7 +116,7 @@ async function main() {
     ok(await page.$$eval('.sbtn', bs => bs.map(b => b.id).join() === 'appleBtn'), 'Apple alone when only Apple is configured');
     await login(page, '&mock_providers=');
     ok(!(await exists(page, '.sbtn')) && !(await exists(page, '#trustLine')) && !(await exists(page, '.or')), 'nothing social when neither is configured');
-    ok(/Sign in with your email, and answer/.test(await text(page, '.lead')), 'lead is email-only then');
+    ok(/^Sign in with your email\. Then pick your plan/.test(await text(page, '.lead')), 'lead is email-only then (default sign-in: the plans first)');
 
     // ---------------------------------------------------------------- provider says no
     console.log('errors');

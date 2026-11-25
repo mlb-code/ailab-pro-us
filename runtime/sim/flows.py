@@ -6,7 +6,7 @@ outbound SMS through the fake REST client, the jobs runner, and app restarts. Vo
 both voice modes (stream + gather) unless the scenario sets `modes:`.
 
 Steps (one key each, optional `advance_minutes` / `advance_seconds` before the step, `expect`):
-  call: {from?}          start a call            say: "text"      caller speaks
+  call: {from?, forwarded_from?}  start a call (forwarded_from = Twilio ForwardedFrom)            say: "text"      caller speaks
   silence: true          caller says nothing     hangup: {duration_s?}
   dial: no-answer|completed                      sms: "text" (inbound text)
   whisper: "1"|"" (ADD-DISPATCH: the dialed technician hears the brief and presses a key, "" = nothing)
@@ -132,7 +132,8 @@ def run_flow(sc: dict[str, Any], out, mode: str = "replay", source: str = "mock"
             break
         if "call" in step:
             call = FakeCall(sim.twilio, tenant.twilio_number, (step.get("call") or {}).get("from", contact),
-                            clock=clock, settled=sim.settled(tenant.slug))
+                            clock=clock, settled=sim.settled(tenant.slug),
+                            forwarded_from=str((step.get("call") or {}).get("forwarded_from", "")))
             turn = call.start()
         elif "say" in step:
             turn = call.say(str(step["say"]))

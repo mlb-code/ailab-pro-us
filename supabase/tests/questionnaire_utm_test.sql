@@ -12,7 +12,7 @@ begin
   -- ---------------------------------------------------------------- client A creates a questionnaire with first-touch UTM
   perform set_config('role', 'authenticated', true);
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
-  insert into public.questionnaires (offer, niche, utm) values ('RCP', 'home_services',
+  insert into public.questionnaires (offer, niche, utm) values ('WEB', 'home_services',
     jsonb_build_object('utm_source', 'facebook', 'utm_medium', 'paid', 'utm_campaign', repeat('x', 300),
                        'landing_path', '/real-estate/', 'first_seen', '2026-10-25T10:00:00Z',
                        'evil', 'drop me', 'utm_term', 42, 'utm_content', ''))

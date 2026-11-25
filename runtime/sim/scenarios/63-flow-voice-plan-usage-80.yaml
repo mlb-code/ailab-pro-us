@@ -1,0 +1,11 @@
+description: FirstRing Starter plan (included minutes from the price book) - a call pushes this billing period past 80% -> one usage_80 alert for the plan; the call is answered normally (full service).
+kind: flow
+channel: voice
+patch: {config: {plan: {code: FR_STARTER, status: active, period_start: "2026-10-01", period_end: "2026-11-01T00:00:00+00:00"}}}
+setup: {voice_minutes_used: 158}
+steps:
+  - call: {}
+  - say: "Do you service Trane units?"
+    expect: {reply_contains: ["all major brands"]}
+  - hangup: {duration_s: 121}
+expect: {alerts: [usage_80], no_alerts: [usage_100], usage_voice_min: 161, events: {usage_threshold: 1}}

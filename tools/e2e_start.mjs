@@ -114,6 +114,14 @@ async function main() {
     ok((await text(page, '#footer')).includes(brand.disclaimers.footer), 'footer disclaimer from brand.json');
     ok(!(await hebrew(page)), 'no Hebrew on sign-in screen');
     ok((await page.$eval('html', h => h.dir)) === 'ltr', 'page is LTR');
+    // the default sign-in (no plan / offer in the link): FirstRing plans first, the website second; never a quote promise
+    { const pbS = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8')).rules.subscription;
+      const main = await text(page, 'main');
+      ok((await text(page, 'h1')) === 'Sign in to start your free trial.' && main.includes(pbS.product + ' · monthly plans · free trial') && main.includes(pbS.trial_days + ' days free'),
+        'default sign-in leads with the plans and the free trial (numbers from the price book)');
+      ok(/Need a business website instead\?/.test(main) && !/fixed quote|your quote/i.test(main), 'default sign-in: the website as the second path, no quote promise');
+      const meta = await page.evaluate(() => [document.title, document.querySelector('meta[name=description]').content].join(' | '));
+      ok(!/quote/i.test(meta) && /free trial/.test(meta) && /business website/.test(meta), '/start/ title + description: plans and website, no quote (' + meta + ')'); }
     ok((await overflowAt(page)).length === 0, 'sign-in: no horizontal overflow at 375/390/414/1280');
     await page.type('#email', 'not-an-email');
     await page.click('#sendBtn');
@@ -154,7 +162,9 @@ async function main() {
     ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Quotes,Billing', 'portal tabs = Home, Quotes, Billing');
     ok(await waitText(page, 'Start the questionnaire') && await waitText(page, 'About 3 minutes'), 'single next action: start questionnaire (about 3 minutes)');
     ok((await text(page, '#hello')) === 'Hi Dani.', 'greets by first name');
-    // ---------------------------------------------------------------- questionnaire (screens 2 + 3 of 3)
+    // ---------------------------------------------------------------- questionnaire (screens 2 + 3 of 3): the website only
+    // Owner decision 2026-11-25: FirstRing is sold only as a monthly plan (plan sign-up, tools/e2e_signup.mjs); a NEW
+    // questionnaire offers the Business Website only. The FirstRing branches stay defined for stored questionnaires (below).
     console.log('questionnaire');
     await page.click('#startQ');
     await page.waitForSelector('#stepTitle');
@@ -162,144 +172,126 @@ async function main() {
     ok(/^[0-9a-f-]{36}$/.test(qid), 'questionnaire created');
     ok((await stepId(page)) === 'need', 'starts on the "need" step');
     ok((await text(page, '.lbls span')).startsWith('Step 2 of 3'), 'first questionnaire screen is "Step 2 of 3" [' + await text(page, '.lbls span') + ']');
-    ok((await page.$$eval('input[name=offer]', i => i.map(x => x.value))).join() === 'RCP,WEB,BNDL,UNSURE', 'offer choices RCP/WEB/BNDL/UNSURE');
+    ok((await page.$$eval('input[name=offer]', i => i.map(x => x.value))).join() === 'WEB', 'a new questionnaire offers the Business Website only (no receptionist, bundle, lead assistant or "Not sure")');
+    ok(await page.$eval('input[name=offer][value=WEB]', i => i.checked), 'the website is preselected');
+    ok(!(await waitText(page, 'Receptionist + Website', 300)) && !(await waitText(page, 'Not sure yet', 300)), 'no FirstRing card on step 2');
+    const planNote = await page.$eval('#planNote', e => ({ text: e.textContent, href: e.querySelector('a').getAttribute('href'), cls: e.className })).catch(() => null);
+    ok(!!planNote && /monthly plan with a free trial/.test(planNote.text) && planNote.href === '/start/?plan=PICK' && !/notice/.test(planNote.cls),
+      'one quiet line under the offer: FirstRing is a monthly plan → See the plans (' + (planNote && planNote.href) + ')');
     ok((await page.$$eval('input[name=niche]', i => i.map(x => x.value))).join() === 'home_services,real_estate', 'niche closed list (home services + real estate only; no law, no health care)');
     ok(!(await page.evaluate(() => [...document.querySelectorAll('input[name=niche]')].some(i => i.closest('label').innerText.toLowerCase().includes('early access')))), 'no early-access niche offered');
     const pb = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8'));
-    const rcp = pb.items.find(i => i.code === 'RCP');
+    const webItem = pb.items.find(i => i.code === 'WEB');
     const usd = c => '$' + (c / 100).toLocaleString('en-US');
-    ok(await waitText(page, usd(rcp.setup_cents) + ' setup + ' + usd(rcp.monthly_cents) + '/mo'), 'offer card price from pricebook.json');
+    ok(await waitText(page, usd(webItem.setup_cents) + ' setup + ' + usd(webItem.monthly_cents) + '/mo'), 'offer card price from pricebook.json');
     // the founder price follows brand.json show_founder_price (owner turned it on 2026-10-11); label from the price book
     const flagOn = !!JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8')).show_founder_price;
     const fLabel = pb.rules.discounts.FOUNDING.label;
     ok(flagOn === !!(await waitText(page, fLabel, flagOn ? 3000 : 300)), 'founder price ' + (flagOn ? 'shown (flag on)' : 'hidden (flag off)'));
     await clickNext(page);
-    ok(await waitText(page, 'Please choose what you’d like a quote for'), 'need step requires an offer');
-    await pick(page, 'input[name=offer][value=RCP]');
+    ok(await waitText(page, 'Please choose your industry'), 'need step requires the industry');
     await pick(page, 'input[name=niche][value=home_services]');
+    // the FirstRing paths stay DEFINED (submitted questionnaires, summaries, quote hints and the quote engine read them)
     const ids = (o, n) => page.evaluate(([o, n]) => window.StartQ.stepsFor({ offer: o, niche: n }).map(s => s.id).join(), [o, n]);
     const keys = (o, n, extra) => page.evaluate(([o, n, extra]) => window.StartQ.fieldsFor(Object.assign({ offer: o, niche: n }, extra || {})).map(f => f.k).join(), [o, n, extra]);
+    ok(await page.evaluate(() => ['home_services', 'real_estate'].every(n => window.StartQ.newOfferOpts({ niche: n }).map(o => o.v).join() === 'WEB')
+      && window.StartQ.offerOpts({ niche: 'home_services' }).map(o => o.v).join() === 'RCP,WEB,BNDL,UNSURE'), 'new offers = WEB; every stored offer keeps its label');
     let two = true;
     for (const o of ['RCP', 'WEB', 'BNDL', 'UNSURE']) for (const n of ['home_services', 'real_estate']) if (await ids(o, n) !== 'need,extras') two = false;
     ok(two, 'every path = 2 questionnaire steps (need, extras)');
-    ok(await keys('RCP', 'home_services') === 'offer,niche,services,locations,calls_week,spanish,dispatch,tools,more', 'RCP × home services keys');
-    ok(await keys('RCP', 'real_estate') === 'offer,niche,services,locations,calls_week,spanish,re_crm,tools,more', 'RCP × real estate keys (CRM instead of dispatch)');
-    ok(await keys('BNDL', 'home_services') === 'offer,niche,services,locations,calls_week,spanish,dispatch,tools,web_extras,more', 'BNDL keys (RCP + web extras)');
-    ok(await keys('WEB', 'home_services', { tools: ['other'] }) === 'offer,niche,services,has_website,web_extras,content_have,more', 'WEB keys (no locations, no tools)');
-    ok(await keys('UNSURE', 'home_services') === 'offer,niche,services,goal,calls_week,locations,spanish,tools,has_website,more', 'UNSURE keys (goal on step 2, locations + has_website on step 3)');
-    // branch: UNSURE adds "goal" in place of locations
-    await pick(page, 'input[name=offer][value=UNSURE]');
-    ok(await exists(page, 'input[name=goal]') && !(await exists(page, 'input[name=locations]')), 'UNSURE: goal shown, locations moves to step 3');
-    ok((await page.evaluate(() => document.activeElement && document.activeElement.value)) === 'UNSURE', 'focus kept after branch re-render');
-    ok((await page.$$('#stepTitle ~ fieldset')).length === 4, 'UNSURE step 2 = 4 questions');
-    // branch: WEB → no locations
-    await pick(page, 'input[name=offer][value=WEB]');
-    ok(!(await exists(page, 'input[name=locations]')) && !(await exists(page, 'input[name=goal]')), 'WEB: no locations / goal on step 2');
-    // branch: real estate
-    await pick(page, 'input[name=offer][value=RCP]');
-    await pick(page, 'input[name=niche][value=real_estate]');
-    await clickNext(page);
-    ok((await stepId(page)) === 'extras' && (await text(page, '.lbls span')).startsWith('Step 3 of 3'), 'real estate: step 3 of 3');
-    ok((await text(page, '#f_calls_week legend')) === 'Leads per week', 'real estate: calls framed as leads');
-    ok(!(await exists(page, 'input[name=dispatch]')) && !(await exists(page, 'input[name=after_hours]')) && !(await exists(page, 'input[name=re_lead_types]')), 'real estate: no dispatch / after-hours / lead-type questions (checklist)');
-    ok(await exists(page, 'input[name=re_crm][value=kvcore]'), 'real estate: CRM question incl. kvCORE');
-    const crmKeys = await page.$$eval('input[name=re_crm]', i => i.map(x => x.value));
+    ok(await keys('WEB', 'home_services', { tools: ['other'] }) === 'offer,niche,has_website,web_extras,more', 'WEB keys (no locations, no tools)');
+    ok(await keys('WEB', 'real_estate', { tools: ['other'] }) === 'offer,niche,has_website,web_extras,more', 'WEB × real estate keys (no CRM question)');
+    ok(await keys('RCP', 'home_services') === 'offer,niche,locations,calls_week,spanish,dispatch,tools,more', 'legacy RCP × home services keys kept');
+    ok(await keys('RCP', 'real_estate') === 'offer,niche,locations,calls_week,spanish,re_crm,tools,more', 'legacy RCP × real estate keys kept (CRM instead of dispatch)');
+    ok(await keys('BNDL', 'home_services') === 'offer,niche,locations,calls_week,spanish,dispatch,tools,web_extras,more', 'legacy BNDL keys kept');
+    ok(await keys('UNSURE', 'home_services') === 'offer,niche,goal,calls_week,locations,spanish,tools,has_website,more', 'legacy UNSURE keys kept');
+    // "What do you do?" (services) and "What can you send us?" (content_have) are no longer asked, on any path
+    ok(await page.evaluate(() => ['RCP', 'WEB', 'BNDL', 'UNSURE'].every(o => ['home_services', 'real_estate'].every(n => !window.StartQ.fieldsFor({ offer: o, niche: n, tools: ['other'] }).some(f => f.k === 'services' || f.k === 'content_have')))),
+      'services + content_have gone on every path');
+    // legacy option lists still come from config (labels of stored answers): real-estate CRMs, tools, dispatch price
     const pbx = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/pricebook.json'), 'utf8'));
     const cfgCrm = Object.keys(pbx.integration_meta).filter(k => k !== 'other' && k in pbx.integrations && pbx.integration_meta[k].category === 'crm' && pbx.integration_meta[k].niches.includes('real_estate'));
-    ok(await page.evaluate(() => [...document.querySelectorAll('input[name=re_crm]')].find(i => i.value === 'kvcore').closest('label').innerText.trim()) === pbx.integration_meta.kvcore.label, 'kvCORE label read from integration_meta');
-    ok(crmKeys.join() === cfgCrm.concat(['other', 'none']).join(), 'real estate CRM options = pricebook config (' + crmKeys.join() + ')');
+    ok((await page.evaluate(() => window.StartQ.reCrmOptions({ niche: 'real_estate' }, window.Start.PB).map(o => o.v).join())) === cfgCrm.concat(['other', 'none']).join(), 'legacy: real-estate CRM options = pricebook config');
     ok(await page.evaluate(() => { const pb = JSON.parse(JSON.stringify(window.Start.PB)); pb.integrations.test_crm = 'zapier'; pb.integration_meta.test_crm = { label: 'Test CRM', category: 'crm', niches: ['real_estate'] }; return window.StartQ.reCrmOptions({ niche: 'real_estate' }, pb).some(o => o.v === 'test_crm'); }), 'new CRM key in config appears without code change');
+    ok(await page.evaluate(() => { const crm = window.StartQ.reCrmOptions({ niche: 'real_estate' }, window.Start.PB).map(o => o.v); const t = window.StartQ.toolOptions({ niche: 'real_estate' }, window.Start.PB).map(o => o.v);
+      return !t.some(v => v !== 'other' && crm.includes(v)) && !['jobber', 'housecall_pro', 'servicetitan'].some(v => t.includes(v)); }), 'legacy: real-estate tools exclude CRMs and the home-services job apps');
+    ok(!(await page.evaluate(() => window.StartQ.toolOptions({ niche: 'home_services' }, window.Start.PB).some(o => o.v === 'follow_up_boss' || o.v === 'kvcore'))), 'legacy: home services tools exclude niche-only tools');
     ok(await page.evaluate(() => typeof window.SITE_CONFIG === 'object' && window.Backend.mode === 'mock'), 'portal reads /assets/config.js');
-    ok(!(await exists(page, 'input[name=tools][value=follow_up_boss]')) && !(await exists(page, 'input[name=tools][value=kvcore]')), 'real estate: CRM keys (FUB, kvCORE) not duplicated in tools');
-    ok(await page.evaluate(() => { const crm = window.StartQ.reCrmOptions({ niche: 'real_estate' }, window.Start.PB).map(o => o.v); return !window.StartQ.toolOptions({ niche: 'real_estate' }, window.Start.PB).some(o => o.v !== 'other' && crm.includes(o.v)); }), 'real estate: no tool appears in both questions');
-    await pick(page, 'input[name=re_crm][value=other]');
-    ok(await exists(page, '#f_tools_other'), 'CRM "other" reveals the text field');
-    ok((await overflowAt(page)).length === 0, 'real estate step 3: no overflow');
-    // back to the first step
-    await page.goto(BASE + '/start/q/?id=' + qid + '#need', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
-    ok(!(await page.evaluate(() => window.StartQ.toolOptions({ niche: 'home_services' }, window.Start.PB).some(o => o.v === 'follow_up_boss' || o.v === 'kvcore'))), 'home services tools exclude niche-only tools');
+    // real estate: the website is the "Agent Website"; never "receptionist"
+    await pick(page, 'input[name=niche][value=real_estate]');
+    ok(await waitText(page, 'Agent Website') && !/receptionist/i.test(await page.evaluate(() => document.body.innerText)), 'real estate: "Agent Website", never "receptionist"');
+    ok((await page.$eval('#planNote a', a => a.getAttribute('href'))) === '/start/?plan=PICK&niche=real_estate' && /lead assistant/.test(await text(page, '#planNote')), 'real estate: the plan line says lead assistant and keeps the niche');
+    ok((await overflowAt(page)).length === 0, 'real estate step 2: no overflow');
+    await pick(page, 'input[name=niche][value=home_services]');
+    ok(await page.evaluate(id => !!localStorage.getItem('start_q_backup_' + id), qid), 'localStorage backup written while answering');
     // field count limits (spec 2026-10-29: ≤ 12 questionnaire fields on every path, profile ≤ 4)
-    const counts = await page.evaluate(() => ({ rcp: window.StartQ.countFields('RCP', 'home_services'), prof: window.StartQ.PROFILE.length,
+    const counts = await page.evaluate(() => ({ web: window.StartQ.countFields('WEB', 'home_services'), prof: window.StartQ.PROFILE.length,
       max: Math.max(...['RCP', 'WEB', 'BNDL', 'UNSURE'].flatMap(o => ['home_services', 'real_estate'].map(n => window.StartQ.countFields(o, n)))) }));
     ok(counts.prof === 3, 'profile = 3 fields');
-    ok(counts.rcp <= 10, 'RCP × home services ≤ 10 questionnaire fields incl. "Which tool?" and the note (' + counts.rcp + ')');
-    ok(counts.max <= 12, 'every path (incl. bundle) ≤ 12 questionnaire fields (' + counts.max + ')');
-    // happy path: RCP × home services
-    await pick(page, 'input[name=niche][value=home_services]');
-    await pick(page, 'input[name=offer][value=RCP]');
-    ok((await page.$$('#stepTitle ~ fieldset')).length === 4, 'RCP step 2 = 4 questions (offer, industry, services, locations)');
+    ok(counts.web <= 6, 'WEB × home services ≤ 6 questionnaire fields (' + counts.web + ')');
+    ok(counts.max <= 12, 'every path (incl. legacy bundle) ≤ 12 questionnaire fields (' + counts.max + ')');
+    // happy path: WEB × home services
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 2 && !(await exists(page, 'input[name=services]')) && !(await exists(page, 'input[name=locations]')), 'WEB step 2 = 2 questions (offer, industry)');
+    ok(!(await exists(page, '#fold_need')), 'need step: no "Add more details" fold left (it would be empty)');
     ok((await overflowAt(page)).length === 0, 'need step: no overflow');
-    await pick(page, 'input[name=services][value=hvac]');
-    ok(await page.evaluate(id => !!localStorage.getItem('start_q_backup_' + id), qid), 'localStorage backup written while answering');
-    await pick(page, 'input[name=locations][value="2"]');
     await page.waitForFunction(() => /Saved/.test(document.querySelector('#saveState').textContent), { timeout: 5000 }).catch(() => {});
     ok((await text(page, '#saveState')).startsWith('Saved'), 'autosave shows Saved');
     await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
     ok((await stepId(page)) === 'need', 'resume: same step after reload');
-    ok(await page.$eval('input[name=locations][value="2"]', i => i.checked) && await page.$eval('input[name=services][value=hvac]', i => i.checked), 'resume: answers restored');
+    ok(await page.$eval('input[name=niche][value=home_services]', i => i.checked) && await page.$eval('input[name=offer][value=WEB]', i => i.checked), 'resume: answers restored');
     await clickNext(page);
-    ok((await stepId(page)) === 'extras' && (await text(page, '#stepTitle')) === 'Extras that change the price', 'extras step');
+    ok((await stepId(page)) === 'extras' && (await text(page, '#stepTitle')) === 'Your website', 'extras step = "Your website"');
     ok((await text(page, '.lbls span')).startsWith('Step 3 of 3'), 'last screen = Step 3 of 3');
-    ok((await page.$$('#stepTitle ~ fieldset')).length === 4, 'RCP step 3 = 4 questions (calls, Spanish, dispatch, tools)');
-    ok(!(await exists(page, '#nextBtn')) && (await text(page, '#submitBtn')) === 'Get my fixed quote', 'no review screen: step 3 ends with "Get my fixed quote"');
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 1 && await exists(page, 'input[name=web_extras][value=extra_pages]'), 'WEB step 3 = 1 question in view (extras that change the price)');
+    ok(!(await exists(page, 'input[name=tools]')) && !(await exists(page, 'input[name=calls_week]')) && !(await exists(page, 'input[name=dispatch]')) && !(await exists(page, 'input[name=spanish]')), 'no receptionist questions (tools, calls, dispatch, Spanish callers)');
+    ok(!(await exists(page, '#nextBtn')) && (await text(page, '#submitBtn')).includes('deposit link'), 'no review screen: step 3 ends with the deposit-link button');
     ok(await waitText(page, 'Your answers lock after you send'), 'lock note under the button');
     ok(!(await exists(page, '#fileIn')), 'no file upload in the questionnaire (portal, after the deposit)');
-    await pick(page, 'input[name=calls_week][value="20_50"]');
-    // ADD-DISPATCH (price book v1.1): asked directly (no "urgent calls" gate), priced from the price book, never a coming-soon item
-    const disp = pb.items.find(i => i.code === 'ADD-DISPATCH');
-    const usd0 = c => '$' + Math.round(c / 100).toLocaleString('en-US');
-    ok(await exists(page, 'input[name=dispatch][value=yes]') && !(await exists(page, 'input[name=urgent]')), 'on-call dispatch asked directly, without the urgent question');
-    ok(await waitText(page, usd0(disp.setup_cents) + ' setup + ' + usd0(disp.monthly_cents) + '/mo'),
-      'dispatch choice shows the price-book price');
     const soonNames = pb.items.filter(i => i.availability === 'coming_soon').map(i => i.name);
     ok(!(await page.evaluate(n => n.some(x => document.body.textContent.includes(x)), soonNames)), 'no coming-soon item offered in the questionnaire');
-    await pick(page, 'input[name=dispatch][value=yes]');
-    const toolVals = await page.$$eval('input[name=tools]', i => i.map(x => x.value));
-    const expected = Object.keys(pb.integration_meta).filter(k => (pb.integration_meta[k].niches || ['*']).some(n => n === '*' || n === 'home_services'));
-    ok(toolVals.join() === expected.join(), 'tool picker = pricebook closed list + Zapier + Other');
-    ok(toolVals.includes('zapier') && toolVals.includes('other') && toolVals.length === 12, 'tool picker has 10 tools + Zapier + Other');
-    ok(await waitText(page, 'no logins needed now'), 'onboarding details deferred until after purchase');
-    await pick(page, 'input[name=tools][value=google_calendar]');
-    await pick(page, 'input[name=tools][value=jobber]');
-    ok(!(await exists(page, '#f_tools_other')), 'tools_other hidden until Other');
-    await pick(page, 'input[name=tools][value=other]');
-    ok(await exists(page, '#f_tools_other'), 'Other reveals tools_other');
+    await pick(page, 'input[name=web_extras][value=extra_pages]');
+    await pick(page, 'input[name=web_extras][value=logo]');
+    // optional questions (no effect on the price) wait in one closed fold per step: native <details>, keyboard-operable, 44px+
+    ok(await page.$eval('#fold_extras', d => d.tagName === 'DETAILS' && !d.open) && await exists(page, '#fold_extras #f_more') && await exists(page, '#fold_extras #f_has_website'), 'website today + note are in the closed fold until tapped');
+    ok((await text(page, '#fold_extras_s')) === 'Add more details (optional)', 'fold summary wording');
+    ok((await page.$eval('#fold_extras_s', e => e.getBoundingClientRect().height)) >= 44, 'fold summary is at least 44px tall');
+    ok(!(await page.$eval('#fold_extras', d => !!d.querySelector('[data-k=web_extras]'))), 'price questions are never inside the fold');
+    await page.focus('#fold_extras_s'); await page.keyboard.press('Enter'); await sleep(80);
+    ok(await page.$eval('#fold_extras', d => d.open), 'fold opens with the keyboard (Enter on the summary)');
+    await pick(page, 'input[name=web_extras][value=none]');   // "none" is exclusive with the others
+    ok(await page.$eval('input[name=web_extras][value=none]', i => i.checked) && !(await page.$eval('input[name=web_extras][value=logo]', i => i.checked)), '"No, 5 pages is fine" clears the other extras');
+    await pick(page, 'input[name=web_extras][value=extra_pages]'); await pick(page, 'input[name=web_extras][value=logo]');
+    ok(!(await page.$eval('input[name=web_extras][value=none]', i => i.checked)), 'picking an extra clears "none"');
+    ok(await page.$eval('#fold_extras', d => d.open), 'the fold stays open while answering');
+    await pick(page, 'input[name=has_website][value=outdated]');
     const evil = '<img src=x onerror="window.__xss=1">Square & Co';
-    await page.type('#f_tools_other', evil);
-    await pick(page, 'input[name=spanish][value=some]');
-    ok(await page.$eval('#f_more_d', d => !d.open), 'note is collapsed until tapped');
-    await pick(page, '#f_more_d summary');
-    ok(await page.$eval('#f_more_d', d => d.open), '"Add a note" opens the textarea');
-    await page.type('#f_more', 'Busy season is June–August.');
+    await page.type('#f_more', evil + ' Busy season is June–August.');
     ok((await overflowAt(page)).length === 0, 'extras step: no overflow');
     // keyboard: radios are native inputs reachable by Tab
     ok(await page.evaluate(() => [...document.querySelectorAll('.choice input')].every(i => i.tabIndex >= 0)), 'choices keyboard-focusable');
     ok(!(await hebrew(page)), 'no Hebrew in questionnaire');
     await page.waitForFunction(() => /Saved/.test(document.querySelector('#saveState').textContent), { timeout: 5000 }).catch(() => {});
     const hints = await page.evaluate(id => window.StartQ.quoteHints(JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(q => q.id === id).answers, window.Start.PB), qid);
-    ok(hints.add.some(a => a.code === 'ADD-LOC') && hints.add.some(a => a.code === 'ADD-CRM') && hints.add.some(a => a.code === 'ADD-ES'), 'quote hints: ADD-LOC, ADD-CRM, ADD-ES');
-    ok(hints.add.some(a => a.code === 'ADD-DISPATCH'), 'quote hints: dispatch yes → ADD-DISPATCH');
+    ok(hints.core === 'WEB' && hints.add.map(a => a.code).join() === 'ADD-PAGE,ADD-LOGO' && !hints.custom.length, 'quote hints: WEB + ADD-PAGE + ADD-LOGO (' + JSON.stringify(hints) + ')');
     ok(!hints.add.some(a => pb.items.some(i => i.code === a.code && i.availability === 'coming_soon')), 'quote hints: no coming-soon code');
-    ok(hints.custom.includes('tool:other'), 'quote hints: Other tool → custom');
     // hash navigation
     await page.evaluate(() => { location.hash = 'need'; }); await sleep(150);
     ok((await text(page, '#stepTitle')) === 'What you need', 'hashchange draws the step without reload');
     await page.goto(BASE + '/start/q/?id=' + qid + '#extras', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
-    ok((await page.$eval('#f_more', t => t.value)) === 'Busy season is June–August.' && await page.$eval('#f_more_d', d => d.open), 'note restored and open on reload');
+    ok((await page.$eval('#f_more', t => t.value)).endsWith('Busy season is June–August.') && await page.$eval('#fold_extras', d => d.open), 'note restored and its fold open on reload');
     ok((await overflowAt(page)).length === 0, 'extras (reloaded): no overflow');
     await page.click('#submitBtn');
     await page.waitForSelector('#doneTitle', { timeout: 5000 });
-    ok(await waitText(page, 'You’ll get a written fixed quote ' + brand.quote_sla_text), 'submit → quote promise from brand.quote_sla_text');
-    ok(await waitText(page, 'Texting (text-back and text alerts) is coming soon, after US carrier registration'), 'what-happens-next: texting is coming soon (no live-SMS promise)');
-    ok(await waitText(page, 'nothing to upload now'), 'thank-you: files go to the portal later');
+    ok(await waitText(page, 'Your deposit link is on its way — we email it ' + brand.quote_sla_text), 'submit → deposit link promise from brand.quote_sla_text');
+    ok(!(await waitText(page, 'written fixed quote', 300)) && !(await waitText(page, 'text-back', 300)), 'thank-you: no quote / receptionist steps');
+    ok(await waitText(page, 'Nothing to upload now'), 'thank-you: files go to the portal later');
     const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     const qrow = db.questionnaires.find(q => q.id === qid);
-    ok(qrow.status === 'submitted' && qrow.submitted_at && qrow.offer === 'RCP' && qrow.niche === 'home_services', 'row submitted with offer + niche columns');
+    ok(qrow.status === 'submitted' && qrow.submitted_at && qrow.offer === 'WEB' && qrow.niche === 'home_services', 'row submitted with offer WEB + niche columns');
     ok(Array.isArray(qrow.summary) && qrow.summary.every(s => s.k && s.q != null), 'summary jsonb [{k,q,a}] saved');
-    ok(Object.keys(qrow.answers).sort().join() === 'calls_week,dispatch,locations,more,niche,offer,services,spanish,tools,tools_other', 'answers = the 3-screen keys only (' + Object.keys(qrow.answers).sort().join() + ')');
-    ok(db.events.some(e => e.type === 'q_submitted' && e.entity_id === qid), 'owner-notification event stub recorded');
-    ok(db.outbox.some(m => m.template === 'q_received') && db.outbox.some(m => m.template === 'admin_q_submitted'), 'q_received + owner alert in mock outbox');
-    ok(db.outbox.find(m => m.template === 'q_received').subject.endsWith(brand.quote_sla_text), 'q_received subject uses brand.quote_sla_text');
+    ok(Object.keys(qrow.answers).sort().join() === 'has_website,more,niche,offer,web_extras', 'answers = the 3-screen keys only (' + Object.keys(qrow.answers).sort().join() + ')');
+    ok(db.events.some(e => e.type === 'web_deposit_link_requested' && e.entity_id === qid) && !db.events.some(e => e.type === 'q_submitted' && e.entity_id === qid), 'owner event web_deposit_link_requested (no quote event)');
+    ok(db.outbox.some(m => m.template === 'admin_web_deposit_link_requested'), 'owner alert in mock outbox');
     ok(!(await page.evaluate(id => localStorage.getItem('start_q_backup_' + id), qid)), 'backup cleared after submit');
     // optional one-tap "how did you hear about us?" on the thank-you screen
     await pick(page, 'input[name=how_heard][value=google]'); await sleep(150);
@@ -310,23 +302,24 @@ async function main() {
     const sumText = await text(page, '.sum');
     ok(sumText.includes(evil), 'HTML injection rendered as text');
     ok(!(await exists(page, '.sum img')) && !(await page.evaluate(() => window.__xss)), 'no injected element / script ran');
-    ok(sumText.includes('Jobber') && sumText.includes('Google Calendar') && sumText.includes('Busy season'), 'summary shows tool labels + the note');
+    ok(sumText.includes('Business Website') && sumText.includes('More pages') && sumText.includes('Logo design') && sumText.includes('Busy season'), 'summary shows the offer, extras labels + the note');
     ok((await overflowAt(page)).length === 0, 'read-only: no overflow');
     ok((await page.evaluate(id => window.Backend.saveQuestionnaire(id, { answers: { x: 1 } }), qid)) === null, 'save after submit is refused');
     ok((await page.evaluate(id => window.Backend.submitQuestionnaire(id).then(() => 'ok', e => e.message), qid)) === 'questionnaire_locked', 'resubmit refused (questionnaire_locked)');
     // ---------------------------------------------------------------- portal states
     console.log('portal');
     await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
-    ok(await waitText(page, 'Questionnaire received'), 'home: questionnaire received');
-    ok((await text(page, '.stepper [aria-current=step]')).includes('Quote'), 'stepper current = Quote');
+    ok(await waitText(page, 'Content received. Your deposit link is on its way'), 'home: website questionnaire received, deposit link on its way');
+    ok((await text(page, '.stepper [aria-current=step]')).includes('Deposit'), 'stepper current = Deposit (the website has no quote step)');
+    ok(!(await exists(page, '.su-pick')), 'with a questionnaire sent, the plan picker card is not shown');
     await page.goto(BASE + '/start/?mock_seed=quote_sent', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
     ok((await page.$eval('#nextAction', a => a.getAttribute('href'))).startsWith('/quote/#t='), 'home: next action = review quote (token in fragment)');
     await page.focus('#tab-home'); await page.keyboard.press('ArrowRight'); await sleep(50);
     ok((await page.$eval('#tab-quotes', t => t.getAttribute('aria-selected'))) === 'true', 'tabs: arrow key moves to Quotes');
-    ok(await waitText(page, usd(rcp.setup_cents) + ' setup + ' + usd(rcp.monthly_cents) + '/mo'), 'quotes tab shows pricebook totals');
+    ok(await waitText(page, usd(webItem.setup_cents) + ' setup + ' + usd(webItem.monthly_cents) + '/mo'), 'quotes tab shows pricebook totals');
     ok((await overflowAt(page)).length === 0, 'quotes tab: no overflow');
     await page.goto(BASE + '/start/?mock_seed=deposit_paid#billing', { waitUntil: 'load' }); await page.waitForSelector('#panel table');
-    ok((await text(page, '#panel')).includes(usd(rcp.setup_cents * pb.rules.deposit_pct / 100)) && (await text(page, '#panel')).includes('Paid'), 'billing: deposit paid at deposit_pct');
+    ok((await text(page, '#panel')).includes(usd(webItem.setup_cents * pb.rules.deposit_pct / 100)) && (await text(page, '#panel')).includes('Paid'), 'billing: deposit paid at deposit_pct');
     ok((await text(page, '#panel')).includes('Deposit (' + pb.rules.deposit_pct + '% of setup)'), 'billing: deposit % label from pricebook rules');
     ok((await overflowAt(page)).length === 0, 'billing tab: no overflow');
     await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
@@ -364,6 +357,15 @@ async function main() {
     await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('[data-del]');
     await page.click('[data-del]'); await sleep(300);
     ok((await page.evaluate(() => window.Backend.listQuestionnaires())).length === 0, 'draft deleted from portal');
+    // an old FirstRing link (/start/?offer=RCP|BNDL|UNSURE) goes to the plan sign-up, never to a questionnaire (2026-11-25)
+    for (const [o, n] of [['RCP', 'real_estate'], ['BNDL', 'home_services'], ['UNSURE', '']]) {
+      await page.goto(BASE + '/start/?offer=' + o + (n ? '&niche=' + n : ''), { waitUntil: 'load' });
+      await page.waitForSelector('#suForm', { timeout: 6000 }).catch(() => null);
+      ok(!!(await page.$('#suForm')) && !page.url().includes('/start/q/') && (await page.$$('input[name=su_plan]')).length === 3 &&
+        (!n || await page.$eval('input[name=su_niche][value=' + n + ']', i => i.checked)), '/start/?offer=' + o + ' → the plan sign-up with the plan choice' + (n ? ', niche kept' : ''));
+      await page.evaluate(() => window.StartSignup.clearIntent());
+    }
+    ok((await page.evaluate(() => window.Backend.listQuestionnaires())).length === 0, 'an old FirstRing link creates no questionnaire');
     // magic link
     await page.click('#logoutBtn'); await page.waitForSelector('#email');
     await page.type('#email', 'dani@coolbreeze.test'); await page.click('#sendBtn'); await page.waitForSelector('#mockLink');
@@ -375,20 +377,26 @@ async function main() {
     console.log('web');
     const wid = await page.evaluate(() => window.Backend.createQuestionnaire({ offer: 'WEB', niche: 'home_services' }).then(r => r.id));
     await page.goto(BASE + '/start/q/?id=' + wid, { waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
-    ok(await exists(page, 'input[name=services]') && !(await exists(page, 'input[name=locations]')), 'WEB step 2: services, no locations');
+    ok(!(await exists(page, 'input[name=services]')) && !(await exists(page, 'input[name=locations]')) && !(await exists(page, '#fold_need')), 'WEB step 2: offer + industry only (no services, no locations, no empty fold)');
     await clickNext(page);
-    ok((await text(page, '#stepTitle')) === 'Your website' && await exists(page, 'input[name=has_website]') && await exists(page, 'input[name=web_extras][value=extra_pages]') && await exists(page, 'input[name=content_have][value=logo]'), 'WEB step 3: website today, extras, what you can send');
+    ok((await text(page, '#stepTitle')) === 'Your website' && await exists(page, 'input[name=has_website]') && await exists(page, 'input[name=web_extras][value=extra_pages]') && !(await exists(page, 'input[name=content_have]')), 'WEB step 3: website today + extras; "What can you send us?" gone');
     ok(!(await exists(page, '#f_web_hours')) && !(await exists(page, 'input[name=domain]')) && !(await exists(page, 'input[name=tools]')) && !(await exists(page, 'input[name=calls_week]')), 'WEB: content details (hours, domain, tone) moved to the checklist; no tools / calls');
-    ok((await page.$$('#stepTitle ~ fieldset')).length === 3, 'WEB step 3 = 3 questions + the note');
+    ok((await page.$$('#stepTitle ~ fieldset')).length === 1 && await page.$eval('#fold_extras', d => !d.open && !!d.querySelector('#f_has_website') && !!d.querySelector('#f_more')),
+      'WEB step 3 shows 1 question (extras that change the price); website today and the note wait in the closed fold');
     await pick(page, 'input[name=has_website][value=outdated]');
-    await pick(page, 'input[name=content_have][value=logo]');
+    await page.waitForFunction(() => /Saved/.test(document.querySelector('#saveState').textContent), { timeout: 5000 }).catch(() => {});
+    await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
+    ok(await page.$eval('#fold_extras', d => d.open) && await page.$eval('input[name=has_website][value=outdated]', i => i.checked),
+      'WEB: answers inside the fold persist after reload (fold opens by itself)');
     ok((await overflowAt(page)).length === 0, 'WEB step 3: no overflow');
     ok((await text(page, '#submitBtn')).includes('deposit link'), 'WEB submit button = send and get the deposit link');
     await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
     ok(await waitText(page, 'Your deposit link is on its way — we email it ' + brand.quote_sla_text), 'WEB finish: deposit link + brand SLA');
     ok(await waitText(page, 'First draft in 3 business days, live in ' + pb.items.find(i => i.code === 'WEB').delivery_business_days + ' business days after we have your content'), 'WEB finish: draft + live timing (live days from pricebook)');
     ok(!(await waitText(page, 'written fixed quote', 300)) && !(await waitText(page, 'text-back', 300)), 'WEB finish: no quote / receptionist steps');
-    ok(await waitText(page, 'Review:') && await waitText(page, 'Go live:') && await waitText(page, 'asks for the rest after the deposit'), 'WEB next steps: content in the portal → draft → review → go-live');
+    ok(await waitText(page, 'Review:') && await waitText(page, 'Go live:') && await waitText(page, 'deposit, your portal asks for the rest'), 'WEB next steps: content in the portal → draft → review → go-live');
+    ok(Object.keys(await page.evaluate(id => JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(q => q.id === id).answers, wid)).sort().join() === 'has_website,niche,offer',
+      'WEB: fold answers saved under the same keys');
     ok(!(await exists(page, '#payDeposit')) === !(brand.endpoints && brand.endpoints.payment), 'deposit button only when brand.endpoints.payment exists');
     const wdb = await page.evaluate(() => JSON.parse(localStorage.getItem('aplp_mock_db_v1')));
     ok(wdb.events.some(e => e.type === 'web_deposit_link_requested' && e.entity_id === wid) && wdb.outbox.some(m => m.template === 'admin_web_deposit_link_requested'), 'owner event web_deposit_link_requested');
@@ -406,6 +414,60 @@ async function main() {
     // BNDL stays on the quote path, with the web extras on screen 3 (5 questions: the one allowed exception)
     await page.goto(BASE + '/start/', { waitUntil: 'load' });
     ok(await page.evaluate(() => { const f = window.StartQ.fieldsFor({ offer: 'BNDL', niche: 'home_services' }).map(x => x.k); return f.includes('tools') && f.includes('web_extras') && f.includes('dispatch'); }), 'BNDL keeps the quote path (tools + dispatch + web extras)');
+    // only price-neutral questions are folded; UNSURE keeps "website today" in view (it feeds the recommendation)
+    ok(await page.evaluate(() => ['RCP', 'WEB', 'BNDL', 'UNSURE'].flatMap(o => ['home_services', 'real_estate'].flatMap(n => window.StartQ.fieldsFor({ offer: o, niche: n })
+      .filter(f => window.StartQ.optional(f, { offer: o, niche: n })).map(f => f.k))).every(k => ['has_website', 'more'].includes(k))), 'fold holds only website today (WEB) / the note');
+    ok(await page.evaluate(() => !window.StartQ.optional(window.StartQ.fieldsFor({ offer: 'UNSURE', niche: 'home_services' }).find(f => f.k === 'has_website'), { offer: 'UNSURE' })), 'UNSURE: "website today" stays in view');
+    // required-only path: offer + industry, nothing else, can be sent
+    { await page.goto(BASE + '/start/?mock=1', { waitUntil: 'load' }); await page.waitForSelector('[role=tablist]');
+      const rid = await page.evaluate(() => window.Backend.createQuestionnaire({ niche: 'home_services' }).then(r => r.id));   // no offer: the website is preselected
+      await page.goto(BASE + '/start/q/?id=' + rid + '#need', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#nextBtn');
+      await clickNext(page); await page.waitForSelector('#submitBtn');
+      ok(await page.$eval('#fold_extras', d => !d.open), 'required-only path: fold still closed on step 3');
+      await pick(page, '#submitBtn'); await page.waitForSelector('#doneTitle', { timeout: 5000 });
+      const r = await page.evaluate(id => JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(q => q.id === id), rid);
+      ok(r.status === 'submitted' && r.offer === 'WEB' && Object.keys(r.answers).sort().join() === 'niche,offer', 'required-only path (preselected website + industry) submits (' + Object.keys(r.answers).sort().join() + ')'); }
+    // older drafts saved before 2026-11-25 (services / content_have, a home-services tool on a real-estate draft) still load
+    { // website drafts through the client API; FirstRing rows as they were stored before 2026-11-25 (the API refuses them now)
+      const mk = (o, n, ans) => o === 'WEB' ? page.evaluate(([o, n, ans]) => window.Backend.createQuestionnaire({ offer: o, niche: n })
+        .then(r => window.Backend.saveQuestionnaire(r.id, { offer: o, niche: n, answers: Object.assign({ offer: o, niche: n }, ans) }).then(() => r.id)), [o, n, ans])
+        : page.evaluate(([o, n, ans]) => window.StartMock.admin.legacyQuestionnaire({ offer: o, niche: n, answers: Object.assign({ offer: o, niche: n }, ans) }), [o, n, ans]);
+      // the server rule (20261127200000_us_questionnaire_web_only.sql, mirrored by the mock): no new FirstRing questionnaire
+      ok((await page.evaluate(() => Promise.all(['RCP', 'BNDL', 'UNSURE'].map(o => window.Backend.createQuestionnaire({ offer: o, niche: 'home_services' }).then(() => 'created', e => e.message))))).join() === 'offer_not_offered,offer_not_offered,offer_not_offered',
+        'server rule: a client cannot create a FirstRing questionnaire (offer_not_offered)');
+      const stored = id => page.evaluate(id => JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(q => q.id === id), id);
+      const oldWeb = await mk('WEB', 'home_services', { services: ['cleaning'], content_have: ['logo', 'photos'], has_website: 'no' });
+      await page.goto(BASE + '/start/q/?id=' + oldWeb + '#extras', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#submitBtn');
+      ok(!(await exists(page, 'input[name=content_have]')) && await page.$eval('input[name=has_website][value=no]', i => i.checked), 'old WEB draft with services + content_have loads; other answers restored');
+      // an open FirstRing draft from before 2026-11-25 (never sent): opens on step 2, moved to the website, with a notice
+      const oldRe = await mk('RCP', 'real_estate', { services: ['buyers'], tools: ['jobber', 'hubspot'], re_crm: 'kvcore', locations: '1' });
+      ok((await page.evaluate(id => window.Backend.saveQuestionnaire(id, { offer: 'RCP', answers: { offer: 'RCP', locations: '2' } }).then(() => 'saved', e => e.message), oldRe)) === 'offer_not_offered'
+        && (await page.evaluate(id => window.Backend.submitQuestionnaire(id).then(() => 'sent', e => e.message), oldRe)) === 'offer_not_offered', 'server rule: an old FirstRing draft cannot be saved or sent as FirstRing');
+      await page.goto(BASE + '/start/q/?id=' + oldRe + '#extras', { waitUntil: 'load' }); await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
+      const note = await page.$eval('#planNote', e => ({ t: e.textContent, cls: e.className, href: e.querySelector('a').getAttribute('href') })).catch(() => ({}));
+      ok((await stepId(page)) === 'need' && /notice/.test(note.cls || '') && /is now a monthly plan with a free trial/.test(note.t || '') && /lead assistant/.test(note.t || '') && note.href === '/start/?plan=PICK&niche=real_estate',
+        'old FirstRing draft: opens on step 2 with a notice (monthly plan now, See the plans, niche kept)');
+      ok((await page.$$eval('input[name=offer]', i => i.map(x => x.value + ':' + x.checked))).join() === 'WEB:true', 'old FirstRing draft: the website is the only (and chosen) offer');
+      await page.waitForFunction(id => { const q = JSON.parse(localStorage.getItem('aplp_mock_db_v1')).questionnaires.find(x => x.id === id); return q && q.offer === 'WEB'; }, { timeout: 5000 }, oldRe).catch(() => {});
+      const reRow = await stored(oldRe);
+      ok(reRow.offer === 'WEB' && reRow.answers.offer === 'WEB' && reRow.status === 'draft' && !['tools', 're_crm', 'locations'].some(k => k in reRow.answers),
+        'old FirstRing draft: saved as a website draft without the receptionist answers (' + Object.keys(reRow.answers).sort().join() + ')');
+      const reHints = await page.evaluate(a => window.StartQ.quoteHints(a, window.Start.PB), reRow.answers);
+      ok(reHints.core === 'WEB' && !reHints.add.length, 'old FirstRing draft: quote hints = the website only');
+      ok((await overflowAt(page)).length === 0, 'old FirstRing draft with the notice: no overflow');
+      // an older SUBMITTED questionnaire keeps showing what was asked then (its stored summary), incl. the removed question
+      const oldSub = await mk('RCP', 'home_services', { services: ['hvac'], locations: '1' });
+      await page.evaluate(id => { const d = JSON.parse(localStorage.getItem('aplp_mock_db_v1')); const q = d.questionnaires.find(x => x.id === id);
+        q.summary = [{ k: 'offer', q: 'What would you like us to build?', a: 'FirstRing AI Receptionist' }, { k: 'services', q: 'What do you do?', a: 'HVAC' }, { k: 'locations', q: 'How many locations or separate phone lines?', a: '1' }];
+        q.status = 'submitted'; q.submitted_at = new Date().toISOString(); localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); }, oldSub);
+      await page.goto(BASE + '/start/q/?id=' + oldSub, { waitUntil: 'load' }); await page.waitForSelector('#roTitle');
+      const ro = await text(page, '.sum');
+      ok(ro.includes('What do you do?') && ro.includes('HVAC') && ro.includes('How many locations or separate phone lines?'), 'old submitted questionnaire: "Your answers" still shows the removed question and its answer');
+      ok((await overflowAt(page)).length === 0, 'old submitted read-only: no overflow');
+      ok(ro.includes('FirstRing AI Receptionist') && !(await exists(page, '#planNote')), 'old submitted FirstRing questionnaire: read-only as sent, no move, no notice');
+      ok((await stored(oldSub)).offer === 'RCP', 'old submitted FirstRing questionnaire keeps offer RCP');
+      await page.goto(BASE + '/start/', { waitUntil: 'load' }); await page.waitForSelector('.qlist');
+      ok(await waitText(page, 'FirstRing AI Receptionist'), 'portal list: the old FirstRing questionnaire keeps its name'); }
     await page.close();
     // ---------------------------------------------------------------- founder flag (brand.json show_founder_price)
     page = await newPage(browser, { founder: true });
@@ -415,7 +477,11 @@ async function main() {
     const draftId = await page.evaluate(() => window.Backend.createQuestionnaire({}).then(r => r.id));
     await page.goto(BASE + '/start/q/?id=' + draftId, { waitUntil: 'load' }); await page.waitForSelector('#stepTitle');
     const disc = pb.rules.discounts.FOUNDING.setup_pct;
-    ok(await waitText(page, pb.rules.discounts.FOUNDING.label + ': ' + usd(Math.round(rcp.setup_cents * (100 - disc) / 100))), 'founder price shown when flag is on');
+    ok((await text(page, '#founderNote')) === pb.rules.discounts.FOUNDING.label + ': ' + disc + '% off setup for our first ' + pb.rules.discounts.FOUNDING.max_clients + ' clients, if you let us write a short case study about your results.', 'founder offer: one line under the offers, numbers from the price book, with the case-study condition');
+    ok((await page.evaluate(() => document.body.innerText.split('short case study').length - 1)) === 1, 'case-study condition shown exactly once');
+    ok(!(await page.evaluate(() => /\u2014/.test(document.querySelector('#founderNote').textContent))), 'founder line has no em dash');
+    ok((await page.$$('#f_offer .founder')).length === 1 && !(await page.$('#f_offer .choice .founder')), 'founder offer is not repeated on every card');
+    ok(await waitText(page, usd(webItem.setup_cents) + ' setup + ' + usd(webItem.monthly_cents) + '/mo'), 'regular price still on the card');
     await page.close();
   } finally {
     await browser.close();

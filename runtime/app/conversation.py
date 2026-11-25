@@ -31,6 +31,7 @@ from .speech import TOOL_FILLERS, TOOL_FILLERS_ES, Speaker
 from .store import StateStore, Store, StoreError, TenantStore
 from .tenants import TenantRecord, sms_business_name
 from .usage import UsageMeter
+from . import message_mode
 
 log = logging.getLogger("rt.conversation")
 
@@ -346,6 +347,16 @@ class Engine:
         if kw == "start":
             return done((guard.start_confirmation_es if es(guard.keyword_lang(text) == "es") else guard.start_confirmation)(
                 sms_business_name(cfg)))
+        # FirstRing plan tenants in message-only service (texts + chat; calls are routed in /voice/incoming)
+        mm = message_mode.reason(tenant, self.usage, now) if typed else ""
+        if mm:
+            notes.append(f"message_mode:{mm}")
+            if text.strip():
+                c.ever_spoke = True
+                c.transcript.append({"who": "customer", "text": text})
+                self._alert(c, actions, "lead", f"Message (your receptionist is in message-only mode): {text.strip()[:240]}")
+            return done(message_mode.TEXT_REPLY if text.strip() else "", outcome="message" if text.strip() else None,
+                        counted=False)
         if not tenant.active:
             notes.append("tenant_paused")
             return done(PAUSED_TEXT, end=True)
@@ -470,6 +481,8 @@ class Engine:
 
         # Claude
         policy = guard.after_hours_policy(cfg, now)
+        if not cfg.booking.enabled and policy in ("open", "book_next_day"):
+            policy = "no_booking"  # the client chose "take messages only, no booking" (no calendar connected)
         caller_ctx = self._caller_context(tenant, ts, c, now)
         if not typed:
             return self._voice_claude(tenant, ts, c, channel, now, policy, actions, notes, text, day, done,
@@ -670,6 +683,7 @@ class Engine:
             "book_next_day": "The business is closed now: offer the next available slots.",
             "message_only": "The business is closed now: do not book; take a message.",
             "emergency_dial": "The business is closed now: take a message; urgent issues are escalated automatically.",
+            "no_booking": "This business does not book visits by phone: never offer times; take a message for the team.",
         }[policy]
         urgent = " The customer reported an urgent issue; the owner was alerted." if c.urgency == "urgent" else ""
         prior = f" Before this, we sent the customer: \"{c.prior}\"" if c.prior else ""
@@ -835,6 +849,8 @@ class Engine:
                 return {"ok": False, "reason": "out_of_area"}
             if policy in ("message_only", "emergency_dial"):
                 return {"ok": False, "reason": "after_hours_message_only"}
+            if policy == "no_booking":
+                return {"ok": False, "reason": "booking_off", "note": "This business takes messages only: take_message."}
             try:
                 date_from = date.fromisoformat(str(args["date_from"])) if args.get("date_from") else None
             except ValueError:

@@ -172,7 +172,7 @@ class Notifier:
         now = now or self.clock()
         business = tenant.config.business.name
         month = now.astimezone(ZoneInfo(tenant.config.business.timezone)).strftime("%Y-%m")
-        key = f"{a['kind']}:{a.get('usage_kind')}:{month}"
+        key = f"{a['kind']}:{a.get('usage_kind')}:{a.get('period') or month}"  # plan clients: once per billing period
         self._event(tenant, "usage.alert", {k: a.get(k) for k in ("kind", "usage_kind", "used", "included")},
                     client_visible=True)
         out: list[dict[str, Any]] = []
@@ -214,8 +214,9 @@ class Notifier:
         self.state.put(f"sent:{key}", True, tenant_id)
 
     def _owner_email(self, tenant: TenantRecord, tag: str, subject: str, text: str, html: str,
-                     key: str) -> list[dict[str, Any]]:
-        to = tuple(tenant.config.notify.email)
+                     key: str, to: tuple[str, ...] | list[str] | None = None) -> list[dict[str, Any]]:
+        # `to`: an explicit recipient list (the number-release warning adds the account e-mail); default = alert addresses
+        to = tuple(tenant.config.notify.email) if to is None else tuple(to)
         if not to:
             return []
         k = f"{tenant.id}:{tag}:{key}:email"

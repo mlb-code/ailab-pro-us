@@ -69,6 +69,16 @@ def _agent_line(cfg: TenantConfig) -> str:
     return f"{name} at {cfg.business.name}" if name else cfg.business.name
 
 
+def _area(b) -> str:
+    """Service-area line. Cities / counties (2026-11-25, `service_area_places`) are added only when set, so every
+    other tenant's prompt stays byte-identical (prompt cache, recorded replays)."""
+    area = ", ".join(b.service_area_zips) if b.service_area_zips else "no ZIP restriction"
+    places = [p for p in (getattr(b, "service_area_places", None) or []) if p]
+    if places:
+        area += f" (also served: {', '.join(places)}; a caller from a place clearly outside these areas: take_message)"
+    return area
+
+
 def _hours_text(cfg: TenantConfig) -> str:
     out = []
     for d in DAYS:
@@ -86,7 +96,7 @@ def _facts(cfg: TenantConfig) -> tuple[str, str, str, str]:
         prices = ('PRICES: none listed. Never say any price or amount. If asked, say exactly: '
                   '"Our team will give you an exact price on site."')
     faq = "\n".join(f"Q: {f.q}\nA: {f.a}" for f in cfg.faq) or "(none)"
-    area = ", ".join(b.service_area_zips) if b.service_area_zips else "no ZIP restriction"
+    area = _area(b)
     languages = "English or Spanish (reply in the caller's language)" if "es" in cfg.voice.languages else "English only"
     return prices, faq, area, languages
 
@@ -257,7 +267,7 @@ def _prompt(cfg_json: str, channel: str) -> str:
         prices = ('PRICES: none listed. Never say any price or amount. If asked, say exactly: '
                   '"Our team will give you an exact price on site."')
     faq = "\n".join(f"Q: {f.q}\nA: {f.a}" for f in cfg.faq) or "(none)"
-    area = ", ".join(b.service_area_zips) if b.service_area_zips else "no ZIP restriction"
+    area = _area(b)
     style = STYLE[channel]
     languages = "English or Spanish (reply in the caller's language)" if "es" in cfg.voice.languages else "English only"
     return f"""You are the virtual assistant that answers missed calls and texts for {b.name}, a {b.trade or b.niche.replace('_', ' ')} business. Your job: understand what the customer needs, collect job details, and book a visit or take a message for the team.

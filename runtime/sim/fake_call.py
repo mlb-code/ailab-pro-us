@@ -42,8 +42,9 @@ class CallTurn:
 
 class FakeCall:
     def __init__(self, twilio: FakeTwilio, to: str, caller: str, clock: Callable[[], datetime] | None = None,
-                 call_sid: str | None = None, settled: Callable[[str], bool] | None = None):
+                 call_sid: str | None = None, settled: Callable[[str], bool] | None = None, forwarded_from: str = ""):
         self.twilio, self.to, self.caller = twilio, to, caller
+        self.forwarded_from = forwarded_from  # Twilio's ForwardedFrom on a forwarded call (the client's business line)
         self.settled = settled  # call_sid -> True once the runtime finished handling the closed socket
         self.clock = clock
         self.call_sid = call_sid or sid("CA")
@@ -145,8 +146,9 @@ class FakeCall:
     # --- the caller's actions -------------------------------------------------------------------
     def start(self) -> CallTurn:
         self.started_at = self.clock() if self.clock else None
+        extra = {"ForwardedFrom": self.forwarded_from} if self.forwarded_from else {}
         resp = self.twilio.post("/voice/incoming", self.twilio.call_params(self.to, self.caller, self.call_sid,
-                                                                            CallStatus="ringing"))
+                                                                            CallStatus="ringing", **extra))
         assert resp.status_code == 200, resp.status_code
         return self._from_twiml(parse_twiml(resp.text))
 

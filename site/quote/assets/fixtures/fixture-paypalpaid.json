@@ -16,7 +16,7 @@
   "items": [
     {
       "code": "RCP",
-      "name": "Missed-Call AI Receptionist",
+      "name": "FirstRing AI Receptionist",
       "qty": 1,
       "kind": "fixed",
       "setup_cents": 350000,
@@ -34,7 +34,7 @@
   "includes": [
     {
       "code": "RCP",
-      "name": "Missed-Call AI Receptionist",
+      "name": "FirstRing AI Receptionist",
       "list": [
         "1 location and 1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
         "Answers the calls you miss (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
@@ -102,7 +102,7 @@
       "paid_at": null
     }
   },
-  "agreement_version": "1.1",
+  "agreement_version": "2.0",
   "accepted": {
     "name": "Mark Ortiz",
     "at": "2026-10-12T15:00:00.000Z"

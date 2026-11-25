@@ -5,7 +5,7 @@
   "offer": "RCP",
   "seo": {
     "title": "AI Receptionist for HVAC & Plumbing Companies | {brand}",
-    "description": "Missed calls answered and booked into your calendar. Fixed price: {price:RCP.setup} setup + {price:RCP.monthly}/mo. Written quote {quote_sla}. No sales calls.",
+    "description": "Missed calls answered and booked into your calendar. Monthly plans from {from_price}/mo, no setup fee, {trial_days}-day free trial. No sales calls.",
     "og_title": "Every missed call, answered and booked.",
     "og_kicker": "AI receptionist for HVAC & plumbing",
     "service_type": "AI phone receptionist for home service businesses",
@@ -14,8 +14,8 @@
   "hero": {
     "eyebrow": "AI receptionist for HVAC & plumbing companies",
     "title": "Every missed call, answered and *booked*.",
-    "lead": "You're on a roof or under a sink. The phone rings. Your AI receptionist answers, takes the job details, and books the job into your calendar.",
-    "fine": "No sales calls. Fixed quote in writing {quote_sla}.",
+    "lead": "On a roof or under a sink when the phone rings? Your AI receptionist answers, takes the job details and books the job into your calendar.",
+    "fine": "No sales calls. {trial_days}-day free trial. Cancel anytime.",
     "also": "Also for electrical, roofing and garage door companies."
   },
   "clock": {
@@ -48,23 +48,24 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you don't pick up go to your AI receptionist's number. It answers with your business name and asks what's going on. (Texting callers who hang up is coming soon, after US carrier registration.)"
+      "text": "Calls you don't pick up go to your AI receptionist. It answers with your business name. (Texting callers who hang up is coming soon, after US carrier registration.)"
     },
     {
       "icon": "chat",
       "title": "It asks the right questions",
-      "text": "Name, callback number, address or ZIP, job type, urgency. Emergencies like a gas smell get a 911 instruction first and an urgent alert to you."
+      "text": "Name, callback number, address or ZIP, job type, urgency. A gas smell or other emergency gets a 911 instruction first and an urgent alert to you."
     },
     {
       "icon": "calendar",
       "title": "It books, you get an email",
-      "text": "It books only open times on your calendar, in the areas and hours you serve. You get each new lead by email, plus a daily summary (text alerts too, once business texting is live)."
+      "text": "Only open times on your calendar, in your areas and hours. You get each lead by email, plus a daily summary (text alerts once business texting is live)."
     }
   ],
+  "missed_gist": "3 steps: it answers, asks the right questions, books",
   "demo": {
     "eyebrow": "Try it",
     "title": "Be the *customer*. See what your callers would get.",
-    "lead": "Pick a situation and tap the answers. You'll see the texts your customer will get after a missed call once business texting is live (coming soon, after US carrier registration). The answers are set in advance.",
+    "lead": "Pick a situation and tap what you'd say. The answers are set in advance.",
     "business": "Copperleaf Air & Plumbing",
     "business_line": "Heating, Air & Plumbing · Houston",
     "scenarios": [
@@ -74,9 +75,9 @@
         "start": "s",
         "nodes": {
           "s": {
-            "system": "Missed call from (832) 555-0147 · 7:42 PM",
+            "system": "Incoming call from (832) 555-0147 · 7:42 PM",
             "bot": [
-              "Hi, this is Copperleaf Air & Plumbing. Sorry we missed your call! I'm the virtual assistant and I can get you booked. What's going on? Reply STOP to opt out."
+              "Thanks for calling Copperleaf Air & Plumbing. I'm the AI assistant and I can get you booked. What's going on?"
             ],
             "chips": [
               {
@@ -169,7 +170,7 @@
           },
           "done": {
             "bot": [
-              "Thanks, {name}. You're booked for AC repair, {slot}, ZIP {zip}. The technician will text before arriving. Reply STOP to opt out."
+              "Thanks, {name}. You're booked for AC repair, {slot}, ZIP {zip}. The technician will call before arriving."
             ],
             "booked": {
               "title": "AC repair",
@@ -185,9 +186,9 @@
         "start": "s",
         "nodes": {
           "s": {
-            "system": "Missed call from (713) 555-0119 · 6:15 AM",
+            "system": "Incoming call from (713) 555-0119 · 6:15 AM",
             "bot": [
-              "Hi, this is Copperleaf Air & Plumbing. Sorry we missed your call! I'm the virtual assistant. How can we help? Reply STOP to opt out."
+              "Thanks for calling Copperleaf Air & Plumbing. I'm the AI assistant. How can we help?"
             ],
             "chips": [
               {
@@ -280,7 +281,7 @@
           },
           "done": {
             "bot": [
-              "You're booked, {name}: water heater leak, {slot}, ZIP {zip}. Our tech has the details and will text when on the way."
+              "You're booked, {name}: water heater leak, {slot}, ZIP {zip}. Our tech has the details and will call when on the way."
             ],
             "booked": {
               "title": "Water heater leak · URGENT",
@@ -296,9 +297,9 @@
         "start": "s",
         "nodes": {
           "s": {
-            "system": "Missed call from (281) 555-0163 · 12:08 PM",
+            "system": "Incoming call from (281) 555-0163 · 12:08 PM",
             "bot": [
-              "Hi, this is Copperleaf Air & Plumbing. Sorry we missed your call! I'm the virtual assistant. What can we help with? Reply STOP to opt out."
+              "Thanks for calling Copperleaf Air & Plumbing. I'm the AI assistant. What can we help with?"
             ],
             "chips": [
               {
@@ -403,14 +404,18 @@
   },
   "included": {
     "eyebrow": "What's included",
-    "title": "One price. *Everything* a missed call needs.",
     "tools_title": "Works with your tools",
-    "tools_extra": [{"label": "Apple iCloud Calendar", "status": "Via Calendly · included", "after": "calendly"}]
+    "tools_extra": [
+      {
+        "label": "Apple iCloud Calendar",
+        "status": "Via Calendly · included",
+        "after": "calendly"
+      }
+    ]
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "title": "The price is on the *page*.",
-    "note": "Want urgent night calls put straight through to your on-call tech, a second location, Spanish, or a direct link to Jobber? Each extra has a fixed price, listed below."
+    "title": "Three plans. *No setup fee*."
   },
   "faq": [
     {
@@ -427,14 +432,14 @@
     },
     {
       "q": "What about emergencies?",
-      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT email right away (and a text, once business texting is live), and it can ring your cell."
+      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT email right away (and a text, once business texting is live). On the Business plan, urgent night calls are put through to your on-call tech."
     },
     {
       "ref": "builtin_ai"
     },
     {
       "q": "Does it work with Jobber, Housecall Pro or ServiceTitan?",
-      "a": "Booking into Google Calendar or Calendly is included. So is 1 Zapier link (Zapier is an app that connects apps) to send leads to any other tool. A direct link to Jobber, Housecall Pro, GoHighLevel or HubSpot costs {price:ADD-CRM.setup} + {price:ADD-CRM.monthly}/mo. For ServiceTitan, we quote separately."
+      "a": "Booking into Google Calendar or Calendly is included. So is 1 Zapier link (Zapier is an app that connects apps) to send leads to any other tool. A direct link to Jobber, Housecall Pro, GoHighLevel or HubSpot is part of the Business plan. For ServiceTitan, ask us first."
     },
     {
       "ref": "no_call"
@@ -443,12 +448,18 @@
       "ref": "cancel"
     }
   ],
-  "bundles": {
-    "title": "Bundles for trades that get urgent calls",
-    "codes": [
-      "BNDL-NM",
-      "BNDL-GROW"
-    ],
-    "today": "Available today: the AI receptionist plus after-hours dispatch ({price:ADD-DISPATCH.setup} + {price:ADD-DISPATCH.monthly}/mo on top of the receptionist price)."
-  }
+  "included_items": [
+    "1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
+    "Answers the calls you miss (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
+    "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
+    "Booking into 1 calendar: Google Calendar or Calendly",
+    "Appointment manager: callers can check, move or cancel a visit it booked for them just by calling back, and it recognizes returning callers",
+    "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
+    "An email alert for every lead, plus a daily summary email (text alerts too, once business texting is live)",
+    "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
+    "Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
+    "When US carrier registration for business texting opens, we register your business for you (fees included)",
+    "{usage_text}",
+    "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
+  ]
 }

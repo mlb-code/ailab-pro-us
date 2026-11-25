@@ -1,0 +1,128 @@
+"""Message-only service for FirstRing plan tenants (trial ended unpaid, cancelled after the paid period, past due beyond
+the grace period, paused, the trial's minutes used up, or the plan's included minutes used up): the line never goes dead
+for callers, but it stops costing AI minutes. It takes the caller's name, number and reason and e-mails them to the
+owner; it does not book visits or answer other questions.
+
+Voice: one short fixed greeting with the call notice, one speech turn for name + number + reason, a thank-you, hang up
+(plain <Say>/<Gather>: no ConversationRelay, no Claude, no booking). The message goes to the owner as a normal lead
+alert (e-mail; SMS once texting is live). SMS and the website chat get one fixed reply and the same owner alert.
+Quote clients (no `config.plan`) never enter this mode: a paused quote tenant behaves as before.
+"""
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from typing import Any
+
+from twilio.twiml.voice_response import VoiceResponse
+
+from . import guard
+from . import plans as plans_mod
+
+log = logging.getLogger("rt.message_mode")
+
+VOICE = "Polly.Joanna-Neural"
+THANKS = "Thank you. We've passed your message on, and someone will call you back. Goodbye."
+TEXT_REPLY = "Thanks for your message. We've passed it on, and someone from our team will get back to you soon."
+REASONS = ("trial_ended", "canceled", "past_due", "paused", "trial_minutes_used", "plan_minutes_used", "message_only")
+
+
+def greeting(name: str) -> str:
+    return (f"Thanks for calling {name}. {guard.DISCLOSURE} We can't take your call live right now. "
+            "Please say your name, your phone number and what you need, and someone will call you back.")
+
+
+def reason(tenant: Any, usage: Any, now: datetime) -> str:
+    """Why this tenant is in message-only mode right now ('' = full service). Plan tenants only."""
+    t = plans_mod.terms(tenant.config)
+    if t is None:
+        return ""
+    if t.service == "message_only":
+        return t.reason or "message_only"
+    if not tenant.active:  # the client pressed "Pause AI": callers are still served, without AI minutes
+        return "paused"
+    if plans_mod.usage_cap_mode() == "message" and usage is not None:
+        return usage.cap_reached(tenant, now)
+    return ""
+
+
+def _flag(call_sid: str) -> str:
+    return f"mmcall:{call_sid}"
+
+
+class MessageMode:
+    def __init__(self, rt: Any):
+        self.rt = rt
+
+    def voice_incoming(self, tenant: Any, call_sid: str, caller: str, why: str, now: datetime,
+                       forwarded_from: str = "") -> str:
+        ts = self.rt.store.for_tenant(tenant.id)
+        text = greeting(tenant.config.business.name)
+        if not ts.select("calls", call_sid=call_sid):
+            row = {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
+                   "transcript": [{"who": "assistant", "text": text}], "outcome": None}
+            if forwarded_from:
+                row["forwarded_from"] = forwarded_from
+            insert_call(ts, row)
+            ts.log_event("message_mode.call", {"call_sid": call_sid, "reason": why})
+        self.rt.state.put(_flag(call_sid), {"reason": why}, tenant.id)
+        vr = VoiceResponse()
+        vr.say(text, voice=VOICE)  # the notice plays in full before we listen
+        vr.gather(input="speech", action="/voice/message-mode", method="POST", speech_model="phone_call",
+                  enhanced=True, speech_timeout="auto", action_on_empty_result=True, language="en-US")
+        return str(vr)
+
+    def voice_message(self, tenant: Any, call_sid: str, caller: str, speech: str, now: datetime) -> str:
+        ts = self.rt.store.for_tenant(tenant.id)
+        said = (speech or "").strip()[:500]
+        rows = ts.select("calls", call_sid=call_sid)
+        if rows:
+            transcript = list(rows[0].get("transcript") or [])
+            if said:
+                transcript.append({"who": "customer", "text": said})
+            transcript.append({"who": "assistant", "text": THANKS})
+            ts.update("calls", rows[0]["id"], {"transcript": transcript, "outcome": "message" if said else None,
+                                               "summary": f"Message: {said}"[:400] if said else "No speech"})
+        if said:
+            self.alert(tenant, caller, "voice", f"Message taken (your receptionist is in message-only mode): {said}",
+                       f"mm:{call_sid}")
+        vr = VoiceResponse()
+        vr.say(THANKS, voice=VOICE)
+        vr.hangup()
+        return str(vr)
+
+    def is_call(self, call_sid: str) -> bool:
+        return bool(self.rt.state.get(_flag(call_sid)))
+
+    def voice_finished(self, tenant: Any, call_sid: str, duration_s: int, now: datetime) -> None:
+        """Status callback of a message-mode call: duration, abandoned outcome, minutes into the usage meter."""
+        ts = self.rt.store.for_tenant(tenant.id)
+        rows = ts.select("calls", call_sid=call_sid)
+        if rows:
+            patch: dict[str, Any] = {"duration_s": int(duration_s)}
+            if rows[0].get("outcome") is None:
+                patch["outcome"] = "abandoned"
+            ts.update("calls", rows[0]["id"], patch)
+        flag = f"callusage:{tenant.id}:{call_sid}"
+        if duration_s > 0 and not self.rt.state.get(flag):
+            self.rt.state.put(flag, True, tenant.id)
+            actions: list[dict] = []
+            self.rt.engine._usage(tenant, ts, "voice", -(-int(duration_s) // 60), now, actions)
+            self.rt.deliver(tenant, actions, f"usage:{now:%Y-%m}")
+
+    def alert(self, tenant: Any, contact: str, channel: str, summary: str, ref: str) -> None:
+        self.rt.deliver(tenant, [{"type": "alert", "kind": "lead", "summary": summary[:300], "urgency": "normal",
+                                  "contact": contact, "channel": channel}], ref)
+
+
+def insert_call(ts: Any, row: dict[str, Any]) -> dict[str, Any]:
+    """Insert a calls row; `forwarded_from` is dropped if the database does not have the column yet (the 2026-11-25
+    migration), so a runtime deployed before the migration never loses a call."""
+    from .store import StoreError
+    try:
+        return ts.insert("calls", row)
+    except StoreError:
+        if "forwarded_from" not in row:
+            raise
+        log.warning("calls.forwarded_from not accepted by the store; saved the call without it")
+        return ts.insert("calls", {k: v for k, v in row.items() if k != "forwarded_from"})

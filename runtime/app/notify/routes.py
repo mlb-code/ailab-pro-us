@@ -19,6 +19,7 @@ Services are built lazily from `app.state.settings` / `app.state.store` and cach
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -37,6 +38,7 @@ from .channels import OutboxEmail, email_from_env, sms_from_env
 from .core import Notifier, NotifyPolicy
 
 SIM_ADMIN_TOKEN = "sim-admin-token-not-a-secret"
+log = logging.getLogger("rt.routes")
 
 router = APIRouter()
 router.include_router(calendar_router)
@@ -178,7 +180,41 @@ def jobs_tick(request: Request):
     state = getattr(rt, "state", None) or svc.state
     out["deliveries"] = queue_for(svc.store, state).drain()
     out["ran"] = svc.reporter.run_due(now)
+    try:  # FirstRing: numbers to buy (dry run unless TWILIO_PROVISION_LIVE=1) and go-live checks to run
+        out["provisioning"] = provisioner(svc, rt).run_due(now)
+    except Exception:  # noqa: BLE001
+        log.exception("provisioning tick failed")
+        out["provisioning"] = "error"
+    try:  # FirstRing: 7-day warnings and number releases after the service ended (dry run unless TWILIO_RELEASE_LIVE=1)
+        out["number_releases"] = provisioner(svc, rt).run_releases(now)
+    except Exception:  # noqa: BLE001
+        log.exception("number release tick failed")
+        out["number_releases"] = "error"
     return out
+
+
+def provisioner(svc: Services, rt: Any = None):
+    from ..provisioning import Provisioner, admin_alert_via, owner_email_via
+    clock = (lambda: rt.now()) if rt is not None else (lambda: datetime.now(timezone.utc))
+    return getattr(svc, "provisioner", None) or Provisioner(svc.store, svc.settings,
+                                                            admin_alert=admin_alert_via(svc.notifier, clock),
+                                                            owner_email=owner_email_via(svc.notifier))
+
+
+@router.post("/admin/sim-run/{slug}")
+def admin_sim_run(slug: str, request: Request):
+    """Run the go-live simulator checks against this tenant's real config now (read-only; nothing is switched).
+    The automatic path is the `golive_sim` provisioning job (queued by the database when the checklist is done)."""
+    if (denied := require_admin(request)) is not None:
+        return denied
+    svc = services(request.app)
+    rows = svc.store.select("tenants", slug=slug)
+    if not rows:
+        return JSONResponse({"error": "unknown tenant"}, status_code=404)
+    from ..golive import run_checks
+    rt = getattr(request.app.state, "rt", None)
+    now = rt.now() if rt is not None else datetime.now(timezone.utc)
+    return run_checks(rows[0], store=svc.store, now=now)
 
 
 @router.get("/reports/{slug}/daily")

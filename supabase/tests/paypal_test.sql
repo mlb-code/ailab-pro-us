@@ -13,7 +13,7 @@ begin
   update public.profiles set full_name = 'Dana Levin', company = 'Cool Breeze HVAC' where id = ua;
   -- A: accepted PayPal quote; B: accepted Upwork quote; C, D: accepted PayPal quotes for the Upwork switch
   insert into public.quotes (user_id, status, items, setup_cents, monthly_cents, deposit_cents, pay_method)
-    values (ua, 'draft', '[{"code":"RCP","qty":1,"name":"Missed-Call AI Receptionist"}]', 350000, 30000, 175000, 'paypal_checkout')
+    values (ua, 'draft', '[{"code":"RCP","qty":1,"name":"FirstRing AI Receptionist"}]', 350000, 30000, 175000, 'paypal_checkout')
     returning id, public_token into qa, tok;
   insert into public.quotes (user_id, status, items, setup_cents, monthly_cents, deposit_cents, pay_method)
     values (ub, 'draft', '[{"code":"WEB","qty":1,"name":"Business Website"}]', 190000, 12900, 95000, 'upwork')

@@ -51,6 +51,10 @@ class Business(_Strict):
     timezone: str
     service_area_zips: list[ZIP] = Field(default_factory=list, max_length=500,
                                          description="Empty list = no ZIP restriction")
+    # Cities, counties or neighborhoods the client typed in the setup checklist next to (or instead of) ZIP codes.
+    # Used in the prompt only (no hard check: a place name cannot be matched reliably against what a caller says).
+    service_area_places: list[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
+        default_factory=list, max_length=50, description="Cities / counties / neighborhoods served (prompt only)")
     main_phone: E164
 
     @field_validator("timezone")
@@ -72,6 +76,9 @@ class Voice(_Strict):
     tts_voice_es: str = Field(default="Polly.Lupe-Neural", description="TTS voice for Spanish turns (ADD-ES)")
     greeting_es: str = Field(default="", max_length=400,
                              description="Spanish greeting spoken after the English one when ADD-ES is on (empty = generated)")
+    # FirstRing plans (2026-11-25): the customer's own choice in the portal ("Answer in Spanish too" switched off). Kept
+    # across plan changes: Pro/Business switch Spanish on unless this is true; Starter never has it (app.plans.apply).
+    spanish_off: bool = Field(default=False, description="The customer switched Spanish off in the portal (remembered across plan changes)")
 
     @field_validator("languages")
     @classmethod
@@ -111,6 +118,9 @@ class Booking(_Strict):
     days_ahead: int = Field(default=7, ge=1, le=30)
     job_types: list[str] = Field(min_length=1, max_length=30)
     booking_link: str | None = Field(default=None, description="Public self-booking link used in text-back")
+    # 2026-11-25: the client may choose "take messages only, no booking" in the setup checklist instead of connecting a
+    # calendar. False = the assistant never offers times or books; every caller becomes a message for the team.
+    enabled: bool = Field(default=True, description="False = take messages only, never book (no calendar connected)")
     # Appointment manager (2026-10-23), off until switched on per tenant: callers move or cancel a booking the assistant
     # made (only bookings made for the caller's own number), and a returning caller is greeted by name.
     self_service: bool = Field(default=False, description="Callers can move or cancel a booking the assistant made")
@@ -304,6 +314,21 @@ class ReviewRequests(_Strict):
     delay_hours: float = Field(default=2, ge=0, le=72, description="Hours after 'job completed' before the one review text")
 
 
+# --- FirstRing monthly plans (2026-11-25): written by the database from public.subscriptions, never by the client --------
+class Plan(_Strict):
+    """`config.plan` of a subscription tenant. Numbers (included minutes, trial cap, features) are NOT stored here:
+    app.plans reads them from the price book by `code`."""
+    code: Annotated[str, Field(pattern=r"^[A-Z][A-Z0-9_]{1,40}$")]
+    status: Literal["trialing", "active", "past_due", "paused", "canceled"] = "active"
+    trial_ends_at: str | None = Field(default=None, max_length=40)
+    period_start: Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}(T\d{4})?$")] | None = Field(
+        default=None, description="Start of the current billing (or trial) period; usage is metered per period")
+    period_end: str | None = Field(default=None, max_length=40)
+    service: Literal["full", "message_only"] = Field(
+        default="full", description="message_only = the line answers with a short message flow (no AI minutes)")
+    service_reason: Literal["", "trial_ended", "canceled", "past_due", "paused"] = ""
+
+
 class TenantConfig(_Strict):
     """`tenants.config` jsonb. Field names follow SPEC 6.6."""
     business: Business
@@ -324,6 +349,7 @@ class TenantConfig(_Strict):
     webchat: Webchat = Field(default_factory=Webchat)
     crm: Crm = Field(default_factory=Crm)
     review_requests: ReviewRequests = Field(default_factory=ReviewRequests)
+    plan: Plan | None = Field(default=None, description="FirstRing monthly plan (set by the database; absent = quote client)")
 
     @model_validator(mode="after")
     def _meetings_are_job_types(self) -> "TenantConfig":
@@ -400,6 +426,9 @@ def validate_config(data: Any, slug: str | None = None) -> TenantConfig:
         cfg = None
     if problems or cfg is None:
         raise TenantConfigError(problems, slug)
+    if cfg.plan is not None:  # FirstRing plan: the plan's features (price book) win over the stored switches
+        from .plans import apply
+        cfg = apply(cfg)
     return cfg
 
 

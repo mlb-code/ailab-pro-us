@@ -36,7 +36,7 @@ begin
   select is_admin into ok from public.profiles where id = ua;
   if ok then raise exception 'FAIL client auto-admin'; end if; c := c + 1;
 
-  insert into public.questionnaires (user_id, offer, niche, answers) values (ub, 'RCP', 'home_services', '{"x":1}') returning id into qb;
+  insert into public.questionnaires (user_id, offer, niche, answers) values (ub, 'WEB', 'home_services', '{"x":1}') returning id into qb;
   insert into public.quotes (user_id, status, items, setup_cents, monthly_cents, deposit_cents)
     values (ua, 'draft', '[{"code":"RCP","qty":1}]', 350000, 30000, 175000) returning id into quo_a_draft;
   insert into public.quotes (user_id, status, items, setup_cents, monthly_cents, deposit_cents)
@@ -154,7 +154,7 @@ begin
   exception when others then ok := true; end;
   if not ok then raise exception 'FAIL client uploaded to videos-public'; end if; c := c + 1;
 
-  update public.questionnaires set offer = 'RCP' where id = qa;
+  update public.questionnaires set offer = 'WEB' where id = qa;   -- clients start website questionnaires only (2026-11-25)
   update public.questionnaires set status = 'submitted' where id = qa;
   select status = 'submitted' and submitted_at is not null into ok from public.questionnaires where id = qa;
   if not ok then raise exception 'FAIL submit'; end if; c := c + 1;
@@ -459,7 +459,7 @@ begin
   update public.profiles set company = 'C Plumbing LLC', phone = '+17135550177' where id = uc;
   insert into public.questionnaires (user_id, offer, answers) values (uc, 'RCP', '{"phone":"+17135550177"}') returning id into qc;
   insert into public.quotes (user_id, questionnaire_id, items, setup_cents, monthly_cents, deposit_cents)
-    values (uc, qc, '[{"code":"RCP","qty":1,"name":"Missed-Call AI Receptionist","reason":"Chris C said +1 713 555 0177 is busy"}]',
+    values (uc, qc, '[{"code":"RCP","qty":1,"name":"FirstRing AI Receptionist","reason":"Chris C said +1 713 555 0177 is busy"}]',
             350000, 30000, 175000) returning id into quo_c;
   update public.quotes set scope_md = 'For Chris C of C Plumbing, call +1 713 555 0177', timeline_text = 'Chris is away in May',
     assumptions = '["Chris C provides calendar access"]' where id = quo_c;

@@ -1,6 +1,6 @@
 {
-  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit}, {refund}, {days:CODE}, {usage_voice}, {usage_sms}, {overage_pct}, {cancel_days}, {bundle_save_setup}, {bundle_save_monthly}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {business_days}, {refund_label}, {guarantee}, {guarantee_label}, {guarantee_body}, {guarantee_days}, {founding_label}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here. Markup: **bold**; *word* = the accent word (italic serif on a violet brush stroke), at most one per heading.",
-  "worked_with_fallback": "Worked with Samsung and Haier in {country} (through their local distributor)",
+  "$comment": "Shared copy for tools/build_landing.py. Tokens in {braces} are filled at build time from config/brand.json and config/pricebook.json: {brand}, {price:CODE.setup|monthly|deposit} (CODE = a price-book item or a plan, e.g. {price:FR_PRO.monthly}), {minutes:FR_PRO}, {days:CODE}, {from_price}, {trial_days}, {trial_minutes}, {trial_text}, {cancel_text}, {minutes_text}, {go_live_text}, {no_setup_text}, {money_back}, {money_back_label}, {money_back_days}, {refund}, {usage_text}, {cancel_days}, {quote_sla}, {quote_sla_cap}, {quote_sla_short}, {business_days}, {refund_label}, {guarantee}, {guarantee_label}, {guarantee_body}, {guarantee_days}, {founding_label}, {worked_with}, {assistant} (per page), {disclaimer}, {country}. Never type a brand name or a price here. FirstRing is sold as 3 monthly plans since 2026-11-25 (no setup fee, free trial): no setup-fee, deposit or quote wording on the FirstRing pages. Markup: **bold**; *word* = the accent word, at most one per heading.",
+  "worked_with_fallback": "Worked with corporate clients in {country}, including a home-appliance importer",
   "nav": [
     {
       "label": "FirstRing",
@@ -21,58 +21,47 @@
   ],
   "how": {
     "eyebrow": "How it works",
-    "title": "From first click to *live*. No phone calls.",
-    "lead": "Everything happens in writing, on your schedule. You can stop at any step.",
+    "title": "From sign-up to *live*. No phone calls.",
     "steps": [
       {
-        "num": "3 min",
-        "title": "Questionnaire",
-        "text": "Tell us what you need, how many calls you get and which tools you use. Three screens; it saves as you go."
+        "num": "1 click",
+        "title": "Pick a plan",
+        "text": "Start your {trial_days}-day free trial. We need a card to start; the first charge comes when the trial ends."
       },
       {
-        "num": "{quote_sla_short}",
-        "title": "Fixed quote in writing",
-        "text": "A fixed price, a clear scope, what is and isn't included. {quote_sla_cap}. Accept it online."
+        "num": "3 min",
+        "title": "Sign up",
+        "text": "Your business, your hours, your common questions. 3 screens, saved as you go."
       },
       {
         "num": "7 steps",
         "title": "Setup checklist with videos",
-        "text": "Connect your calendar, choose who gets alerts, add your FAQ. Each step has a short video."
+        "text": "Connect your calendar, pick who gets alerts, add your FAQ. A short video for each step."
       },
       {
-        "num": "{days:RCP} days",
+        "num": "1 day",
         "title": "Live",
-        "text": "We build and test it. You try it yourself, then you turn on call forwarding. It's ready {days:RCP} business days after you finish your setup checklist."
-      }
-    ],
-    "video_call": "Prefer a quick 15-min video call? It's optional, never required."
-  },
-  "proof": {
-    "eyebrow": "Why owners trust it",
-    "title": "Small studio. Fixed prices. Everything in *writing*.",
-    "rows": [
-      {
-        "k": "Built with Claude",
-        "v": "Your {assistant} runs on Claude, an AI made by the company Anthropic. We are a small independent studio. We are not part of Anthropic, and Anthropic does not endorse us."
-      },
-      {
-        "k": "Real clients",
-        "v": "{worked_with}."
-      },
-      {
-        "k": "Fixed price",
-        "v": "The price on this page is the price on your quote. Extras are listed with their prices. No hourly billing."
-      },
-      {
-        "k": "Quote in writing",
-        "v": "{quote_sla_cap} after you send your answers. Your quote is good for 14 days. No sales calls, ever."
-      },
-      {
-        "k": "{guarantee_label}",
-        "v": "{guarantee_body} {refund}"
+        "text": "Finish your checklist, turn on call forwarding and make one test call. We switch you live automatically, within 1 business day (Business plan: {days:FR_BUSINESS} business days)."
       }
     ]
   },
+  "proof": {
+    "eyebrow": "Why owners trust it"
+  },
+  "trust": [
+    {
+      "title": "One monthly price",
+      "text": "The price on this page is what you pay. No setup fee. We never charge you extra without your yes."
+    },
+    {
+      "title": "No sales calls",
+      "text": "Sign up online in about 3 minutes. Cancel anytime in your online account. A video call is optional."
+    },
+    {
+      "title": "A small studio",
+      "text": "{worked_with}. Your {assistant} runs on Claude, an AI made by Anthropic. Built with Claude; not affiliated with Anthropic, and not endorsed by it."
+    }
+  ],
   "faq": {
     "keep_number": {
       "q": "Do I keep my business number?",
@@ -80,7 +69,7 @@
     },
     "cost": {
       "q": "What does it cost, exactly?",
-      "a": "{price:RCP.setup} setup and {price:RCP.monthly} a month. You pay {price:RCP.deposit} to start and the rest before it goes live (the day it starts answering real customers). The monthly fee starts the day it goes live. {usage_text}"
+      "a": "One monthly price, no setup fee. Starter is {price:FR_STARTER.monthly} a month with {minutes:FR_STARTER} voice minutes, Pro is {price:FR_PRO.monthly} with {minutes:FR_PRO}, and Business is {price:FR_BUSINESS.monthly} with {minutes:FR_BUSINESS}. Every plan starts with a {trial_days}-day free trial (up to {trial_minutes} minutes): we need a card to start, and the first charge comes when the trial ends. {minutes_text}"
     },
     "ai_disclosure": {
       "q": "Will callers know it's AI?",
@@ -88,15 +77,15 @@
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",
-      "a": "No. You fill in a questionnaire, get a written quote {quote_sla}, and finish a setup checklist with short videos. If you want a 15-minute video call anyway, you can book one. It's optional."
+      "a": "No. You pick a plan, sign up online in about 3 minutes, and finish a setup checklist with short videos. If you want a 15-minute video call anyway, you can book one. It's optional."
     },
     "timeline": {
       "q": "How long until it's live?",
-      "a": "{days:RCP} business days after you finish the setup checklist (your calendar, who gets alerts, and your business details for texting registration). Faster delivery is available for an extra fee."
+      "a": "1 business day after you finish the setup checklist (your calendar, who gets alerts, and your business details). On the Business plan it takes {days:FR_BUSINESS} business days, because CRM links and a second line take longer to set up."
     },
     "cancel": {
       "q": "Can I cancel? What if I'm not happy?",
-      "a": "{guarantee} {refund} Monthly service cancels with {cancel_days} days' notice."
+      "a": "Yes, cancel anytime in your online account. Cancel during the free trial and you pay nothing. After that, your plan stops at the end of the month you paid for. {money_back} The details are in our Refund Policy."
     },
     "who": {
       "q": "Who is behind this?",
@@ -104,61 +93,57 @@
     },
     "spanish": {
       "q": "Can it speak Spanish?",
-      "a": "Yes, as an extra: {price:ADD-ES.setup} setup + {price:ADD-ES.monthly}/mo. Callers can talk in Spanish (texting in Spanish too, once business texting is live); your summaries stay in English."
+      "a": "Yes, on the Pro and Business plans. Callers can talk in Spanish; your summaries stay in English."
     },
     "builtin_ai": {
       "q": "Why not the AI assistant built into Jobber or Housecall Pro?",
-      "a": "Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, passes the caller to a person when needed, and a real person keeps it running. It works with Google Calendar, Calendly and most apps through Zapier. Some systems (for example Outlook or ServiceTitan) need a custom quote."
+      "a": "Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, passes the caller to a person when needed, and a real person keeps it running. It works with Google Calendar, Calendly and most apps through Zapier, and the Business plan adds a direct link to your CRM. Some systems (for example Outlook or ServiceTitan) need custom work, so ask us first."
     },
     "hear_it": {
       "q": "Can I hear it before I buy?",
-      "a": "Yes. Call {demo_phone}. It reaches our demo business, {demo_phone_business} in {demo_phone_city}, and the same AI receptionist answers. It's a US number, so regular call charges apply, and the call may be recorded and written down as text. You can also try the text demo on this page."
+      "a": "Yes. Call {demo_phone}. It reaches our demo business, {demo_phone_business} in {demo_phone_city}, and the same AI {assistant} answers. It's a US number, so regular call charges apply, and the call may be recorded and written down as text. You can also try the text demo on this page."
     }
   },
   "cta_band": {
-    "title": "Get your *fixed* quote. No call needed.",
-    "text": "A 3-minute questionnaire. A written quote {quote_sla}."
+    "title": "Try it *free* for {trial_days} days.",
+    "text": "{no_setup_text} Cancel anytime. {go_live_text}"
   },
   "missed": {
-    "eyebrow": "What happens to a missed call",
-    "title": "The caller doesn't wait. Your *{assistant}* doesn't either."
+    "eyebrow": "What happens to a missed call"
   },
   "usage_text_fallback": "{usage_voice} minutes included every month ({usage_sms} texts included too, once business texting is live). We let you know when you've used 80%. No surprise charges: we add more only if you say yes.",
   "sms_note": "Phone answering works from day one. Texting (automatic text-back, text alerts and text confirmations) is coming soon, after US carrier registration. Until then, alerts come by email.",
-  "founder": {
-    "text": "{founding_label}: {price:RCP.founding} setup + {price:RCP.monthly}/mo for our first {founding_max} clients, if you let us write a short case study about your results."
-  },
   "after_pay": {
-    "eyebrow": "What happens after you pay",
-    "title": "Five steps, with *dates*.",
-    "lead": "Day 0 is the day your deposit arrives. Business days.",
+    "eyebrow": "What happens after you sign up",
+    "lead": "Day 0 is the day you start your free trial. Business days.",
     "steps": [
       {
         "num": "Day 0",
         "title": "Welcome + checklist",
-        "text": "You get a welcome email and your setup checklist in your online account. Each item has a short video."
+        "text": "A welcome email and your setup checklist in your online account, with a short video for each item."
       },
       {
-        "num": "Days 1–3",
+        "num": "Day 0",
         "title": "You connect things",
-        "text": "Calendar, who gets alerts, hours, common questions, and your business details for texting registration. About an hour in total."
+        "text": "Calendar, alerts, hours and common questions. About an hour."
       },
       {
-        "num": "Day 1",
-        "title": "Texting registration",
-        "text": "Texting is coming soon, after US carrier registration. When it opens, we register your business with US phone carriers for you. Fees included."
-      },
-      {
-        "num": "By day {days:RCP}",
+        "num": "+1 day",
         "title": "Built and tested",
-        "text": "We set it up and run it through test conversations. You get a test number and call it yourself."
+        "text": "We set it up and test it. You get a test number and call it yourself. Business plan: {days:FR_BUSINESS} business days."
       },
       {
         "num": "Go-live",
         "title": "You approve, it goes live",
-        "text": "You give the OK to go live, pay the second half, and turn on call forwarding with our step-by-step video."
+        "text": "Turn on call forwarding and make one test call. We switch you live automatically."
+      },
+      {
+        "num": "Day {trial_days}",
+        "title": "Trial ends",
+        "text": "Your first monthly charge, unless you cancel before. Cancel anytime in your online account."
       }
-    ]
+    ],
+    "gist": "5 steps, with dates: from sign-up to your first charge"
   },
   "transcript": {
     "title": "Read a full sample conversation",
@@ -171,38 +156,32 @@
     "link": "Book a 15-minute video call"
   },
   "why": {
-    "$comment": "Dark stat section after the hero. Only cited numbers: each stat needs source + source_url (verified 2026-10-12). Never invent a number.",
-    "eyebrow": "Why it matters",
+    "$comment": "Compact dark strip after the hero (2026-11-25): heading + three cited stats (number, one line, source). Only cited numbers: each stat needs source + source_url (verified 2026-10-12). Never invent a number.",
     "title": "Your customers won't *wait*. A missed call goes to the next company.",
-    "lead": "A missed call is usually followed by a text, or by a call to the next company on the list.",
     "stats": [
       {
         "num": "84%",
-        "label": "Already say yes to texts",
         "text": "of US consumers have opted in to receive texts from businesses.",
         "source": "SimpleTexting 2025 survey of 1,000 US consumers (Dec 2024)",
         "source_url": "https://simpletexting.com/2025-texting-and-sms-marketing-statistics/"
       },
       {
         "num": "71%",
-        "label": "Want to text back",
         "text": "of consumers want to be able to text a business back.",
         "source": "SimpleTexting 2025 survey of 1,000 US consumers (Dec 2024)",
         "source_url": "https://simpletexting.com/2025-texting-and-sms-marketing-statistics/"
       },
       {
         "num": "53%",
-        "label": "Got no reply",
         "text": "of US consumers have texted a business and never got a reply.",
         "source": "Textmagic survey of 1,800 US consumers (Mar 2025)",
         "source_url": "https://textmagic.com/blog/consumer-sms-survey"
       }
-    ],
-    "pill": "Your {assistant} answers and books. Every time."
+    ]
   },
   "footer": {
     "$comment": "Footer columns (all pages from tools/build_landing.py). Social links come from config/brand.json social (empty = hidden). Address, email and disclaimer come from brand.json.",
-    "note": "Fixed prices, everything in writing.",
+    "note": "FirstRing: monthly plans, no setup fee, cancel anytime.",
     "studio": "Built with Claude. Independent studio.",
     "social_title": "Follow *us*",
     "social_empty": "Social profiles coming soon. Email is the fastest way to reach us.",
@@ -219,7 +198,7 @@
             "href": "/home-services/#how"
           },
           {
-            "label": "After you pay",
+            "label": "After you sign up",
             "href": "/home-services/#after-you-pay"
           },
           {
@@ -248,8 +227,8 @@
             "href": "{video_call}"
           },
           {
-            "label": "Get a fixed quote",
-            "href": "/start/?offer=RCP"
+            "label": "Start free trial",
+            "href": "/firstring/#pricing"
           },
           {
             "label": "Client login",
@@ -275,10 +254,6 @@
           {
             "label": "Business website",
             "href": "/website/"
-          },
-          {
-            "label": "Website + AI bundle",
-            "href": "/website/#bundle"
           }
         ],
         "sub_title": "Use cases",
@@ -315,9 +290,22 @@
           {
             "label": "Service Agreement",
             "href": "/legal/service-agreement/"
+          },
+          {
+            "label": "Refund Policy",
+            "href": "/legal/refund/"
           }
         ]
       }
     ]
+  },
+  "plan_not_included": [
+    "Outbound AI calls and marketing text messages",
+    "Call recordings (we keep a written copy of each call, not the audio)",
+    "Medical records or patient health information (we can't sign a HIPAA agreement)"
+  ],
+  "plans": {
+    "eyebrow": "Pricing",
+    "title": "Three plans. *No setup fee*."
   }
 }

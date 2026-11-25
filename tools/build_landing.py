@@ -96,8 +96,29 @@ class Ctx:
         self.tokens['quote_sla'] = sla
         self.tokens['quote_sla_cap'] = sla[:1].upper() + sla[1:]
         self.tokens['quote_sla_short'] = re.sub(r'^within\s+', '', sla)
-        # usage text: config wins (A3 may add rules.usage_policy.text), else content fallback
-        usage = (rules.get('usage_policy') or {}).get('text') or self.shared['usage_text_fallback']
+        # FirstRing monthly plans (owner decision 2026-11-25): {price:FR_PRO.monthly}, {minutes:FR_PRO}, {days:FR_BUSINESS},
+        # {from_price}, {trial_days}, {trial_minutes}, the trial / cancel / minutes / go-live lines and the money-back guarantee
+        self.plans = self.pb.get('plans', [])
+        sub = rules.get('subscription') or {}
+        st = sub.get('texts') or {}
+        for p in self.plans:
+            self.tokens[f'price:{p["code"]}.monthly'] = money(p['monthly_cents'])
+            self.tokens[f'minutes:{p["code"]}'] = f'{p["included_usage"]["voice_minutes"]:,}'
+            self.tokens[f'days:{p["code"]}'] = str(p['go_live_business_days'])
+        ms = rr.get('subscription') or {}
+        mtext, mlabel = ms.get('text', ''), ms.get('label', '')
+        if mtext and not mtext.startswith(mlabel + ': '):
+            raise SystemExit('build_landing: refund_rules.subscription.text must start with "<label>: "')
+        self.tokens.update({
+            'from_price': money(min(p['monthly_cents'] for p in self.plans)) if self.plans else '',
+            'trial_days': str(sub.get('trial_days', '')),
+            'trial_minutes': str(sub.get('trial_minutes', '')),
+            'trial_text': st.get('trial', ''), 'cancel_text': st.get('cancel', ''), 'minutes_text': st.get('minutes', ''),
+            'go_live_text': st.get('go_live', ''), 'no_setup_text': st.get('no_setup', ''),
+            'money_back': mtext, 'money_back_label': mlabel, 'money_back_days': str(ms.get('money_back_days', '')),
+        })
+        # usage text: the plans' minutes line (v2.0), else config rules.usage_policy.text, else content fallback
+        usage = st.get('minutes') or (rules.get('usage_policy') or {}).get('text') or self.shared['usage_text_fallback']
         self.page = {}
         self.tokens['usage_text'] = self.t(usage)
 
@@ -110,7 +131,7 @@ class Ctx:
             if k not in self.tokens:
                 raise SystemExit(f'build_landing: unknown token {{{k}}} in content')
             return self.tokens[k]
-        return re.sub(r'\{([a-z][a-z0-9_]*(?::[A-Z0-9-]+(?:\.[a-z]+)?)?)\}', sub, s)
+        return re.sub(r'\{([a-z][a-z0-9_]*(?::[A-Z0-9_-]+(?:\.[a-z]+)?)?)\}', sub, s)
 
     def h(self, s):
         """Token-fill + HTML-escape + **bold** + *accent word* (italic serif on a brush stroke, base.css .em)."""
@@ -128,16 +149,22 @@ THEME_VARS = {'ink': '--ink', 'ink_2': '--ink-2', 'ink_3': '--ink-3', 'screen': 
               'violet': '--violet', 'violet_2': '--violet-2', 'violet_deep': '--violet-deep', 'amber': '--amber', 'amber_2': '--amber-2'}
 
 
+LANDING_VARS = {k: '--wd-' + k.replace('_', '-') for k in
+                ('bg', 'card', 'ink', 'ink_2', 'muted', 'line', 'blue', 'blue_soft', 'sun', 'sun_soft')}
+
+
 def theme_drift(c):
-    """config/brand.json theme must equal the :root values in site/assets/base.css (one palette, two files)."""
-    with open(os.path.join(SITE, 'assets', 'base.css'), encoding='utf-8') as fh:
-        css = fh.read()
+    """config/brand.json theme must equal the :root values in site/assets/base.css, and brand.json landing_theme (design
+    'Workday', marketing pages only) the --wd-* values in site/assets/landing.css (one palette per pair of files)."""
     out = []
-    for k, var in THEME_VARS.items():
-        want = (c.brand.get('theme') or {}).get(k, '')
-        m = re.search(re.escape(var) + r':(#[0-9A-Fa-f]{6})\b', css)
-        if not m or m.group(1).upper() != want.upper():
-            out.append(f'{var} = {m.group(1) if m else "missing"} in base.css, brand.json theme.{k} = {want or "missing"}')
+    for fname, key, vars_ in (('base.css', 'theme', THEME_VARS), ('landing.css', 'landing_theme', LANDING_VARS)):
+        with open(os.path.join(SITE, 'assets', fname), encoding='utf-8') as fh:
+            css = fh.read()
+        for k, var in vars_.items():
+            want = (c.brand.get(key) or {}).get(k, '')
+            m = re.search(re.escape(var) + r':(#[0-9A-Fa-f]{6})\b', css)
+            if not m or m.group(1).upper() != want.upper():
+                out.append(f'{var} = {m.group(1) if m else "missing"} in {fname}, brand.json {key}.{k} = {want or "missing"}')
     return out
 
 
@@ -192,6 +219,13 @@ def inline_css():
     return ''.join(out).replace('</', '<\\/')
 
 
+def landing_fonts(c):
+    """Google Fonts stylesheet for the marketing pages (design 'Workday': Bricolage Grotesque + Inter). The sign-up,
+    quote page, portal and admin keep fonts.google_css (Noto + Space Mono) with base.css."""
+    f = c.brand['fonts']
+    return f.get('landing_css') or f['google_css']
+
+
 def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title, jsonld=None):
     canon = c.site_url + (canonical or path)
     robots = 'index, follow, max-image-preview:large' if index else 'noindex, nofollow'
@@ -204,7 +238,7 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <!-- {MARK} -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="{esc(c.brand['theme']['ink'])}">
+<meta name="theme-color" content="{esc(c.brand['landing_theme']['bg'])}">
 <meta name="robots" content="{robots}">
 <script>document.documentElement.classList.add('js');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('motion')</script>
 <title>{esc(title)}</title>
@@ -216,8 +250,8 @@ def head(c, *, title, desc, path, canonical=None, index=True, og_image, og_title
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="/assets/gem-64.png"><link rel="apple-touch-icon" href="/assets/gem-128.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="{esc(c.brand['fonts']['google_css'])}"></noscript>
+<link rel="stylesheet" href="{esc(landing_fonts(c))}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="{esc(landing_fonts(c))}"></noscript>
 <style>{inline_css()}</style>
 {analytics(c)}
 {ld}
@@ -233,7 +267,7 @@ def brandmark(c):
 
 
 def nav(c, active, cta=None):
-    cta = cta or {'label': 'Get a quote', 'href': '/start/?offer=RCP', 'ev': 'quote_start'}
+    cta = cta or {'label': TRIAL_CTA, 'href': '#pricing'}
     links = ''.join(
         f'<a href="{esc(n["href"])}"' + (' aria-current="page"' if n['href'] == active else '') + f'>{esc(n["label"])}</a>'
         for n in c.shared['nav'])
@@ -315,13 +349,6 @@ def mobile_bar(c, code, href, label):
             f'<a class="btn btn--primary btn--sm" href="{esc(href)}" data-ev="quote_start">{esc(label)}</a></div>')
 
 
-def founder_slot(c):
-    """Reserved: shown only when brand.json has "show_founder_price": true (owner has not approved yet)."""
-    if not c.brand.get('show_founder_price'):
-        return ''
-    return f'<p class="notice">{c.h(c.shared["founder"]["text"])}</p>'
-
-
 def clock(c, data, label, demo=None):
     """Hero signature: the owner's business line, live. A missed call becomes a text-back thread and a booked slot.
     Every row stays in the DOM as text (no-JS, SEO, screen readers); landing.js plays it once in view and on CTA hover."""
@@ -347,58 +374,44 @@ def clock(c, data, label, demo=None):
 </figure>'''
 
 
-def section_missed(c, steps, sms_note=True):
+def fold(fid, title, gist, body, *, tag='h3', cls=''):
+    """Closed, tappable section (2026-11-25, owner: "too much text"): a real heading, a few-word gist of what is inside,
+    and a "Show" control. Native <details>: works without JS, keyboard-operable, the content stays in the HTML (SEO);
+    landing.js opens it for printing and when a link points at it (#id). Same pattern as the quote page (.q-fold)."""
+    idattr = f' id="{esc(fid)}"' if fid else ''
+    gist_html = f'<span class="fold__gist">{gist}</span>' if gist else ''
+    return (f'<details class="fold{(" " + cls) if cls else ""}"{idattr}><summary><span class="fold__head"><{tag} class="fold__t">{title}</{tag}>{gist_html}</span>'
+            f'<span class="fold__more" aria-hidden="true">Show</span></summary><div class="fold__body">{body}</div></details>')
+
+
+def count_label(n, one, many=None):
+    return f'{n} {one if n == 1 else (many or one + "s")}'
+
+
+def missed_fold(c, steps, gist=None):
+    """"What happens to a missed call" (was a full section): three short steps, folded under the demo, which already
+    plays the same call. The gist (content missed_gist, else the step titles) names the three steps."""
     m = c.shared['missed']
-    lis = ''.join(
-        f'<li><span class="n">0{n + 1}</span>{ICONS[s["icon"]]}<h3>{c.h(s["title"])}</h3><p>{c.h(s["text"])}</p></li>'
-        for n, s in enumerate(steps))
-    note = f'<p class="small muted" style="margin-top:20px">{c.h(c.shared["sms_note"])}</p>' if sms_note else ''
-    return f'''<section class="section" id="how-it-answers"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(m['eyebrow'])}</p><h2>{c.h(m['title'])}</h2></div>
-<ol class="steps3">{lis}</ol>{note}
-</div></section>'''
+    lis = ''.join(f'<li><span class="num">{n + 1}</span><h4>{c.h(s["title"])}</h4><p>{c.h(s["text"])}</p></li>'
+                  for n, s in enumerate(steps))
+    gist = c.h(gist) if gist else esc(' · '.join(c.plain(s['title']) for s in steps))
+    return fold('how-it-answers', c.h(m['eyebrow']), gist, f'<ol class="rail rail--3">{lis}</ol>')
 
 
 def section_why(c):
-    """Dark "why" block on a square grid: three cited stats (number, label, line, source under each card). Numbers count
+    """Compact dark "why" strip (2026-11-25): heading plus three cited stats (number, one line, source). Numbers count
     up once in view (landing.js, motion only); the final value is always the DOM text."""
     w = c.shared['why']
     cards = []
     for s_ in w['stats']:
         if not (s_.get('source') and s_.get('source_url', '').startswith('https://')):
             raise SystemExit('build_landing: every why.stats entry needs source + https source_url (no uncited numbers)')
-        cards.append(f'<li class="stat"><p class="stat__num num" data-count>{esc(s_["num"])}</p><h3>{c.h(s_["label"])}</h3>'
-                     f'<p>{c.h(s_["text"])}</p><p class="stat__src">Source: <a href="{esc(s_["source_url"])}" rel="noopener nofollow">{esc(s_["source"])}</a></p></li>')
-    return f'''<section class="section why" id="why"><div class="wrap">
-<div class="shead shead--c"><p class="eyebrow">{c.h(w['eyebrow'])}</p><h2>{c.h(w['title'])}</h2><p class="lead">{c.h(w['lead'])}</p></div>
+        cards.append(f'<li class="stat"><p class="stat__num num" data-count>{esc(s_["num"])}</p><div class="stat__txt">'
+                     f'<p>{c.h(s_["text"])}</p><p class="stat__src">Source: <a href="{esc(s_["source_url"])}" rel="noopener nofollow">{esc(s_["source"])}</a></p></div></li>')
+    return f'''<section class="section why why--compact" id="why"><div class="wrap">
+<h2>{c.h(w['title'])}</h2>
 <ul class="stats">{''.join(cards)}</ul>
-<p class="why__pill"><span class="why__dots" aria-hidden="true"><i></i><i></i><i></i></span>{c.h(w['pill'])}</p>
 </div></section>'''
-
-
-def sample_cards(c, keys, contents, rv):
-    """Two honest "Sample" cards per demo scenario: the first exchange, and the booking confirmation (from the scripted demo)."""
-    out = []
-    for k in keys:
-        d = contents[k]['demo']
-        for scn in d['scenarios']:
-            path = demo_paths(scn)[0]
-            first = path[0]
-            reply = scn['nodes'][first['next']].get('bot', [''])[0]
-            vars_ = {}
-            for ch in path:
-                vars_.update(ch.get('set', {}))
-            done = next(n for n in scn['nodes'].values() if n.get('booked'))
-            final = fill_vars((done.get('bot') or [''])[0], vars_)
-            ai = c.t(rv['assistant'])
-            for lines in ([(rv['caller'], first['say']), (ai, fill_vars(reply, vars_))], [(ai, final)]):
-                if not lines[-1][1]:
-                    continue
-                body = ''.join(f'<p><span class="rv__k">{esc(w)}</span>{esc(t)}</p>' for w, t in lines)
-                out.append(f'<figure class="rv rv--sample"><div class="rv__head"><span class="rv__av" aria-hidden="true">{esc(d["business"][:1])}</span>'
-                           f'<span class="rv__who"><b>{esc(d["business"])}</b><small>{esc(rv["sample_sub"])} · {esc(scn["label"])}</small></span>'
-                           f'<span class="rv__tag">{esc(rv["sample_tag"])}</span></div><blockquote class="rv__body">{body}</blockquote></figure>')
-    return out
 
 
 def stars(n):
@@ -451,27 +464,19 @@ def marquee_row(cards, reverse=False):
             f'<div class="rvrow__set">{set1}</div><div class="rvrow__set rvrow__set--copy" aria-hidden="true">{set2}</div></div></div>')
 
 
-def section_reviews(c, key, contents):
-    """Two sections. 1) "What a call sounds like": sample cards from this page's demo, always shown, labeled Sample
-    (a product demo, not social proof). 2) "What clients say": real reviews, only with >= REVIEWS_MIN approved ones;
-    otherwise omitted entirely (no empty "your review here" placeholders)."""
+def section_reviews(c):
+    """"What clients say": real reviews, only with >= REVIEWS_MIN approved ones; otherwise omitted entirely (no empty
+    "your review here" placeholders). The "What a call sounds like" strip of Sample cards was removed on 2026-11-25
+    (owner: too much text; it repeated the interactive demo on the same page)."""
     rv = c.reviews
-    sm = rv['samples']
-    samples = sample_cards(c, [key], contents, rv)  # this page's niche only (on-topic; real estate never says "receptionist")
-    out = f'''<section class="section reviews" id="sample-calls"><div class="wrap">
-<div class="shead shead--c"><p class="eyebrow">{c.h(sm['eyebrow'])}</p><h2>{c.h(sm['title'])}</h2><p class="lead">{c.h(sm['lead'])}</p></div>
-</div>
-<div class="rvrows">{marquee_row(samples[0::2])}{marquee_row(samples[1::2], reverse=True)}</div>
-</section>'''
     real = review_cards(c, rv)
-    if len(real) >= REVIEWS_MIN:
-        out += f'''
-<section class="section reviews" id="reviews"><div class="wrap">
+    if len(real) < REVIEWS_MIN:
+        return ''
+    return f'''<section class="section reviews" id="reviews"><div class="wrap">
 <div class="shead shead--c"><p class="eyebrow">{c.h(rv['eyebrow'])}</p><h2>{c.h(rv['title'])}</h2><p class="lead">{c.h(rv['lead'])}</p></div>
 </div>
 <div class="rvrows">{marquee_row(real)}</div>
 </section>'''
-    return out
 
 
 # ---------------------------------------------------------------- demo
@@ -531,18 +536,23 @@ def transcript(c, demo):
     return f'<details class="more transcript"><summary>{esc(tr["title"])}</summary><div class="stack" style="--stack:10px;margin-top:14px">{"".join(lines)}</div></details>'
 
 
-def demo_payload(c, keys, contents):
+PLANS_PAGE = {'home_services': '/firstring/#pricing', 'real_estate': '/real-estate/#pricing'}  # where each niche's plans are
+
+
+def demo_payload(c, keys, contents, cta_href=None):
+    """cta: where the demo's "Start free trial" buttons (data-niche-cta) lead for this niche: the plans on this page
+    (one niche) or, on /demo/ with the niche switcher, the plans page of the chosen niche."""
     data = {}
     for k in keys:
         d = contents[k]['demo']
         n = contents[k]
         data[k] = {'label': c.brand_niche_label(k), 'business': d['business'], 'line': d['business_line'],
-                   'product': n.get('product_name') or c.items[n['offer']]['name'],
-                   'cta': f'/start/?offer={n["offer"]}&niche={k}', 'scenarios': d['scenarios']}
+                   'product': n.get('product_name') or 'FirstRing',
+                   'cta': cta_href if len(keys) == 1 and cta_href else PLANS_PAGE[k], 'scenarios': d['scenarios']}
     return json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
 
 
-def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False, transcript_=True):
+def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False, transcript_=True, head=''):
     first = contents[keys[0]]['demo']
     sw = ''
     if switcher:
@@ -559,31 +569,32 @@ def demo_widget(c, keys, contents, *, cta_href, cta_label, switcher=False, trans
     live = f' data-live="{esc(live_url)}"' if live_url.startswith('https://') else ''
     return f'''<div class="demo" data-demo data-niche="{keys[0]}" data-ev-start="{ev}"{live}>
 <div class="demo__side">
-{sw}
+{head}{sw}
 <p class="small muted">Pick a situation:</p>
 <div class="demo__picks" role="group" aria-label="Demo scenarios">{picks}</div>
 {transcript(c, first) if transcript_ else ''}
 </div>
-<div class="phone">
-<div class="phone__bar"><span class="phone__av" aria-hidden="true">{av}</span><span class="phone__who"><b data-demo-biz>{esc(first['business'])}</b><span data-demo-line>{esc(first['business_line'])} · AI assistant</span></span></div>
+<div class="phone phone--call">
+<div class="phone__bar"><span class="phone__av" aria-hidden="true">{av}</span><span class="phone__who"><b data-demo-biz>{esc(first['business'])}</b><span data-demo-line>{esc(first['business_line'])} · AI assistant</span></span><span class="phone__call"><i aria-hidden="true"></i><span data-demo-status>Demo call</span><span data-demo-timer>0:00</span></span></div>
 <p class="phone__demo">{esc(note)}</p>
-<div class="chat" data-demo-chat aria-live="polite" aria-label="Demo conversation">
-<p class="bubble bubble--system">Pick a situation to start. You play the customer.</p>
+<div class="chat" data-demo-chat aria-live="polite" aria-label="Demo call">
+<p class="bubble bubble--system">Pick a situation to start. You play the caller.</p>
 </div>
-<div class="demo__end" data-demo-end hidden><button type="button" class="btn btn--ghost btn--sm" data-demo-restart>Try another situation</button><a class="btn btn--primary btn--sm" href="{esc(cta_href)}" data-ev="quote_start" data-niche-cta>{esc(cta_label)}</a></div>
+<div class="demo__end" data-demo-end hidden><button type="button" class="btn btn--ghost btn--sm" data-demo-restart>Try another situation</button><a class="btn btn--primary btn--sm" href="{esc(cta_href)}" data-niche-cta>{esc(cta_label)}</a></div>
 </div>
-<script type="application/json" data-demo-data>{demo_payload(c, keys, contents)}</script>
+<script type="application/json" data-demo-data>{demo_payload(c, keys, contents, cta_href)}</script>
 <p class="sr-only" data-demo-note>{esc(note)}</p>
 </div>'''
 
 
 # ---------------------------------------------------------------- sections
-def section_demo(c, key, contents, cta_href, cta_label):
+def section_demo(c, key, contents, cta_href, cta_label, extra=''):
     d = contents[key]['demo']
     return f'''<section class="section" id="demo"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(d['eyebrow'])}</p><h2>{c.h(d['title'])}</h2><p class="lead">{c.h(d['lead'])}</p></div>
-{demo_widget(c, [key], contents, cta_href=cta_href, cta_label=cta_label)}
+{demo_widget(c, [key], contents, cta_href=cta_href, cta_label=cta_label,
+             head=f'<div class="shead demo__head"><p class="eyebrow">{c.h(d["eyebrow"])}</p><h2>{c.h(d["title"])}</h2><p class="lead">{c.h(d["lead"])}</p></div>')}
 <script src="/assets/demo.js" defer></script>
+{f'<div class="folds">{extra}</div>' if extra else ''}
 </div></section>'''
 
 
@@ -622,10 +633,14 @@ def tool_status(c, key):
         return 'is-zap', 'Via Zapier · included'
     if v.startswith('addon:'):
         it = c.items[v.split(':', 1)[1]]
+        if it.get('retired'):  # v2.0: the add-on is now part of a plan ("Business plan"), never sold separately
+            feat = next((k for k, f in c.pb.get('plan_features', {}).items() if f.get('replaces') == it['code']), None)
+            first = next((p for p in c.plans if feat in p['features']), None)
+            return ('is-addon', f'{first["name"]} plan') if first else ('is-custom', 'Ask us')
         if soon(c, it['code']):
             return 'is-custom', soon_label(c)
         return 'is-addon', f'Extra {money(it["setup_cents"])} + {money(it["monthly_cents"])}/mo'
-    return 'is-custom', 'Custom quote'
+    return 'is-custom', 'Custom work · ask us'
 
 
 def niche_includes(c, n):
@@ -638,8 +653,16 @@ def niche_includes(c, n):
     return out
 
 
-def section_included(c, niche_key, inc, n):
-    tools = []
+def included_folds(c, niche_key, inc, n):
+    """"What's included" and "Works with your tools" (was a full section, 2026-11-25): two folds beside the price card,
+    which already shows the first five included items. Nothing removed: every item and every tool row is inside."""
+    incl = niche_includes(c, n)
+    excl = [c.t(x) for x in c.shared['plan_not_included']]
+    body = (f'<ul class="ticks">{"".join(f"<li>{esc(x)}</li>" for x in incl)}</ul>'
+            f'<p class="small muted" style="margin-top:14px">{c.h(c.shared["sms_note"])}</p>'
+            f'<h4 class="fold__sub">Not included</h4><ul class="ticks ticks--no">{"".join(f"<li>{esc(x)}</li>" for x in excl)}</ul>')
+    a = fold('included', c.h(inc['eyebrow']), f'Every plan: {count_label(len(incl), "item")} · Not included: {count_label(len(excl), "item")}', body)
+    tools, names = [], []
     allow = n.get('tools')
     for k, meta in c.pb.get('integration_meta', {}).items():
         if k == 'other' or not ('*' in meta['niches'] or niche_key in meta['niches']):
@@ -648,24 +671,20 @@ def section_included(c, niche_key, inc, n):
             continue
         cls, label = tool_status(c, k)
         tools.append(f'<li class="{cls}"><span>{esc(meta["label"])}</span><span>{esc(label)}</span></li>')
-        # Display-only rows (no questionnaire option), e.g. iCloud Calendar reached through Calendly.
+        if cls == 'is-native':
+            names.append(({'calendar': 0, 'automation': 1}.get(meta.get('category'), 2), meta['label']))
         for x in inc.get('tools_extra', []):
             if x['after'] == k:
                 tools.append(f'<li class="is-native"><span>{esc(x["label"])}</span><span>{esc(x["status"])}</span></li>')
-    return f'''<section class="section" id="included"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(inc['eyebrow'])}</p><h2>{c.h(inc['title'])}</h2></div>
-<div class="incl">
-<div><h3>{esc(n.get('product_name') or c.items['RCP']['name'])}</h3><ul class="ticks">{''.join(f'<li>{esc(x)}</li>' for x in niche_includes(c, n))}</ul>
-<p class="small muted" style="margin-top:14px">{c.h(c.shared['sms_note'])}</p>
-<details class="more"><summary>Not included</summary><ul class="ticks ticks--no">{excludes_list(c, 'RCP')}</ul></details></div>
-<div><h3>{c.h(inc['tools_title'])}</h3><ul class="tools">{''.join(tools)}</ul></div>
-</div>
-</div></section>'''
+    names = [x[1] for x in sorted(names, key=lambda x: x[0])]  # calendars, then Zapier, first
+    gist = f'{", ".join(names[:3])} included · {count_label(len(tools), "tool")} listed'
+    b = fold('tools', c.h(inc['tools_title']), esc(gist), f'<ul class="tools">{"".join(tools)}</ul>')
+    return a + b
 
 
-def rail(c, steps):
-    return '<ol class="rail">' + ''.join(
-        f'<li><span class="num">{c.h(s["num"])}</span><h3>{c.h(s["title"])}</h3><p>{c.h(s["text"])}</p></li>' for s in steps) + '</ol>'
+def rail(c, steps, cls='rail', tag='h3'):
+    return f'<ol class="{cls}">' + ''.join(
+        f'<li><span class="num">{c.h(s["num"])}</span><{tag}>{c.h(s["title"])}</{tag}><p>{c.h(s["text"])}</p></li>' for s in steps) + '</ol>'
 
 
 def video_call_href(c):
@@ -677,42 +696,35 @@ def video_call_href(c):
     return f'mailto:{mail}?subject=' + quote('15-minute video call') + '&body=' + quote('Hi, I would like a 15-minute video call before choosing. Business name: ')
 
 
-def video_call_line(c):
-    txt = c.h(c.shared['how']['video_call'])
-    return f'<p class="how__call">{txt} <a href="{esc(video_call_href(c))}" rel="noopener">Book a video call</a>.</p>'
-
-
 def video_call_box(c):
     v = c.shared['video_call_box']
     return (f'<p class="notice small"><span><b>{c.h(v["title"])}</b> {c.h(v["text"])} '
             f'<a href="{esc(video_call_href(c))}" rel="noopener">{c.h(v["link"])}</a></span></p>')
 
 
-def section_how(c, how=None):
+def section_how(c, how=None, after_pay=False):
+    """One step rail (2026-11-25). On the AI pages it replaces three overlapping sections ("What happens to a missed
+    call", "From first click to live", "Five steps, with dates"): the four steps stay visible and the dated plan after
+    you pay is one fold under them (#after-you-pay)."""
     how = how or c.shared['how']
+    extra = ''
+    if after_pay:
+        a = c.shared['after_pay']
+        body = f'<p class="small muted">{c.h(a["lead"])}</p>' + rail(c, a['steps'], 'rail rail--5', 'h4')
+        extra = '<div class="folds">' + fold('after-you-pay', c.h(a['eyebrow']), c.h(a['gist']), body) + '</div>'
     return f'''<section class="section" id="how"><div class="wrap">
 <div class="shead"><p class="eyebrow">{c.h(how['eyebrow'])}</p><h2>{c.h(how['title'])}</h2>{f'<p class="lead">{c.h(how["lead"])}</p>' if how.get('lead') else ''}</div>
 {rail(c, how['steps'])}
-{video_call_line(c)}
+{extra}
 </div></section>'''
 
 
-def section_after_pay(c):
-    a = c.shared['after_pay']
-    return f'''<section class="section" id="after-you-pay"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(a['eyebrow'])}</p><h2>{c.h(a['title'])}</h2><p class="lead">{c.h(a['lead'])}</p></div>
-<ol class="rail rail--5" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))">{''.join(f'<li><span class="num">{c.h(s["num"])}</span><h3>{c.h(s["title"])}</h3><p>{c.h(s["text"])}</p></li>' for s in a['steps'])}</ol>
-</div></section>'''
-
-
-def section_proof(c, rows_override=None):
+def trust_side(c, items):
+    """The three trust points as a compact stack in the price column (AI pages, 2026-11-25): the column had empty
+    space beside the tall price card, so trust costs no extra height on desktop."""
     p = c.shared['proof']
-    rows = ''.join(f'<div class="proof__row"><dt>{c.h(r["k"])}</dt><dd>{c.h(r["v"])}</dd></div>' for r in (rows_override or p['rows']))
-    return f'''<section class="section" id="trust"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(p['eyebrow'])}</p><h2>{c.h(p['title'])}</h2></div>
-<dl class="proof">{rows}</dl>
-<p class="small muted" style="margin-top:16px">* {esc(c.brand['disclaimers']['footer'])}</p>
-</div></section>'''
+    lis = ''.join(f'<li><b>{c.h(x["title"])}</b><span>{c.h(x["text"])}</span></li>' for x in items)
+    return f'<div class="trust-side" id="trust"><h3 class="fold__sub">{c.h(p["eyebrow"])}</h3><ul class="trust3 trust3--stack">{lis}</ul></div>'
 
 
 def item_price(i):
@@ -780,6 +792,118 @@ def price_card(c, code, cta_href, cta_label, *, featured=True, early=False, n=No
 </div>'''
 
 
+# ---------------------------------------------------------------- FirstRing monthly plans (owner decision 2026-11-25)
+# Three packages from pricebook.json plans[] (no setup fee, 14-day free trial, cancel anytime). Every "Start free trial"
+# button goes to /start/?plan=<CODE> (plus &niche= on a niche page) and fires TRIAL_EV (brand.json analytics.events).
+TRIAL_EV = 'trial_start'
+TRIAL_CTA = 'Start free trial'
+REFUND_HREF = '/legal/refund/'
+
+
+def plan_href(code, niche=None):
+    return f'/start/?plan={code}' + (f'&niche={niche}' if niche else '')
+
+
+def plan_feature_keys(c, plan, niche):
+    """The plan's feature keys that apply to this niche (no on-call dispatch for real estate)."""
+    pf = c.pb['plan_features']
+    return [k for k in plan['features'] if '*' in pf[k]['niches'] or niche in pf[k]['niches']]
+
+
+def plan_feature_label(c, key, niche):
+    f = c.pb['plan_features'][key]
+    return (f.get('label_by_niche') or {}).get(niche) or f['label']
+
+
+def go_live_label(days):
+    return f'Live in {days} business day' + ('' if days == 1 else 's')
+
+
+def plan_cards(c, niche, link_niche, *, cta_href=None, cta_label=TRIAL_CTA):
+    """One card per plan: name (+ badge), monthly price, included minutes, feature checklist ("Everything in <previous>,
+    plus:" from the second plan on), go-live line and one button. The plan with a badge (Pro) is highlighted."""
+    cards, prev, prev_keys = [], None, []
+    for p in c.plans:
+        keys = plan_feature_keys(c, p, niche)
+        new = [k for k in keys if k not in prev_keys]
+        lis = (f'<li class="plan__plus">Everything in {esc(prev["name"])}, plus:</li>' if prev else '') + ''.join(
+            f'<li>{esc(plan_feature_label(c, k, niche))}</li>' for k in new)
+        pop = bool(p.get('badge'))
+        badge = f'<span class="badge plan__badge">{esc(p["badge"])}</span>' if pop else ''
+        href = cta_href or plan_href(p['code'], link_niche)
+        ev = f' data-ev="{TRIAL_EV}" data-plan="{esc(p["code"])}"' if not cta_href else ''
+        cards.append(f'''<li class="plan{' plan--pop' if pop else ''}" id="plan-{esc(p['code'].lower().replace('_', '-'))}">
+<div class="plan__top"><h3 class="plan__name">{esc(p['name'])}</h3>{badge}</div>
+<p class="plan__price"><b class="num">{money(p['monthly_cents'])}</b><span>/mo</span></p>
+<p class="plan__min"><b class="num">{p['included_usage']['voice_minutes']:,}</b> voice minutes a month</p>
+<ul class="plan__list">{lis}</ul>
+<p class="plan__go">{esc(go_live_label(p['go_live_business_days']))}</p>
+<a class="btn{' btn--primary' if pop else ''} btn--block" href="{esc(href)}"{ev}>{esc(cta_label)}</a>
+</li>''')
+        prev, prev_keys = p, keys
+    return '<ul class="plans" aria-label="Monthly plans">' + ''.join(cards) + '</ul>'
+
+
+def plans_terms(c):
+    """The trial / cancel line under the plans, then the minutes rule and the money-back guarantee with the refund link."""
+    t = c.tokens
+    chips = [f'{t["trial_days"]}-day free trial', 'Cancel anytime', t['no_setup_text'].rstrip('.'), t['go_live_text'].rstrip('.')]
+    return (f'<ul class="plans__terms" aria-label="Every plan">{"".join(f"<li>{esc(x)}</li>" for x in chips)}</ul>'
+            f'<p class="plans__fine">{esc(t["trial_text"])} {esc(t["cancel_text"])} {esc(t["minutes_text"])} '
+            f'<b>{esc(t["money_back_label"])}</b> on your first paid month. <a href="{REFUND_HREF}">Refund policy</a></p>')
+
+
+def section_plans(c, pr, *, niche, link_niche, cta_href=None, cta_label=TRIAL_CTA, after='', product=''):
+    """The pricing block (design 'Workday'): heading, three plan cards (Pro highlighted), the trial/cancel line, then
+    `after` (folds, trust, FAQ). `product` = the product name shown in the eyebrow (FirstRing AI Lead Assistant on
+    the real-estate page)."""
+    eyebrow = c.h(pr['eyebrow']) + (f' · {esc(product)}' if product else '')
+    lead = f'<p class="lead">{c.h(pr["lead"])}</p>' if pr.get('lead') else ''
+    return f'''<section class="section" id="pricing"><div class="wrap">
+<div class="shead"><p class="eyebrow">{eyebrow}</p><h2>{c.h(pr['title'])}</h2>{lead}</div>
+{plan_cards(c, niche, link_niche, cta_href=cta_href, cta_label=cta_label)}
+{plans_terms(c)}
+{after}
+</div></section>'''
+
+
+def plans_line(c, tag=None):
+    """Hero price line: 'From $149/mo' + a short tag (trial, no setup fee, cancel anytime)."""
+    tag = tag or f'{c.tokens["trial_days"]}-day free trial · no setup fee · cancel anytime'
+    return (f'<p class="hero__price"><span class="from">From</span> <b class="num">{esc(c.tokens["from_price"])}</b>/mo'
+            f'<span class="tag">{esc(tag)}</span></p>')
+
+
+def plans_mbar(c, href, label=TRIAL_CTA, niche_cta=False):
+    """Sticky bottom CTA on phones (<= 760px), plans version: 'From $149/mo · 14-day free trial' + a button to the plans."""
+    nc = ' data-niche-cta' if niche_cta else ''
+    return (f'<div class="mbar" data-mbar><p class="mbar__price">From <b class="num">{esc(c.tokens["from_price"])}</b>/mo<br>'
+            f'{esc(c.tokens["trial_days"])}-day free trial</p>'
+            f'<a class="btn btn--primary btn--sm" href="{esc(href)}"{nc}>{esc(label)}</a></div>')
+
+
+def plans_ld(c, name, desc, url, service_type, audience):
+    """Service JSON-LD with one monthly Offer per plan (no setup fee)."""
+    offers = []
+    for p in c.plans:
+        price = f'{p["monthly_cents"] / 100:.2f}'
+        offers.append({'@type': 'Offer', 'name': f'{p["product"]} {p["name"]}', 'url': url.split('#')[0] + '#pricing',
+                       'price': price, 'priceCurrency': 'USD', 'availability': 'https://schema.org/InStock',
+                       'priceSpecification': {'@type': 'UnitPriceSpecification', 'name': 'Monthly plan', 'price': price,
+                                              'priceCurrency': 'USD',
+                                              'referenceQuantity': {'@type': 'QuantitativeValue', 'value': 1, 'unitCode': 'MON'}}})
+    return {'@type': 'Service', 'name': name, 'serviceType': service_type, 'description': desc,
+            'provider': {'@id': c.site_url + '/#org'}, 'areaServed': {'@type': 'Country', 'name': 'United States'},
+            'audience': {'@type': 'BusinessAudience', 'name': audience}, 'offers': offers}
+
+
+def plans_after(c, niche_key, n):
+    """Under the plans on a niche page: the "What's included" and "Works with your tools" folds, then the trust points
+    and the optional video call."""
+    return (f'<div class="pricing pricing--after"><div class="pricing__side"><div class="folds">{included_folds(c, niche_key, n["included"], n)}</div>'
+            f'{video_call_box(c)}</div><div class="pricing__side">{trust_side(c, c.shared["trust"])}</div></div>')
+
+
 def refund_fine(c, code):
     """Price-card fine print from refund_rules: the satisfaction guarantee for its codes (RCP, BNDL), then the deposit rule."""
     rr = c.pb.get('refund_rules', {})
@@ -788,17 +912,16 @@ def refund_fine(c, code):
     return ''.join(f'<p class="price-card__fine">{esc(s)}</p>' for s in lines if s)
 
 
-def section_pricing(c, pr, code, cta_href, cta_label, *, early=False, bundle_link=True, n=None):
-    side = [f'<p>{c.h(pr["note"])}</p>', addons_table(c, code, (n or {}).get('addons_hide', ())), bundles_soon(c, n)]
-    if bundle_link:
-        b = c.items['BNDL']
-        side.append(f'<p class="small">Need a website too? The <a href="/website/#bundle">{esc((n or {}).get("bundle_name") or b["name"])}</a> is {money(b["setup_cents"])} + {money(b["monthly_cents"])}/mo.</p>')
-        side.append(video_call_box(c))
-    side.append(f'<p class="small muted">{c.h(c.tokens["usage_text"])}</p>')
-    return f'''<section class="section" id="pricing"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(pr['eyebrow'])}</p><h2>{c.h(pr['title'])}</h2></div>
-<div class="pricing">{price_card(c, code, cta_href, cta_label, early=early, n=n)}<div class="pricing__side">{'' if early else founder_slot(c)}{''.join(side)}</div></div>
-</div></section>'''
+def extras_fold(c, code, n=None, fid='extras', after=''):
+    """Extras (fixed prices), the coming-soon ones and the coming-soon trade bundles, folded (2026-11-25)."""
+    hide = (n or {}).get('addons_hide', ())
+    later_ok = lambda i: i['group'] == 'addon' and (code in i['applies_to'] or 'any' in i['applies_to']) and i['code'] not in hide
+    now = [i for i in c.pb['items'] if later_ok(i) and not soon(c, i['code'])]
+    later = [i for i in c.pb['items'] if later_ok(i) and soon(c, i['code'])]
+    gist = count_label(len(now), 'extra') + (f' · {len(later)} {soon_label(c).lower()}' if later else '')
+    if (n or {}).get('bundles'):
+        gist += ' · trade bundles'
+    return fold(fid, 'Extras, fixed prices', esc(gist), addons_table(c, code, hide) + bundles_soon(c, n) + after)
 
 
 def faq_items(c, faq, sizes=(8, 9)):
@@ -815,19 +938,21 @@ def faq_items(c, faq, sizes=(8, 9)):
 def section_faq(faqs):
     items = ''.join(f'<details><summary>{esc(q)}</summary><div><p>{esc(a)}</p></div></details>' for q, a in faqs)
     return f'''<section class="section" id="faq"><div class="wrap">
-<div class="shead"><p class="eyebrow">FAQ</p><h2>Straight <em class="em">answers</em>.</h2></div>
-<div class="faq">{items}</div>
+<div class="faq-wrap"><div class="shead"><p class="eyebrow">FAQ</p><h2>Straight <em class="em">answers</em>.</h2></div>
+<div class="faq">{items}</div></div>
 </div></section>'''
 
 
-def section_band(c, cta_href, cta_label, demo_href='#demo', band=None, niche_cta=False):
-    """Closing amber band: the quote button, plus a demo button unless demo_href is None (the /firstring/ page drops it: its demo is on the page)."""
+def section_band(c, cta_href, cta_label, demo_href='#demo', band=None, niche_cta=False, ev=None):
+    """Closing band: the main button (the plans, or WEB's package with ev='quote_start'), plus a demo button unless
+    demo_href is None (the /firstring/ page drops it: its demo is on the page)."""
     b = band or c.shared['cta_band']
     nc = ' data-niche-cta' if niche_cta else ''
+    eva = f' data-ev="{ev}"' if ev else ''
     demo = f'<a class="btn" href="{esc(demo_href)}" data-ev="demo_start">Try the demo</a>' if demo_href else ''
     return f'''<section class="section section--amber band"><div class="wrap">
 <h2>{c.h(b['title'])}</h2><p style="margin-top:12px">{c.h(b['text'])}</p>
-<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start"{nc}>{esc(cta_label)}</a>{demo}</div>
+<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}"{eva}{nc}>{esc(cta_label)}</a>{demo}</div>
 </div></section>'''
 
 
@@ -899,61 +1024,65 @@ def niche_page(c, key, contents, *, path, canonical=None, year):
     index = not early and next((x['index'] for x in c.brand['niches'] if x['key'] == key), True)
     seo = n['seo']
     title, desc = c.t(seo['title']), c.t(seo['description'])
-    cta_href = f'/start/?offer={n["offer"]}&niche={key}'
-    cta_label = 'Get my fixed quote'
+    # v2.0 (2026-11-25): every main button leads to the plans on this page; each plan card has its own
+    # "Start free trial" button to /start/?plan=<CODE>&niche=<key>
+    cta_href = '#pricing'
+    cta_label = TRIAL_CTA
     faqs = faq_items(c, n['faq'])
     canon_url = c.site_url + (canonical or path)
+    product = n.get('product_name') or 'FirstRing'
     ld = None
     if index:
         ld = {'@context': 'https://schema.org', '@graph': [
             org_ld(c),
-            service_ld(c, n['offer'], n.get('service_name') or c.items[n['offer']]['name'], desc, canon_url,
-                       seo['service_type'], seo['audience']),
+            plans_ld(c, n.get('service_name') or product, desc, canon_url, seo['service_type'], seo['audience']),
             faq_ld(faqs)]}
     hero = n['hero']
     if early:
         buttons = '<a class="btn btn--primary" href="#early-access">Join early access</a><a class="btn btn--ghost" href="#demo" data-ev="demo_start">Try the demo</a>'
         badge = '<span class="badge badge--acc badge-early">Early access · not yet available</span>'
-        tag = 'Expected price · fixed, in writing'
+        tag = 'Expected price'
     else:
-        buttons = f'<a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start">{cta_label}</a><a class="btn btn--ghost" href="#demo" data-ev="demo_start">Try the demo</a>'
+        buttons = f'<a class="btn btn--primary" href="{esc(cta_href)}">{cta_label}</a><a class="btn btn--ghost" href="#demo" data-ev="demo_start">Try the demo</a>'
         badge = ''
-        tag = 'Fixed price · in writing · no hourly billing'
+        tag = None
     also = f'<p class="small muted">{c.h(hero["also"])}</p>' if hero.get('also') else ''
     body = [
         head(c, title=title, desc=desc, path=path, canonical=canonical, index=index,
              og_image=f'/assets/og/{n["slug"]}.png', og_title=c.t(seo['og_title']), jsonld=ld),
         nav(c, '/firstring/' if key == 'home_services' else path,
             {'label': 'Join early access', 'href': '#early-access'} if early else
-            {'label': 'Get a quote', 'href': cta_href, 'ev': 'quote_start'}),
-        '<main id="main">',
+            {'label': TRIAL_CTA, 'href': cta_href}),
+        '<main id="main" class="m-compact">',
         f'''<section class="hero"><div class="wrap hero__grid">
 <div class="hero__copy">{badge}
 <p class="eyebrow">{c.h(hero['eyebrow'])}</p>
 <h1>{c.h(hero['title'])}</h1>
 <p class="lead">{c.h(hero['lead'])}</p>
-{price_line(c, n['offer'], tag)}
+{plans_line(c, tag)}
 <div class="btn-row">{buttons}</div>
 {call_line(c)}<p class="hero__fine">{c.h(hero['fine'])}</p>{also}
 </div>
 {clock(c, n['clock'], 'A missed call becomes a booking', n.get('demo'))}
 </div></section>''',
+        # 2026-11-25 (owner: "too much text"): one screen per idea. The missed-call steps fold under the demo; the
+        # included list, the tools table and the extras fold beside the price card; the dated plan folds under "How
+        # it works"; the proof table became three trust points; the Sample-call strip (a copy of the demo) is gone.
         section_why(c),
-        section_missed(c, n['missed_steps']),
-        section_demo(c, key, contents, '#early-access' if early else cta_href, 'Join early access' if early else cta_label),
-        section_included(c, key, n['included'], n),
-        section_how(c),
-        section_after_pay(c),
-        section_proof(c),
-        section_reviews(c, key, contents),
-        section_pricing(c, n['pricing'], n['offer'], cta_href, cta_label, early=early, bundle_link=not early, n=n),
+        section_demo(c, key, contents, '#early-access' if early else cta_href, 'Join early access' if early else cta_label,
+                     extra=missed_fold(c, n['missed_steps'], n.get('missed_gist'))),
+        section_how(c, after_pay=True),
+        section_reviews(c),
+        section_plans(c, n['pricing'], niche=key, link_niche=key, product=product,
+                      cta_href='#early-access' if early else None, cta_label='Join early access' if early else TRIAL_CTA,
+                      after=plans_after(c, key, n)),
     ]
     if early:
         body.append(section_early(c, n['early'], key))
     body += [section_faq(faqs)]
     if not early:
         body.append(section_band(c, cta_href, cta_label))
-    body += ['</main>', '' if early else mobile_bar(c, n['offer'], cta_href, cta_label), footer(c, year), '</body>\n</html>\n']
+    body += ['</main>', '' if early else plans_mbar(c, cta_href), footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
 
 
@@ -966,7 +1095,7 @@ def website_page(c, w, year):
     seo = w['seo']
     title, desc = c.t(seo['title']), c.t(seo['description'])
     faqs = faq_items(c, w['faq'])
-    href_web, href_b = '/start/?offer=WEB', '/start/?offer=BNDL'
+    href_web = '/start/?offer=WEB'
     ld = {'@context': 'https://schema.org', '@graph': [
         org_ld(c), service_ld(c, 'WEB', c.items['WEB']['name'], desc, c.site_url + path, seo['service_type'], seo['audience']),
         faq_ld(faqs)]}
@@ -975,12 +1104,16 @@ def website_page(c, w, year):
         for n, p in enumerate(w['pages']))
     pages = ''.join(f'<li><b>{esc(p["name"])}</b><span>{c.h(p["line"])}</span></li>' for p in w['pages'])
     hero = w['hero']
-    b = c.items['BNDL']
-    inc_web = ''.join(f'<li>{esc(s)}</li>' for s in c.items['WEB']['includes'])
-    exc_web = excludes_list(c, 'WEB')
+    fr = w['firstring']  # v2.0: the receptionist + website bundle is retired; a short "Add FirstRing" box replaces it
+    # 2026-11-25: the "What's included" section is gone: the price card already lists all of WEB's included items, so
+    # only "Not included" and the extras remain, as two folds under the price cards.
+    n_exc = len(c.items['WEB']['excludes'])
+    incl_web = fold('included', 'Not included', f'{count_label(n_exc, "item")}: extra pages, Spanish, logo, blog and more',
+                    f'<ul class="ticks ticks--no">{excludes_list(c, "WEB")}</ul>')
+    extras_web = extras_fold(c, 'WEB', after=f'<p class="small muted" style="margin-top:12px">{c.h(w["extras_note"])}</p>')
     body = [
         head(c, title=title, desc=desc, path=path, og_image='/assets/og/website.png', og_title=c.t(seo['og_title']), jsonld=ld),
-        nav(c, path, {'label': 'Choose package', 'href': href_web, 'ev': 'quote_start'}), '<main id="main">',
+        nav(c, path, {'label': 'Choose package', 'href': href_web, 'ev': 'quote_start'}), '<main id="main" class="m-compact">',
         f'''<section class="hero"><div class="wrap hero__grid">
 <div class="hero__copy">
 <p class="eyebrow">{c.h(hero['eyebrow'])}</p>
@@ -996,25 +1129,16 @@ def website_page(c, w, year):
 <div class="shead"><p class="eyebrow">What you get</p><h2>{c.h(w['steps_title'])}</h2></div>
 <ol class="pagelist">{pages}</ol>
 </div></section>''',
-        f'''<section class="section" id="included"><div class="wrap">
-<div class="shead"><p class="eyebrow">What's included</p><h2>Built, hosted and kept up to <em class="em">date</em>.</h2></div>
-<div class="incl"><div><h3>{esc(c.items['WEB']['name'])}</h3><ul class="ticks">{inc_web}</ul>
-<details class="more"><summary>Not included</summary><ul class="ticks ticks--no">{exc_web}</ul></details></div>
-<div>{addons_table(c, 'WEB')}<p class="small muted" style="margin-top:12px">Choosing an extra adds a short written quote step.</p></div></div>
-</div></section>''',
         section_how(c, w['how']),
-        section_proof(c, w['proof_rows']),
         f'''<section class="section" id="pricing"><div class="wrap">
 <div class="shead"><p class="eyebrow">Pricing</p><h2>Pick one. The price is <em class="em">final</em>.</h2></div>
 <div class="pricing">{price_card(c, 'WEB', href_web, 'Choose this package')}
-<div class="bundle" id="bundle"><span class="badge">Bundle</span><h3>{c.h(w['bundle']['title'])}</h3><p>{c.h(w['bundle']['text'])}</p>
-<div class="price-card__amount"><b>{money(b['setup_cents'])}</b><span>setup</span><b>{money(b['monthly_cents'])}</b><span>/ month</span></div>
-<ul class="price-card__list">{''.join(f'<li>{esc(s)}</li>' for s in b['includes'])}</ul>
-<a class="btn btn--ghost" href="{href_b}" data-ev="quote_start">Choose the bundle</a>
-<p class="price-card__fine">{c.h(c.shared['sms_note'])}</p>{video_call_box(c)}</div></div>
+<div class="pricing__side"><div class="bundle addfr" id="bundle"><span class="badge">FirstRing</span><h3>{c.h(fr['title'])}</h3><p>{c.h(fr['text'])}</p>
+<a class="btn btn--ghost" href="{esc(fr['href'])}">{c.h(fr['link'])}</a>{video_call_box(c)}</div>{trust_side(c, w['trust'])}</div></div>
+<div class="folds folds--row">{incl_web}{extras_web}</div>
 </div></section>''',
         section_faq(faqs),
-        section_band(c, href_web, 'Choose this package', '/demo/', band=w['band']),
+        section_band(c, href_web, 'Choose this package', '/demo/', band=w['band'], ev='quote_start'),
         '</main>', mobile_bar(c, 'WEB', href_web, 'Choose this package'), footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
 
@@ -1024,25 +1148,58 @@ def demo_page(c, contents, year):
     c.page = {}
     k0 = PUBLIC_DEMO_NICHES[0]
     n0 = contents[k0]
-    cta0 = f'/start/?offer={n0["offer"]}&niche={k0}'
-    i0 = c.items[n0['offer']]
+    cta0 = PLANS_PAGE[k0]  # the niche switcher (demo.js, data-niche-cta) points every main button at that niche's plans
     title = f'Try the AI receptionist demo | {c.brand["name"]}'
-    desc = 'A scripted demo of the text conversation after a missed call: home services and real estate. No real booking is made.'
+    desc = 'A scripted demo of an AI receptionist answering a call to a small business: home services and real estate. Nothing is really booked.'
     ld = {'@context': 'https://schema.org', '@graph': [org_ld(c), {'@type': 'WebPage', 'name': title, 'url': c.site_url + path, 'description': desc}]}
+    # 2026-11-25: the demo is a phone CALL (no texting wording here) and the intro is short, so on a 390x844 phone the
+    # situations and the top of the phone fit on the first screen. Price + 'Hear it live' sit in the blue tile on wider
+    # screens; on phones (<=560px, landing.css) that copy is hidden and the same lines show in a tile after the demo.
+    price = (f'<p class="hero__price"><span class="from">From</span> <b class="num">{esc(c.tokens["from_price"])}</b>/mo'
+             f'<span class="tag"><span data-demo-product>{esc(n0.get("product_name") or "FirstRing")}</span> · {esc(c.tokens["trial_days"])}-day free trial</span></p>')
+    live = call_line(c, long=True)
     body = [
         head(c, title=title, desc=desc, path=path, og_image='/assets/og/home-services.png', og_title='Try the AI receptionist', jsonld=ld),
-        nav(c, path, {'label': 'Get a quote', 'href': cta0, 'ev': 'quote_start', 'niche_cta': True}), '<main id="main">',
-        f'''<section class="section" id="demo"><div class="wrap">
-<div class="shead"><p class="eyebrow">Demo</p><h1 style="font-size:clamp(2.1rem,5vw,3.6rem)">Be the <em class="em">customer</em>. Tap the replies.</h1>
-<p class="lead">This is what a caller will get after a missed call once business texting is live (coming soon, after US carrier registration): a text from your AI assistant, a few quick questions, and a booked time. On the phone, the same questions and booking work today. The answers are set in advance. {esc(c.brand['disclaimers']['demo'])}.</p>
-<p class="hero__price"><b class="num">{money(i0['setup_cents'])}</b> setup <span class="plus">+</span> <b class="num">{money(i0['monthly_cents'])}</b>/mo<span class="tag"><span data-demo-product>{esc(n0.get('product_name') or i0['name'])}</span> · fixed price, in writing</span></p>
-{call_line(c, long=True)}</div>
-{demo_widget(c, PUBLIC_DEMO_NICHES, contents, cta_href=cta0, cta_label='Get my fixed quote', switcher=True)}
+        nav(c, path, {'label': TRIAL_CTA, 'href': cta0, 'niche_cta': True}), '<main id="main">',
+        f'''<section class="section section--first" id="demo"><div class="wrap">
+<div class="t t--blue shead demo-intro"><p class="eyebrow">Demo</p><h1>Be the <em class="em">caller</em>.<br>Tap what you say.</h1>
+<p class="lead">See how the AI answers a call to your business. It's a scripted demo: nothing is really booked.</p>
+{price}
+{live}</div>
+{demo_widget(c, PUBLIC_DEMO_NICHES, contents, cta_href=cta0, cta_label=TRIAL_CTA, switcher=True)}
+<div class="t t--blue demo-facts">{price}{live}</div>
 <script src="/assets/demo.js" defer></script>
 </div></section>''',
-        section_band(c, cta0, 'Get my fixed quote', '#demo', niche_cta=True),
+        section_band(c, cta0, TRIAL_CTA, '#demo', niche_cta=True),
         '</main>', footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
+
+
+def on_call_tile(c, data):
+    """FirstRing hero (design 'Workday'): the dark 'on call' tile. From the clock rows: row 2 = what FirstRing says
+    (kicker = its label + time), row 3 = the details it takes (chips; an 'urgent' chip is highlighted), then the demo
+    line (tap to call) and the 'Illustration' caption."""
+    rows = data['rows']
+    say, got = rows[1], rows[2]
+    chips = ''.join(('<li class="is-hot">' if re.search(r'urgent', x, re.I) else '<li>') + esc(x) + '</li>'
+                    for x in c.plain(got['b']).split(' · '))
+    return f'''<figure class="t t--ink oncall" aria-label="{esc(c.plain(data['caption']))}">
+<p class="oncall__k"><span class="oncall__dot" aria-hidden="true"></span>{c.h(say['a'])} · <time>{esc(say['t'])}</time></p>
+<blockquote class="oncall__q">{c.h(say['b'])}</blockquote>
+<ul class="oncall__chips" aria-label="{esc(c.plain(got['a']))}">{chips}</ul>
+{call_line(c)}
+<figcaption class="oncall__cap">{c.h(data['caption'])}</figcaption>
+</figure>'''
+
+
+def calendar_tile(c, data):
+    """FirstRing hero: the 'on your calendar' tile = the booked clock row as a calendar slot ('when · what · note')."""
+    r = next(x for x in data['rows'] if x.get('booked'))
+    parts = c.plain(r['b']).split(' · ')
+    when, what, note = (parts + ['', ''])[:3]
+    slot = f'<b>{esc(what)}</b><span>{esc(when)}</span>' if what else f'<b>{esc(when)}</b>'
+    note_html = f'<p class="caltile__note"><span class="caltile__ic">{ICONS["mail"]}</span>{esc(note[:1].upper() + note[1:])}</p>' if note else ''
+    return f'''<div class="t caltile"><p class="t__k">{c.h(r['a'])}</p><div class="slot">{slot}</div>{note_html}</div>'''
 
 
 def firstring_page(c, fr, contents, year, *, path='/firstring/'):
@@ -1056,7 +1213,7 @@ def firstring_page(c, fr, contents, year, *, path='/firstring/'):
     c.page = {k: v for k, v in (n.get('page_tokens') or {}).items()}
     c.page.setdefault('assistant', 'receptionist')
     c.page['tagline'] = c.t(fr['tagline'])
-    cta_href = f'/start/?offer={n["offer"]}&niche={key}'
+    cta_href = '#pricing'  # v2.0: the main buttons lead to the three plans; each plan has its own "Start free trial"
     cta_label = c.t(fr['hero']['cta'])
     faqs = faq_items(c, fr['faq'], sizes=(3,))
     hero, cl, pr, d = fr['hero'], fr['calls'], fr['pricing'], fr['demo']
@@ -1064,45 +1221,44 @@ def firstring_page(c, fr, contents, year, *, path='/firstring/'):
     title, desc = c.t(seo['title']), c.t(seo['description'])
     ld = {'@context': 'https://schema.org', '@graph': [
         org_ld(c),
-        service_ld(c, n['offer'], fr['product'], desc, c.site_url + path, n['seo']['service_type'], n['seo']['audience']),
+        plans_ld(c, fr['product'], desc, c.site_url + path, n['seo']['service_type'], n['seo']['audience']),
         faq_ld(faqs)]}
-    calls = ''.join(f'<li><span class="calls__ic">{ICONS[x["icon"]]}</span><h3>{c.h(x["title"])}</h3><p>{c.h(x["text"])}</p></li>'
+    calls = ''.join(f'<li class="t"><span class="calls__ic">{ICONS[x["icon"]]}</span><h3>{c.h(x["title"])}</h3><p>{c.h(x["text"])}</p></li>'
                     for x in cl['items'])
     gets = ''.join(f'<li><span class="calls__ic">{ICONS[x["icon"]]}</span>{c.h(x["text"])}</li>' for x in cl['you_get'])
     faq_list = ''.join(f'<details><summary>{esc(q)}</summary><div><p>{esc(a)}</p></div></details>' for q, a in faqs)
+    tk = c.tokens
     body = [
         head(c, title=title, desc=desc, path=path, og_image='/assets/og/firstring.png', og_title=c.t(seo['og_title']), jsonld=ld),
-        nav(c, path, {'label': 'Get a quote', 'href': cta_href, 'ev': 'quote_start'}),
+        nav(c, path, {'label': TRIAL_CTA, 'href': cta_href}),
         '<main id="main">',
-        f'''<section class="hero hero--fr"><div class="wrap hero__grid">
-<div class="hero__copy">
+        f'''<section class="hero hero--fr"><div class="wrap hero__grid bento">
+<div class="t t--blue hero__copy">
 <p class="eyebrow">{c.h(hero['eyebrow'])}</p>
+<div class="hero__main">
 <h1>{c.h(hero['title'])}</h1>
 <p class="lead">{c.h(hero['lead'])}</p>
-{price_line(c, n['offer'], 'Fixed price · in writing · no hourly billing')}
-<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}" data-ev="quote_start">{esc(cta_label)}</a><a class="btn btn--ghost" href="#demo" data-ev="demo_start">{c.h(hero['secondary'])}</a></div>
-{call_line(c)}<p class="hero__fine">{c.h(hero['fine'])}</p>
+<div class="btn-row"><a class="btn btn--primary" href="{esc(cta_href)}">{esc(cta_label)}</a><a class="btn btn--link" href="#demo" data-ev="demo_start">{c.h(hero['secondary'])}</a></div>
+<p class="hero__fine">{c.h(hero['fine'])}</p>
 </div>
-{clock(c, fr['clock'], 'A call you could not take becomes a booking', n.get('demo'))}
-</div></section>''',
-        f'''<section class="section" id="calls"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(cl['eyebrow'])}</p><h2>{c.h(cl['title'])}</h2></div>
+</div>
+{on_call_tile(c, fr['clock'])}
+<div class="t t--sun pricetile"><p class="pricetile__big"><span class="from">From</span><b class="num">{esc(tk['from_price'])}</b><span>/mo</span></p><p class="pricetile__sub"><b>{esc(tk['trial_days'])}-day free trial</b></p><p class="pricetile__fine">No setup fee · cancel anytime</p></div>
+{calendar_tile(c, fr['clock'])}
+<div class="calls-wrap" id="calls"><h2 class="sr-only">{esc(c.plain(cl['title']))}</h2>
 <ol class="calls">{calls}</ol>
-<div class="calls__get"><p class="calls__k">{c.h(cl['you_get_title'])}</p><ul>{gets}</ul></div>
+<div class="t calls__get"><p class="calls__k">{c.h(cl['you_get_title'])}</p><ul>{gets}</ul></div></div>
 </div></section>''',
         f'''<section class="section" id="demo"><div class="wrap">
 <div class="shead"><p class="eyebrow">{c.h(d['eyebrow'])}</p><h2>{c.h(d['title'])}</h2><p class="lead">{c.h(d['lead'])}</p></div>
 {demo_widget(c, [key], contents, cta_href=cta_href, cta_label=cta_label, transcript_=False)}
 <script src="/assets/demo.js" defer></script>
 </div></section>''',
-        f'''<section class="section" id="pricing"><div class="wrap">
-<div class="shead"><p class="eyebrow">{c.h(pr['eyebrow'])}</p><h2>{c.h(pr['title'])}</h2></div>
-<div class="pricing">{price_card(c, n['offer'], cta_href, cta_label, n={'included_items': pr['trust'], 'product_name': fr['product']})}<div class="pricing__side">
-<div class="faq" id="faq">{faq_list}</div>
-<p class="small"><a href="{esc(fr['full_page'])}">{c.h(pr['full_page_link'])}</a></p></div></div>
-</div></section>''',
+        section_plans(c, pr, niche=key, link_niche=key,
+                      after=f'''<div class="pricing pricing--after"><div class="faq" id="faq">{faq_list}</div>
+<div class="pricing__side"><p class="small"><a href="{esc(fr['full_page'])}">{c.h(pr['full_page_link'])}</a></p>{video_call_box(c)}</div></div>'''),
         section_band(c, cta_href, cta_label, demo_href=None, band=fr['band']),
-        '</main>', mobile_bar(c, n['offer'], cta_href, cta_label), footer(c, year), '</body>\n</html>\n']
+        '</main>', plans_mbar(c, cta_href, cta_label), footer(c, year), '</body>\n</html>\n']
     return '\n'.join(body)
 
 
@@ -1113,9 +1269,11 @@ AREA_ICONS = {
 }
 
 
-def house_page(c, h, year, *, path='/'):
+def house_page(c, h, year, *, signup_href, path='/'):
     """/ (2026-11-23): AI Lab Pro as the house brand. Hero: one headline, one line, one button to FirstRing, and the live
-    demo line as a call card (tap to call). Then the three areas (Service with FirstRing featured, Sales, Operations): only
+    demo line as a call card (tap to call). The yellow FirstRing tile's button (2026-11-25) is the sign-up button
+    ("See my price", signup_href = the same purchase path as /firstring/, data-ev quote_start), so the fold never shows
+    "Meet FirstRing" twice. Then the three areas (Service with FirstRing featured, Sales, Operations): only
     what the price book sells today carries a price; anything else is a 'by request' line. Three trust points, closing
     band. No demo widget, no reviews, no client names (owner decision pending; slot between #areas and #trust)."""
     c.page = {'tagline': c.t(h['tagline'])}
@@ -1123,14 +1281,16 @@ def house_page(c, h, year, *, path='/'):
     seo, hero, call, ar = h['seo'], h['hero'], h['call'], h['areas']
     title, desc = c.t(seo['title']), c.t(seo['description'])
     ld = {'@context': 'https://schema.org', '@graph': [
-        org_ld(c), {'@type': 'WebSite', 'name': c.brand['name'], 'url': c.site_url + '/', 'publisher': {'@id': c.site_url + '/#org'}}]}
+        org_ld(c), {'@type': 'WebSite', 'name': c.brand['name'], 'url': c.site_url + '/', 'publisher': {'@id': c.site_url + '/#org'}},
+        plans_ld(c, 'FirstRing', c.t(ar['service']['feature']['text']), c.site_url + '/', ar['service']['feature']['service_type'],
+                 ar['service']['feature']['audience'])]}
     # call card: the demo phone line (brand.json demo.*); hidden entirely when the number is not configured
     dp = c.brand.get('demo') or {}
     num, e164 = str(dp.get('phone_number') or ''), str(dp.get('phone_e164') or '')
     card = ''
     if num and re.fullmatch(r'\+1\d{10}', e164):
         biz, city = dp.get('phone_business') or '', dp.get('phone_city') or ''
-        card = f'''<aside class="ring" aria-label="{esc(c.t(call['kicker']))}">
+        card = f'''<aside class="t t--ink ring" aria-label="{esc(c.t(call['kicker']))}">
 <p class="ring__k"><span class="ring__dot" aria-hidden="true"></span>{c.h(call['kicker'])}</p>
 <div class="ring__who"><span class="ring__av" aria-hidden="true">{esc(biz[:1])}<i></i><i></i></span><span><b>{esc(biz)}</b><small>{c.h(call['tag'])}{(' · ' + esc(city)) if city else ''}</small></span></div>
 <a class="ring__num num" href="tel:{esc(e164)}" data-ev="demo_call">{esc(num)}</a>
@@ -1152,42 +1312,48 @@ def house_page(c, h, year, *, path='/'):
         return '<ul class="mini">' + ''.join(out) + '</ul>'
 
     def area_head(k, n_):
-        return f'<p class="area__k"><span class="area__ic">{AREA_ICONS[k]}</span><span class="area__n">0{n_}</span>{c.h(ar[k]["label"])}</p>'
+        return f'<h3 class="area__k"><span class="area__ic">{AREA_ICONS[k]}</span><span class="area__n">0{n_}</span>{c.h(ar[k]["label"])}</h3>'
 
     f = ar['service']['feature']
-    i = c.items[f['price_code']]
     chips = ''.join(f'<li>{c.h(x)}</li>' for x in f['chips'])
-    feature = f'''<div class="feat">
-<div class="feat__top"><span class="badge badge--acc">{c.h(f['badge'])}</span><span class="feat__kicker">{c.h(f['kicker'])}</span></div>
-<h3 class="feat__name">{c.h(f['name'])}<small>{c.h(f['by'])}</small></h3>
+    feature = f'''<article class="t t--sun feat{'' if card else ' feat--tall'}">
+<div class="feat__top"><span class="badge">{c.h(f['badge'])}</span><span class="feat__kicker">{c.h(f['kicker'])}</span></div>
+<h2 class="feat__name">{c.h(f['name'])}<small>{c.h(f['by'])}</small></h2>
 <p class="feat__text">{c.h(f['text'])}</p>
 <ul class="feat__chips" aria-label="Calls it handles">{chips}</ul>
-<div class="feat__foot"><p class="feat__price"><b class="num">{money(i['setup_cents'])}</b> setup + <b class="num">{money(i['monthly_cents'])}</b>/mo</p>
-<a class="btn btn--primary" href="{esc(f['href'])}">{c.h(f['cta'])} <span aria-hidden="true">&rarr;</span></a></div>
-</div>'''
+<div class="feat__foot"><p class="feat__price">From <b class="num">{esc(c.tokens['from_price'])}</b>/mo · {esc(c.tokens['trial_days'])}-day free trial</p>
+<a class="btn btn--primary" href="{esc(signup_href)}">{c.h(f['cta'])}</a></div>
+</article>'''
+    # the Service tile below the hero lists FirstRing as a line (the big card is in the hero) plus the service items
+    fr_line = {'title': f['name'], 'text': f['kicker'], 'href': f['href']}
     trust = ''.join(f'<li><b>{c.h(x["title"])}</b><span>{c.h(x["text"])}</span></li>' for x in h['trust'])
     b = h['band']
     body = [
         head(c, title=title, desc=desc, path=path, og_image='/assets/og/home.png', og_title=c.t(seo['og_title']), jsonld=ld),
         nav(c, path),
         '<main id="main">',
-        f'''<section class="hero hero--house"><div class="wrap hero__grid">
-<div class="hero__copy">
+        f'''<section class="hero hero--house"><div class="wrap hero__grid bento">
+<div class="t t--blue hero__copy">
 <p class="eyebrow">{c.h(hero['eyebrow'])}</p>
+<div class="hero__main">
 <h1>{c.h(hero['title'])}</h1>
 <p class="lead">{c.h(hero['lead'])}</p>
-<div class="btn-row"><a class="btn btn--primary" href="{esc(hero['cta_href'])}">{c.h(hero['cta'])}</a></div>
+<div class="btn-row"><a class="btn btn--primary" href="{esc(hero['cta_href'])}">{c.h(hero['cta'])}</a><a class="btn btn--link" href="{esc(b['secondary_href'])}" data-ev="demo_start">{c.h(b['secondary'])}</a></div>
+</div>
 </div>
 {card}
+{feature}
 </div></section>''',
         f'''<section class="section" id="areas"><div class="wrap">
 <div class="shead"><p class="eyebrow">{c.h(ar['eyebrow'])}</p><h2>{c.h(ar['title'])}</h2></div>
 <div class="areas">
-<article class="area area--service">{area_head('service', 1)}{feature}{mini(ar['service']['items'])}</article>
-<article class="area">{area_head('sales', 2)}{mini(ar['sales']['items'])}</article>
-<article class="area">{area_head('operations', 3)}{mini(ar['operations']['items'])}</article>
+<article class="t area area--service">{area_head('service', 1)}{mini([fr_line] + ar['service']['items'])}</article>
+<article class="t area">{area_head('sales', 2)}{mini(ar['sales']['items'])}</article>
+<article class="t area">{area_head('operations', 3)}{mini(ar['operations']['items'])}</article>
 </div>
 </div></section>''',
+        # v2.0 (2026-11-25): FirstRing's three monthly plans on the home page too (no niche in the sign-up link)
+        section_plans(c, h['pricing'], niche='home_services', link_niche=None, product='FirstRing'),
         f'''<section class="section" id="trust"><div class="wrap">
 <ul class="trust3">{trust}</ul>
 </div></section>''',
@@ -1211,15 +1377,15 @@ def robots(c):
 
 # ---------------------------------------------------------------- OG images
 OG_HTML = '''<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="{font}">
-<style>*{{margin:0;box-sizing:border-box}}body{{width:1200px;height:630px;background:{ink};color:{paper};font-family:'Noto Sans',sans-serif;padding:72px 80px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}}
-body:before{{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(242,240,247,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(242,240,247,.06) 1px,transparent 1px);background-size:60px 60px;-webkit-mask-image:radial-gradient(70% 90% at 80% 20%,#000,transparent)}}
-body:after{{content:"";position:absolute;right:-200px;top:-260px;width:820px;height:820px;border-radius:50%;background:radial-gradient(closest-side,{deep}66,transparent 70%)}}
-body>*{{position:relative;z-index:1}}
-.k{{font-family:'Space Mono',monospace;font-size:22px;letter-spacing:.16em;text-transform:uppercase;color:{violet2}}}
-h1{{font-size:78px;line-height:1.0;font-weight:800;letter-spacing:-.045em;font-variation-settings:"wdth" 86;max-width:980px}}
-.p{{font-size:30px;color:rgba(242,240,247,.75)}}.p b{{font-family:'Noto Serif',serif;color:{amber};font-size:48px}}
-.f{{display:flex;justify-content:space-between;align-items:center}}.b{{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:800;letter-spacing:-.02em}}.b img{{width:56px;height:56px}}.b small{{font-family:'Space Mono',monospace;font-size:18px;color:{violet2};font-weight:400;letter-spacing:.2em}}</style></head>
-<body><div class="k">{kicker}</div><h1>{title}</h1><div class="f"><div class="p">{price}</div><span class="b"><img src="{gem}" alt="">{brand} <small>US</small></span></div></body></html>'''
+<style>*{{margin:0;box-sizing:border-box}}body{{width:1200px;height:630px;background:{bg};color:{ink};font-family:'Inter',sans-serif;padding:36px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;overflow:hidden}}
+.t{{border-radius:34px;padding:44px}}.main{{background:{blue};color:#fff;display:flex;flex-direction:column;justify-content:space-between}}
+.k{{font-size:21px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.86)}}
+h1{{font-family:'Bricolage Grotesque',sans-serif;font-size:84px;line-height:.94;font-weight:800;letter-spacing:-.045em}}h1 em{{font-style:normal;color:{sun}}}
+.side{{display:grid;gap:18px;grid-template-rows:{rows}}}.p{{background:{sun};display:flex;flex-direction:column;justify-content:flex-end;padding:36px}}
+.p b{{font-family:'Bricolage Grotesque',sans-serif;font-size:60px;white-space:nowrap;line-height:1;letter-spacing:-.04em;font-weight:800}}.p span{{font-size:24px;font-weight:600;margin-top:8px}}
+.b{{background:{ink};color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:36px}}.b img{{width:64px;height:64px}}
+.b p{{font-family:'Bricolage Grotesque',sans-serif;font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1}}.b small{{display:block;margin-top:8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;letter-spacing:.16em;color:{sun}}}</style></head>
+<body><div class="t main"><div class="k">{kicker}</div><h1>{title}</h1></div><div class="side">{price}<div class="t b"><img src="{gem}" alt=""><p>{brand}<small>US</small></p></div></div></body></html>'''
 
 
 def render_og(c, specs):
@@ -1230,14 +1396,17 @@ def render_og(c, specs):
     with open(os.path.join(SITE, 'assets', 'gem-128.png'), 'rb') as fh:
         gem = 'data:image/png;base64,' + base64.b64encode(fh.read()).decode()
     for slug, kicker, title, code in specs:
-        th = c.brand['theme']
+        th = c.brand['landing_theme']
         price = ''
-        if code:  # None = no price line (the house-brand home page)
+        if code == 'PLANS':  # FirstRing monthly plans (v2.0): lowest monthly + the free trial
+            price = f'<div class="t p"><span>From</span><b>{esc(c.tokens["from_price"])}/mo</b><span>{esc(c.tokens["trial_days"])}-day free trial</span></div>'
+        elif code:  # None = no price tile (the house-brand home page)
             i = c.items[code]
-            price = f'<b>{money(i["setup_cents"])}</b> setup + <b>{money(i["monthly_cents"])}</b>/mo'
-        doc = OG_HTML.format(font=esc(c.brand['fonts']['google_css']), kicker=esc(kicker), title=esc(c.plain(title)),
-                             price=price, brand=esc(c.brand['name']),
-                             gem=gem, ink=th['ink'], paper=th['paper'], deep=th['violet_deep'], violet2=th['violet_2'], amber=th['amber'])
+            price = f'<div class="t p"><b>{money(i["monthly_cents"])}/mo</b><span>after {money(i["setup_cents"])} setup</span></div>'
+        title_html = re.sub(r'<em class="em">(.*?)</em>', r'<em>\1</em>', c.h(title))
+        doc = OG_HTML.format(font=esc(landing_fonts(c)), kicker=esc(kicker), title=title_html, price=price,
+                             rows='1fr 1fr' if price else '1fr', brand=esc(c.brand['name']), gem=gem,
+                             bg=th['bg'], ink=th['ink'], blue=th['blue'], sun=th['sun'])
         jobs.append({'html': doc, 'out': os.path.join(out_dir, f'{slug}.png')})
     script = r'''
 import { chromium } from 'playwright';
@@ -1255,7 +1424,7 @@ await b.close();
 
 
 # ---------------------------------------------------------------- legal pages (hand-written, values stamped from config)
-LEGAL_PAGES = ['legal/terms/index.html', 'legal/service-agreement/index.html', 'legal/privacy/index.html']
+LEGAL_PAGES = ['legal/terms/index.html', 'legal/service-agreement/index.html', 'legal/privacy/index.html', 'legal/refund/index.html']
 # any <span> carrying data-cfg, also with other attributes first (e.g. <span class="mono" data-cfg="brand:agreement_version">)
 CFG_RX = re.compile(r'(<span\b[^>]*?\bdata-cfg="(pricebook|brand):([A-Za-z0-9_.]+)"[^>]*>)(.*?)(</span>)', re.S)
 BANNER_RX = re.compile(r'(<div class="draft-banner" role="note")(?: hidden)?>')
@@ -1307,7 +1476,7 @@ def build(c):
     c.reviews = load(os.path.join(CONTENT, 'reviews.json'))
     year = c.pb.get('updated', '2026')[:4]
     pages = {
-        'index.html': house_page(c, home, year),
+        'index.html': house_page(c, home, year, signup_href='#pricing'),
         'firstring/index.html': firstring_page(c, firstring, contents, year),
         'home-services/index.html': niche_page(c, 'home_services', contents, path='/home-services/', year=year),
         'real-estate/index.html': niche_page(c, 'real_estate', contents, path='/real-estate/', year=year),
@@ -1317,9 +1486,9 @@ def build(c):
     indexed = ['/', '/firstring/', '/home-services/', '/real-estate/', '/website/', '/demo/']
     pages['sitemap.xml'] = sitemap(c, indexed)
     pages['robots.txt'] = robots(c)
-    og = [(contents[k]['slug'], c.t(contents[k]['seo']['og_kicker']), c.t(contents[k]['seo']['og_title']), 'RCP') for k in NICHE_FILES]
+    og = [(contents[k]['slug'], c.t(contents[k]['seo']['og_kicker']), c.t(contents[k]['seo']['og_title']), 'PLANS') for k in NICHE_FILES]
     og.append(('website', c.t(website['seo']['og_kicker']), c.t(website['seo']['og_title']), 'WEB'))
-    og.append(('firstring', c.t(firstring['seo']['og_kicker']), c.t(firstring['seo']['og_title']), 'RCP'))
+    og.append(('firstring', c.t(firstring['seo']['og_kicker']), c.t(firstring['seo']['og_title']), 'PLANS'))
     og.append(('home', c.t(home['hero']['eyebrow']), c.t(home['seo']['og_title']), None))
     return pages, og
 
@@ -1345,7 +1514,7 @@ def main(argv):
                 print(f'DIFF  site/{rel} (data-cfg values out of date)')
         for rel, text in pages.items():
             visible = re.sub(r'<(script|style)\b.*?</\1>', '', text, flags=re.S)  # demo JSON keeps its own {vars}; CSS braces
-            raw = sorted(set(re.findall(r'\{[a-z][a-z0-9_]*(?::[A-Z0-9.-]+)?\}', visible)))
+            raw = sorted(set(re.findall(r'\{[a-z][a-z0-9_]*(?::[A-Z0-9_.-]+)?\}', visible)))
             if raw:
                 bad += 1
                 print(f'RAW TOKENS  site/{rel}: {" ".join(raw)}')

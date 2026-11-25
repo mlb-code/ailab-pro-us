@@ -333,6 +333,95 @@
               "type": "string"
             }
           }
+        },
+        "subscription": {
+          "type": "object",
+          "required": [
+            "plan_codes",
+            "setup_cents",
+            "trial_days",
+            "trial_minutes",
+            "trial_card_required",
+            "first_charge",
+            "cancel",
+            "partial_month_refunds",
+            "minutes_roll_over",
+            "per_minute_billing",
+            "usage_alert_pct",
+            "retired_codes",
+            "texts"
+          ],
+          "properties": {
+            "plan_codes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^FR_[A-Z]+$"
+              }
+            },
+            "setup_cents": {
+              "const": 0
+            },
+            "trial_days": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "trial_minutes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "trial_card_required": {
+              "type": "boolean"
+            },
+            "first_charge": {
+              "enum": [
+                "trial_end"
+              ]
+            },
+            "cancel": {
+              "enum": [
+                "anytime_effective_end_of_paid_period"
+              ]
+            },
+            "partial_month_refunds": {
+              "const": false
+            },
+            "minutes_roll_over": {
+              "const": false
+            },
+            "per_minute_billing": {
+              "const": false
+            },
+            "usage_alert_pct": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "retired_codes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "texts": {
+              "type": "object",
+              "required": [
+                "trial",
+                "cancel",
+                "minutes",
+                "go_live",
+                "no_setup"
+              ],
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     },
@@ -463,6 +552,58 @@
               "minLength": 1
             }
           }
+        },
+        "subscription": {
+          "type": "object",
+          "required": [
+            "codes",
+            "money_back_days",
+            "window_from",
+            "refunds",
+            "partial_months_refunded",
+            "label",
+            "text",
+            "legal"
+          ],
+          "properties": {
+            "codes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^FR_[A-Z]+$"
+              }
+            },
+            "money_back_days": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "window_from": {
+              "enum": [
+                "first_charge"
+              ]
+            },
+            "refunds": {
+              "enum": [
+                "first_paid_month"
+              ]
+            },
+            "partial_months_refunded": {
+              "const": false
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "legal": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     },
@@ -514,6 +655,56 @@
           },
           "note": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "plans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/plan"
+      },
+      "description": "FirstRing monthly plans (owner decision 2026-11-25): no setup fee, 14-day free trial, cancel anytime. Read by the site (pricing block), the sign-up (/start/?plan=CODE) and the billing backend."
+    },
+    "plan_features": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "label",
+          "niches"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "niches": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "*",
+                "home_services",
+                "real_estate"
+              ]
+            }
+          },
+          "label_by_niche": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "replaces": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$"
           }
         }
       }
@@ -640,6 +831,121 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "retired": {
+          "type": "object",
+          "required": [
+            "since",
+            "note",
+            "replaced_by"
+          ],
+          "additionalProperties": false,
+          "description": "No longer sold on the site (kept for existing quotes); replaced_by = plan codes that now include it.",
+          "properties": {
+            "since": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "note": {
+              "type": "string"
+            },
+            "replaced_by": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^FR_[A-Z]+$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "required": [
+        "code",
+        "product",
+        "name",
+        "monthly_cents",
+        "setup_cents",
+        "included_usage",
+        "features",
+        "trial_days",
+        "trial_minutes",
+        "go_live_business_days",
+        "availability"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^FR_[A-Z]+$"
+        },
+        "product": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "badge": {
+          "type": "string"
+        },
+        "monthly_cents": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "setup_cents": {
+          "const": 0
+        },
+        "included_usage": {
+          "type": "object",
+          "required": [
+            "voice_minutes"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "voice_minutes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "trial_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trial_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "go_live_business_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "go_live_note": {
+          "type": "string"
+        },
+        "features": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "upgrade_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "coming_soon"
+          ]
         }
       }
     }

@@ -1,5 +1,5 @@
 {
-  "$comment": "FirstRing product page (/firstring/), since 2026-11-23: the former home page (the lighter version from 2026-10-29), cut down and renamed. FirstRing by {brand} = the AI phone receptionist (price-book code RCP; the price book and the questionnaire still call it 'Missed-Call AI Receptionist'). Blocks: hero (price, quote button, demo line, call thread), three kinds of calls, the scripted demo, one price card with 3 FAQs beside it, closing band. The full detail page stays at /home-services/. Demo scenarios and the price come from home-services.json and the price book. Tokens: see _shared.json. Never type a price here. No texting claims: business texting is not live.",
+  "$comment": "FirstRing product page (/firstring/). FirstRing by {brand} = the AI phone receptionist, sold since 2026-11-25 as 3 monthly plans (price book plans[]: FR_STARTER, FR_PRO, FR_BUSINESS; no setup fee, free trial). Blocks: hero (from-price tile, trial button, demo line, call thread), three kinds of calls, the scripted demo, the three plans with 3 FAQs under them, closing band. The full detail page stays at /home-services/. Tokens: see _shared.json. Never type a price here. No texting claims: business texting is not live.",
   "key": "firstring",
   "based_on": "home_services",
   "product": "FirstRing",
@@ -7,7 +7,7 @@
   "tagline": "FirstRing by {brand}, the AI receptionist for small businesses",
   "seo": {
     "title": "FirstRing: AI Receptionist for Small Businesses | {brand}",
-    "description": "FirstRing by {brand} is an AI receptionist for small businesses. It answers the calls you can't take, helps the caller and books the visit on your calendar. {price:RCP.setup} setup + {price:RCP.monthly}/mo.",
+    "description": "FirstRing by {brand} is an AI receptionist for small businesses. It answers the calls you can't take, helps the caller and books the visit on your calendar. From {from_price}/mo, {trial_days}-day free trial.",
     "og_title": "Can't pick up? FirstRing will.",
     "og_kicker": "FirstRing · AI receptionist for small businesses"
   },
@@ -15,9 +15,9 @@
     "eyebrow": "FirstRing by {brand} · AI receptionist for small businesses",
     "title": "Can't pick up? *FirstRing* will.",
     "lead": "It answers your business calls, helps the caller, puts the visit on your calendar and sends you a summary.",
-    "cta": "Get my fixed quote",
+    "cta": "Start free trial",
     "secondary": "Try the demo",
-    "fine": "Sign-up takes about 3 minutes. No sales calls."
+    "fine": "No setup fee. Cancel anytime. Live in 1 business day."
   },
   "clock": {
     "caption": "One call you couldn't take, minute by minute. Illustration.",
@@ -80,17 +80,12 @@
   "demo": {
     "eyebrow": "Try it",
     "title": "Be the *customer*.",
-    "lead": "Pick a situation and tap the answers. On a call, FirstRing asks the same questions. Nothing is really booked."
+    "lead": "Pick a situation and tap what you'd say. This is how a call with FirstRing goes. Nothing is really booked."
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "title": "The price is on the *page*.",
-    "trust": [
-      "Fixed quote in writing {quote_sla}",
-      "{refund_label} on the deposit",
-      "{guarantee_label}"
-    ],
-    "full_page_link": "Every detail: the tools it connects to, extras and how setup works."
+    "title": "Three plans. *No setup fee*.",
+    "full_page_link": "Every detail: what every plan includes, the tools it connects to and how setup works."
   },
   "faq": [
     {
@@ -104,7 +99,7 @@
     }
   ],
   "band": {
-    "title": "Get your *fixed* quote. No call needed.",
-    "text": "A 3-minute questionnaire. A written quote {quote_sla}."
+    "title": "Try it *free* for {trial_days} days.",
+    "text": "{no_setup_text} Cancel anytime. {go_live_text}"
   }
 }

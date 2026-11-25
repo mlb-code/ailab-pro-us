@@ -23,7 +23,11 @@ export interface EmailCtx {
   review?: { risk_flags?: string[]; manual_reasons?: string[]; questions?: string[] } | null;
   questionnaire?: { id: string; offer: string | null; niche: string | null; status: string; summary?: Array<{ q: string; a: string }> | null };
   has_quote?: boolean;
-  client?: { id: string; status: string; products: string[]; monthly_cents: number | null; business_name: string | null; go_live_at: string | null; next_bill_on: string | null };
+  client?: { id: string; status: string; products: string[]; monthly_cents: number | null; business_name: string | null; go_live_at: string | null; next_bill_on: string | null;
+    billing_mode?: string };
+  /** FirstRing monthly plan (public.subscriptions), only for subscription clients */
+  subscription?: { plan_code: string; status: string; trial_ends_at?: string | null; current_period_end?: string | null;
+    cancel_at_period_end?: boolean; ends_at?: string | null; provider?: string; service?: string; service_reason?: string; reason?: string };
   tenant_number?: string | null;
   onboarding?: { total: number; done: number; left: number; left_titles: string[] };
   payment?: { id: string; kind: string; amount_cents: number; method: string | null; status: string; provider?: string | null;
@@ -65,6 +69,15 @@ const admin = (b: EmailBrand, route: string) => `${siteUrl(b)}/start/admin/#${ro
 const itemName = (code: string) => PRICEBOOK.items.find((i) => i.code === code)?.name ?? code;
 const depositPct = () => Number((PRICEBOOK.rules as Record<string, unknown>).deposit_pct ?? 50);
 const isReceptionist = (ctx: EmailCtx) => (ctx.client?.products ?? ["RCP"]).some((p) => p === "RCP" || p === "BNDL");
+/** FirstRing monthly plan client (no quote, no final payment; go-live is automatic) */
+const isPlan = (ctx: EmailCtx) => ctx.client?.billing_mode === "subscription";
+type PlanRow = { code: string; name: string; monthly_cents: number; included_usage?: { voice_minutes?: number } };
+const planOf = (code?: string | null): PlanRow | undefined =>
+  ((PRICEBOOK as unknown as { plans?: PlanRow[] }).plans ?? []).find((p) => p.code === code);
+const planName = (code?: string | null) => planOf(code)?.name ?? code ?? "";
+/** what message mode does, in the words of the terms (owner decision 2026-11-25) */
+const MESSAGE_MODE = "Your line still answers every call, in message mode: it takes the caller's name, number and reason and e-mails them to you. It does not book visits or answer other questions.";
+const FORWARD_OFF = "Don't want calls to reach it at all? Turn off call forwarding on your business phone (the setup checklist in your portal shows how for your phone provider).";
 /** satisfaction guarantee (pricebook refund_rules.rcp_guarantee): [text, "Month D, YYYY" end date] for RCP/BNDL clients, else null */
 function guaranteeOf(ctx: EmailCtx): { text: string; until: string } | null {
   const rr = PRICEBOOK.refund_rules;
@@ -460,6 +473,20 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   ready_to_test: client("transactional", true, (ctx, { brand }) => {
     const rcp = isReceptionist(ctx);
     const num = fmtPhone(ctx.tenant_number);
+    if (isPlan(ctx)) {
+      return {
+        subject: "Your setup is done: final checks running",
+        preheader: "We're testing your receptionist with your settings. You'll get an email the moment it's live.",
+        heading: "Setup done",
+        blocks: [
+          { p: `${hi(ctx)} thanks, your setup checklist is complete and your test call came through.` },
+          ...(num ? [{ facts: [["Your receptionist's number", num]] } as Block] : []),
+          { p: "We're now running automatic test calls against your exact settings (hours, services, FAQ, alerts, calendar). This usually takes minutes. You don't need to do anything." },
+          { p: "As soon as the checks pass, it goes live on its own and we email you." },
+        ],
+        cta: { label: "Open my portal", url: portal(brand, "onboarding") },
+      };
+    }
     return {
       subject: rcp ? "Your AI receptionist is ready to test" : "Your website is ready to review",
       preheader: rcp ? "Call the test number and try it like a customer would." : "Take a look and approve it in your portal.",
@@ -520,11 +547,100 @@ export const TEMPLATES: Record<string, TemplateDef> = {
             "Each evening you get a short summary of the day.", "Need a change? Open a request in your portal and follow its status there."]
           : ["Your site is online at your domain.", "Need a change? Open a request in your portal and follow its status there."] },
         { facts: [[rcp ? "Receptionist number" : "", num],
-          ["Monthly", ctx.client?.monthly_cents ? `${usd(ctx.client.monthly_cents)}/mo` : ""]].filter(([k]) => k) as Array<[string, string]> },
+          ...(isPlan(ctx) ? [["Plan", planName(ctx.subscription?.plan_code)] as [string, string]]
+            : [["Monthly", ctx.client?.monthly_cents ? `${usd(ctx.client.monthly_cents)}/mo` : ""] as [string, string]])].filter(([k]) => k) as Array<[string, string]> },
         ...(rcp ? [{ small: "You can pause the AI any time from your portal." } as Block] : []),
-        ...guaranteeBlocks(ctx),
+        ...(isPlan(ctx) ? [] : guaranteeBlocks(ctx)),
       ],
       cta: { label: "Open my portal", url: portal(brand, rcp ? "receptionist" : "") },
+    };
+  }),
+
+  // ---------------------------------------------------------------- FirstRing monthly plans (2026-11-25)
+  trial_ending: client("transactional", true, (ctx, { brand }) => {
+    const sub = ctx.subscription;
+    const p = planOf(sub?.plan_code);
+    const ends = fmtDate(sub?.trial_ends_at);
+    return {
+      subject: `Your free trial ends ${ends || "in 3 days"}`,
+      preheader: p ? `Then ${p.name} starts at ${usd(p.monthly_cents)}/mo on the card you gave. Cancel any time before that and you pay nothing.` : "Cancel any time before it ends and you pay nothing.",
+      heading: "Your free trial ends soon",
+      blocks: [
+        { p: `${hi(ctx)} your free trial ends on **${ends}**.` },
+        { facts: [["Plan", p?.name ?? sub?.plan_code ?? ""], ["Monthly", p ? `${usd(p.monthly_cents)}/mo` : ""],
+          ["First charge", ends ? `${ends}, on the card you gave at sign-up` : "when the trial ends"]] },
+        { p: "Nothing to do if you want to keep it: your receptionist keeps answering without a break." },
+        { p: "Don't want to keep it? Cancel in your portal (Billing) before the trial ends and you pay nothing." },
+      ],
+      cta: { label: "Review my plan", url: portal(brand, "billing") },
+    };
+  }),
+
+  subscription_message_mode: client("transactional", true, (ctx, { brand }) => {
+    const r = ctx.subscription?.reason || ctx.subscription?.service_reason || "";
+    const why: Record<string, string> = {
+      trial_ended: "Your free trial ended and no paid plan has started.",
+      canceled: "Your plan has ended (it was cancelled).",
+      past_due: "We couldn't collect your monthly payment, and the grace period is over.",
+      paused: "Your plan is paused.",
+    };
+    return {
+      subject: "Your receptionist is now in message mode",
+      preheader: "Calls are still answered: name, number and reason are emailed to you.",
+      heading: "Message mode is on",
+      blocks: [
+        { p: `${hi(ctx)} ${why[r] ?? "Your plan is not active right now."}` },
+        { p: MESSAGE_MODE },
+        { p: r === "past_due" ? "To get full answering back, update your payment details in your portal (Billing)."
+          : "To get full answering back (booking, answers, alerts), restart your plan in your portal (Billing). Your number and settings are kept." },
+        { small: FORWARD_OFF },
+      ],
+      cta: { label: "Restart my plan", url: portal(brand, "billing") },
+    };
+  }),
+
+  subscription_restored: client("transactional", true, (ctx, { brand }) => ({
+    subject: "Full answering is back on",
+    preheader: "Your receptionist answers, books and alerts again.",
+    heading: "You're back to full answering",
+    blocks: [
+      { p: `${hi(ctx)} your plan is active again${ctx.subscription?.plan_code ? ` (${planName(ctx.subscription.plan_code)})` : ""}. Your receptionist answers, books visits and sends alerts as before.` },
+      ...(ctx.tenant_number ? [{ facts: [["Receptionist number", fmtPhone(ctx.tenant_number)]] } as Block] : []),
+      { small: "If you turned call forwarding off, turn it back on (your setup checklist shows how)." },
+    ],
+    cta: { label: "Open my portal", url: portal(brand, "receptionist") },
+  })),
+
+  admin_provisioning_alert: toMeir((ctx, { brand, payload }) => {
+    const step = String(payload?.step ?? "");
+    const label: Record<string, string> = { setup: "ההקמה האוטומטית (כרטיס לקוח, tenant, צ'ק-ליסט)", duplicate_trial: "ניסיון חינם שני לאותו טלפון עסקי" };
+    return {
+      subject: `⚠️ הקמה אוטומטית: ${biz(ctx)}`,
+      preheader: label[step] ?? step,
+      heading: "צריך לבדוק הקמה של לקוח",
+      blocks: [
+        { facts: [["לקוח", biz(ctx)], ["שלב", label[step] ?? step], ["פרטים", String(payload?.error ?? "")],
+          ["חבילה", ctx.subscription?.plan_code ?? ""], ["סטטוס מנוי", ctx.subscription?.status ?? ""]] },
+        { p: step === "duplicate_trial" ? "הטלפון העסקי כבר קיבל ניסיון חינם. המספר לא נקנה. אם זה בסדר: 'נסה שוב: הקמה' בלשונית מנויים."
+          : "המנוי נשמר. אחרי תיקון: 'נסה שוב: הקמה' בלשונית מנויים באדמין." },
+      ],
+      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+    };
+  }),
+
+  admin_billing_request: toMeir((ctx, { brand, payload }) => {
+    const what: Record<string, string> = { plan_change: "שינוי חבילה", cancel: "ביטול", resume: "חידוש מנוי" };
+    return {
+      subject: `בקשת לקוח: ${what[String(payload?.what)] ?? String(payload?.what ?? "")} · ${biz(ctx)}`,
+      preheader: "ספק התשלום עוד לא מחובר לכפתור הזה: לבצע בספק התשלום.",
+      heading: "לקוח ביקש שינוי במנוי",
+      blocks: [
+        { facts: [["לקוח", biz(ctx)], ["בקשה", what[String(payload?.what)] ?? String(payload?.what ?? "")],
+          ["חבילה נוכחית", ctx.subscription?.plan_code ?? ""], ["חבילה מבוקשת", String(payload?.to ?? "")],
+          ["להתחיל עכשיו", payload?.start_now ? "כן" : ""]].filter(([, v]) => v) as Array<[string, string]> },
+        { p: "לבצע בספק התשלום (Paddle). אחרי שהספק מאשר, ה-webhook מעדכן את המערכת לבד." },
+      ],
+      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
     };
   }),
 
