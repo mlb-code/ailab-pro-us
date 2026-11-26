@@ -1,4 +1,4 @@
-/* Admin "Tenants" tab (task B7; Hebrew, RTL). Rendered by admin.js -> tTenants() -> AdminTenants.render(panel, ctx).
+/* Admin "Tenants" tab (task B7; English, LTR). Rendered by admin.js -> tTenants() -> AdminTenants.render(panel, ctx).
    - Usage + cost per tenant this month: AB.adminTenantUsage(month) = RPC admin_tenant_usage (security definer, is_admin();
      reads only usage:/spend:/cost:twilio: keys of runtime_state, which stays service-role-only).
    - Tenant config editor: JSON validated in the browser against /assets/tenant_schema.json (TenantSchema = generic validator;
@@ -15,24 +15,24 @@
   const draft = {};       // unsaved editor text per tenant/client key
 
   const E = {
-    not_admin: 'אין לך הרשאת ניהול.', config_must_be_object: 'הקונפיג חייב להיות אובייקט JSON.', bad_month: 'חודש לא תקין.',
-    tenants_slug_key: 'ה-slug כבר תפוס. בוחרים slug אחר.', tenants_twilio_number_key: 'המספר כבר משויך ל-tenant אחר.',
-    tenants_slug_check: 'slug: אותיות קטנות באנגלית, ספרות ומקפים, 3–60 תווים.', tenants_twilio_number_check: 'מספר Twilio חייב להיות בפורמט E.164, למשל +17135550100.'
+    not_admin: 'You do not have admin access.', config_must_be_object: 'The config must be a JSON object.', bad_month: 'Invalid month.',
+    tenants_slug_key: 'That slug is taken. Pick another slug.', tenants_twilio_number_key: 'That number is already assigned to another tenant.',
+    tenants_slug_check: 'slug: lowercase letters, digits and hyphens, 3–60 characters.', tenants_twilio_number_check: 'The Twilio number must be in E.164 format, for example +17135550100.'
   };
   const err = e => { const m = (e && (e.code || e.message)) || ''; for (const k in E) if (m.indexOf(k) !== -1) return E[k]; return C.errText(e); };
   const toE164 = s => { const dg = String(s || '').replace(/\D/g, ''); return /^\+/.test(String(s || '').trim()) ? '+' + dg : dg.length === 10 ? '+1' + dg : dg.length === 11 && dg[0] === '1' ? '+' + dg : null; };
   const money = usd => C.money(Math.round((usd || 0) * 100));
   const keyOf = (t, cid) => t ? t.id : 'new-' + cid;
 
-  function messageHe(e) {
+  function messageText(e) {
     const p = e.params || {};
     const m = {
-      type: 'סוג שגוי (צריך ' + p.expected + ')', enum: 'ערך לא מותר. מותר: ' + (p.allowed || []).join(', '), const: 'חייב להיות ' + JSON.stringify(p.value),
-      minLength: 'שדה ריק או קצר מדי', maxLength: 'ארוך מדי (עד ' + p.n + ' תווים)', pattern: 'פורמט שגוי' + (p.hint ? ' (' + p.hint + ')' : ''),
-      minimum: 'קטן מהמינימום ' + p.n, maximum: 'גדול מהמקסימום ' + p.n, exclusiveMinimum: 'חייב להיות גדול מ-' + p.n, exclusiveMaximum: 'חייב להיות קטן מ-' + p.n,
-      minItems: 'צריך לפחות ' + p.n + ' פריטים', maxItems: 'מותר עד ' + p.n + ' פריטים', required: 'שדה חובה חסר', additional: 'שדה לא מוכר בסכמה',
-      extra_item: 'יותר מדי פריטים', unknown_field: 'שדה לא מוכר בסכמה'
-    }[e.code] || 'לא תקין';
+      type: 'Wrong type (needs ' + p.expected + ')', enum: 'Value not allowed. Allowed: ' + (p.allowed || []).join(', '), const: 'Must be ' + JSON.stringify(p.value),
+      minLength: 'Empty or too short', maxLength: 'Too long (up to ' + p.n + ' characters)', pattern: 'Wrong format' + (p.hint ? ' (' + p.hint + ')' : ''),
+      minimum: 'Below the minimum ' + p.n, maximum: 'Above the maximum ' + p.n, exclusiveMinimum: 'Must be greater than ' + p.n, exclusiveMaximum: 'Must be less than ' + p.n,
+      minItems: 'Needs at least ' + p.n + ' items', maxItems: 'Up to ' + p.n + ' items allowed', required: 'Required field missing', additional: 'Field not in the schema',
+      extra_item: 'Too many items', unknown_field: 'Field not in the schema'
+    }[e.code] || 'Invalid';
     return { path: e.path || '(config)', text: m };
   }
   async function loadUsage() {
@@ -42,9 +42,9 @@
   function render(p, ctx) {
     C = ctx;
     const esc = C.esc;
-    p.innerHTML = '<section class="card tusage" aria-labelledby="tuH"><div class="row tusage__h"><h2 id="tuH">שימוש ועלות החודש</h2>' +
-      '<label class="sr-only" for="tuMonth">חודש</label><input class="input ltr" type="month" id="tuMonth" dir="ltr" value="' + esc(month) + '"></div>' +
-      '<div id="tuBody"><p class="muted">טוען…</p></div></section>' +
+    p.innerHTML = '<section class="card tusage" aria-labelledby="tuH"><div class="row tusage__h"><h2 id="tuH">Usage and cost this month</h2>' +
+      '<label class="sr-only" for="tuMonth">Month</label><input class="input ltr" type="month" id="tuMonth" dir="ltr" value="' + esc(month) + '"></div>' +
+      '<div id="tuBody"><p class="muted">Loading…</p></div></section>' +
       '<div class="split"><div><ul class="alist" id="alist"></ul></div><section class="detail card" id="detail" tabindex="-1" aria-live="polite"></section></div>';
     C.$('#tuMonth').addEventListener('change', async e => { if (/^\d{4}-\d{2}$/.test(e.target.value)) { month = e.target.value; await loadUsage(); drawUsage(); } });
     TS.load().catch(() => null).then(() => { drawList(); drawDetail(); });
@@ -54,36 +54,36 @@
   function drawUsage() {
     const esc = C.esc, box = C.$('#tuBody'); if (!box) return;
     if (usageErr) { box.innerHTML = '<div class="notice notice--err" role="alert"><div>' + esc(usageErr) + '</div></div>'; return; }
-    if (!usage.length) { box.innerHTML = '<p class="empty">אין tenants עדיין.</p>'; return; }
+    if (!usage.length) { box.innerHTML = '<p class="empty">No tenants yet.</p>'; return; }
     const inc = (C.PB.rules || {}).included_usage || {};
     const pct = (v, m) => m ? Math.round(v / m * 100) + '%' : '';
-    box.innerHTML = '<div class="table-wrap"><table class="table tu"><caption class="sr-only">שימוש ועלות לכל tenant</caption><thead><tr><th scope="col">Tenant</th><th scope="col">לקוח</th><th scope="col">דקות קול</th><th scope="col">מקטעי SMS</th>' +
-      '<th scope="col">Claude</th><th scope="col">Twilio</th><th scope="col">עלות מול החודשי</th></tr></thead><tbody>' + usage.map(u => {
+    box.innerHTML = '<div class="table-wrap"><table class="table tu"><caption class="sr-only">Usage and cost per tenant</caption><thead><tr><th scope="col">Tenant</th><th scope="col">Client</th><th scope="col">Voice minutes</th><th scope="col">SMS segments</th>' +
+      '<th scope="col">Claude</th><th scope="col">Twilio</th><th scope="col">Cost vs. monthly fee</th></tr></thead><tbody>' + usage.map(u => {
         const t = C.D.tenants.find(x => x.id === u.tenant_id) || {}, c = C.D.clients.find(x => x.id === t.client_id);
         const cost = (+u.claude_usd || 0) + (+u.twilio_usd || 0), fee = c && c.monthly_cents ? c.monthly_cents / 100 : 0;
         return '<tr><td><bdi dir="ltr">' + esc(u.slug) + '</bdi></td><td>' + esc(C.clientName(c) || '—') + '</td>' +
           '<td><span dir="ltr" class="num">' + esc(Math.round(u.voice_minutes || 0)) + ' / ' + esc(inc.voice_minutes || '—') + '</span> ' + esc(pct(u.voice_minutes || 0, inc.voice_minutes)) + '</td>' +
           '<td><span dir="ltr" class="num">' + esc(Math.round(u.sms_segments || 0)) + ' / ' + esc(inc.sms_segments || '—') + '</span> ' + esc(pct(u.sms_segments || 0, inc.sms_segments)) + '</td>' +
           '<td>' + money(u.claude_usd) + '</td><td>' + money(u.twilio_usd) + '</td>' +
-          '<td>' + money(cost) + (fee ? ' <span class="muted small">(' + esc(Math.round(cost / fee * 100)) + '% מ-<span dir="ltr">' + esc(C.moneyText ? C.moneyText(c.monthly_cents) : '') + '</span>)</span>' : '') +
-          (u.needs_addon_approval ? ' <span class="pill pill--need_help">עבר 100% — לאשר חבילה עם הלקוח</span>' : '') + '</td></tr>';
+          '<td>' + money(cost) + (fee ? ' <span class="muted small">(' + esc(Math.round(cost / fee * 100)) + '% of <span dir="ltr">' + esc(C.moneyText ? C.moneyText(c.monthly_cents) : '') + '</span>)</span>' : '') +
+          (u.needs_addon_approval ? ' <span class="pill pill--need_help">Over 100% — approve a pack with the client</span>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div>' +
-      '<p class="muted small">המקור: runtime_state דרך הפונקציה admin_tenant_usage (רק מפתחות usage/spend/cost). אין חיוב אוטומטי על חריגה.</p>';
+      '<p class="muted small">Source: runtime_state through the admin_tenant_usage function (usage/spend/cost keys only). No automatic billing for overage.</p>';
   }
 
   function validity(t) {
     if (!TS.schema) return '';
     const n = TS.validate(t.config || {}).length;
-    return n ? '<span class="pill pill--need_help">' + n + ' שגיאות</span>' : '<span class="pill pill--live">תקין</span>';
+    return n ? '<span class="pill pill--need_help">' + n + ' errors</span>' : '<span class="pill pill--live">Valid</span>';
   }
   function drawList() {
     const esc = C.esc, ul = C.$('#alist'); if (!ul) return;
     const noTenant = C.D.clients.filter(c => c.status !== 'cancelled' && !C.D.tenants.some(t => t.client_id === c.id) && (c.products || []).some(x => x === 'RCP' || x === 'BNDL'));
     const rows = C.D.tenants.map(t => '<li><button type="button" data-k="' + esc(t.id) + '" aria-current="' + (C.sel === t.id) + '"><span class="l1"><b dir="ltr">' + esc(t.slug) + '</b>' + C.pill('tenant', t.status) + '</span>' +
       '<span class="l2">' + esc(C.clientName(C.D.clients.find(c => c.id === t.client_id))) + ' · ' + validity(t) + '</span></button></li>').join('') +
-      noTenant.map(c => '<li><button type="button" data-k="new-' + esc(c.id) + '" aria-current="' + (C.sel === 'new-' + c.id) + '"><span class="l1"><b>' + esc(C.clientName(c)) + '</b><span class="pill pill--todo">אין tenant</span></span>' +
-        '<span class="l2">יצירת tenant חדש ללקוח</span></button></li>').join('');
-    ul.innerHTML = rows || '<li class="empty">אין לקוחות עם מוצר receptionist עדיין.</li>';
+      noTenant.map(c => '<li><button type="button" data-k="new-' + esc(c.id) + '" aria-current="' + (C.sel === 'new-' + c.id) + '"><span class="l1"><b>' + esc(C.clientName(c)) + '</b><span class="pill pill--todo">No tenant</span></span>' +
+        '<span class="l2">Create a new tenant for this client</span></button></li>').join('');
+    ul.innerHTML = rows || '<li class="empty">No clients with a receptionist product yet.</li>';
     C.$$('[data-k]', ul).forEach(b => b.addEventListener('click', () => C.go('tenants', b.dataset.k)));
   }
 
@@ -94,28 +94,28 @@
     const t = C.D.tenants.find(x => x.id === sel) || null;
     const cid = t ? t.client_id : (/^new-/.test(sel) ? sel.slice(4) : null);
     const c = cid && C.D.clients.find(x => x.id === cid);
-    if (!c) { box.innerHTML = '<p class="muted">בוחרים tenant מהרשימה (או לקוח בלי tenant כדי ליצור אחד).</p>'; return; }
+    if (!c) { box.innerHTML = '<p class="muted">Pick a tenant from the list (or a client with no tenant to create one).</p>'; return; }
     const k = keyOf(t, c.id);
     const text = draft[k] != null ? draft[k] : JSON.stringify(t ? t.config : {}, null, 2);
     const ob = onboardingOf(c.id);
     const statuses = ['sandbox', 'live', 'paused'];
-    box.innerHTML = '<h2>' + (t ? 'Tenant <bdi dir="ltr">' + esc(t.slug) + '</bdi>' : 'tenant חדש') + '</h2><p class="muted small">' + esc(C.clientName(c)) + ' · ' + C.pill('client', c.status) + '</p>' +
+    box.innerHTML = '<h2>' + (t ? 'Tenant <bdi dir="ltr">' + esc(t.slug) + '</bdi>' : 'New tenant') + '</h2><p class="muted small">' + esc(C.clientName(c)) + ' · ' + C.pill('client', c.status) + '</p>' +
       '<div class="row2"><div class="field"><label for="tSlug">slug</label><input class="input ltr" dir="ltr" id="tSlug" maxlength="60" value="' + esc(t ? t.slug : suggestSlug(c)) + '"></div>' +
-      '<div class="field"><label for="tStatus">סטטוס</label><select class="select" id="tStatus">' + statuses.map(s => C.opt(s, (C.ST.tenant || {})[s] || s, t ? t.status : 'sandbox')).join('') + '</select></div>' +
-      '<div class="field"><label for="tNum">מספר Twilio</label><input class="input ltr" dir="ltr" id="tNum" inputmode="tel" placeholder="+17135550100" value="' + esc(t && t.twilio_number || '') + '"></div></div>' +
-      '<div class="field"><label for="tJson">קונפיג (JSON, נבדק מול tenant_schema.json)</label><textarea class="textarea ltr mono tjson" dir="ltr" lang="en" id="tJson" spellcheck="false" rows="22">' + esc(text) + '</textarea></div>' +
+      '<div class="field"><label for="tStatus">Status</label><select class="select" id="tStatus">' + statuses.map(s => C.opt(s, (C.ST.tenant || {})[s] || s, t ? t.status : 'sandbox')).join('') + '</select></div>' +
+      '<div class="field"><label for="tNum">Twilio number</label><input class="input ltr" dir="ltr" id="tNum" inputmode="tel" placeholder="+17135550100" value="' + esc(t && t.twilio_number || '') + '"></div></div>' +
+      '<div class="field"><label for="tJson">Config (JSON, checked against tenant_schema.json)</label><textarea class="textarea ltr mono tjson" dir="ltr" lang="en" id="tJson" spellcheck="false" rows="22">' + esc(text) + '</textarea></div>' +
       '<div id="tMsg" aria-live="polite"></div>' +
-      '<div class="btnrow"><button type="button" class="btn btn--ghost btn--sm" id="tCheck">בדיקה מול הסכמה</button>' +
-      '<button type="button" class="btn btn--ghost btn--sm" id="tMerge"' + (ob.length ? '' : ' disabled') + '>מיזוג נתוני הקליטה</button>' +
-      '<button type="button" class="btn btn--ghost btn--sm" id="tFmt">סידור JSON</button>' +
-      '<button type="button" class="btn btn--primary btn--sm" id="tSave">' + (t ? 'שמירה' : 'יצירת tenant') + '</button></div>' +
-      '<p class="muted small">בדיקות שקיימות רק במודל של ה-runtime (פתיחה לפני סגירה, "listed" צריך פריטים, dial צריך מספר, לפחות איש קשר אחד להתראות) רצות כשה-runtime טוען את ה-tenant.</p>' +
-      '<div class="btnrow"><button type="button" class="btn btn--ghost btn--sm" id="tSim" disabled aria-describedby="tSimNote">הרץ 20 תרחישי סימולטור</button></div>' +
-      '<p class="muted small" id="tSimNote">הבדיקה רצה ב-runtime ‏(<bdi dir="ltr">POST /admin/sim-run/&lt;slug&gt;</bdi>, דורש טוקן אדמין). ללקוחות במנוי: לשונית "מנויים" ← "הרץ בדיקת עלייה לאוויר".</p>' +
-      '<h3>נתוני הקליטה מהלקוח</h3>' + (ob.length ? '<ul class="plist obdata">' + ob.map(o => '<li><span class="grow"><b dir="ltr" lang="en">' + esc(o.title) + '</b> ' + C.pill('ob', o.status) +
-        (o.data && o.data.help_message ? '<br><span class="small">בקשת עזרה: <bdi dir="auto">' + esc(o.data.help_message) + '</bdi></span>' : '') +
-        (o.data && Object.keys(o.data).length ? '<details><summary class="small">נתונים</summary><pre dir="ltr" class="mono small">' + esc(JSON.stringify(o.data, null, 2)) + '</pre></details>' : '') + '</span></li>').join('') + '</ul>'
-        : '<p class="muted">הצ\'ק-ליסט עוד לא נפתח (נפתח כשהמקדמה מסומנת כשולמה).</p>');
+      '<div class="btnrow"><button type="button" class="btn btn--ghost btn--sm" id="tCheck">Check against schema</button>' +
+      '<button type="button" class="btn btn--ghost btn--sm" id="tMerge"' + (ob.length ? '' : ' disabled') + '>Merge onboarding data</button>' +
+      '<button type="button" class="btn btn--ghost btn--sm" id="tFmt">Format JSON</button>' +
+      '<button type="button" class="btn btn--primary btn--sm" id="tSave">' + (t ? 'Save' : 'Create tenant') + '</button></div>' +
+      '<p class="muted small">Checks that exist only in the runtime model (open before close, "listed" needs items, dial needs a number, at least one alert contact) run when the runtime loads the tenant.</p>' +
+      '<div class="btnrow"><button type="button" class="btn btn--ghost btn--sm" id="tSim" disabled aria-describedby="tSimNote">Run 20 simulator scenarios</button></div>' +
+      '<p class="muted small" id="tSimNote">The check runs in the runtime (<bdi dir="ltr">POST /admin/sim-run/&lt;slug&gt;</bdi>, needs an admin token). For plan clients: "Subscriptions" tab → "Run the check again".</p>' +
+      '<h3>Onboarding data from the client</h3>' + (ob.length ? '<ul class="plist obdata">' + ob.map(o => '<li><span class="grow"><b dir="ltr" lang="en">' + esc(o.title) + '</b> ' + C.pill('ob', o.status) +
+        (o.data && o.data.help_message ? '<br><span class="small">Help request: <bdi dir="auto">' + esc(o.data.help_message) + '</bdi></span>' : '') +
+        (o.data && Object.keys(o.data).length ? '<details><summary class="small">Data</summary><pre dir="ltr" class="mono small">' + esc(JSON.stringify(o.data, null, 2)) + '</pre></details>' : '') + '</span></li>').join('') + '</ul>'
+        : '<p class="muted">The checklist is not open yet (it opens when the deposit is marked paid).</p>');
     C.focusDetail();
     const ta = C.$('#tJson');
     ta.addEventListener('input', () => { draft[k] = ta.value; });
@@ -124,7 +124,7 @@
     C.$('#tMerge').addEventListener('click', () => {
       const v = parse(); if (!v.ok) return;
       ta.value = JSON.stringify(fromOnboarding(c, ob, v.value), null, 2); draft[k] = ta.value;
-      check(false); C.toast('נתוני הקליטה מוזגו לעורך. עוד לא נשמר.');
+      check(false); C.toast('Onboarding data merged into the editor. Not saved yet.');
     });
     C.$('#tSave').addEventListener('click', async e => {
       const b = e.currentTarget;
@@ -136,7 +136,7 @@
       try {
         const saved = await C.AB.adminSaveTenant({ id: t ? t.id : null, client_id: c.id, slug, status: C.$('#tStatus').value, twilio_number: num || null, config: v });
         delete draft[k];
-        await C.refresh(); C.go('tenants', saved.id); C.toast(t ? 'ה-tenant נשמר.' : 'ה-tenant נוצר.');
+        await C.refresh(); C.go('tenants', saved.id); C.toast(t ? 'Tenant saved.' : 'Tenant created.');
       } catch (er) { b.disabled = false; msg([err(er)]); }
     });
     if (draft[k] != null || t) check(false, true);
@@ -146,7 +146,7 @@
   }
   function parse() {
     try { const v = JSON.parse(C.$('#tJson').value); if (!v || typeof v !== 'object' || Array.isArray(v)) { msg([E.config_must_be_object]); return { ok: false }; } return { ok: true, value: v }; }
-    catch (e) { msg(['JSON לא תקין: ' + e.message]); return { ok: false }; }
+    catch (e) { msg(['Invalid JSON: ' + e.message]); return { ok: false }; }
   }
   // lines are plain text (escaped here); html=true only for lines this file built from escaped parts
   function msg(lines, ok, html) {
@@ -157,13 +157,13 @@
   // returns the parsed config when valid, else null (and shows the errors)
   function check(announce, quiet) {
     const v = parse(); if (!v.ok) return null;
-    if (!TS.schema) { msg(['הסכמה (tenant_schema.json) לא נטענה. רעננו את הדף.']); return null; }
-    const errs = TS.validate(v.value).map(messageHe);
+    if (!TS.schema) { msg(['The schema (tenant_schema.json) did not load. Refresh the page.']); return null; }
+    const errs = TS.validate(v.value).map(messageText);
     if (errs.length) {
-      msg(errs.slice(0, 40).map(e => '<bdi dir="ltr" class="mono">' + C.esc(e.path) + '</bdi>: ' + C.esc(e.text)).concat(errs.length > 40 ? ['ועוד ' + (errs.length - 40) + '…'] : []), false, true);
+      msg(errs.slice(0, 40).map(e => '<bdi dir="ltr" class="mono">' + C.esc(e.path) + '</bdi>: ' + C.esc(e.text)).concat(errs.length > 40 ? ['and ' + (errs.length - 40) + ' more…'] : []), false, true);
       return null;
     }
-    if (announce || !quiet) msg(['הקונפיג תקין מול tenant_schema.json.'], true);
+    if (announce || !quiet) msg(['The config is valid against tenant_schema.json.'], true);
     return v.value;
   }
 

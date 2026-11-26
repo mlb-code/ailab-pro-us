@@ -1,4 +1,4 @@
-// Overflow + console gate for the owner admin (/start/admin/, RTL) in Chromium, WebKit and Firefox at 375/390/414/1280.
+// Overflow + console gate for the owner admin (/start/admin/, LTR) in Chromium, WebKit and Firefox at 375/390/414/1280.
 // Signs in as the mock admin, loads the demo data, then measures every tab and an open detail of each kind.
 // usage: node tools/overflow_admin.mjs [baseUrl]   (default: own server on E2E_PORT|8942)
 import http from 'node:http';

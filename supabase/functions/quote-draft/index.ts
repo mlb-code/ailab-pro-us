@@ -1,5 +1,5 @@
 // POST {questionnaire_id} -> Claude-drafted, code-priced quote (status draft | needs_manual_price). Never sends anything.
-// Caller: the questionnaire-submitted trigger / A8 (service-role key) or Meir's "צור טיוטה מחדש" (admin JWT).
+// Caller: the questionnaire-submitted trigger / A8 (service-role key) or Meir's "Regenerate draft" (admin JWT).
 import { modelFromEnv, type QuoteModel } from "../_shared/claude.ts";
 import { bearer, errorReply, json, readJson } from "../_shared/http.ts";
 import { draftQuote, QuoteError } from "../_shared/quote_engine.ts";

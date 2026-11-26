@@ -6,7 +6,7 @@
   calls answered (and after hours), jobs booked, messages, urgent, text-backs, usage vs. included,
   estimated value of booked jobs (= bookings x the average job value the client sets; omitted
   until set) and that value as a multiple of the RCP monthly fee (read from pricebook.json).
-- `admin_daily`: 08:00 in the admin timezone (brand.json owner.timezone), Hebrew, to Meir: per tenant calls / bookings / leads, Claude and
+- `admin_daily`: 08:00 in the admin timezone (brand.json owner.timezone), English, to Meir: per tenant calls / bookings / leads, Claude and
   Twilio cost, usage %, flags (needs_addon_approval, calendar reconnect, Zapier dead letters),
   plus notices that were held overnight.
 Every report is stored as an `events` row (`report.daily_summary` / `report.monthly_roi`,

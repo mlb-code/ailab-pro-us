@@ -139,22 +139,22 @@ def test_monthly_without_job_value_or_activity(tmp_path, demo_raw):
     assert "set your average job value" in text
 
 
-def test_admin_daily_in_hebrew_at_eight_israel_time(tmp_path, demo_raw):
+def test_admin_daily_in_english_at_eight_israel_time(tmp_path, demo_raw):
     r = R(tmp_path, demo_raw)
     seed_day(r, datetime(2026, 10, 12, 0, 0, tzinfo=CHI))
     r.state.put(f"spend:{r.tenant.id}:2026-10-12", 0.42)
     r.state.put(twilio_cost_key(r.tenant.id, "2026-10-12"), 0.11)
     r.state.put(f"usage:{r.tenant.id}:2026-10:needs_addon_approval", True)
     r.state.put(f"cal:{r.tenant.id}:needs_reconnect", {"provider": "google"})
-    r.state.put("admin:deferred", ["שימוש 80%: Cool Breeze HVAC · דקות שיחה"])
+    r.state.put("admin:deferred", ["Usage 80%: Cool Breeze HVAC · voice minutes"])
     assert r.rep.admin_daily(datetime(2026, 10, 13, 7, 59, tzinfo=IL)) is None
     res = r.rep.admin_daily(datetime(2026, 10, 13, 8, 0, tzinfo=IL))
     assert res["sent"]["status"] == "sent"
     msg = r.email.sent[0][0]
-    assert msg.to == (ADMIN,) and msg.lang == "he" and 'dir="rtl"' in msg.html
-    assert msg.subject.startswith("סיכום יומי 2026-10-13:") and "עלות $0.53" in msg.subject
+    assert msg.to == (ADMIN,) and msg.lang == "en" and 'dir="ltr"' in msg.html
+    assert msg.subject.startswith("Daily summary 2026-10-13:") and "cost $0.53" in msg.subject
     assert "needs_addon_approval" in msg.text and "calendar_reconnect:google" in msg.text
-    assert "שימוש 80%" in msg.text and '<span dir="ltr">$0.42</span>' in msg.html
+    assert "Usage 80%" in msg.text and '<span dir="ltr">$0.42</span>' in msg.html
     assert r.state.get("admin:deferred") == []
     assert r.rep.admin_daily(datetime(2026, 10, 13, 12, 0, tzinfo=IL)) is None
 

@@ -451,7 +451,7 @@
             db.quotes.push(quote);
             aEvent(db, u, 'quote', quote.id, quote.user_id, 'created', { to: quote.status, model: 'mock' });
             db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_new_quote', quote_id: quote.id,
-              subject: 'הצעה חדשה לאישור: ' + companyOf(db, q.user_id) + ' · ' + (q.offer || '') + (quote.setup_cents != null ? ' · ' + usd(quote.setup_cents) : ''), created_at: now() });
+              subject: 'New quote to approve: ' + companyOf(db, q.user_id) + ' · ' + (q.offer || '') + (quote.setup_cents != null ? ' · ' + usd(quote.setup_cents) : ''), created_at: now() });
           }
           db.quote_reviews = db.quote_reviews.filter(r => r.quote_id !== quote.id);
           db.quote_reviews.push(Object.assign({ quote_id: quote.id, created_at: now(), updated_at: now() }, review));
@@ -471,7 +471,7 @@
           return q;
         });
       },
-      // "אשר ושלח" = the quote-send Edge Function (A6): {discount_code?, pay_method?, pay_link?, manual_approved?}.
+      // "Approve and send" = the quote-send Edge Function (A6): {discount_code?, pay_method?, pay_link?, manual_approved?}.
       // Re-prices from the stored codes, refuses anonymized / not sendable / unresolved manual price (unless manual_approved
       // covers only the over-threshold check), then draft|needs_manual_price -> approved -> sent + quote_sent e-mail event.
       quoteSend(id, opts) {
@@ -938,7 +938,7 @@
           Object.assign(p, { status: 'paid', paid_at: now(), updated_at: now(), method: 'paypal_checkout', provider_capture_id: 'MOCKCAP' + rnd(12).toUpperCase(),
             payer_email: x.u.email });
           x.db.outbox.push({ id: uuid(), to: x.u.email, template: 'payment_receipt', payment_id: p.id, subject: 'Payment received', created_at: now() });
-          x.db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_payment_received', payment_id: p.id, subject: 'תשלום התקבל ב-PayPal', created_at: now() });
+          x.db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_payment_received', payment_id: p.id, subject: 'Payment received in PayPal', created_at: now() });
           if (p.kind === 'deposit') x.db.outbox.push({ id: uuid(), to: x.u.email, template: 'deposit_received', payment_id: p.id, created_at: now() });
           x.db.events.push({ id: uuid(), actor: 'runtime', entity: 'payment', entity_id: p.id, user_id: x.u.id, type: 'payment_captured',
             payload: { provider: 'paypal', kind: p.kind, amount_cents: p.amount_cents, capture_id: p.provider_capture_id }, client_visible: true, created_at: now() });
@@ -979,7 +979,7 @@
           const c = x.db.clients.find(cc => cc.id === it.client_id) || {};
           x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'onboarding_item', entity_id: it.id, user_id: c.user_id || null,
             type: status === 'need_help' ? 'need_help' : 'onboarding_updated', payload: { key: it.key, status: it.status }, client_visible: true, created_at: now() });
-          if (status === 'need_help') x.db.outbox.push({ id: uuid(), to: 'owner', template: 'need_help', subject: nameOf(x.db, c.user_id) + ' צריך עזרה ב: ' + it.title, created_at: now() });
+          if (status === 'need_help') x.db.outbox.push({ id: uuid(), to: 'owner', template: 'need_help', subject: nameOf(x.db, c.user_id) + ' needs help with: ' + it.title, created_at: now() });
           if (data && data.go_live_requested_at && !(prevData && prevData.go_live_requested_at)) {
             x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'client', entity_id: c.id, user_id: c.user_id || null, type: 'go_live_requested', payload: { item_id: it.id }, client_visible: true, created_at: now() });
             x.db.outbox.push({ id: uuid(), to: emailOf(x.db, c.user_id), template: 'final_payment_due', subject: 'Final payment before go-live', created_at: now() });
@@ -1490,7 +1490,7 @@
     let t = null;
     if (['trialing', 'active'].indexOf(sub.status) !== -1) t = provisionClient(db, sub);
     syncClient(db, cl.id);
-    if (dup) db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_provisioning_alert', subject: 'הקמה אוטומטית: ניסיון שני לאותו טלפון', created_at: now() });
+    if (dup) db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_provisioning_alert', subject: 'Automatic setup: second trial for the same phone', created_at: now() });
     subscriptionEmails(db, sub, cl, isNew, was);
     db.events.push({ id: uuid(), actor: 'system', entity: 'client', entity_id: cl.id, user_id: cl.user_id, type: 'subscription_updated', payload: { plan: sub.plan_code, status: sub.status }, client_visible: true, created_at: now() });
     return { subscription_id: sub.id, client_id: cl.id, tenant_id: t && t.id, status: sub.status, plan_code: sub.plan_code, stale: false, changed: true, trial_duplicate: sub.trial_duplicate };
@@ -1502,11 +1502,11 @@
     if (isNew && (sub.status === 'trialing' || sub.status === 'active')) {
       const tpl = sub.status === 'trialing' ? 'trial_welcome' : 'plan_welcome';
       q(tpl, tpl + ':' + sub.id, { to: emailOf2(db, cl.user_id), subject: sub.status === 'trialing' ? 'Your free trial has started' : 'Your plan has started' });
-      q('admin_new_subscription', 'admin_new_subscription:' + sub.id, { to: 'owner', subject: 'מנוי חדש' });
+      q('admin_new_subscription', 'admin_new_subscription:' + sub.id, { to: 'owner', subject: 'New subscription' });
     } else if (!isNew && sub.cancel_at_period_end && !was.cancel && sub.status !== 'canceled') {
-      q('admin_subscription_canceled', 'admin_subscription_canceled:' + sub.id + ':scheduled:' + now().slice(0, 10), { to: 'owner', subject: 'ביטול מנוי', kind: 'scheduled' });
+      q('admin_subscription_canceled', 'admin_subscription_canceled:' + sub.id + ':scheduled:' + now().slice(0, 10), { to: 'owner', subject: 'Subscription canceled', kind: 'scheduled' });
     } else if (!isNew && sub.status === 'canceled' && was.status !== 'canceled' && !was.cancel) {
-      q('admin_subscription_canceled', 'admin_subscription_canceled:' + sub.id + ':ended', { to: 'owner', subject: 'מנוי הסתיים', kind: 'ended' });
+      q('admin_subscription_canceled', 'admin_subscription_canceled:' + sub.id + ':ended', { to: 'owner', subject: 'Subscription ended', kind: 'ended' });
     }
   }
   function billingSync(db) {   // private.billing_sync (hourly cron)
@@ -1873,7 +1873,7 @@
         { who: 'assistant', text: pass ? 'I have Thursday 12 PM to 4 PM or Friday 8 AM to 12 PM. Which works better?' : 'Our team will give you an exact price on site.' }];
       const ai = o.ai === 'error' ? { status: 'error', attempts: 3, error: 'timeout after 90s', problems: [], problems_he: [], transcript: [], cost_usd: 0.0021, tokens: { input_tokens: 1800, output_tokens: 0 }, model_calls: 3 }
         : { status: pass ? 'passed' : 'failed', attempts: 1, problems: pass ? [] : ['price', 'promise', 'other_business', 'booking'],
-            problems_he: pass ? [] : ['הסוכן אמר מחיר שלא ברשימה', 'הסוכן הבטיח / נתן הנחה', 'הסוכן הזכיר עסק אחר', 'הסוכן לא הציע מועד לתור'],
+            problems_he: pass ? [] : ['Agent said a price that is not on the list', 'Agent made a promise / gave a discount', 'Agent mentioned another business', 'Agent did not offer an appointment time'],
             transcript, cost_usd: 0.0384, tokens: { input_tokens: 11200, output_tokens: 310 }, model_calls: 7 };
       db.provisioning_jobs.filter(j => j.kind === 'golive_sim' && (!o.client || j.client_id === o.client)).forEach(j => {
         Object.assign(j, { status: pass ? 'done' : o.ai === 'error' ? 'held' : 'failed', updated_at: now(),

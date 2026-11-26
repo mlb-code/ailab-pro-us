@@ -196,8 +196,8 @@ def test_usage_80_and_100_reach_owner_and_admin(ctx):
     block = T.pricebook_item("ADD-USAGE")["monthly_cents"] / 100
     assert f"${block:,.0f}/month" in owner[1].text
     assert [("80%" in m["body"], "100%" in m["body"]) for m in ctx.twilio.outbox] == [(True, False), (False, True)]
-    assert [m.subject for m in admin] == ["שימוש 80%: Cool Breeze HVAC · דקות שיחה", "שימוש 100%: Cool Breeze HVAC · דקות שיחה"]
-    assert admin[0].lang == "he" and "needs_addon_approval" in admin[1].text
+    assert [m.subject for m in admin] == ["Usage 80%: Cool Breeze HVAC · voice minutes", "Usage 100%: Cool Breeze HVAC · voice minutes"]
+    assert admin[0].lang == "en" and 'dir="ltr"' in admin[0].html and "needs_addon_approval" in admin[1].text
     visible = [e for e in ctx.events("usage.alert") if e.get("client_visible")]
     assert [e["payload"]["kind"] for e in visible] == ["usage_80", "usage_100"]
     assert out80 and out100
@@ -238,10 +238,10 @@ def test_admin_notices_wait_for_morning_but_faults_do_not(ctx):
     night = datetime(2026, 10, 13, 2, 0, tzinfo=ZoneInfo("Asia/Jerusalem"))
     ctx.notifier.deliver(ctx.tenant, usage_actions(ctx, 8), now=night)
     assert not [m for m, _ in ctx.email.sent if m.to == (ADMIN,)]
-    assert ctx.state.get("admin:deferred") == ["שימוש 80%: Cool Breeze HVAC · דקות שיחה"]
+    assert ctx.state.get("admin:deferred") == ["Usage 80%: Cool Breeze HVAC · voice minutes"]
     ctx.notifier.deliver(ctx.tenant, [{"type": "alert", "kind": "admin_budget", "summary": "tenant daily budget reached",
                                        "tenant": "demo-hvac"}], now=night)
-    assert [m.subject for m, _ in ctx.email.sent if m.to == (ADMIN,)] == ["תקציב יומי נוצל: Cool Breeze HVAC"]
+    assert [m.subject for m, _ in ctx.email.sent if m.to == (ADMIN,)] == ["Daily budget used up: Cool Breeze HVAC"]
 
 
 def test_admin_email_unset_is_recorded(tmp_path, demo_raw):
@@ -260,7 +260,7 @@ def test_calendar_disconnect_alerts_owner_and_admin_once(ctx):
     hub.availability(ctx.tenant.id, ctx.tenant.config, MON_9)
     subjects = [m.subject for m, _ in ctx.email.sent]
     assert subjects.count("Action needed: reconnect your Google Calendar") == 1
-    assert subjects.count("היומן התנתק: Cool Breeze HVAC") == 1
+    assert subjects.count("Calendar disconnected: Cool Breeze HVAC") == 1
     assert "reconnect" in ctx.twilio.outbox[0]["body"].lower() or "Reconnect" in ctx.twilio.outbox[0]["body"]
 
 

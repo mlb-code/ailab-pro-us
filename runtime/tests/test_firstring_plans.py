@@ -1,5 +1,5 @@
 """FirstRing monthly plans (2026-11-25): plan terms from the price book, features per plan, minutes per plan with the
-trial cap, 80%/100% alerts to the CUSTOMER with the upgrade link (+ Hebrew note to Meir), message-only service
+trial cap, 80%/100% alerts to the CUSTOMER with the upgrade link (+ English note to Meir), message-only service
 (trial ended / cancelled / past due / paused / trial minutes used), ForwardedFrom on calls, booking switched off.
 Plans come from a fixture (same shape as config/pricebook.json `plans`), never from typed numbers in the code."""
 from __future__ import annotations
@@ -155,7 +155,7 @@ def test_usage_emails_go_to_the_customer_with_the_upgrade_link(tmp_path, demo_ra
     assert "$249/month" in owner[1].text and "never charge per minute" in owner[1].text
     assert "in message mode" in owner[1].text and "until your next billing date (2026-12-10) or until you upgrade" in owner[1].text
     assert "message mode" not in owner[0].text
-    assert len(admin) == 2 and admin[0].lang == "he" and "FR_STARTER" in admin[0].text and "שדרוג" in admin[0].text
+    assert len(admin) == 2 and admin[0].lang == "en" and "FR_STARTER" in admin[0].text and "upgrade" in admin[0].text
 
 
 def test_trial_100_email_explains_message_mode_and_start_now(tmp_path, demo_raw):

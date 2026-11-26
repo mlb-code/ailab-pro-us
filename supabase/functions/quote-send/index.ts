@@ -1,4 +1,4 @@
-// POST {quote_id, discount_code?, pay_method?, pay_link?, manual_approved?} — admin only ("אשר ושלח").
+// POST {quote_id, discount_code?, pay_method?, pay_link?, manual_approved?} — admin only ("Approve and send").
 // Re-prices from stored codes, applies FOUNDING if Meir chose it, refuses while a manual price is missing,
 // moves draft -> approved -> sent (DB sets sent_at + valid_until) and emits the quote_sent email event.
 import { bearer, errorReply, json, readJson } from "../_shared/http.ts";

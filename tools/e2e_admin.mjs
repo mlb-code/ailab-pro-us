@@ -1,7 +1,7 @@
-// E2E for the owner admin (/start/admin/, Hebrew RTL) against the MOCK backend. Puppeteer + local Chrome.
+// E2E for the owner admin (/start/admin/, English LTR) against the MOCK backend. Puppeteer + local Chrome.
 // Covers: access control (non-admin redirected, API refuses), digest, every tab, quote editing only via price-book codes,
 // FOUNDING, manual pricing gate, approve-and-send (approved -> sent + quote_sent stub), freeze after send, clients,
-// payments, retainer queue (one active), notes never reach the client, events, settings read-only, RTL money isolation,
+// payments, retainer queue (one active), notes never reach the client, events, settings read-only, ltr money isolation,
 // overflow at 375/390/414/1280, keyboard tabs, zero console errors.
 //   node tools/e2e_admin.mjs           (own static server on E2E_PORT, default 8941)
 //   E2E_BASE=http://localhost:8787 node tools/e2e_admin.mjs
@@ -95,8 +95,8 @@ async function main() {
     await page.evaluate(() => window.StartMock.admin.reset());
     await page.reload({ waitUntil: 'load' });
     await page.waitForSelector('#email');
-    ok(await page.evaluate(() => document.documentElement.lang === 'he' && document.documentElement.dir === 'rtl'), 'admin page is lang=he dir=rtl');
-    ok(/כניסה לניהול/.test(await body(page)), 'signed out → Hebrew sign-in screen');
+    ok(await page.evaluate(() => document.documentElement.lang === 'en' && document.documentElement.dir === 'ltr'), 'admin page is lang=en dir=ltr');
+    ok(/Admin sign-in/.test(await body(page)) && !/[\u0590-\u05FF]/.test(await body(page)), 'signed out → English sign-in screen (no Hebrew)');
     ok(await page.$('#mockBanner') !== null, 'mock banner shown');
     // a client signs in on /start/, then opens the admin URL
     await signIn(page, '/start/', 'dani@coolbreeze.test');
@@ -114,14 +114,14 @@ async function main() {
     ok(true, 'admin signs in with the email code');
     await page.click('#seedBtn'); await sleep(400);
     await page.waitForSelector('#alist');
-    ok(/תקציר יומי/.test(await body(page)), 'daily digest card shown');
+    ok(/Daily summary/.test(await body(page)), 'daily digest card shown');
     const tiles = await page.$$eval('#digest [data-go] b', bs => bs.map(b => b.textContent.trim()));
     ok(tiles[2] === '1' && tiles[3] === '1', 'digest: 1 draft to approve, 1 needs manual price');
     ok(tiles[0] === '1', 'digest: 1 new lead in 24 h that has not started');
     ok(await page.$$eval('[role=tab]', t => t.length) === 9, '9 tabs (leads, questionnaires, quotes, clients, retainer, tenants, subscriptions, events, settings)');
-    // keyboard: RTL arrows
-    await page.focus('#tab-quotes'); await page.keyboard.press('ArrowLeft'); await sleep(150);
-    ok(await page.evaluate(() => document.activeElement.id === 'tab-clients' && document.querySelector('#tab-clients').getAttribute('aria-selected') === 'true'), 'ArrowLeft moves to the next tab (RTL) and selects it');
+    // keyboard: LTR arrows
+    await page.focus('#tab-quotes'); await page.keyboard.press('ArrowRight'); await sleep(150);
+    ok(await page.evaluate(() => document.activeElement.id === 'tab-clients' && document.querySelector('#tab-clients').getAttribute('aria-selected') === 'true'), 'ArrowRight moves to the next tab (LTR) and selects it');
     await page.keyboard.press('Home'); await sleep(150);
     ok(await page.evaluate(() => document.activeElement.id === 'tab-leads'), 'Home → first tab');
     // ------------------------------------------------------------ leads
@@ -218,7 +218,7 @@ async function main() {
     const rv = await page.$eval('#reviewBox', b => b.innerText).catch(() => '');
     ok(rv.includes('Which ServiceTitan plan') && rv.includes('guarantee'), 'quote_reviews panel: risk flags, questions, removed text');
     await page.click('#sendBtn'); await sleep(200);
-    ok(/חסר מחיר ידני/.test(await page.$eval('#eMsg', e => e.innerText)), 'UI blocks send while a manual price is missing');
+    ok(/manual price is missing/.test(await page.$eval('#eMsg', e => e.innerText)), 'UI blocks send while a manual price is missing');
     await page.type('[data-ms]', '2500'); await page.$eval('[data-mm]', i => { i.value = '75'; i.dispatchEvent(new Event('input')); });
     ok(await page.$('#manualOk') === null, 'custom line with both prices = priced (same as server): no extra confirmation');
     await page.click('#sendBtn'); await sleep(500);
@@ -239,16 +239,16 @@ async function main() {
     ok(pm[0] === QV.DEFAULT_PAY_METHOD && pm[1][0] === QV.DEFAULT_PAY_METHOD, 'no method stored → editor preselects Upwork, first in the list: ' + pm[0] + ' / ' + pm[1].join(','));
     ok(['paypal_link', 'wire', 'tranzila_link'].every(v => pm[1].includes(v)) && !pm[1].includes(''), 'the other methods stay selectable; no "none" option');
     await nav(page, '/start/admin/#quotes/' + amyDraft.id); await page.waitForSelector('#founding');
-    ok(/התקרה של/.test(await page.$eval('#detail', d => d.innerText)), 'FOUNDING cap reached → warning in the editor');
+    ok(/the cap of \d+ founding clients/.test(await page.$eval('#detail', d => d.innerText)), 'FOUNDING cap reached → warning in the editor');
     await page.click('#founding'); await page.click('#sendBtn'); await sleep(500);
-    ok(/תקרת הלקוחות המייסדים/.test(await page.$eval('#eMsg', e => e.innerText)) && (await db(page)).quotes.find(q => q.id === amyDraft.id).status !== 'sent', 'server refuses FOUNDING over the cap (founding_limit_reached) and the admin shows it');
+    ok(/founding-client cap/.test(await page.$eval('#eMsg', e => e.innerText)) && (await db(page)).quotes.find(q => q.id === amyDraft.id).status !== 'sent', 'server refuses FOUNDING over the cap (founding_limit_reached) and the admin shows it');
     const qa = (await db(page)).quotes.find(q => q.status === 'needs_manual_price' || q.status === 'draft');
     if (qa) {
       await page.evaluate(id => { const d = window.StartMock.admin.db(); d.quotes.find(x => x.id === id).anonymized = true; localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); }, qa.id);
       const r1 = await page.evaluate(id => { const m = window.StartMock.create(window.SITE_CONFIG); return Promise.all([m.quoteSend(id, { manual_approved: true }).then(() => 'ok', e => e.message), m.adminSaveQuote(id, { scope_md: 'x' }).then(() => 'ok', e => e.message)]); }, qa.id);
       ok(r1[0] === 'quote_anonymized' && r1[1] === 'quote_anonymized', 'anonymized quote: send and edit refused (API)');
       await nav(page, '/start/admin/#quotes/' + qa.id); await page.waitForSelector('#detail h2');
-      ok(await page.$('#sendBtn') === null && await page.$('#addCode') === null && /אנונימיזציה/.test(await page.$eval('#detail', d => d.innerText)), 'anonymized quote is read-only in the UI');
+      ok(await page.$('#sendBtn') === null && await page.$('#addCode') === null && /anonymized/.test(await page.$eval('#detail', d => d.innerText)), 'anonymized quote is read-only in the UI');
     } else ok(true, 'anonymized check skipped (no open quote left)');
     // ------------------------------------------------------------ client from accepted quote
     console.log('clients');
@@ -267,7 +267,7 @@ async function main() {
     await openTab(page, 'clients');
     await openRow(page, 'Bright Air');
     const det = await page.$eval('#detail', d => d.innerText);
-    ok(det.includes('5 מתוך 7'), 'onboarding checklist progress');
+    ok(det.includes('5 of 7 done'), 'onboarding checklist progress');
     await page.waitForFunction(() => document.querySelector('#tenantBox').innerText.includes('bright-air'), { timeout: 3000 }).catch(() => {});
     const tb = await page.$eval('#tenantBox', d => d.innerText);
     ok(tb.includes('bright-air') && tb.includes('212 / ' + pb.rules.included_usage.voice_minutes), 'tenant config summary + usage from runtime_state');
@@ -283,7 +283,7 @@ async function main() {
     const queued = reqs.find(r => r.status === 'queued'), active = reqs.find(r => r.status === 'active');
     await page.select('#rs-' + queued.id, 'active'); await page.click('[data-rsave="' + queued.id + '"]'); await sleep(300);
     ok((await db(page)).requests.find(r => r.id === queued.id).status === 'queued', 'second active request refused');
-    ok(/כבר יש בקשה פעילה/.test(await page.$eval('#toast', t => t.innerText)), 'Hebrew error for one-active rule');
+    ok(/already has an active request/.test(await page.$eval('#toast', t => t.innerText)), 'clear error for one-active rule');
     await page.select('#rs-' + active.id, 'done'); await page.type('#ra-' + active.id, 'Added the filter question.'); await page.click('[data-rsave="' + active.id + '"]'); await sleep(300);
     await page.select('#rs-' + queued.id, 'active'); await page.click('[data-rsave="' + queued.id + '"]'); await sleep(300);
     const r2 = (await db(page)).requests;
@@ -295,14 +295,14 @@ async function main() {
     ok(await page.$('#tuBody') !== null && await page.$('#alist') !== null, 'tenants tab (B7): usage table + tenant list');
     await openTab(page, 'events');
     ok(await page.$$eval('#evList li', l => l.length) > 10, 'events log lists actions');
-    ok(!/: email_requested|: admin_edit|: status_changed/.test(await page.$eval('#evList', l => l.innerText)), 'every event type shown in Hebrew (incl. email_requested)');
+    ok(!/: email_requested|: admin_edit|: status_changed/.test(await page.$eval('#evList', l => l.innerText)), 'every event type shown with a plain label (incl. email_requested)');
     await openTab(page, 'settings');
     const st = await page.$eval('#panel', p => p.innerText);
-    ok(st.includes('config/brand.json') && st.includes('show_founder_price') && /דלוק|כבוי/.test(st), 'settings: flags read-only with the brand.json note');
-    ok(st.includes('כללי החזרים') && st.includes(pb.refund_rules.deposit.refund_pct + '% החזר') && st.includes('אין חיוב אוטומטי על חריגה'), 'settings: refund rules + overage policy from config');
+    ok(st.includes('config/brand.json') && st.includes('show_founder_price') && /\bOn\b|\bOff\b/.test(st), 'settings: flags read-only with the brand.json note');
+    ok(st.includes('Refund rules') && st.includes(pb.refund_rules.deposit.refund_pct + '% refund') && st.includes('No automatic billing for overage'), 'settings: refund rules + overage policy from config');
     ok(await page.$$eval('#panel input, #panel select, #panel textarea', x => x.length) === 0, 'settings has no editable controls');
     ok((await page.$$eval('#outbox li', l => l.length)) > 0, 'mock mailbox shows the e-mail stubs');
-    // "צור טיוטת הצעה" from a questionnaire jumps to the quote with no console error (390 and 1280)
+    // "Create quote draft" from a questionnaire jumps to the quote with no console error (390 and 1280)
     for (const w of [390, 1280]) {
       const qid = await page.evaluate(() => { const d = window.StartMock.admin.db(); const q = d.questionnaires.find(x => x.status === 'draft');
         if (!q) return null; q.status = 'submitted'; q.submitted_at = new Date().toISOString(); localStorage.setItem('aplp_mock_db_v1', JSON.stringify(d)); return q.id; });

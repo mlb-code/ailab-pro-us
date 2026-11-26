@@ -3,7 +3,7 @@
 Input = the `actions` list of `TurnResult` (and the `Convo` it came from). Alert kinds:
   lead / booking / urgent / human_needed -> `lead_alert` to the owner (SMS + e-mail) + Zapier
                                            `lead.created` (once per conversation) and `booking.created`
-  usage_80 / usage_100                   -> owner notice (no automatic billing, ever) + Hebrew note to Meir
+  usage_80 / usage_100                   -> owner notice (no automatic billing, ever) + English note to Meir
   calendar_reconnect                     -> owner "reconnect" + immediate admin alert
   admin_budget                           -> immediate admin alert (runtime fault)
   rate_limit / muted                     -> recorded only (no owner spam)
@@ -15,7 +15,7 @@ Owner = the client's alert contacts (`notify.sms`, `notify.email`). Lead alerts 
 (80% / 100%, e-mail + SMS) are operational and always go out. Only the daily summary and the monthly
 report wait for `client_emails_enabled` (SPEC 5: off until Meir approves the copy); they are still
 generated and stored for the portal. Owner-alert SMS are written to `sms_messages` and counted in
-`usage:<tenant>:<month>:owner_sms_segments`, separately from the client's included usage. Meir's notices: Hebrew, 08:00-23:00 in the admin timezone (brand.json owner.timezone); outside those hours
+`usage:<tenant>:<month>:owner_sms_segments`, separately from the client's included usage. Meir's notices: English, 08:00-23:00 in the admin timezone (brand.json owner.timezone); outside those hours
 non-fault notices wait for the morning `admin_daily` (SPEC 10.8).
 """
 from __future__ import annotations
@@ -272,7 +272,7 @@ class Notifier:
         log.warning("notify %s %s failed for %s: %s", channel, tag, tenant.slug, res.get("error"))
         return {"channel": channel, "tag": tag, "status": "failed", "error": res.get("error", "")}
 
-    # --- admin (Meir, Hebrew) --------------------------------------------------------------------
+    # --- admin (Meir, English) -------------------------------------------------------------------
     def _admin(self, kind: str, tenant: TenantRecord, summary: str, now: datetime, key: str) -> list[dict[str, Any]]:
         subject, text, html = T.admin_alert(kind, tenant.config.business.name, tenant.slug, summary)
         return self._admin_send(kind, subject, text, html, now, key=f"{tenant.id}:{key}", urgent=kind in URGENT_ADMIN)
@@ -298,7 +298,7 @@ class Notifier:
         senders = brand().get("senders") or {}
         res = self.email.send(Email(to=(self.policy.admin_email,), subject=subject, text=text, html=html, tag=tag,
                                     sender=str(senders.get("alerts") or senders.get("transactional") or ""),
-                                    lang="he"), _h(k))
+                                    lang="en"), _h(k))
         if res.get("ok"):
             self._mark(k, None)
             return [{"channel": "admin_email", "tag": tag, "status": "sent"}]

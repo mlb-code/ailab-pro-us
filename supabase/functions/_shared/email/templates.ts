@@ -1,5 +1,5 @@
 // A8 email templates: one entry per SPEC §5 event the dispatcher sends (+ two quote mails A6 emits).
-// Client mails: US English, LTR. Mails to Meir: Hebrew, RTL. Brand/links from brand.json, product names and the deposit
+// Client mails and mails to Meir: US English, LTR (the whole project is English-only since 2026-11-29). Brand/links from brand.json, product names and the deposit
 // share from pricebook.json, amounts from the database row (never typed here). Copy: concrete, no promised outcomes.
 // Subjects follow SPEC §5; `q_received` uses brand.quote_sla_text (A5 decision) instead of the literal "1 business day".
 import { PRICEBOOK } from "../config.ts";
@@ -7,7 +7,7 @@ import { defaultPayMethod, PAYPAL_METHOD, toPublicView } from "../quote_engine.t
 import { paypalOn } from "../quote_view.mjs";
 import { quoteUrl, renderQuoteEmail, usd } from "../quote_email.ts";
 import type { QuoteRow } from "../store.ts";
-import { type Block, type EmailBrand, type EmailSpec, ltr, type Rendered, renderEmail, siteUrl } from "./layout.ts";
+import { type Block, type EmailBrand, type EmailSpec, type Rendered, renderEmail, siteUrl } from "./layout.ts";
 
 /** names containing the analytics event `quote_accept` are joined from parts (tools/check_hardcoded.py) */
 export const T_ACCEPTED = ["quote", "accepted"].join("_");
@@ -67,7 +67,7 @@ const first = (ctx: EmailCtx) => (ctx.profile?.full_name ?? "").trim().split(/\s
 const hi = (ctx: EmailCtx) => (first(ctx) ? `Hi ${first(ctx)},` : "Hi,");
 const company = (ctx: EmailCtx) => (ctx.profile?.company ?? ctx.client?.business_name ?? "").trim();
 /** business label for Meir: company, else name, else e-mail */
-const biz = (ctx: EmailCtx) => company(ctx) || (ctx.profile?.full_name ?? "").trim() || (ctx.profile?.email ?? "").trim() || "לקוח";
+const biz = (ctx: EmailCtx) => company(ctx) || (ctx.profile?.full_name ?? "").trim() || (ctx.profile?.email ?? "").trim() || "Client";
 const portal = (b: EmailBrand, tab = "") => `${siteUrl(b)}/start/${tab ? "#" + tab : ""}`;
 const admin = (b: EmailBrand, route: string) => `${siteUrl(b)}/start/admin/#${route}`;
 const itemName = (code: string) => PRICEBOOK.items.find((i) => i.code === code)?.name ?? code;
@@ -137,7 +137,18 @@ const isUpwork = (ctx: EmailCtx, brand: EmailBrand) => payMethod(ctx, brand) ===
 /** card / PayPal checkout: the quote page and the portal show the PayPal buttons (only while brand.json turns it on) */
 const isPaypal = (ctx: EmailCtx, brand: EmailBrand) => payMethod(ctx, brand) === PAYPAL_METHOD && paypalOn(brand);
 const PAYPAL_NOTE = "Secure checkout by PayPal. No PayPal account needed. Receipt by email within a minute.";
-const PAYPAL_LABEL_HE = "PayPal – כפתור בדף ההצעה";
+const PAYPAL_LABEL = "PayPal – button on the quote page";
+/** dates in mails to Meir: en-US in the owner timezone (brand.json owner.timezone), labeled with the zone's generic
+ *  English name from Intl ("November 26, 2026 (… time)"); an unknown zone falls back to its id */
+const ownerTz = (b: EmailBrand) => b.owner?.timezone || "UTC";
+const tzLabel = (tz: string) => {
+  try {
+    const n = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longGeneric" }).formatToParts(new Date())
+      .find((p) => p.type === "timeZoneName")?.value;
+    return n ? n.replace(/ Time$/, " time") : tz;
+  } catch { return tz; }
+};
+const ownerDate = (iso: string | null | undefined, b: EmailBrand) => { const d = fmtDate(iso, ownerTz(b)); return d ? `${d} (${tzLabel(ownerTz(b))})` : ""; };
 // Client copy: the same facts as the quote page (site/quote/assets/quote.js upworkSlot). Upwork shows its own client fees at
 // checkout, so no fee amount is ever written here.
 const UPWORK_WAYS = "card, PayPal or US bank transfer";
@@ -153,25 +164,25 @@ export const UPWORK_MILESTONES = {
 const hasLine = (codes: string[]) => codes.some((c) => c === "RCP" || c === "BNDL");
 const coreOf = (codes: string[]) => codes.find((c) => PRICEBOOK.rules.core_codes.includes(c)) ?? codes[0] ?? "";
 
-/** Meir's Direct Contract checklist (Hebrew). One value per row = what he copies into Upwork (English, the client sees it
+/** Meir's Direct Contract checklist. One value per row = what he copies into Upwork (English, the client sees it
  *  there); amounts from the quote row. Without a quote (WEB self-serve) the amounts are left to Meir. */
 function upworkContract(ctx: EmailCtx, brand: EmailBrand, o: { codes: string[]; basis: string; deposit?: number | null; final?: number | null;
   monthly?: number | null }): Block[] {
   const product = itemName(coreOf(o.codes));
   const desc = `Setup of the ${product} ${o.basis}.` + (o.monthly ? ` Monthly plan from go-live: ${usd(o.monthly)}/mo, one milestone per month.` : "");
   return [
-    { p: `**ליצור ב-Upwork:** ${ltr("Find work → Direct Contracts → Create a contract")}` },
+    { p: "**Create in Upwork:** Find work → Direct Contracts → Create a contract" },
     { facts: [
-      ["מייל הלקוח", ctx.profile?.email ?? ""],
-      ["סוג חוזה", "Fixed-price"],
-      ["שם החוזה", `${brand.name} – ${product} setup`],
-      ["אבן דרך 1 (המקדמה): שם", hasLine(o.codes) ? UPWORK_MILESTONES.setup_line : UPWORK_MILESTONES.setup_web],
-      ["אבן דרך 1: סכום", usd(o.deposit)],
-      ["אבן דרך 2 (לפני עלייה לאוויר): שם", UPWORK_MILESTONES.golive],
-      ["אבן דרך 2: סכום", usd(o.final)],
-      ["תיאור (שורה אחת)", desc],
+      ["Client email", ctx.profile?.email ?? ""],
+      ["Contract type", "Fixed-price"],
+      ["Contract name", `${brand.name} – ${product} setup`],
+      ["Milestone 1 (deposit): name", hasLine(o.codes) ? UPWORK_MILESTONES.setup_line : UPWORK_MILESTONES.setup_web],
+      ["Milestone 1: amount", usd(o.deposit)],
+      ["Milestone 2 (before go-live): name", UPWORK_MILESTONES.golive],
+      ["Milestone 2: amount", usd(o.final)],
+      ["Description (one line)", desc],
     ] },
-    { small: "אם הלקוח כבר רשום ב-Upwork: לבקש ממנו לשכור אותך דרך הפרופיל." },
+    { small: "If the client already has an Upwork account: ask them to hire you through your profile." },
   ];
 }
 
@@ -189,13 +200,13 @@ const client = (sender: SenderKind, transactional: boolean, spec: (ctx: EmailCtx
 });
 const toMeir = (spec: (ctx: EmailCtx, env: RenderEnv) => Omit<EmailSpec, "lang" | "footer" | "unsubUrl">): TemplateDef => ({
   audience: "admin", transactional: true, sender: "alerts",
-  render: (ctx, env) => renderEmail({ lang: "he", footer: "admin", ...spec(ctx, env) }, env.brand),
+  render: (ctx, env) => renderEmail({ lang: "en", footer: "admin", ...spec(ctx, env) }, env.brand),
 });
 
 const REQUEST_LABEL: Record<string, string> = {
   queued: "queued", active: "in progress", waiting_on_you: "waiting on you", done: "done", declined: "declined",
 };
-const OFFER_LABEL: Record<string, string> = { UNSURE: "לא בטוח" };
+const OFFER_LABEL: Record<string, string> = { UNSURE: "Not sure" };
 export const DARK_PATCH = `<style>@media (prefers-color-scheme: dark) { .card td[bgcolor="#FFFFFF"] { background:#17253A !important; } }</style>`;
 
 // ------------------------------------------------------------------ templates
@@ -259,23 +270,23 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       .map((x) => `${x.q}: ${String(x.a).slice(0, 200)}`);
     const upwork = isUpwork(ctx, brand), paypal = isPaypal(ctx, brand);
     return {
-      subject: `אתר (WEB): ${biz(ctx)} מחכה לקישור מקדמה`,
-      preheader: upwork ? "לקוח בחר חבילת אתר. צריך ליצור לו חוזה ב-Upwork למקדמה."
-        : paypal ? "לקוח בחר חבילת אתר. ליצור לו הצעה מהשאלון ולשלוח: הוא ישלם את המקדמה בכרטיס בדף ההצעה."
-        : "לקוח בחר חבילת אתר. צריך לשלוח לו קישור תשלום למקדמה.",
-      heading: "לקוח בחר חבילת אתר",
+      subject: `Website (WEB): ${biz(ctx)} is waiting for a deposit link`,
+      preheader: upwork ? "A client picked a website package. Create an Upwork contract for the deposit."
+        : paypal ? "A client picked a website package. Create a quote from the questionnaire and send it: they pay the deposit by card on the quote page."
+        : "A client picked a website package. Send them a payment link for the deposit.",
+      heading: "A client picked a website package",
       blocks: [
-        { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
-          ["טלפון", ctx.profile?.phone ?? ""], ["עיר", [ctx.profile?.city, ctx.profile?.state].filter(Boolean).join(", ")],
-          ["נישה", qn?.niche ?? ""]] },
+        { facts: [["Business", biz(ctx)], ["Name", ctx.profile?.full_name ?? ""], ["Email", ctx.profile?.email ?? ""],
+          ["Phone", ctx.profile?.phone ?? ""], ["City", [ctx.profile?.city, ctx.profile?.state].filter(Boolean).join(", ")],
+          ["Niche", qn?.niche ?? ""]] },
         // no quote on the WEB path: the amounts depend on the extras the client picked (answers below), so Meir sets them
         ...(upwork ? [...upworkContract(ctx, brand, { codes: ["WEB"], basis: "as chosen in your questionnaire" }),
-          { small: `הסכומים: המקדמה היא ${depositPct()}% מההקמה לפי המחירון, כולל התוספות שהלקוח בחר; השאר לפני העלייה לאוויר.` } as Block] : []),
-        ...(paypal ? [{ p: `**לשלוח הצעה:** באדמין, בשאלון ← "צור טיוטת הצעה" ← "אשר ושלח". אמצעי התשלום "${PAYPAL_LABEL_HE}" כבר נבחר, והלקוח ישלם את המקדמה בכרטיס או ב-PayPal בדף ההצעה.` } as Block] : []),
-        ...(answers.length ? [{ title: "מהשאלון", list: answers } as Block] : []),
-        { small: upwork ? `הלקוח קיבל מייל שהחוזה יגיע מ-Upwork ${brand.quote_sla_text}.` : `הלקוח קיבל מייל שהקישור יגיע ${brand.quote_sla_text}.` },
+          { small: `Amounts: the deposit is ${depositPct()}% of the setup price from the price book, including the extras the client picked; the rest is due before go-live.` } as Block] : []),
+        ...(paypal ? [{ p: `**Send a quote:** in the admin, open the questionnaire → "Create quote draft" → "Approve and send". The payment method "${PAYPAL_LABEL}" is already selected, and the client pays the deposit by card or PayPal on the quote page.` } as Block] : []),
+        ...(answers.length ? [{ title: "From the questionnaire", list: answers } as Block] : []),
+        { small: upwork ? `The client got an email saying the contract will come from Upwork ${brand.quote_sla_text}.` : `The client got an email saying the link will arrive ${brand.quote_sla_text}.` },
       ],
-      cta: { label: "פתח את השאלון באדמין", url: admin(brand, `questionnaires/${qn?.id ?? ""}`) },
+      cta: { label: "Open the questionnaire in admin", url: admin(brand, `questionnaires/${qn?.id ?? ""}`) },
     };
   }),
 
@@ -291,39 +302,39 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   })),
 
   admin_request_cancelled: toMeir((ctx, { brand }) => ({
-    subject: `${biz(ctx)} ביטל בקשה: ${ctx.request?.title ?? ""}`,
-    preheader: "הבקשה הוסרה מהתור. אין צורך בפעולה.",
-    heading: "בקשה בוטלה",
+    subject: `${biz(ctx)} canceled a request: ${ctx.request?.title ?? ""}`,
+    preheader: "The request was removed from the queue. No action needed.",
+    heading: "Request canceled",
     blocks: [
-      { facts: [["עסק", biz(ctx)], ["בקשה", ctx.request?.title ?? ""], ["מייל", ctx.profile?.email ?? ""]] },
-      { small: "הלקוח ביטל בקשה שחיכתה בתור. אין צורך בפעולה." },
+      { facts: [["Business", biz(ctx)], ["Request", ctx.request?.title ?? ""], ["Email", ctx.profile?.email ?? ""]] },
+      { small: "The client canceled a request that was waiting in the queue. No action needed." },
     ],
-    cta: { label: "תור ריטיינר באדמין", url: admin(brand, "requests") },
+    cta: { label: "Retainer queue in admin", url: admin(brand, "requests") },
   })),
 
   admin_new_quote: toMeir((ctx, { brand }) => {
     const q = ctx.quote!;
     const manual = q.status === "needs_manual_price";
-    const amount = q.setup_cents != null && !manual ? usd(q.setup_cents) : "תמחור ידני";
+    const amount = q.setup_cents != null && !manual ? usd(q.setup_cents) : "Manual pricing";
     const offer = ctx.offer ? (OFFER_LABEL[ctx.offer] ?? ctx.offer) : String(q.items[0]?.code ?? "");
     const flags = [...(ctx.review?.manual_reasons ?? []), ...(ctx.review?.risk_flags ?? [])];
     return {
-      subject: `הצעה חדשה לאישור: ${biz(ctx)} · ${offer} · ${ltr(amount)}`,
-      preheader: manual ? "הטיוטה דורשת מחיר ידני לפני שליחה." : "טיוטה מוכנה. שום דבר לא נשלח ללקוח לפני שתאשר.",
-      heading: manual ? "טיוטת הצעה: צריך מחיר ידני" : "טיוטת הצעה מוכנה לאישור",
+      subject: `New quote to approve: ${biz(ctx)} · ${offer} · ${amount}`,
+      preheader: manual ? "The draft needs a manual price before it can be sent." : "Draft ready. Nothing goes to the client until you approve it.",
+      heading: manual ? "Quote draft: needs a manual price" : "Quote draft ready to approve",
       blocks: [
         { facts: [
-          ["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
-          ["הצעה", offer], ["נישה", ctx.niche ?? ""],
-          ["הקמה", q.setup_cents != null ? usd(q.setup_cents) : "—"],
-          ["חודשי", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : "—"],
-          ["מקדמה", q.deposit_cents != null ? usd(q.deposit_cents) : "—"],
+          ["Business", biz(ctx)], ["Name", ctx.profile?.full_name ?? ""], ["Email", ctx.profile?.email ?? ""],
+          ["Offer", offer], ["Niche", ctx.niche ?? ""],
+          ["Setup", q.setup_cents != null ? usd(q.setup_cents) : "—"],
+          ["Monthly", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : "—"],
+          ["Deposit", q.deposit_cents != null ? usd(q.deposit_cents) : "—"],
         ] },
-        { title: "שורות", list: q.items.map((i) => `${i.code} · ${i.name ?? itemName(String(i.code))}${Number(i.qty ?? 1) > 1 ? ` × ${i.qty}` : ""}`) },
-        ...(flags.length ? [{ title: "לבדיקה לפני שליחה", list: flags.map(String) } as Block] : []),
-        { small: "שום דבר לא נשלח ללקוח עד שתלחץ \"אשר ושלח\" באדמין." },
+        { title: "Line items", list: q.items.map((i) => `${i.code} · ${i.name ?? itemName(String(i.code))}${Number(i.qty ?? 1) > 1 ? ` × ${i.qty}` : ""}`) },
+        ...(flags.length ? [{ title: "Check before sending", list: flags.map(String) } as Block] : []),
+        { small: "Nothing goes to the client until you press \"Approve and send\" in the admin." },
       ],
-      cta: { label: "פתח את ההצעה באדמין", url: admin(brand, `quotes/${q.id}`) },
+      cta: { label: "Open the quote in admin", url: admin(brand, `quotes/${q.id}`) },
     };
   }),
 
@@ -412,33 +423,33 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const upwork = isUpwork(ctx, brand), paypal = !upwork && isPaypal(ctx, brand);
     const final = (q.setup_cents ?? 0) - (q.deposit_cents ?? 0);
     return {
-      subject: `✅ ${biz(ctx)} אישר הצעה, ממתין לתשלום`,
-      preheader: upwork ? `מקדמה: ${usd(q.deposit_cents)}. ליצור חוזה ב-Upwork.`
-        : paypal ? `מקדמה: ${usd(q.deposit_cents)}. הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה.` : `מקדמה: ${usd(q.deposit_cents)}`,
-      heading: "הלקוח אישר את ההצעה",
+      subject: `✅ ${biz(ctx)} accepted a quote, payment pending`,
+      preheader: upwork ? `Deposit: ${usd(q.deposit_cents)}. Create the Upwork contract.`
+        : paypal ? `Deposit: ${usd(q.deposit_cents)}. The client pays by card or PayPal on the quote page.` : `Deposit: ${usd(q.deposit_cents)}`,
+      heading: "The client accepted the quote",
       blocks: [
         { facts: [
-          ["עסק", biz(ctx)], ["חתם", q.accepted_name ?? ""], ["מתי", fmtDate(q.accepted_at, brand.owner?.timezone || "UTC", "he")],
-          ["הקמה", usd(q.setup_cents)], ["מקדמה", usd(q.deposit_cents)], ["חודשי", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""],
+          ["Business", biz(ctx)], ["Signed by", q.accepted_name ?? ""], ["When", ownerDate(q.accepted_at, brand)],
+          ["Setup", usd(q.setup_cents)], ["Deposit", usd(q.deposit_cents)], ["Monthly", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""],
           ...(upwork
-            ? [["אמצעי תשלום", "Upwork (Direct Contract)"], ["קישור לחוזה", q.pay_link ? "יש, הלקוח רואה כפתור לחוזה" : "אין, הלקוח מחכה למייל מ-Upwork"]]
-            : paypal ? [["אמצעי תשלום", PAYPAL_LABEL_HE], ["תשלום", "הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה"]]
-            : [["אמצעי תשלום", payMethod(ctx, brand)], ["קישור תשלום", q.pay_link ? "יש, הלקוח רואה כפתור תשלום" : "אין, צריך לשלוח ללקוח"]]) as Array<[string, string]>,
+            ? [["Payment method", "Upwork (Direct Contract)"], ["Contract link", q.pay_link ? "Yes, the client sees a contract button" : "No, the client is waiting for an email from Upwork"]]
+            : paypal ? [["Payment method", PAYPAL_LABEL], ["Payment", "The client pays by card or PayPal on the quote page"]]
+            : [["Payment method", payMethod(ctx, brand)], ["Payment link", q.pay_link ? "Yes, the client sees a pay button" : "No, you need to send one to the client"]]) as Array<[string, string]>,
         ] },
         ...(upwork ? upworkContract(ctx, brand, { codes: q.items.map((i) => String(i.code)), deposit: q.deposit_cents, final,
           monthly: q.monthly_cents, basis: `as described in your accepted fixed quote${q.accepted_at ? ` (${fmtDate(q.accepted_at)})` : ""}` }) : []),
-        { title: "מה עכשיו", list: paypal
-          ? ["אין צורך לשלוח קישור: הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה.",
-            "כשהתשלום עובר, הוא מסומן \"שולם\" לבד: כרטיס הלקוח נפתח, הצ'ק-ליסט נשלח, ויגיע אליך מייל \"תשלום התקבל ב-PayPal\".",
-            "אם הלקוח יעדיף Upwork, יגיע אליך מייל נפרד עם פרטי החוזה."]
+        { title: "What now", list: paypal
+          ? ["No need to send a link: the client pays by card or PayPal on the quote page.",
+            "When the payment goes through, it is marked \"paid\" on its own: the client card opens, the checklist is sent, and you get a \"Payment received via PayPal\" email.",
+            "If the client prefers Upwork, you get a separate email with the contract details."]
           : [
-            ...(upwork ? ["ליצור את החוזה ב-Upwork לפי הפרטים למעלה."] : q.pay_link ? [] : ["לשלוח ללקוח קישור תשלום למקדמה."]),
-            "לפתוח כרטיס לקוח מההצעה באדמין.",
-            upwork ? "כשהלקוח מימן ב-Upwork את אבן הדרך הראשונה: \"סמן כשולם\" על המקדמה (באסמכתה: מספר החוזה ב-Upwork). הלקוח יקבל אוטומטית את הצ'ק-ליסט."
-              : "כשהכסף מגיע: \"סמן כשולם\" על המקדמה. הלקוח יקבל אוטומטית את הצ'ק-ליסט.",
+            ...(upwork ? ["Create the Upwork contract with the details above."] : q.pay_link ? [] : ["Send the client a payment link for the deposit."]),
+            "In the admin, open the quote and press \"Open client\".",
+            upwork ? "When the client funds the first milestone in Upwork: \"Mark paid\" on the deposit (reference: the Upwork contract number). The client gets the checklist automatically."
+              : "When the money arrives: \"Mark paid\" on the deposit. The client gets the checklist automatically.",
           ] },
       ],
-      cta: { label: "פתח באדמין", url: admin(brand, `quotes/${q.id}`) },
+      cta: { label: "Open in admin", url: admin(brand, `quotes/${q.id}`) },
     };
   }),
 
@@ -479,15 +490,15 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   }),
 
   need_help: toMeir((ctx, { brand }) => ({
-    subject: `${biz(ctx)} צריך עזרה ב: ${ctx.item?.title ?? ""}`,
-    preheader: (ctx.item?.message ?? "").slice(0, 120) || "לקוח לחץ Need help בצ'ק-ליסט.",
-    heading: "בקשת עזרה בצ'ק-ליסט",
+    subject: `${biz(ctx)} needs help with: ${ctx.item?.title ?? ""}`,
+    preheader: (ctx.item?.message ?? "").slice(0, 120) || "A client pressed Need help in the checklist.",
+    heading: "Checklist help request",
     blocks: [
-      { facts: [["עסק", biz(ctx)], ["סעיף", ctx.item?.title ?? ""], ["מייל", ctx.profile?.email ?? ""], ["טלפון", ctx.profile?.phone ?? ""]] },
-      ...(ctx.item?.message ? [{ title: "מה הלקוח כתב", quote: ctx.item.message } as Block] : [{ small: "הלקוח לא הוסיף הסבר." } as Block]),
-      { small: "התשובה נכתבת ללקוח, לא בשיחה." },
+      { facts: [["Business", biz(ctx)], ["Step", ctx.item?.title ?? ""], ["Email", ctx.profile?.email ?? ""], ["Phone", ctx.profile?.phone ?? ""]] },
+      ...(ctx.item?.message ? [{ title: "What the client wrote", quote: ctx.item.message } as Block] : [{ small: "The client did not add any details." } as Block]),
+      { small: "Answer the client in writing, not on a call." },
     ],
-    cta: { label: "פתח את הלקוח באדמין", url: admin(brand, `clients/${ctx.client?.id ?? ""}`) },
+    cta: { label: "Open the client in admin", url: admin(brand, `clients/${ctx.client?.id ?? ""}`) },
   })),
 
   ready_to_test: client("transactional", true, (ctx, { brand }) => {
@@ -633,34 +644,34 @@ export const TEMPLATES: Record<string, TemplateDef> = {
 
   admin_provisioning_alert: toMeir((ctx, { brand, payload }) => {
     const step = String(payload?.step ?? "");
-    const label: Record<string, string> = { setup: "ההקמה האוטומטית (כרטיס לקוח, tenant, צ'ק-ליסט)", duplicate_trial: "ניסיון חינם שני לאותו טלפון עסקי" };
+    const label: Record<string, string> = { setup: "Automatic setup (client card, tenant, checklist)", duplicate_trial: "Second free trial for the same business phone" };
     return {
-      subject: `⚠️ הקמה אוטומטית: ${biz(ctx)}`,
+      subject: `⚠️ Automatic setup: ${biz(ctx)}`,
       preheader: label[step] ?? step,
-      heading: "צריך לבדוק הקמה של לקוח",
+      heading: "Check this client's setup",
       blocks: [
-        { facts: [["לקוח", biz(ctx)], ["שלב", label[step] ?? step], ["פרטים", String(payload?.error ?? "")],
-          ["חבילה", ctx.subscription?.plan_code ?? ""], ["סטטוס מנוי", ctx.subscription?.status ?? ""]] },
-        { p: step === "duplicate_trial" ? "הטלפון העסקי כבר קיבל ניסיון חינם. המספר לא נקנה. אם זה בסדר: 'נסה שוב: הקמה' בלשונית מנויים."
-          : "המנוי נשמר. אחרי תיקון: 'נסה שוב: הקמה' בלשונית מנויים באדמין." },
+        { facts: [["Client", biz(ctx)], ["Step", label[step] ?? step], ["Details", String(payload?.error ?? "")],
+          ["Plan", ctx.subscription?.plan_code ?? ""], ["Subscription status", ctx.subscription?.status ?? ""]] },
+        { p: step === "duplicate_trial" ? "This business phone already had a free trial. No number was bought. If that's OK: 'Retry: setup' in the Subscriptions tab."
+          : "The subscription is saved. After you fix the problem: 'Retry: setup' in the Subscriptions tab in the admin." },
       ],
-      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+      cta: { label: "Open the Subscriptions tab", url: admin(brand, "subscriptions") },
     };
   }),
 
   admin_billing_request: toMeir((ctx, { brand, payload }) => {
-    const what: Record<string, string> = { plan_change: "שינוי חבילה", cancel: "ביטול", resume: "חידוש מנוי" };
+    const what: Record<string, string> = { plan_change: "Plan change", cancel: "Cancellation", resume: "Resume subscription" };
     return {
-      subject: `בקשת לקוח: ${what[String(payload?.what)] ?? String(payload?.what ?? "")} · ${biz(ctx)}`,
-      preheader: "ספק התשלום עוד לא מחובר לכפתור הזה: לבצע בספק התשלום.",
-      heading: "לקוח ביקש שינוי במנוי",
+      subject: `Client request: ${what[String(payload?.what)] ?? String(payload?.what ?? "")} · ${biz(ctx)}`,
+      preheader: "This button is not connected to the payment provider yet: make the change in the payment provider.",
+      heading: "A client asked to change their subscription",
       blocks: [
-        { facts: [["לקוח", biz(ctx)], ["בקשה", what[String(payload?.what)] ?? String(payload?.what ?? "")],
-          ["חבילה נוכחית", ctx.subscription?.plan_code ?? ""], ["חבילה מבוקשת", String(payload?.to ?? "")],
-          ["להתחיל עכשיו", payload?.start_now ? "כן" : ""]].filter(([, v]) => v) as Array<[string, string]> },
-        { p: "לבצע בספק התשלום (Paddle). אחרי שהספק מאשר, ה-webhook מעדכן את המערכת לבד." },
+        { facts: [["Client", biz(ctx)], ["Request", what[String(payload?.what)] ?? String(payload?.what ?? "")],
+          ["Current plan", ctx.subscription?.plan_code ?? ""], ["Requested plan", String(payload?.to ?? "")],
+          ["Start now", payload?.start_now ? "Yes" : ""]].filter(([, v]) => v) as Array<[string, string]> },
+        { p: "Make the change in the payment provider (Paddle). Once the provider confirms, the webhook updates the system on its own." },
       ],
-      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+      cta: { label: "Open the Subscriptions tab", url: admin(brand, "subscriptions") },
     };
   }),
 
@@ -710,49 +721,48 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const sub = ctx.subscription;
     const p = planOf(sub?.plan_code);
     const trial = sub?.status === "trialing";
-    const tz = brand.owner?.timezone || "UTC";
-    const ends = fmtDate(sub?.trial_ends_at, tz, "he");
+    const ends = ownerDate(sub?.trial_ends_at, brand);
     return {
-      subject: `🎉 מנוי חדש: ${biz(ctx)} · ${planName(sub?.plan_code)} · ${trial ? "ניסיון חינם" : "בתשלום"}`,
-      preheader: trial ? `ניסיון חינם${ends ? ` עד ${ends}` : ""}. ההקמה אוטומטית, אין צורך בפעולה.` : "מנוי בתשלום. ההקמה אוטומטית, אין צורך בפעולה.",
-      heading: trial ? "מנוי חדש: ניסיון חינם" : "מנוי חדש בתשלום",
+      subject: `🎉 New subscription: ${biz(ctx)} · ${planName(sub?.plan_code)} · ${trial ? "free trial" : "paid"}`,
+      preheader: trial ? `Free trial${ends ? ` until ${ends}` : ""}. Setup is automatic, no action needed.` : "Paid subscription. Setup is automatic, no action needed.",
+      heading: trial ? "New subscription: free trial" : "New paid subscription",
       blocks: [
-        { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""],
-          ["חבילה", `${planLabel(sub?.plan_code)} (${sub?.plan_code ?? ""})`],
-          ["סוג", trial ? `ניסיון חינם${ends ? ` עד ${ends}` : ""}` : `בתשלום מ-${fmtDate(sub?.current_period_start ?? sub?.created_at, tz, "he")}`],
-          ["מחיר חודשי", p ? `${usd(p.monthly_cents)}/mo` : ""],
-          ["חיוב ראשון", trial ? ends : ""],
-          ["טלפון עסקי", fmtPhone(sub?.business_phone || ctx.profile?.phone || "")],
-          ["מייל", ctx.profile?.email ?? ""],
-          ["לקוח חוזר", sub?.returning ? "כן, היה לו מנוי קודם" : ""],
-          ["ספק תשלום", sub?.provider ?? ""]] },
+        { facts: [["Business", biz(ctx)], ["Name", ctx.profile?.full_name ?? ""],
+          ["Plan", `${planLabel(sub?.plan_code)} (${sub?.plan_code ?? ""})`],
+          ["Type", trial ? `Free trial${ends ? ` until ${ends}` : ""}` : `Paid from ${ownerDate(sub?.current_period_start ?? sub?.created_at, brand)}`],
+          ["Monthly price", p ? `${usd(p.monthly_cents)}/mo` : ""],
+          ["First charge", trial ? ends : ""],
+          ["Business phone", fmtPhone(sub?.business_phone || ctx.profile?.phone || "")],
+          ["Email", ctx.profile?.email ?? ""],
+          ["Returning client", sub?.returning ? "Yes, they had an earlier subscription" : ""],
+          ["Payment provider", sub?.provider ?? ""]] },
         ...(sub?.trial_duplicate
-          ? [{ p: "⚠️ הטלפון העסקי הזה כבר קיבל ניסיון חינם, ולכן המספר לא נקנה והלקוח לא קיבל מייל פתיחה. פרטים במייל ההקמה הנפרד." } as Block]
+          ? [{ p: "⚠️ This business phone already had a free trial, so no number was bought and the client got no welcome email. Details are in the separate setup email." } as Block]
           : []),
-        { small: "ההקמה אוטומטית: כרטיס לקוח, tenant, צ'ק-ליסט ומספר. הלקוח עולה לאוויר לבד אחרי שיחת הבדיקה." },
+        { small: "Setup is automatic: client card, tenant, checklist and number. The client goes live on their own after the test call." },
       ],
-      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+      cta: { label: "Open the Subscriptions tab", url: admin(brand, "subscriptions") },
     };
   }),
 
   admin_subscription_canceled: toMeir((ctx, { brand, payload }) => {
     const sub = ctx.subscription;
-    const tz = brand.owner?.timezone || "UTC";
     const ended = payload?.kind === "ended";
     const wasTrial = String(payload?.from ?? sub?.status ?? "") === "trialing";
-    const until = fmtDate(ended ? (sub?.ends_at ?? null) : (wasTrial ? sub?.trial_ends_at : sub?.current_period_end), tz, "he");
+    const untilIso = ended ? (sub?.ends_at ?? null) : (wasTrial ? sub?.trial_ends_at : sub?.current_period_end);
+    const untilDay = fmtDate(untilIso, ownerTz(brand)), until = ownerDate(untilIso, brand);
     return {
-      subject: ended ? `מנוי הסתיים: ${biz(ctx)} · ${planName(sub?.plan_code)}` : `ביטול מנוי: ${biz(ctx)} · ${planName(sub?.plan_code)}${until ? ` (פעיל עד ${until})` : ""}`,
-      preheader: ended ? "המנוי בוטל. הקו עונה עכשיו במצב הודעות." : "הלקוח ביטל. השירות המלא ממשיך עד סוף התקופה, ואז מצב הודעות.",
-      heading: ended ? "מנוי הסתיים" : "לקוח ביטל מנוי",
+      subject: ended ? `Subscription ended: ${biz(ctx)} · ${planName(sub?.plan_code)}` : `Subscription canceled: ${biz(ctx)} · ${planName(sub?.plan_code)}${untilDay ? ` (active until ${untilDay})` : ""}`,
+      preheader: ended ? "The subscription ended. The line now answers in message mode." : "The client canceled. Full service continues until the end of the period, then message mode.",
+      heading: ended ? "Subscription ended" : "A client canceled their subscription",
       blocks: [
-        { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["חבילה", `${planLabel(sub?.plan_code)} (${sub?.plan_code ?? ""})`],
-          ["היה ב", wasTrial ? "ניסיון חינם" : "מנוי בתשלום"], [ended ? "הסתיים" : "פעיל עד", until],
-          ["טלפון עסקי", fmtPhone(sub?.business_phone || ctx.profile?.phone || "")], ["מייל", ctx.profile?.email ?? ""]] },
-        ...(wasTrial ? [{ small: "בוטל בתקופת הניסיון: אין חיוב." } as Block] : []),
-        { small: "אין צורך בפעולה. כשהשירות נגמר, שחרור המספר מתוזמן לבד (לשונית המנויים: לדחות או לשחרר עכשיו)." },
+        { facts: [["Business", biz(ctx)], ["Name", ctx.profile?.full_name ?? ""], ["Plan", `${planLabel(sub?.plan_code)} (${sub?.plan_code ?? ""})`],
+          ["Was on", wasTrial ? "Free trial" : "Paid subscription"], [ended ? "Ended" : "Active until", until],
+          ["Business phone", fmtPhone(sub?.business_phone || ctx.profile?.phone || "")], ["Email", ctx.profile?.email ?? ""]] },
+        ...(wasTrial ? [{ small: "Canceled during the trial: no charge." } as Block] : []),
+        { small: "No action needed. When the service ends, the number release is scheduled on its own (Subscriptions tab: postpone or release now)." },
       ],
-      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+      cta: { label: "Open the Subscriptions tab", url: admin(brand, "subscriptions") },
     };
   }),
 
@@ -837,25 +847,25 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const deposit = pay.kind === "deposit";
     const days = Number((PRICEBOOK.refund_rules.deposit as { window_days?: number }).window_days ?? 7);
     return {
-      subject: `💳 תשלום התקבל ב-PayPal: ${biz(ctx)} · ${ltr(usd(pay.amount_cents))}`,
-      preheader: deposit ? "המקדמה שולמה. הצ'ק-ליסט נפתח ללקוח לבד." : "התשלום לפני עלייה לאוויר שולם. אפשר לקבוע עלייה לאוויר.",
-      heading: "תשלום התקבל ב-PayPal",
+      subject: `💳 Payment received via PayPal: ${biz(ctx)} · ${usd(pay.amount_cents)}`,
+      preheader: deposit ? "The deposit is paid. The checklist opened for the client on its own." : "The payment before go-live is paid. You can set the go-live now.",
+      heading: "Payment received via PayPal",
       blocks: [
         { facts: [
-          ["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["מייל", ctx.profile?.email ?? ""],
-          ["סוג", deposit ? "מקדמה" : "תשלום לפני עלייה לאוויר"], ["סכום", usd(pay.amount_cents)],
-          ["הצעה", ctx.quote ? `${productsOf(ctx) || ctx.quote.items.map((i) => String(i.code)).join(" + ")} · הקמה ${usd(ctx.quote.setup_cents)}` +
-            (ctx.quote.accepted_at ? ` · אושרה ${fmtDate(ctx.quote.accepted_at, brand.owner?.timezone || "UTC", "he")}` : "") : ""],
-          ["מזהה חיוב ב-PayPal", pay.provider_capture_id ?? ""], ["מייל המשלם ב-PayPal", pay.payer_email ?? ""],
+          ["Business", biz(ctx)], ["Name", ctx.profile?.full_name ?? ""], ["Email", ctx.profile?.email ?? ""],
+          ["Type", deposit ? "Deposit" : "Payment before go-live"], ["Amount", usd(pay.amount_cents)],
+          ["Quote", ctx.quote ? `${productsOf(ctx) || ctx.quote.items.map((i) => String(i.code)).join(" + ")} · setup ${usd(ctx.quote.setup_cents)}` +
+            (ctx.quote.accepted_at ? ` · accepted ${ownerDate(ctx.quote.accepted_at, brand)}` : "") : ""],
+          ["PayPal capture ID", pay.provider_capture_id ?? ""], ["Payer's PayPal email", pay.payer_email ?? ""],
         ] },
-        { title: "מה עכשיו", list: deposit
-          ? ["לא צריך לסמן \"שולם\": זה כבר מסומן. כרטיס הלקוח נפתח, הצ'ק-ליסט נשלח, והלקוח קיבל קבלה ומייל Welcome.",
-            "אם PayPal מחזיק את הכסף (On hold, נפוץ בחודשים הראשונים): אחרי שהעבודה התחילה, בפעילות של PayPal לסמן את העסקה כ-Completed, והכסף משתחרר מהר יותר."]
-          : ["לא צריך לסמן \"שולם\": זה כבר מסומן והלקוח קיבל קבלה.",
-            "לקבוע עלייה לאוויר: בכרטיס הלקוח באדמין, סטטוס \"באוויר\" ← \"שמירת סטטוס\"."] },
-        ...(deposit ? [{ small: `החזר מקדמה תוך ${days} ימים מהתשלום: כפתור "החזר" בשורת התשלום בכרטיס הלקוח.` } as Block] : []),
+        { title: "What now", list: deposit
+          ? ["No need to mark it \"paid\": it already is. The client card is open, the checklist was sent, and the client got a receipt and a welcome email.",
+            "If PayPal holds the money (On hold, common in the first months): once the work has started, mark the transaction as Completed in your PayPal activity and the money is released sooner."]
+          : ["No need to mark it \"paid\": it already is, and the client got a receipt.",
+            "To set the go-live: in the client card in the admin, status \"Live\" → \"Save status\"."] },
+        ...(deposit ? [{ small: `Deposit refund within ${days} days of payment: the "Refund" button on the payment row in the client card.` } as Block] : []),
       ],
-      cta: { label: "פתח את הלקוח באדמין", url: admin(brand, `clients/${ctx.client?.id ?? ""}`) },
+      cta: { label: "Open the client in admin", url: admin(brand, `clients/${ctx.client?.id ?? ""}`) },
     };
   }),
 
@@ -866,23 +876,23 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const reason = String(payload?.reason ?? "");
     const who = ctx.client || ctx.profile?.email ? biz(ctx) : "";
     return {
-      subject: `${a.subject}${who ? `: ${who}` : ""}${ctx.payment ? ` · ${ltr(usd(ctx.payment.amount_cents))}` : ""}`,
+      subject: `${a.subject}${who ? `: ${who}` : ""}${ctx.payment ? ` · ${usd(ctx.payment.amount_cents)}` : ""}`,
       preheader: a.what[0],
       heading: a.heading,
       blocks: [
         { facts: [
-          ["עסק", who], ["מייל", ctx.profile?.email ?? ""],
-          ["תשלום אצלנו", ctx.payment ? `${ctx.payment.kind === "deposit" ? "מקדמה" : ctx.payment.kind === "final" ? "תשלום לפני עלייה לאוויר" : ctx.payment.kind} · ${usd(ctx.payment.amount_cents)}` : "לא נמצא"],
-          ["סכום לפי PayPal", String(payload?.paypal_amount ?? payload?.refund_amount ?? "")],
-          ["סיבה", reason ? `${DISPUTE_REASONS[reason] ?? reason} (${reason})` : ""],
-          ["מה לא תאם", String(payload?.problems ?? "")],
-          ["מזהה ב-PayPal", String(payload?.ref ?? "")],
-          ["מזהה חיוב", String(payload?.capture_id ?? ctx.payment?.provider_capture_id ?? "")],
-          ["לענות עד", String(payload?.response_due ?? "")],
+          ["Business", who], ["Email", ctx.profile?.email ?? ""],
+          ["Our payment row", ctx.payment ? `${ctx.payment.kind === "deposit" ? "Deposit" : ctx.payment.kind === "final" ? "Payment before go-live" : ctx.payment.kind} · ${usd(ctx.payment.amount_cents)}` : "Not found"],
+          ["Amount per PayPal", String(payload?.paypal_amount ?? payload?.refund_amount ?? "")],
+          ["Reason", reason ? `${DISPUTE_REASONS[reason] ?? reason} (${reason})` : ""],
+          ["What didn't match", String(payload?.problems ?? "")],
+          ["PayPal ID", String(payload?.ref ?? "")],
+          ["Capture ID", String(payload?.capture_id ?? ctx.payment?.provider_capture_id ?? "")],
+          ["Respond by", String(payload?.response_due ?? "")],
         ] },
-        { title: "מה עכשיו", list: a.what },
+        { title: "What now", list: a.what },
       ],
-      cta: ctx.client?.id ? { label: "פתח את הלקוח באדמין", url: admin(brand, `clients/${ctx.client.id}`) } : { label: "פתח את הלקוחות באדמין", url: admin(brand, "clients") },
+      cta: ctx.client?.id ? { label: "Open the client in admin", url: admin(brand, `clients/${ctx.client.id}`) } : { label: "Open clients in admin", url: admin(brand, "clients") },
     };
   }),
 
@@ -892,63 +902,63 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const q = ctx.quote!;
     const final = (q.setup_cents ?? 0) - (q.deposit_cents ?? 0);
     return {
-      subject: `🔁 ${biz(ctx)} ביקש לשלם דרך Upwork`,
-      preheader: `מקדמה: ${usd(q.deposit_cents)}. ליצור חוזה ב-Upwork (Direct Contract).`,
-      heading: "הלקוח בחר לשלם דרך Upwork",
+      subject: `🔁 ${biz(ctx)} asked to pay through Upwork`,
+      preheader: `Deposit: ${usd(q.deposit_cents)}. Create an Upwork contract (Direct Contract).`,
+      heading: "The client chose to pay through Upwork",
       blocks: [
-        { p: "בדף ההצעה הלקוח לחץ \"Pay through Upwork instead\" במקום לשלם בכרטיס. ההצעה עברה ל-Upwork, והלקוח רואה שהחוזה יגיע אליו במייל מ-Upwork." },
+        { p: "On the quote page the client pressed \"Pay through Upwork instead\" instead of paying by card. The quote moved to Upwork, and the client sees that the contract will come by email from Upwork." },
         { facts: [
-          ["עסק", biz(ctx)], ["חתם", q.accepted_name ?? ""], ["הקמה", usd(q.setup_cents)], ["מקדמה", usd(q.deposit_cents)],
-          ["חודשי", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""], ["אמצעי תשלום", "Upwork (Direct Contract)"],
+          ["Business", biz(ctx)], ["Signed by", q.accepted_name ?? ""], ["Setup", usd(q.setup_cents)], ["Deposit", usd(q.deposit_cents)],
+          ["Monthly", q.monthly_cents != null ? `${usd(q.monthly_cents)}/mo` : ""], ["Payment method", "Upwork (Direct Contract)"],
         ] },
         ...upworkContract(ctx, brand, { codes: q.items.map((i) => String(i.code)), deposit: q.deposit_cents, final, monthly: q.monthly_cents,
           basis: `as described in your accepted fixed quote${q.accepted_at ? ` (${fmtDate(q.accepted_at)})` : ""}` }),
-        { title: "מה עכשיו", list: ["ליצור את החוזה ב-Upwork לפי הפרטים למעלה.",
-          "כשהלקוח מימן ב-Upwork את אבן הדרך הראשונה: \"סמן כשולם\" על המקדמה (באסמכתה: מספר החוזה ב-Upwork). הלקוח יקבל אוטומטית את הצ'ק-ליסט."] },
+        { title: "What now", list: ["Create the Upwork contract with the details above.",
+          "When the client funds the first milestone in Upwork: \"Mark paid\" on the deposit (reference: the Upwork contract number). The client gets the checklist automatically."] },
       ],
-      cta: { label: "פתח באדמין", url: admin(brand, `quotes/${q.id}`) },
+      cta: { label: "Open in admin", url: admin(brand, `quotes/${q.id}`) },
     };
   }),
 };
 
 const productsOf = (ctx: EmailCtx) => (ctx.client?.products ?? []).map(itemName).join(" + ");
 
-/** Hebrew copy of the owner alerts (admin_paypal_alert), by kind. */
+/** Copy of the owner alerts (admin_paypal_alert), by kind. */
 export const PAYPAL_ALERTS: Record<string, { subject: string; heading: string; what: string[] }> = {
-  dispute: { subject: "⚠️ מחלוקת חדשה ב-PayPal", heading: "לקוח פתח מחלוקת ב-PayPal", what: [
-    "להיכנס ל-PayPal ← Resolution Center ולפתוח את המחלוקת.",
-    "לענות תוך יומיים, בכתב, עם הוכחות: ההצעה שאושרה, יומן הפורטל, המיילים ותאריך העלייה לאוויר.",
-    "לא להחזיר כסף מחוץ למחלוקת, אחרת הלקוח עלול לקבל אותו פעמיים."] },
-  reversed: { subject: "⚠️ PayPal החזיר תשלום ללקוח", heading: "תשלום בוטל (Reversal)", what: [
-    "PayPal החזיר את הכסף ללקוח (בדרך כלל אחרי מחלוקת או ביטול חיוב בבנק). התשלום סומן \"הוחזר\" במערכת.",
-    "לבדוק ב-PayPal ← Activity מה הסיבה, ולהחליט אם לעצור את העבודה ללקוח."] },
-  partial_refund: { subject: "החזר חלקי ב-PayPal", heading: "בוצע החזר חלקי", what: [
-    "ב-PayPal בוצע החזר חלקי של התשלום. במערכת התשלום נשאר \"שולם\".",
-    "אם הכוונה הייתה להחזיר הכל, להשלים את ההחזר ב-PayPal. ההחזר המלא יסומן במערכת לבד."] },
-  mismatch: { subject: "⚠️ תשלום PayPal לא תואם", heading: "תשלום שלא תואם להצעה", what: [
-    "PayPal דיווח על תשלום שלא תואם לשורת התשלום אצלנו (סכום, מטבע או הזמנה), או על תשלום כפול. הוא לא סומן \"שולם\".",
-    "לבדוק ב-PayPal ← Activity. אם נגבה כסף בטעות, להחזיר אותו שם.",
-    "להעביר לקלוד את מזהה החיוב מהמייל הזה."] },
-  declined: { subject: "תשלום PayPal לא עבר", heading: "PayPal דחה תשלום שהיה בבדיקה", what: [
-    "PayPal בדק את התשלום (הוא היה \"בעיבוד\") ובסוף דחה אותו. לא התקבל כסף.",
-    "הלקוח יכול לשלם שוב: כפתורי התשלום חזרו לדף ההצעה (או לפורטל, בתשלום שלפני העלייה לאוויר).",
-    "כדאי לכתוב ללקוח שינסה שוב, בכרטיס אחר או דרך Upwork."] },
-  unknown_capture: { subject: "תשלום PayPal שלא דרך כפתור ההצעה", heading: "תשלום שלא מזוהה במערכת", what: [
-    "התקבל ב-PayPal תשלום שלא שייך לאף תשלום במערכת (למשל חשבונית PayPal ששלחת ידנית).",
-    "אם זה תשלום של לקוח: בכרטיס הלקוח באדמין, \"סמן כשולם\" עם מזהה החיוב באסמכתה."] },
+  dispute: { subject: "⚠️ New PayPal dispute", heading: "A client opened a PayPal dispute", what: [
+    "Go to PayPal → Resolution Center and open the dispute.",
+    "Reply within 2 days, in writing, with proof: the accepted quote, the portal log, the emails and the go-live date.",
+    "Don't refund money outside the dispute, or the client may get it twice."] },
+  reversed: { subject: "⚠️ PayPal reversed a payment to the client", heading: "Payment reversed", what: [
+    "PayPal returned the money to the client (usually after a dispute or a bank chargeback). The payment is marked \"refunded\" in the system.",
+    "Check PayPal → Activity for the reason, and decide whether to stop work for this client."] },
+  partial_refund: { subject: "Partial refund in PayPal", heading: "A partial refund was made", what: [
+    "A partial refund of the payment was made in PayPal. In the system the payment stays \"paid\".",
+    "If you meant to refund it all, finish the refund in PayPal. The full refund is marked in the system on its own."] },
+  mismatch: { subject: "⚠️ PayPal payment doesn't match", heading: "Payment doesn't match the quote", what: [
+    "PayPal reported a payment that doesn't match our payment row (amount, currency or order), or a double payment. It was not marked \"paid\".",
+    "Check PayPal → Activity. If money was taken by mistake, refund it there.",
+    "Pass the capture ID from this email to Claude."] },
+  declined: { subject: "PayPal payment didn't go through", heading: "PayPal declined a payment that was under review", what: [
+    "PayPal reviewed the payment (it was \"pending\") and then declined it. No money came in.",
+    "The client can pay again: the payment buttons are back on the quote page (or in the portal, for the payment before go-live).",
+    "Worth writing to the client to try again, with another card or through Upwork."] },
+  unknown_capture: { subject: "PayPal payment not made through the quote button", heading: "Payment not found in the system", what: [
+    "A PayPal payment came in that doesn't belong to any payment in the system (for example a PayPal invoice you sent by hand).",
+    "If it's a client's payment: in the client card in the admin, \"Mark paid\" with the capture ID as the reference."] },
 };
-/** PayPal dispute reasons (CUSTOMER.DISPUTE.CREATED resource.reason) in Hebrew. */
+/** PayPal dispute reasons (CUSTOMER.DISPUTE.CREATED resource.reason), in plain words. */
 export const DISPUTE_REASONS: Record<string, string> = {
-  MERCHANDISE_OR_SERVICE_NOT_RECEIVED: "הלקוח טוען שלא קיבל את השירות",
-  MERCHANDISE_OR_SERVICE_NOT_AS_DESCRIBED: "הלקוח טוען שהשירות לא כמו שתואר",
-  UNAUTHORISED: "הלקוח טוען שלא הוא ביצע את התשלום",
-  CREDIT_NOT_PROCESSED: "הלקוח טוען שהחזר לא בוצע",
-  DUPLICATE_TRANSACTION: "חיוב כפול",
-  INCORRECT_AMOUNT: "סכום שגוי",
-  PAYMENT_BY_OTHER_MEANS: "הלקוח טוען ששילם בדרך אחרת",
-  CANCELED_RECURRING_BILLING: "חיוב חוזר שבוטל",
-  PROBLEM_WITH_REMITTANCE: "בעיה בהעברה",
-  OTHER: "אחר",
+  MERCHANDISE_OR_SERVICE_NOT_RECEIVED: "The client says they didn't get the service",
+  MERCHANDISE_OR_SERVICE_NOT_AS_DESCRIBED: "The client says the service wasn't as described",
+  UNAUTHORISED: "The client says they didn't make the payment",
+  CREDIT_NOT_PROCESSED: "The client says a refund wasn't processed",
+  DUPLICATE_TRANSACTION: "Duplicate charge",
+  INCORRECT_AMOUNT: "Wrong amount",
+  PAYMENT_BY_OTHER_MEANS: "The client says they paid another way",
+  CANCELED_RECURRING_BILLING: "Canceled recurring billing",
+  PROBLEM_WITH_REMITTANCE: "Problem with the transfer",
+  OTHER: "Other",
 };
 
 /** SPEC §5 events NOT rendered here (boundary): who sends them instead. */

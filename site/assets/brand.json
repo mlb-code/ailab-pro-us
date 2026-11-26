@@ -17,7 +17,7 @@
   "smtp_from": "AI Lab Pro <hello@ailabpro.co>",
   "owner": {
     "admin_email": "laviemb@gmail.com",
-    "admin_lang": "he",
+    "admin_lang": "en",
     "timezone": "Asia/Jerusalem"
   },
   "legal_entity": {

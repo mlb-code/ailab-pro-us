@@ -6,7 +6,7 @@ settings, so the runtime falls back to the minimum that is always safe:
   thanks them and hangs up. When the call ends, the caller gets an SMS text-back (opt-out, blocklist
   and quiet hours are checked; at most one a day per number);
 - SMS: STOP/START/HELP still work. Any other text gets one minimal reply and is logged;
-- every time: event `tenant_config_invalid` and an admin alert to Meir (Hebrew, via notify) once a
+- every time: event `tenant_config_invalid` and an admin alert to Meir (English, via notify) once a
   day per tenant. Caller messages go to the admin as well, because the owner's alert settings are
   part of the broken config.
 """
@@ -88,7 +88,7 @@ def broken_tenant(rt: Runtime, number: str) -> BrokenTenant | None:
 
 
 def _admin_send(rt: Runtime, bt: BrokenTenant, summary: str, key: str, now: datetime) -> None:
-    """Hebrew admin alert through B6's notifier (urgent: the line is degraded). Runs off the webhook."""
+    """Admin alert (English) through B6's notifier (urgent: the line is degraded). Runs off the webhook."""
     try:
         from .hooks_b56 import notifier_for
         from .notify import templates as T
@@ -114,8 +114,8 @@ class SafeMode:
         self.rt.state.put(flag, True, bt.id)
         self.rt.store.for_tenant(bt.id).log_event(KIND, {"slug": bt.slug, "channel": channel,
                                                          "problems": bt.problems[:5]})
-        summary = ("הקונפיג של הלקוח לא עובר ולידציה. הקו עונה במצב חירום: לוקח שם וטלפון ושולח text-back. "
-                   f"בעיות: {'; '.join(bt.problems[:3])}")
+        summary = ("The client's config fails validation. The line answers in safe mode: it takes a name and number and sends a text-back. "
+                   f"Problems: {'; '.join(bt.problems[:3])}")
         self.rt._submit(_admin_send, self.rt, bt, summary, f"{KIND}:{self._day(bt, now)}", now)
 
     # --- voice -------------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ class SafeMode:
                                                "summary": f"Message (safe mode): {said}" if said else "No speech"})
         if said:
             ts.log_event("safe_mode.message", {"call_sid": call_sid})
-            summary = f"הודעה ממתקשר (הקו במצב חירום). מספר: {caller}. נאמר: {said}"
+            summary = f"Message from a caller (line in safe mode). Number: {caller}. They said: {said}"
             self.rt._submit(_admin_send, self.rt, bt, summary, f"msg:{call_sid}", now)
         vr = VoiceResponse()
         vr.say(SAFE_THANKS, voice=SAFE_VOICE)
@@ -216,7 +216,7 @@ class SafeMode:
         else:
             reply = SAFE_SMS_REPLY
             if body.strip():
-                summary = f"SMS ממספר {contact} (הקו במצב חירום): {body.strip()[:300]}"
+                summary = f"SMS from {contact} (line in safe mode): {body.strip()[:300]}"
                 self.rt._submit(_admin_send, self.rt, bt, summary, f"sms:{sid or who(contact)}", now)
         return reply
 

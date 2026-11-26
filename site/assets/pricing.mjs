@@ -188,7 +188,7 @@ export function inputsFromStored(items, pb) {
 }
 
 /**
- * What the admin runs before "אשר ושלח" — the same verdict quote-send gives (except the server-side FOUNDING cap,
+ * What the admin runs before "Approve and send" — the same verdict quote-send gives (except the server-side FOUNDING cap,
  * which needs a DB count: pass founding_used to check it here too).
  * items: stored-shape lines (or LineInput); opts: {discount_code?, manual_approved?, founding_used?}
  * -> {ok, errors[], blockers[], needs_manual_price, manual_reasons[], totals{...}, lines}

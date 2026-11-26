@@ -11,11 +11,11 @@ SAFETY: buying a number costs money. It happens ONLY when TWILIO_PROVISION_LIVE=
 Dry run = search and buy are simulated, nothing reaches Twilio:
   - simulator / tests (RUNTIME_MODE=sim) or TWILIO_PROVISION_DRY_WRITE=1: a fictional number +1 <area> 555-01xx is
     written to the tenant, so the rest of the flow can be tried end to end;
-  - production dry run: the job is held (status `held`) and Meir gets a Hebrew note with the number that WOULD be
+  - production dry run: the job is held (status `held`) and Meir gets an English note with the number that WOULD be
     bought, so no customer ever sees a fake number.
 Live purchase is idempotent: the number is bought with FriendlyName = the tenant slug, and before buying the job looks
 for a number that already has that name (a retry after a crash never buys a second one).
-Failures: retried 3 times (5 and 15 minutes apart), then `failed` + a Hebrew e-mail to Meir. Never silent.
+Failures: retried 3 times (5 and 15 minutes apart), then `failed` + an English e-mail to Meir. Never silent.
 
 Phase 2 (2026-11-25):
   golive_sim  with GOLIVE_LIVE_AI_CHECK=1 also runs ONE scripted conversation on the real model (app.golive.live_ai_check);
@@ -23,9 +23,9 @@ Phase 2 (2026-11-25):
               the transcript in Meir's e-mail.
   releases    `number_releases` rows (scheduled by the database when the service ended): 7-day warning e-mail to the
               customer, then the release. SAFETY: deleting a number happens ONLY when TWILIO_RELEASE_LIVE=1; default =
-              dry run (row `held` + Hebrew note with the number that would be released). See run_releases().
+              dry run (row `held` + English note with the number that would be released). See run_releases().
               The warning goes to the business's alert addresses AND the account e-mail (store.account_email = RPC
-              runtime_account_email), deduplicated; no address at all or a send error -> Hebrew note to Meir.
+              runtime_account_email), deduplicated; no address at all or a send error -> English note to Meir.
 """
 from __future__ import annotations
 
@@ -244,7 +244,7 @@ class Provisioner:
                                    "updated_at": now.isoformat()})
                 return "retry"
             self._update(job, {"status": "failed", "last_error": err, "updated_at": now.isoformat()})
-            self._alert("provisioning_failed", tenant, job, f"{self._what(job)} נכשל {attempts} פעמים. השגיאה: {err}", now)
+            self._alert("provisioning_failed", tenant, job, f"{self._what(job)} failed {attempts} times. Error: {err}", now)
             return "failed"
         patch = {"status": status, "result": result, "last_error": None, "updated_at": now.isoformat(),
                  "dry_run": bool(result.get("dry_run"))}
@@ -252,25 +252,25 @@ class Provisioner:
         if status == "held" and job.get("kind") == "golive_sim":  # the live AI check could not run: manual approval
             ai = result.get("ai_check") or {}
             self._alert("golive_ai_manual", tenant, job,
-                        f"בדיקת השיחה עם המודל האמיתי לא הצליחה לרוץ אחרי {ai.get('attempts', 0)} ניסיונות "
-                        f"({ai.get('error') or 'שגיאה'}). 14 בדיקות הסימולטור: "
-                        + ("עברו" if all(c.get("ok") for c in result.get("checks") or [] if c.get("name") != "live_ai") else
-                           "נכשלו: " + ", ".join(x for x in result.get("failed") or [] if x != "live_ai"))
-                        + ". הלקוח נשאר בבדיקות. לאישור ידני: אדמין ← מנויים ← 'העלה לאוויר ידנית', או 'הרץ שוב את הבדיקה'."
-                        + _transcript_he(ai), now)
+                        f"The test call with the real model couldn't run after {ai.get('attempts', 0)} attempts "
+                        f"({ai.get('error') or 'error'}). The 14 simulator checks: "
+                        + ("passed" if all(c.get("ok") for c in result.get("checks") or [] if c.get("name") != "live_ai") else
+                           "failed: " + ", ".join(x for x in result.get("failed") or [] if x != "live_ai"))
+                        + ". The client stays in testing. To approve by hand: admin → Subscriptions → 'Go live manually', or 'Run the check again'."
+                        + _transcript_text(ai), now)
         elif status == "held":
             self._alert("number_dry_run", tenant, job,
-                        "רכישת מספר במצב ניסוי (TWILIO_PROVISION_LIVE לא מופעל), לא נקנה מספר. "
-                        f"המספר שהיה נקנה: {result.get('would_buy') or 'לא נמצא'}. "
-                        "להפעלה: TWILIO_PROVISION_LIVE=1 ב-Railway ואז 'נסה שוב' באדמין, או לשייך מספר ידנית.", now)
+                        "Number purchase in test mode (TWILIO_PROVISION_LIVE is off), no number was bought. "
+                        f"The number that would have been bought: {result.get('would_buy') or 'none found'}. "
+                        "To turn it on: TWILIO_PROVISION_LIVE=1 in Railway, then 'Retry' in the admin, or assign a number by hand.", now)
         elif status == "failed":  # golive checks did not pass: Meir looks, the client keeps the test line
             ai = result.get("ai_check") or {}
             extra = ""
             if ai.get("status") == "failed":
-                extra = (" בדיקת השיחה עם המודל האמיתי נכשלה: " + "; ".join(ai.get("problems_he") or ai.get("problems") or [])
-                         + ". הלקוח נשאר בבדיקות. אם התשובות בסדר: אדמין ← מנויים ← 'העלה לאוויר ידנית'." + _transcript_he(ai))
+                extra = (" The test call with the real model failed: " + "; ".join(ai.get("problems_he") or ai.get("problems") or [])
+                         + ". The client stays in testing. If the answers look fine: admin → Subscriptions → 'Go live manually'." + _transcript_text(ai))
             self._alert("golive_check_failed", tenant, job,
-                        "בדיקת הסימולטור לפני עלייה לאוויר נכשלה: " + ", ".join(result.get("failed") or []) + extra, now)
+                        "The simulator check before go-live failed: " + ", ".join(result.get("failed") or []) + extra, now)
         return "held" if status == "held" else "failed" if status == "failed" else "done"
 
     # --- kinds ------------------------------------------------------------------------------------------
@@ -325,10 +325,10 @@ class Provisioner:
     #   - the warning goes out once (idempotent e-mail key); the customer always gets 7 days: a release that comes due
     #     before a warning was sent is moved to warning + 7 days (unless Meir pressed "release now": `force`).
     #   - right before releasing, release_eligible() re-reads the subscription; anything not ended -> row 'canceled'.
-    #   - TWILIO_RELEASE_LIVE off (default): nothing reaches Twilio; the row is 'held' (dry run) and Meir gets a Hebrew
+    #   - TWILIO_RELEASE_LIVE off (default): nothing reaches Twilio; the row is 'held' (dry run) and Meir gets an English
     #     note with the number that WOULD be released. On: the number is deleted at Twilio, tenants.twilio_number = null,
     #     row 'released' (the database then removes the old 'number' job, so a later resubscribe buys a new number).
-    #   - Twilio errors: retried 3 times (5 and 15 minutes apart), then 'failed' + a Hebrew note. Never silent.
+    #   - Twilio errors: retried 3 times (5 and 15 minutes apart), then 'failed' + an English note. Never silent.
     def releases_due(self, now: datetime) -> list[dict[str, Any]]:
         try:
             rows = self.store.select("number_releases", status="scheduled")
@@ -378,8 +378,8 @@ class Provisioner:
             self._update_release(row, patch)
             if not sent:  # no address at all (alerts + account) / e-mail error: Meir tells the customer himself
                 self._alert("number_release_warn_failed", tenant, {"id": row.get("id"), "attempts": 0},
-                            f"אזהרת השחרור לא נשלחה ללקוח (אין כתובת התראות ואין מייל חשבון, או שגיאת מייל). המספר {number} ישוחרר ב-"
-                            f"{str(row.get('release_at'))[:10]}. כדאי לפנות ללקוח, או 'דחה' באדמין.", now)
+                            f"The release warning was not sent to the client (no alert address and no account email, or an email error). Number {number} will be released on "
+                            f"{str(row.get('release_at'))[:10]}. Contact the client, or 'Postpone' in the admin.", now)
             return "warned"
         if release_at > now:
             return "warned"  # warned already, not due yet (picked because warn_at passed)
@@ -387,9 +387,9 @@ class Provisioner:
             self._update_release(row, {"status": "held", "dry_run": True, "updated_at": now.isoformat(),
                                        "result": {**(row.get("result") or {}), "would_release": number, "dry_run": True}})
             self._alert("number_release_dry_run", tenant, {"id": row.get("id"), "attempts": 0},
-                        f"שחרור מספר במצב ניסוי (TWILIO_RELEASE_LIVE לא מופעל), המספר לא שוחרר. המספר שהיה משוחרר: {number}. "
-                        f"השירות הסתיים ב-{str(row.get('service_ended_at') or '')[:10]} ({why}). "
-                        "להפעלה: TWILIO_RELEASE_LIVE=1 ב-Railway ואז 'שחרר עכשיו' באדמין, או 'דחה' כדי לשמור את המספר.", now)
+                        f"Number release in test mode (TWILIO_RELEASE_LIVE is off), the number was not released. The number that would have been released: {number}. "
+                        f"The service ended on {str(row.get('service_ended_at') or '')[:10]} ({why}). "
+                        "To turn it on: TWILIO_RELEASE_LIVE=1 in Railway, then 'Release now' in the admin, or 'Postpone' to keep the number.", now)
             return "held"
         try:
             existed = self.numbers().release(number)
@@ -400,7 +400,7 @@ class Provisioner:
                                    "updated_at": now.isoformat(),
                                    "result": {**(row.get("result") or {}), "released": number, "was_on_account": existed}})
         self._alert("number_released", tenant, {"id": row.get("id"), "attempts": 0},
-                    f"המספר {number} שוחרר ב-Twilio (השירות הסתיים ב-{str(row.get('service_ended_at') or '')[:10]}).", now)
+                    f"Number {number} was released in Twilio (the service ended on {str(row.get('service_ended_at') or '')[:10]}).", now)
         return "released"
 
     def _release_retry(self, row: dict[str, Any], tenant: dict[str, Any] | None, now: datetime, err: str) -> str:
@@ -413,7 +413,7 @@ class Provisioner:
             return "retry"
         self._update_release(row, {"status": "failed", "attempts": attempts, "last_error": err, "updated_at": now.isoformat()})
         self._alert("number_release_failed", tenant, {"id": row.get("id"), "attempts": attempts},
-                    f"שחרור המספר {row.get('number')} נכשל {attempts} פעמים. השגיאה: {err}", now)
+                    f"Release of number {row.get('number')} failed {attempts} times. Error: {err}", now)
         return "failed"
 
     def warning_recipients(self, tenant: dict[str, Any], row: dict[str, Any]) -> list[str]:
@@ -468,10 +468,10 @@ class Provisioner:
 
     @staticmethod
     def _what(job: dict[str, Any]) -> str:
-        return {"number": "רכישת מספר טלפון", "golive_sim": "בדיקת עלייה לאוויר"}.get(job.get("kind"), str(job.get("kind")))
+        return {"number": "Phone number purchase", "golive_sim": "Go-live check"}.get(job.get("kind"), str(job.get("kind")))
 
     def _alert(self, kind: str, tenant: dict[str, Any] | None, job: dict[str, Any], summary: str, now: datetime) -> None:
-        name = str((((tenant or {}).get("config") or {}).get("business") or {}).get("name") or "לקוח")
+        name = str((((tenant or {}).get("config") or {}).get("business") or {}).get("name") or "Client")
         try:
             self.admin_alert(kind, name, str((tenant or {}).get("slug") or "?"), summary,
                              f"{job.get('id')}:{kind}:{job.get('attempts')}")
@@ -479,13 +479,13 @@ class Provisioner:
             log.exception("provisioning admin alert failed")
 
 
-def _transcript_he(ai: dict[str, Any]) -> str:
+def _transcript_text(ai: dict[str, Any]) -> str:
     lines = []
     for t in ai.get("transcript") or []:
-        lines.append(f"{'מתקשר' if t.get('who') == 'customer' else 'סוכן'}: {t.get('text', '')}")
+        lines.append(f"{'Caller' if t.get('who') == 'customer' else 'Agent'}: {t.get('text', '')}")
         if t.get("model_text"):  # the guard replaced what the model wrote: show what it tried to say
-            lines.append(f"   (המודל כתב: {t['model_text']}; תוקן ע\"י השומר: {', '.join(t.get('guard') or [])})")
-    return ("\n\nתמליל השיחה:\n" + "\n".join(lines)) if lines else ""
+            lines.append(f"   (the model wrote: {t['model_text']}; fixed by the guard: {', '.join(t.get('guard') or [])})")
+    return ("\n\nCall transcript:\n" + "\n".join(lines)) if lines else ""
 
 
 def owner_email_via(notifier: Any) -> Callable[[dict[str, Any], str, str, str, str, list[str]], bool]:
@@ -500,7 +500,7 @@ def owner_email_via(notifier: Any) -> Callable[[dict[str, Any], str, str, str, s
 
 
 def admin_alert_via(notifier: Any, now_fn: Callable[[], datetime]) -> Callable[[str, str, str, str, str], None]:
-    """Hebrew e-mail to Meir through the B6 notifier (urgent: sent at any hour, once per key)."""
+    """English e-mail to Meir through the B6 notifier (urgent: sent at any hour, once per key)."""
     from .notify import templates as T
 
     def send(kind: str, business: str, slug: str, summary: str, key: str) -> None:

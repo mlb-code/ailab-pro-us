@@ -1,6 +1,6 @@
 // POST {t, which, order_id} -> {status: "paid"|"pending", which, amount_cents, reference}: captures the buyer-approved
 // PayPal order SERVER-SIDE (only the order pay-create made last for this payment), checks custom_id / currency / amount
-// against our row and marks it paid through pay_record_capture: the same UPDATE as the admin's "סמן כשולם", so
+// against our row and marks it paid through pay_record_capture: the same UPDATE as the admin's "Mark paid", so
 // deposit_received + the setup checklist fire as before, plus payment_receipt (client) and admin_payment_received (Meir).
 // Public (verify_jwt = false); 422 instrument_declined = the SDK lets the buyer choose another card.
 import { errorReply, json, readJson } from "../_shared/http.ts";

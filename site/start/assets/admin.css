@@ -1,22 +1,13 @@
-/* /start/admin/ — owner admin (Hebrew, RTL). Layered on /assets/base.css (design "Workday": tokens + components, LTR by
-   default): this file adds the Hebrew font (allowed here only; Latin stays Inter / Bricolage) and flips the few physical
-   left/right rules of base.css.
+/* /start/admin/ — owner admin (English, LTR). Layered on /assets/base.css (design "Workday": tokens + components, LTR by
+   default): this file only adds the admin layout on top (fonts: Inter / Bricolage from base.css).
    Never off-screen positioning; html{overflow-x:clip}; long values wrap instead of widening the page. */
 :root{
-  --sans:'Inter','Noto Sans Hebrew','Inter Fallback',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
-  --sans-head:'Bricolage Grotesque','Noto Sans Hebrew','BG Fallback',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
   --serif:var(--sans-head); --mono:var(--sans);
 }
 html{overflow-x:clip;scroll-padding-top:80px}
 body{min-height:100vh;min-height:100svh;display:flex;flex-direction:column}
 [hidden]{display:none!important}
 
-/* RTL corrections for base.css */
-.skip-link{left:auto;right:8px}
-.notice{border-left:1px solid var(--line);border-inline-start:4px solid var(--acc)}
-.notice--err{border-inline-start-color:var(--err)}
-.notice--ok{border-inline-start-color:var(--ok)}
-.select{padding-right:14px;padding-left:40px;background-position:left 14px center}
 .eyebrow,.brandmark small{font-family:var(--sans);letter-spacing:.02em;font-size:.8rem}
 .adm-nav .brandmark small{font-size:.62rem;letter-spacing:.1em}
 h1,h2,h3,h4{letter-spacing:0;line-height:1.15}
@@ -44,7 +35,7 @@ input.ltr,textarea.ltr{text-align:left}
 .digest{margin-bottom:18px}
 .digest__head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;cursor:pointer;list-style:none;min-height:44px}
 .digest__head::-webkit-details-marker{display:none}
-.digest__head h2::before{content:"◂ ";color:var(--acc);font-size:.9em}
+.digest__head h2::before{content:"▸ ";color:var(--acc);font-size:.9em}
 details[open]>.digest__head h2::before{content:"▾ "}
 details[open]>.digest__head{margin-bottom:12px}
 .digest__hot{color:var(--acc)}
@@ -127,7 +118,7 @@ details[open]>.digest__head{margin-bottom:12px}
 @media (max-width:480px){.addrow{grid-template-columns:minmax(0,1fr)}}
 .totals{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:.95rem;padding:12px 14px;border:1px solid var(--line-2);border-radius:var(--radius-sm)}
 .totals dt{color:var(--fg-2)}
-.totals dd{text-align:left;color:var(--fg);font-variant-numeric:tabular-nums}
+.totals dd{text-align:right;color:var(--fg);font-variant-numeric:tabular-nums}
 .totals .grand{font-weight:700;color:var(--fg)}
 .totals .grand + dd{font-weight:700;color:var(--acc)}
 .review{margin-bottom:16px}

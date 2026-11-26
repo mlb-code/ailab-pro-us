@@ -50,7 +50,7 @@
   let lastRef = '';   // PayPal reference of the payment made on this page view (receipt note)
 
   // content-hash versions, filled in by tools/asset_version.py (no stale copy after a deploy)
-  const AV = /*asset-v*/{"/assets/brand.json":"8148bbc532","/assets/pricebook.json":"111c878ee6","/assets/quote_view.mjs":"7e387d410e","/assets/paypal_checkout.mjs":"be1c763fe5"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/brand.json":"c0065a8ebc","/assets/pricebook.json":"111c878ee6","/assets/quote_view.mjs":"18f325a8cd","/assets/paypal_checkout.mjs":"e8c38070e2"}/*/asset-v*/;
   const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   async function getJson(u) { const r = await fetch(vurl(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http_' + r.status); return r.json(); }
 
@@ -110,7 +110,7 @@
     if (q.pay_method !== PP) throw new Error('not_paypal');
     let c = mockClient(db, q);
     const now = new Date().toISOString();
-    if (!c) {   // the same rows as the admin's "פתח כרטיס לקוח" (adminCreateClientFromQuote)
+    if (!c) {   // the same rows as the admin's "Open client" (adminCreateClientFromQuote)
       const core = (q.items || []).map(i => i.code).find(x => ['RCP', 'WEB', 'BNDL'].indexOf(x) !== -1) || 'RCP';
       const prof = mockProfile(db, q) || {};
       c = { id: mockId(), user_id: q.user_id, quote_id: q.id, products: [core], status: 'onboarding', go_live_at: null, monthly_cents: q.monthly_cents,

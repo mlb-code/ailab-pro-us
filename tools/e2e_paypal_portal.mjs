@@ -2,7 +2,7 @@
 // and PayPal's JS SDK faked locally (nothing reaches paypal.com):
 //   portal  the final payment in the go-live step and on Billing (card first, then PayPal), paid -> receipt + owner notice,
 //           status texts, no overflow 375/390/414
-//   admin   PayPal methods first + preselected, PayPal ids on the client card, "החזר" (refund) with a Hebrew confirm,
+//   admin   PayPal methods first + preselected, PayPal ids on the client card, "Refund" with a confirm,
 //           refused outside the 7-day rule (no button), console clean
 //   node tools/e2e_paypal_portal.mjs        (own static server on E2E_PORT, default 8971)
 import { chromium } from 'playwright';
@@ -126,21 +126,21 @@ try {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(BASE + '/start/admin/#clients/' + c.id); await page.reload(); await page.waitForSelector('#detail h2');
   const pays = await text('#detail .plist');
-  ok(pays.includes('PayPal · מזהה חיוב MOCKCAP00000000001') && pays.includes('dana@pp.test') && pays.includes('PayPal · מזהה חיוב ' + fin.provider_capture_id),
+  ok(pays.includes('PayPal · capture ID MOCKCAP00000000001') && pays.includes('dana@pp.test') && pays.includes('PayPal · capture ID ' + fin.provider_capture_id),
     'client card: PayPal provider + capture ids on both rows');
   ok(await page.$$eval('[data-refund]', l => l.length) === 1, 'one refund button: the deposit (paid an hour ago), not the final payment');
   await page.click('[data-refund]'); await sleep(500);
-  ok(dialogs.some(m => m.includes('להחזיר ללקוח') && m.includes(usd(q.deposit_cents)) && m.includes('אי אפשר לבטל')), 'Hebrew confirm with the amount: ' + dialogs.join(' | '));
+  ok(dialogs.some(m => m.includes('Refund the full deposit') && m.includes(usd(q.deposit_cents)) && m.includes('cannot be undone')), 'confirm with the amount: ' + dialogs.join(' | '));
   d = await db();
   ok(d.payments.find(p => p.id === dep.id).status === 'refunded' && d.events.some(e => e.type === 'payment_refunded' && e.entity_id === dep.id), 'deposit refunded + logged');
-  ok((await text('#toast')).includes('המקדמה הוחזרה ב-PayPal'), 'toast');
+  ok((await text('#toast')).includes('Deposit refunded in PayPal'), 'toast');
   ok(!(await page.$('[data-refund]')), 'no refund button after the refund');
   // an older PayPal deposit: outside the price book's rule -> no button, the explanation instead (and the API refuses too)
   const days = (pb.refund_rules.deposit || {}).window_days;
   d = await db();
   Object.assign(d.payments.find(p => p.id === dep.id), { status: 'paid', paid_at: new Date(Date.now() - (days + 1) * 864e5).toISOString() });
   await put(d); await page.reload(); await page.waitForSelector('#detail h2');
-  ok(!(await page.$('[data-refund]')) && (await text('#detail .plist')).includes('עברו ' + days + ' ימים: החזר רק מתוך PayPal'), 'outside the rule: no button');
+  ok(!(await page.$('[data-refund]')) && (await text('#detail .plist')).includes('Over ' + days + ' days: refund only in PayPal'), 'outside the rule: no button');
   ok(await page.evaluate(id => window.AdminBackend.adminRefundPayment(id).then(() => 'ok', e => e.message), dep.id) === 'refund_window_passed', 'API refuses outside the rule');
   // pay methods with PayPal on: card checkout first and preselected for a quote without a method
   await page.evaluate(() => window.StartMock.admin.seedAdmin(window.ADMIN_PB));
@@ -149,8 +149,8 @@ try {
   draft.pay_method = null; await put(d);
   await page.goto(BASE + '/start/admin/#quotes/' + draft.id); await page.reload(); await page.waitForSelector('#payMethod');
   const pm = await page.$eval('#payMethod', s => [s.value, Array.from(s.options).map(o => o.value + '=' + o.textContent)]);
-  ok(pm[0] === 'paypal_checkout' && pm[1][0] === 'paypal_checkout=PayPal – כפתור בדף ההצעה' && pm[1].some(x => x.startsWith('upwork=')),
-    'PayPal on: "PayPal – כפתור בדף ההצעה" first + preselected, Upwork still offered: ' + pm[1].join(', '));
+  ok(pm[0] === 'paypal_checkout' && pm[1][0] === 'paypal_checkout=PayPal – button on the quote page' && pm[1].some(x => x.startsWith('upwork=')),
+    'PayPal on: "PayPal – button on the quote page" first + preselected, Upwork still offered: ' + pm[1].join(', '));
   ok((await overflow()).length === 0, 'admin editor: no overflow');
 } finally {
   ok(leaks.length === 0, 'nothing sent to paypal.com: ' + leaks.join(' '));

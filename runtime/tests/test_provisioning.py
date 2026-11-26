@@ -1,5 +1,5 @@
 """Automatic provisioning (2026-11-25): number purchase behind TWILIO_PROVISION_LIVE (dry run by default), the four
-webhooks, idempotent retries, failures -> retry -> `failed` + Hebrew note to Meir, the go-live simulator job against the
+webhooks, idempotent retries, failures -> retry -> `failed` + English note to Meir, the go-live simulator job against the
 client's real config, /jobs/tick and /admin/sim-run. Twilio is always httpx.MockTransport here: no network."""
 from __future__ import annotations
 
@@ -159,7 +159,7 @@ def test_failures_retry_then_fail_loudly(store):
     p.run_due(NOW + timedelta(minutes=30))
     row = store.select("provisioning_jobs", id=j["id"])[0]
     assert (row["status"], row["attempts"]) == ("failed", 3)
-    assert [a[0] for a in alerts] == ["provisioning_failed"] and "נכשל 3 פעמים" in alerts[0][3]
+    assert [a[0] for a in alerts] == ["provisioning_failed"] and "failed 3 times" in alerts[0][3]
 
 
 def test_twilio_error_is_retried(store):

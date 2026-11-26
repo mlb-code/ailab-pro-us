@@ -1,7 +1,7 @@
 """FirstRing phase 2 (owner decision 2026-11-25), runtime side:
   1. the receptionist's number is released after the service ended: 7-day warning e-mail, release 30 days after the end
      of service (dates from the database), resubscribe cancels it, the runtime re-checks the subscription right before,
-     dry run unless TWILIO_RELEASE_LIVE=1 (Hebrew note to Meir with the number), retries then a loud failure;
+     dry run unless TWILIO_RELEASE_LIVE=1 (English note to Meir with the number), retries then a loud failure;
   2. ONE scripted conversation on the real model before go-live (GOLIVE_LIVE_AI_CHECK=1; a fake model here): pass,
      fail (job failed + transcript to Meir), model error / timeout (retries, then held for manual approval);
   3. Spanish on Pro/Business with the customer's remembered on/off choice (voice.spanish_off).
@@ -223,7 +223,7 @@ def test_twilio_errors_retry_then_fail_loudly(rstore):
     p.run_releases(NOW + timedelta(minutes=6))
     assert p.run_releases(NOW + timedelta(minutes=30))["failed"] == 1
     assert rel(rstore)["status"] == "failed" and rstore.select("tenants", id="t1")[0]["twilio_number"] == NUMBER
-    assert [a[0] for a in alerts] == ["number_release_failed"] and "3 פעמים" in alerts[0][3]
+    assert [a[0] for a in alerts] == ["number_release_failed"] and "3 times" in alerts[0][3]
 
 
 def test_already_gone_at_twilio_counts_as_released(rstore):
@@ -282,13 +282,13 @@ def test_warning_goes_to_the_alert_addresses_and_the_account_email(rstore, alert
     assert rel(rstore)["result"]["warning_sent"] is True and alerts == []
 
 
-def test_no_address_at_all_tells_meir_in_hebrew(rstore):
+def test_no_address_at_all_tells_meir(rstore):
     _with_alerts(rstore, [])
     release_row(rstore, warn_at=iso(NOW - timedelta(hours=1)), release_at=iso(NOW + timedelta(days=7)))
     p, alerts, mails = warner(rstore, lambda cid: None)
     assert p.run_releases(NOW)["warned"] == 1
     assert mails == [] and rel(rstore)["result"]["warning_sent"] is False
-    assert [a[0] for a in alerts] == ["number_release_warn_failed"] and "אין כתובת התראות ואין מייל חשבון" in alerts[0][3] and NUMBER in alerts[0][3]
+    assert [a[0] for a in alerts] == ["number_release_warn_failed"] and "no alert address and no account email" in alerts[0][3] and NUMBER in alerts[0][3]
 
 
 def test_a_failed_send_to_both_tells_meir(rstore):
@@ -324,8 +324,8 @@ def test_supabase_store_reads_the_account_email_through_the_service_role_rpc():
 
 
 def test_admin_notes_keep_the_transcript_lines_and_escape_values():
-    subject, text, html = T.admin_alert("golive_check_failed", "Bee <Plumbing>", "bee", "נכשל\n\nתמליל השיחה:\nמתקשר: hi <b>")
-    assert "Bee &lt;Plumbing&gt;" in html and "hi &lt;b&gt;" in html and "<br>" in html and "מתקשר: hi <b>" in text
+    subject, text, html = T.admin_alert("golive_check_failed", "Bee <Plumbing>", "bee", "failed\n\nCall transcript:\nCaller: hi <b>")
+    assert "Bee &lt;Plumbing&gt;" in html and "hi &lt;b&gt;" in html and "<br>" in html and "Caller: hi <b>" in text
 
 
 # ====================================================================================== 2. live AI check before go-live
@@ -393,7 +393,9 @@ def test_live_ai_check_fails_on_forbidden_content(demo_raw):
     a = rep["ai_check"]
     assert rep["passed"] is False and rep["failed"] == ["live_ai"] and a["status"] == "failed"
     assert {"price", "promise", "other_business", "details", "booking"} <= set(a["problems"])
-    assert a["problems_he"] and all(re.search(r"[֐-׿]", p) for p in a["problems_he"])
+    # the plain-words list for Meir (key name is historical): English, one per problem code, never the raw code
+    assert len(a["problems_he"]) == len(a["problems"]) and all(
+        p and not re.search(r"[\u0590-\u05FF]", p) and p not in a["problems"] for p in a["problems_he"])
 
 
 def test_live_ai_check_names_of_other_businesses(demo_raw):
@@ -470,7 +472,7 @@ def test_flag_on_fail_keeps_testing_and_mails_the_transcript(gstore):
     job = gstore.select("provisioning_jobs")[0]
     assert job["status"] == "failed" and job["result"]["passed"] is False  # the database keeps the client in testing
     [(kind, _biz, _slug, summary, _key)] = alerts
-    assert kind == "golive_check_failed" and "תמליל השיחה" in summary and "$99" in summary and "העלה לאוויר ידנית" in summary
+    assert kind == "golive_check_failed" and "Call transcript" in summary and "$99" in summary and "Go live manually" in summary
 
 
 def test_flag_on_model_down_holds_for_manual_approval(gstore):
@@ -480,7 +482,7 @@ def test_flag_on_model_down_holds_for_manual_approval(gstore):
     assert p.run_due(NOW)["held"] == 1
     job = gstore.select("provisioning_jobs")[0]
     assert job["status"] == "held" and job["result"]["ai_check"]["attempts"] == 2
-    assert [a[0] for a in alerts] == ["golive_ai_manual"] and "אישור ידני" in alerts[0][3]
+    assert [a[0] for a in alerts] == ["golive_ai_manual"] and "To approve by hand" in alerts[0][3]
     assert p.run_due(NOW + timedelta(hours=2)) == {"done": 0, "held": 0, "failed": 0, "retry": 0}  # not retried forever
 
 

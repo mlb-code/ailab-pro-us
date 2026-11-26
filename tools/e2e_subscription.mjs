@@ -3,7 +3,7 @@
 // tick (dry-run number) -> checklist saves merge into the live config (prices parsed, cities kept, calendar gate,
 // "messages only") -> forwarding test must come through the business line -> automatic go-live (no final payment) ->
 // Billing: minutes used / included (trial cap, then plan), days left, upgrade / start now / cancel / restart -> message
-// mode banner (minutes used up, cancelled) -> one trial per business phone -> admin "מנויים" tab (jobs, retry, money-back).
+// mode banner (minutes used up, cancelled) -> one trial per business phone -> admin "Subscriptions" tab (jobs, retry, money-back).
 // Screenshots (1440 + 390) of the usage meter, the admin view and the message-mode state go to SHOTS_DIR.
 //   node tools/e2e_subscription.mjs        (own static server on E2E_PORT)
 import http from 'node:http';
@@ -257,7 +257,7 @@ async function main() {
     await profile(page, 'Copycat HVAC', '713-555-0100');
     ok(await page.evaluate(() => window.Backend.mockCheckout('FR_STARTER', 14).then(() => 'ok', e => e.message)) === 'trial_already_used', 'second trial for the same business phone refused');
 
-    // ---------------------------------------------------------------- admin "מנויים"
+    // ---------------------------------------------------------------- admin "Subscriptions"
     console.log('admin');
     await page.evaluate(() => window.Backend.signOut());
     await signIn(page, '/start/admin/', await page.evaluate(() => window.StartMock.MOCK_ADMIN_EMAIL()));
@@ -265,11 +265,11 @@ async function main() {
     await page.goto(BASE + '/start/admin/#subscriptions', { waitUntil: 'load' });
     await page.waitForSelector('.subs .sub', { timeout: 5000 });
     let txt = await page.$eval('#subsBody', e => e.innerText);
-    ok(txt.includes('Cool Breeze HVAC') && txt.includes(biz.name) && txt.includes('מספר טלפון') && txt.includes('בדיקת עלייה לאוויר') && txt.includes('הושלם'), 'admin: subscription, plan, jobs');
-    ok(txt.includes('מצב ניסוי') && txt.includes('לא נוצל'), 'admin: dry-run flag + money-back not used');
+    ok(txt.includes('Cool Breeze HVAC') && txt.includes(biz.name) && txt.includes('Phone number') && txt.includes('Go-live check') && txt.includes('Done'), 'admin: subscription, plan, jobs');
+    ok(txt.includes('Dry run') && txt.includes('Not used'), 'admin: dry-run flag + money-back not used');
     await click(page, '[data-moneyback]'); await sleep(300);
     txt = await page.$eval('#subsBody', e => e.innerText);
-    ok(/נוצל ב-/.test(txt), 'admin: money-back recorded');
+    ok(/Used on /.test(txt), 'admin: money-back recorded');
     await click(page, '[data-retry="golive_sim"]'); await sleep(300);
     ok((await db(page)).provisioning_jobs.find(j => j.kind === 'golive_sim').status === 'pending', 'admin: retry queues the job again');
     ok((await overflow(page)).length === 0, 'admin subscriptions: no overflow');

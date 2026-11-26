@@ -1,4 +1,4 @@
-"""Notification texts. Owner (client) messages: US English. Admin (Meir) messages: Hebrew, RTL.
+"""Notification texts. Owner (client) messages and admin (Meir) messages: US English, LTR (English-only since 2026-11-29).
 
 Subjects follow SPEC section 5 (`lead_alert`, `daily_summary`, `admin_daily`); urgent and
 human-needed leads get a short prefix so they stand out in the inbox. Every customer-supplied
@@ -212,7 +212,6 @@ def weekly_results(business: str, r: dict[str, Any]) -> tuple[str, str, str]:
 
 # --- usage alerts ---------------------------------------------------------------------------
 KIND_EN = {"voice_minutes": "voice minutes", "sms_segments": "SMS segments"}
-KIND_HE = {"voice_minutes": "דקות שיחה", "sms_segments": "מקטעי SMS"}
 
 
 def upgrade_url(plan_code: str | None = None) -> str:
@@ -285,22 +284,22 @@ def usage_owner(business: str, a: dict[str, Any], sms_business: str | None = Non
 
 def usage_admin(business: str, slug: str, a: dict[str, Any]) -> tuple[str, str, str]:
     pct = 100 if a["kind"] == "usage_100" else 80
-    what = KIND_HE.get(a["usage_kind"], a["usage_kind"])
-    subject = f"שימוש {pct}%: {business} · {what}"
+    what = KIND_EN.get(a["usage_kind"], a["usage_kind"])
+    subject = f"Usage {pct}%: {business} · {what}"
     if a.get("plan_code"):
-        trial = " (תקופת ניסיון)" if a.get("trial") else ""
-        lines = [f"ללקוח {business} ({slug}) נוצלו {a['used']:g} מתוך {a['included']:g} {what} בחבילה {a['plan_code']}{trial}.",
-                 "אין חיוב אוטומטי ואין חיוב לפי דקה. הלקוח קיבל מייל עם כפתור שדרוג."]
+        trial = " (free trial)" if a.get("trial") else ""
+        lines = [f"{business} ({slug}) has used {a['used']:g} of {a['included']:g} {what} on plan {a['plan_code']}{trial}.",
+                 "No automatic charge and no per-minute charge. The client got an email with an upgrade button."]
         if pct >= 100:
-            lines.append("השיחות עוברות למצב הודעות (שם, טלפון, סיבה, נשלח במייל לבעל העסק) עד סוף הניסיון או תחילת החבילה."
+            lines.append("Calls switch to message mode (name, phone, reason, emailed to the business owner) until the trial ends or the plan starts."
                          if a.get("trial") else
-                         "השיחות עוברות למצב הודעות עד תאריך החיוב הבא או עד שדרוג. אם זה חוזר, כדאי להציע ללקוח שדרוג.")
+                         "Calls switch to message mode until the next billing date or an upgrade. If this keeps happening, offer the client an upgrade.")
     else:
-        lines = [f"ללקוח {business} ({slug}) נוצלו {a['used']:g} מתוך {a['included']:g} {what} החודש.",
-                 "אין חיוב אוטומטי. אם צריך, מציעים ללקוח בלוק ADD-USAGE, ורק באישורו."]
+        lines = [f"{business} ({slug}) has used {a['used']:g} of {a['included']:g} {what} this month.",
+                 "No automatic charge. If needed, offer the client an ADD-USAGE block, and only with their OK."]
         if pct >= 100:
-            lines.append("החודש מסומן needs_addon_approval. הסוכן ממשיך לענות.")
-    return subject, "\n".join(lines), _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "he")
+            lines.append("This month is flagged needs_addon_approval. The agent keeps answering.")
+    return subject, "\n".join(lines), _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "en")
 
 
 # --- calendar reconnect -----------------------------------------------------------------------
@@ -315,30 +314,30 @@ def calendar_owner(business: str, provider: str) -> tuple[str, str, str, str]:
     return subject, text, _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "en", _footer_en()), sms[:SMS_MAX]
 
 
-# --- admin (Hebrew) ------------------------------------------------------------------------------
-ADMIN_KIND_HE = {"calendar_reconnect": "היומן התנתק", "admin_budget": "תקציב יומי נוצל",
-                 "tenant_config_invalid": "קונפיג לקוח לא תקין, הקו במצב חירום",
-                 "zapier_dead_letter": "Zapier נכשל", "notify_failed": "שליחת התראה נכשלה",
-                 "provisioning_failed": "הקמה אוטומטית נכשלה", "number_dry_run": "רכישת מספר במצב ניסוי",
-                 "golive_check_failed": "בדיקת עלייה לאוויר נכשלה",
-                 "golive_ai_manual": "בדיקת שיחה אמיתית לא רצה: צריך אישור ידני",
-                 "number_release_dry_run": "שחרור מספר במצב ניסוי", "number_released": "מספר שוחרר",
-                 "number_release_failed": "שחרור מספר נכשל", "number_release_warn_failed": "אזהרת שחרור מספר לא נשלחה"}
+# --- admin (Meir, English) -----------------------------------------------------------------------
+ADMIN_KIND = {"calendar_reconnect": "Calendar disconnected", "admin_budget": "Daily budget used up",
+              "tenant_config_invalid": "Client config invalid, line in safe mode",
+              "zapier_dead_letter": "Zapier failed", "notify_failed": "Alert failed to send",
+              "provisioning_failed": "Automatic setup failed", "number_dry_run": "Number purchase in test mode",
+              "golive_check_failed": "Go-live check failed",
+              "golive_ai_manual": "Live AI test call didn't run: manual approval needed",
+              "number_release_dry_run": "Number release in test mode", "number_released": "Number released",
+              "number_release_failed": "Number release failed", "number_release_warn_failed": "Number release warning not sent"}
 
 
 def admin_alert(kind: str, business: str, slug: str, summary: str) -> tuple[str, str, str]:
-    title = ADMIN_KIND_HE.get(kind, kind)
+    title = ADMIN_KIND.get(kind, kind)
     subject = f"{title}: {business}"
-    lines = [f"לקוח: {business} ({slug})", f"מה קרה: {summary}"]
+    lines = [f"Client: {business} ({slug})", f"What happened: {summary}"]
     if kind == "calendar_reconnect":
-        lines.append("הסוכן עבר ל-take_message. הלקוח קיבל מייל עם הוראה לחבר מחדש.")
+        lines.append("The agent switched to take_message. The client got an email with steps to reconnect.")
     if kind in ("provisioning_failed", "number_dry_run", "golive_check_failed"):
-        lines.append("לטיפול: באדמין, לשונית 'מנויים', כפתור 'נסה שוב' ליד השלב.")
+        lines.append("To fix: in the admin, Subscriptions tab, the 'Retry' button next to the step.")
     if kind in ("number_release_dry_run", "number_release_failed"):
-        lines.append("לטיפול: באדמין, לשונית 'מנויים', 'שחרור מספר': 'דחה' או 'שחרר עכשיו'.")
+        lines.append("To fix: in the admin, Subscriptions tab, 'Number release': 'Postpone' or 'Release now'.")
     # a summary may carry several lines (e.g. a test-call transcript): each line on its own row, every value escaped
     body = "".join(f"<p>{'<br>'.join(esc(y) for y in x.split(chr(10)))}</p>" for x in lines)
-    return subject, "\n".join(lines), _wrap(subject, body, "he")
+    return subject, "\n".join(lines), _wrap(subject, body, "en")
 
 
 # --- number release after the service ended (owner, English) -----------------------------------------------------
@@ -362,22 +361,22 @@ def number_release_warning(business: str, number: str, release_at: Any) -> tuple
 
 def admin_daily(d: dict[str, Any]) -> tuple[str, str, str]:
     t = d["totals"]
-    subject = (f"סיכום יומי {d['date']}: {t['leads']} לידים, {t['booked']} הזמנות, "
-               f"{t['problems']} תקלות, עלות {money(t['cost_usd'])}")
+    subject = (f"Daily summary {d['date']}: {t['leads']} leads, {t['booked']} bookings, "
+               f"{t['problems']} problems, cost {money(t['cost_usd'])}")
     rows = "".join(
         f"<tr><td>{esc(x['business'])}</td><td>{x['calls']}</td><td>{x['booked']}</td><td>{x['leads']}</td>"
         f'<td><span dir="ltr">{esc(money(x["claude_usd"]))}</span></td>'
         f'<td><span dir="ltr">{esc(money(x["twilio_usd"]))}</span></td>'
         f"<td>{x['voice_pct']}% / {x['sms_pct']}%</td><td>{esc(', '.join(x['flags']) or '-')}</td></tr>"
         for x in d["tenants"])
-    head = "".join(f'<th style="text-align:right;padding:4px">{h}</th>' for h in
-                   ("לקוח", "שיחות", "הזמנות", "לידים", "Claude", "Twilio", "שימוש קול/SMS", "דגלים"))
+    head = "".join(f'<th style="text-align:left;padding:4px">{h}</th>' for h in
+                   ("Client", "Calls", "Bookings", "Leads", "Claude", "Twilio", "Voice/SMS usage", "Flags"))
     table = f'<table style="border-collapse:collapse;width:100%;font-size:13px"><tr>{head}</tr>{rows}</table>'
     notices = "".join(f"<li>{esc(n)}</li>" for n in d.get("notices") or [])
-    body = (table + (f"<p>הודעות שנדחו לשעות היום:</p><ul>{notices}</ul>" if notices else "")
-            + "<p style=\"color:#667\">לידים והצעות מהאתר מגיעים בסיכום של פונקציית notify (שלב A).</p>")
+    body = (table + (f"<p>Notices held for daytime hours:</p><ul>{notices}</ul>" if notices else "")
+            + "<p style=\"color:#667\">Website leads and quotes come in the notify function's summary (phase A).</p>")
     text = "\n".join([subject] + [
-        f"- {x['business']}: שיחות {x['calls']}, הזמנות {x['booked']}, לידים {x['leads']}, "
-        f"Claude {money(x['claude_usd'])}, Twilio {money(x['twilio_usd'])}, דגלים: {', '.join(x['flags']) or '-'}"
+        f"- {x['business']}: calls {x['calls']}, bookings {x['booked']}, leads {x['leads']}, "
+        f"Claude {money(x['claude_usd'])}, Twilio {money(x['twilio_usd'])}, flags: {', '.join(x['flags']) or '-'}"
         for x in d["tenants"]] + [f"* {n}" for n in d.get("notices") or []])
-    return subject, text, _wrap(subject, body, "he")
+    return subject, text, _wrap(subject, body, "en")

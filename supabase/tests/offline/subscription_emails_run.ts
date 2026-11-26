@@ -97,10 +97,10 @@ check(p.subject === `Your ${starter.product} ${starter.name} plan has started` &
   p.text.includes("December 26, 2026") && p.text.includes(`${starter.included_usage.voice_minutes} minutes of calls a month`) &&
   p.text.includes((PRICEBOOK.rules as unknown as { subscription: { texts: { cancel: string } } }).subscription.texts.cancel),
   "e2e: plan_welcome rendered (monthly, minutes, next charge, the price-book cancel sentence)");
-check(at.subject === `🎉 מנוי חדש: Cool Breeze HVAC · ${pro.name} · ניסיון חינם` && at.text.includes("+1 (713) 555-0170") && at.text.includes("trial@example.com") &&
-  at.html.includes(`href="${SITE}/start/admin/#subscriptions"`) && at.html.includes('dir="rtl"'), "e2e: admin_new_subscription (Hebrew, trial, phone, e-mail, admin link)");
-check(ap.subject === `🎉 מנוי חדש: Bee Plumbing · ${starter.name} · בתשלום` && ap.text.includes("+1 (312) 555-0171"), "e2e: admin_new_subscription (paid)");
-check(ac.subject.startsWith(`ביטול מנוי: Bee Plumbing · ${starter.name} (פעיל עד `) && ac.text.includes("מנוי בתשלום"), "e2e: admin_subscription_canceled (scheduled, paid)");
+check(at.subject === `🎉 New subscription: Cool Breeze HVAC · ${pro.name} · free trial` && at.text.includes("+1 (713) 555-0170") && at.text.includes("trial@example.com") &&
+  at.html.includes(`href="${SITE}/start/admin/#subscriptions"`) && at.html.includes('dir="ltr"'), "e2e: admin_new_subscription (English, trial, phone, e-mail, admin link)");
+check(ap.subject === `🎉 New subscription: Bee Plumbing · ${starter.name} · paid` && ap.text.includes("+1 (312) 555-0171"), "e2e: admin_new_subscription (paid)");
+check(ac.subject.startsWith(`Subscription canceled: Bee Plumbing · ${starter.name} (active until `) && ac.text.includes("Paid subscription"), "e2e: admin_subscription_canceled (scheduled, paid)");
 
 console.log(failed ? `\n${failed} FAILED` : "\nSUBSCRIPTION EMAILS OFFLINE CHECKS PASSED");
 Deno.exit(failed ? 1 : 0);

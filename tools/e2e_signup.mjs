@@ -333,14 +333,14 @@ async function main() {
     await page.goto(BASE + '/start/admin/#subscriptions', { waitUntil: 'load' });
     await page.waitForSelector('.subs .sub', { timeout: 6000 });
     let txt = await page.$eval('#subsBody', e => e.innerText);
-    ok(txt.includes('sub_e2epaddle000000000000001') && /פתח את המנוי ב-Paddle/.test(txt) && await page.$('[data-paddle-link][href^="https://sandbox-vendors.paddle.com/"]') !== null, 'admin: Paddle ids + sandbox dashboard link');
-    ok(/חיוב ראשון/.test(txt) && /פתוח עד/.test(txt) && await page.$('[data-paddlerefund]') !== null, 'admin: first charge date, window open, refund button');
+    ok(txt.includes('sub_e2epaddle000000000000001') && /Open subscription in Paddle/.test(txt) && await page.$('[data-paddle-link][href^="https://sandbox-vendors.paddle.com/"]') !== null, 'admin: Paddle ids + sandbox dashboard link');
+    ok(/first charge/.test(txt) && /open until/.test(txt) && await page.$('[data-paddlerefund]') !== null, 'admin: first charge date, window open, refund button');
     await shot(page, 'admin-paddle-subscription');
     await click(page, '[data-paddlerefund]'); await sleep(400);
     d = await db(page); ps = d.subscriptions.find(s => s.provider === 'paddle');
     ok(ps.money_back_used_at && ps.status === 'canceled' && d.paddle_calls.some(c => c.path === '/adjustments' && c.body.type === 'full'), 'refund: full refund in Paddle, plan ended, recorded once');
     txt = await page.$eval('#subsBody', e => e.innerText);
-    ok(/נוצל ב-/.test(txt) && await page.$('[data-paddlerefund]') === null, 'admin: refund used, button gone');
+    ok(/Used on /.test(txt) && await page.$('[data-paddlerefund]') === null, 'admin: refund used, button gone');
     ok((await overflow(page)).length === 0, 'admin: no overflow');
     await page.close();
 

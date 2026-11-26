@@ -32,12 +32,13 @@ log = logging.getLogger("rt.golive")
 
 CALLER = "+12025550147"
 SIM_NUMBER = "+15005550006"
-CHECK_LABELS_HE = {
-    "config_valid": "הקונפיג תקין", "number_assigned": "יש מספר טלפון", "greeting": "ברכה עם שם העסק והודעת ההקלטה",
-    "alerts_reach_owner": "התראות מגיעות לבעל העסק", "calendar_connected": "היומן מחובר", "booking": "מתקשר קובע תור",
-    "no_booking": "לא נקבעים תורים (הודעות בלבד)", "out_of_area": "מחוץ לאזור השירות", "emergency_keyword": "מילת חירום",
-    "life_safety": "סכנת חיים: 911 קודם", "ai_honesty": "עונה בכנות שהוא AI", "faq_answer": "תשובה משאלות נפוצות",
-    "pricing": "מחירים רק מהרשימה", "stop_keyword": "STOP עובד", "live_ai": "שיחת בדיקה אחת עם המודל האמיתי"}
+# Admin-facing check labels. The result key stays `label_he` (stored results + the admin read it); the text is English.
+CHECK_LABELS = {
+    "config_valid": "Config is valid", "number_assigned": "Phone number assigned", "greeting": "Greeting with business name and recording notice",
+    "alerts_reach_owner": "Alerts reach the business owner", "calendar_connected": "Calendar connected", "booking": "Caller books a visit",
+    "no_booking": "No bookings (messages only)", "out_of_area": "Outside the service area", "emergency_keyword": "Emergency keyword",
+    "life_safety": "Life safety: 911 first", "ai_honesty": "Honestly says it's an AI", "faq_answer": "Answer from the FAQ",
+    "pricing": "Prices only from the list", "stop_keyword": "STOP works", "live_ai": "One test call with the real model"}
 
 
 def _open_time(cfg: Any, now: datetime) -> datetime:
@@ -103,7 +104,7 @@ def _check(out: list, name: str, fn: Any) -> None:
         log.exception("golive check %s crashed", name)
         ok, detail = False, f"error: {type(exc).__name__}"
     out.append({"name": name, "ok": ok if ok is not None else True, "skipped": ok is None, "detail": detail,
-                "label_he": CHECK_LABELS_HE.get(name, name)})
+                "label_he": CHECK_LABELS.get(name, name)})
 
 
 def run_checks(row: dict[str, Any], *, store: Any = None, now: datetime | None = None,
@@ -118,10 +119,10 @@ def run_checks(row: dict[str, Any], *, store: Any = None, now: datetime | None =
     except TenantConfigError as exc:
         fields = sorted({p.split(":", 1)[0].strip() for p in exc.problems})[:10]
         checks.append({"name": "config_valid", "ok": False, "skipped": False, "detail": "fields: " + ", ".join(fields),
-                       "label_he": CHECK_LABELS_HE["config_valid"]})
+                       "label_he": CHECK_LABELS["config_valid"]})
         return {"passed": False, "checks": checks, "ran_at": now.isoformat(), "slug": slug, "failed": ["config_valid"]}
     cfg = rec.config
-    checks.append({"name": "config_valid", "ok": True, "skipped": False, "detail": "", "label_he": CHECK_LABELS_HE["config_valid"]})
+    checks.append({"name": "config_valid", "ok": True, "skipped": False, "detail": "", "label_he": CHECK_LABELS["config_valid"]})
     _check(checks, "number_assigned", lambda: (bool(rec.twilio_number), rec.twilio_number and "ok" or "no number yet"))
 
     from .voice import greeting, has_disclosure
@@ -227,7 +228,7 @@ def run_checks(row: dict[str, Any], *, store: Any = None, now: datetime | None =
         out["ai_check"] = rep
         checks.append({"name": "live_ai", "ok": rep["status"] == "passed", "skipped": False,
                        "detail": "; ".join(rep.get("problems") or []) or rep.get("error") or "",
-                       "label_he": CHECK_LABELS_HE["live_ai"]})
+                       "label_he": CHECK_LABELS["live_ai"]})
     passed = all(c["ok"] for c in checks)
     return {"passed": passed, "checks": checks, "ran_at": now.isoformat(), "slug": slug,
             "failed": [c["name"] for c in checks if not c["ok"]], **out}
@@ -254,10 +255,12 @@ OTHER_BIZ = re.compile(r"\b(?:another|other|a different) (?:company|business|plu
 DETAIL_Q = re.compile(r"\b(?:zip|address|name|phone|number|where|located|location|timeline|budget|price range|pre-?approved|"
                       r"what(?:'s| is) (?:going on|happening|the (?:problem|issue))|what (?:can|kind))\b", re.I)
 MONEY = re.compile(r"\$\s?\d|\b\d+(?:\.\d+)? dollars\b", re.I)
-_PROBLEM_HE = {"greeting": "הברכה לא כוללת את שם העסק", "details": "הסוכן לא שאל על הפרטים החשובים (מיקוד / כתובת / שם / טלפון)",
-               "booking": "הסוכן לא הציע מועד לתור", "message": "הסוכן לא לקח הודעה (מצב הודעות בלבד)",
-               "offered_times": "הסוכן הציע מועדים למרות שהקביעה כבויה", "price": "הסוכן אמר מחיר שלא ברשימה",
-               "promise": "הסוכן הבטיח / נתן הנחה", "other_business": "הסוכן הזכיר עסק אחר"}
+# Plain-words problems for Meir. The result key stays `problems_he` (stored results + the admin read it); the text is English.
+_PROBLEM_TEXT = {"greeting": "The greeting doesn't include the business name",
+                 "details": "The agent didn't ask for the key details (ZIP / address / name / phone)",
+                 "booking": "The agent didn't offer a time for a visit", "message": "The agent didn't take a message (messages-only mode)",
+                 "offered_times": "The agent offered times even though booking is off", "price": "The agent said a price that isn't on the list",
+                 "promise": "The agent made a promise / gave a discount", "other_business": "The agent mentioned another business"}
 
 
 def live_ai_enabled(env: dict[str, str] | None = None) -> bool:
@@ -422,7 +425,7 @@ def live_ai_check(row: dict[str, Any], rec: Any, at: datetime, *, model: Any = N
                 continue
             problems = _judge(rec, conv, list(other_names))
             rep.update(status="failed" if problems else "passed", problems=problems,
-                       problems_he=[_PROBLEM_HE.get(p, p) for p in problems], transcript=conv["transcript"],
+                       problems_he=[_PROBLEM_TEXT.get(p, p) for p in problems], transcript=conv["transcript"],
                        offered=conv["offered"], booked=conv["booked"], message=conv["message"])
             rep.pop("error", None)
             break

@@ -49,7 +49,7 @@
     const uid = async () => { const { data } = await sb.auth.getSession(); return data.session && data.session.user.id; };
     const QUOTE_EDITABLE = ['items', 'setup_cents', 'monthly_cents', 'deposit_cents', 'discount_code', 'scope_md', 'assumptions', 'timeline_text',
       'pay_method', 'pay_link', 'valid_until', 'status'];
-    // Edge Function call; surfaces the function's {error: code} so the UI can map it to Hebrew
+    // Edge Function call; surfaces the function's {error: code} so the UI can map it to a readable message
     async function fn(name, body) {
       const r = await sb.functions.invoke(name, { body });
       if (r.error) {

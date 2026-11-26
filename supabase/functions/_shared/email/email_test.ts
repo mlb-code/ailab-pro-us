@@ -25,7 +25,7 @@ const SITE = B.site_url.replace(/\/$/, "");
 const NOON_IL = new Date("2026-10-12T09:00:00Z"); // 12:00 owner time (inside Meir's 08–23 window)
 const NIGHT_IL = new Date("2026-10-12T00:30:00Z"); // 03:30 owner time
 const brandWith = (patch: Record<string, unknown>) => ({ ...structuredClone(B), ...patch }) as EmailBrand;
-const HEBREW = /[֐-׿]/;
+const HEBREW = /[\u0590-\u05FF]/;
 
 // ------------------------------------------------------------------ templates
 Deno.test("went_live: satisfaction guarantee (from pricebook) for RCP/BNDL only, with its end date", async () => {
@@ -73,32 +73,32 @@ Deno.test("Upwork: the client's accepted-quote mail without / with the contract 
   assert(p2.text.includes(`We'll email your secure payment link for the deposit ${B.quote_sla_text}.`) && !p2.text.includes("Upwork"), "paypal_link, no link: unchanged");
 });
 
-Deno.test("Upwork: Meir's Hebrew mail lists the Direct Contract to create (menu path, email, fixed-price, milestones, description)", async () => {
+Deno.test("Upwork: Meir's mail lists the Direct Contract to create (menu path, email, fixed-price, milestones, description)", async () => {
   const s = await samples();
   const ctx = s[T_ADMIN_ACCEPTED].ctx, q = ctx.quote!;
   const dep = usd(q.deposit_cents), fin = usd((q.setup_cents ?? 0) - (q.deposit_cents ?? 0));
   const rcp = PRICEBOOK.items.find((i) => i.code === "RCP")!.name;
   const m = render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_method: "upwork", pay_link: null } });
-  has(m, ["ליצור ב-Upwork:", "Find work → Direct Contracts → Create a contract", `מייל הלקוח: ${ctx.profile!.email!}`, "סוג חוזה: Fixed-price",
-    `שם החוזה: ${B.name} – ${rcp} setup`, `אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_line}`, `אבן דרך 1: סכום: ${dep}`,
-    `אבן דרך 2 (לפני עלייה לאוויר): שם: ${UPWORK_MILESTONES.golive}`, `אבן דרך 2: סכום: ${fin}`,
-    `תיאור (שורה אחת): Setup of the ${rcp} as described in your accepted fixed quote`, `Monthly plan from go-live: ${usd(q.monthly_cents)}/mo, one milestone per month.`,
-    "אם הלקוח כבר רשום ב-Upwork: לבקש ממנו לשכור אותך דרך הפרופיל", "אמצעי תשלום: Upwork (Direct Contract)", "ליצור את החוזה ב-Upwork לפי הפרטים למעלה.",
-    "סמן כשולם"], "admin upwork");
-  assert(!m.text.includes("לשלוח ללקוח קישור תשלום"), "upwork: no 'send a payment link' task");
-  assert(m.html.includes('lang="he" dir="rtl"') && m.html.includes("\u2066Find work → Direct Contracts → Create a contract\u2069"), "RTL, English path isolated");
+  has(m, ["Create in Upwork:", "Find work → Direct Contracts → Create a contract", `Client email: ${ctx.profile!.email!}`, "Contract type: Fixed-price",
+    `Contract name: ${B.name} – ${rcp} setup`, `Milestone 1 (deposit): name: ${UPWORK_MILESTONES.setup_line}`, `Milestone 1: amount: ${dep}`,
+    `Milestone 2 (before go-live): name: ${UPWORK_MILESTONES.golive}`, `Milestone 2: amount: ${fin}`,
+    `Description (one line): Setup of the ${rcp} as described in your accepted fixed quote`, `Monthly plan from go-live: ${usd(q.monthly_cents)}/mo, one milestone per month.`,
+    "If the client already has an Upwork account: ask them to hire you through your profile", "Payment method: Upwork (Direct Contract)", "Create the Upwork contract with the details above.",
+    "Mark paid"], "admin upwork");
+  assert(!m.text.includes("Send the client a payment link"), "upwork: no 'send a payment link' task");
+  assert(m.html.includes('lang="en" dir="ltr"') && m.html.includes("Find work → Direct Contracts → Create a contract") && !m.html.includes("\u2066"), "LTR English, no RTL isolates");
   const p = render(T_ADMIN_ACCEPTED, ctx); // PayPal with a link: unchanged
-  assert(!p.text.includes("Upwork") && p.text.includes("קישור תשלום: יש, הלקוח רואה כפתור תשלום"), "paypal_link: unchanged");
-  assert(render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_link: null } }).text.includes("לשלוח ללקוח קישור תשלום למקדמה."), "paypal_link, no link: unchanged");
+  assert(!p.text.includes("Upwork") && p.text.includes("Payment link: Yes, the client sees a pay button"), "paypal_link: unchanged");
+  assert(render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_link: null } }).text.includes("Send the client a payment link for the deposit."), "paypal_link, no link: unchanged");
   // WEB quote: the website milestone name; no quote on the WEB self-serve path -> amounts left to Meir
   const web = render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_method: "upwork", items: [{ code: "WEB", qty: 1 }] } });
-  has(web, [`אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_web}`, `אבן דרך 1: סכום: ${dep}`], "WEB quote: website milestone");
+  has(web, [`Milestone 1 (deposit): name: ${UPWORK_MILESTONES.setup_web}`, `Milestone 1: amount: ${dep}`], "WEB quote: website milestone");
   const wl = render("web_deposit_link_requested", s.web_deposit_link_requested.ctx);
-  has(wl, ["Find work → Direct Contracts → Create a contract", `שם החוזה: ${B.name} – ${PRICEBOOK.items.find((i) => i.code === "WEB")!.name} setup`,
-    `אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_web}`, "as chosen in your questionnaire", `המקדמה היא ${PRICEBOOK.rules.deposit_pct}% מההקמה`],
+  has(wl, ["Find work → Direct Contracts → Create a contract", `Contract name: ${B.name} – ${PRICEBOOK.items.find((i) => i.code === "WEB")!.name} setup`,
+    `Milestone 1 (deposit): name: ${UPWORK_MILESTONES.setup_web}`, "as chosen in your questionnaire", `the deposit is ${PRICEBOOK.rules.deposit_pct}% of the setup price`],
     "web_deposit_link_requested upwork");
-  assert(!wl.text.includes("סכום:"), "WEB self-serve: no quote, so no amounts printed");
-  assert(wl.html.includes("ליצור לו חוזה ב-Upwork"), "preheader: create the Upwork contract");
+  assert(!wl.text.includes("amount:"), "WEB self-serve: no quote, so no amounts printed");
+  assert(wl.html.includes("Create an Upwork contract for the deposit"), "preheader: create the Upwork contract");
 });
 
 Deno.test("Upwork: final payment, monthly invoice, deposit received, WEB deposit ack; other methods unchanged", async () => {
@@ -152,13 +152,13 @@ Deno.test("subjects match SPEC §5 (with live data)", async () => {
   const subj = (k: string) => TEMPLATES[k].render(s[k].ctx, { brand: B, now: NOON_IL, payload: s[k].payload, unsubUrl: "https://x.test/u" }).subject;
   eq(subj("lead_capture"), "Your fixed-quote link");
   eq(subj("q_received"), `Got it — your fixed quote arrives ${B.quote_sla_text}`);
-  eq(subj("admin_new_quote"), `הצעה חדשה לאישור: Cool Breeze HVAC · RCP · ⁦${usd(q.setup_cents)}⁩`);
+  eq(subj("admin_new_quote"), `New quote to approve: Cool Breeze HVAC · RCP · ${usd(q.setup_cents)}`);
   eq(subj("quote_sent"), `Your fixed quote from ${B.name}: ${usd(q.setup_cents)} + ${usd(q.monthly_cents)}/mo`);
   eq(subj("quote_reminder"), "Any questions about your quote?");
-  eq(subj(T_ADMIN_ACCEPTED), "✅ Cool Breeze HVAC אישר הצעה, ממתין לתשלום");
+  eq(subj(T_ADMIN_ACCEPTED), "✅ Cool Breeze HVAC accepted a quote, payment pending");
   eq(subj("deposit_received"), "Welcome aboard — your setup checklist is ready");
   eq(subj("onboarding_nudge"), "2 steps left to get your receptionist live");
-  eq(subj("need_help"), "Cool Breeze HVAC צריך עזרה ב: Connect your calendar");
+  eq(subj("need_help"), "Cool Breeze HVAC needs help with: Connect your calendar");
   eq(subj("ready_to_test"), "Your AI receptionist is ready to test");
   eq(subj("final_payment_due"), "Final payment before go-live");
   eq(subj("went_live"), "You're live 🎉 — what happens now");
@@ -167,9 +167,9 @@ Deno.test("subjects match SPEC §5 (with live data)", async () => {
   assert(/^Your fixed quote expires on \w+ \d{1,2}, \d{4}$/.test(subj("quote_expiring")), subj("quote_expiring"));
   eq(subj(T_ACCEPTED), "Quote accepted — next step: the deposit");
   eq(subj("web_deposit_ack"), "Your deposit link is on its way");
-  eq(subj("web_deposit_link_requested"), "אתר (WEB): Cool Breeze HVAC מחכה לקישור מקדמה");
+  eq(subj("web_deposit_link_requested"), "Website (WEB): Cool Breeze HVAC is waiting for a deposit link");
   eq(subj("request_cancelled"), 'Request "Change the greeting" was cancelled');
-  eq(subj("admin_request_cancelled"), "Cool Breeze HVAC ביטל בקשה: Change the greeting");
+  eq(subj("admin_request_cancelled"), "Cool Breeze HVAC canceled a request: Change the greeting");
   eq([TEMPLATES.web_deposit_link_requested.audience, TEMPLATES.admin_request_cancelled.audience, TEMPLATES.web_deposit_ack.audience,
     TEMPLATES.request_cancelled.audience], ["admin", "admin", "client", "client"]);
   const ack = TEMPLATES.web_deposit_ack.render(s.web_deposit_ack.ctx, { brand: B, now: NOON_IL });
@@ -196,7 +196,8 @@ Deno.test("every template: html+text, no leftovers, ≤ 600 px, dark-mode, langu
       assert(!HEBREW.test(all), `${k}: no Hebrew in client mail`);
       assert(r.html.includes(B.disclaimers.footer), `${k}: footer disclaimer`);
     } else {
-      assert(r.html.includes('lang="he" dir="rtl"') && HEBREW.test(r.subject), `${k}: Hebrew RTL for Meir`);
+      assert(r.html.includes('lang="en" dir="ltr"') && !HEBREW.test(all), `${k}: English LTR for Meir (no Hebrew)`);
+      assert(r.text.includes(`Sent automatically by ${B.name}.`), `${k}: admin footer`);
     }
     if (!tpl.transactional) {
       assert(r.html.includes(unsub) && r.text.includes(unsub) && /Unsubscribe/.test(r.html), `${k}: unsubscribe link`);
@@ -570,21 +571,23 @@ Deno.test("FirstRing sign-up mails: trial / paid welcome to the customer, Hebrew
   assert(nodate.text.includes("before the trial ends") && !/undefined|Free trial until/.test(nodate.text), "trial_welcome without a date");
 
   const a = render("admin_new_subscription", s.admin_new_subscription.ctx);
-  eq(a.subject, `🎉 מנוי חדש: Cool Breeze HVAC · ${pro.name} · ניסיון חינם`);
-  has(a, ["עסק: Cool Breeze HVAC", "שם: Dani Levin", `חבילה: ${pro.product} ${pro.name} (FR_PRO)`, "סוג: ניסיון חינם עד", "טלפון עסקי: +1 (713) 555-0100",
-    "מייל: dani@example.com", "ספק תשלום: paddle"], "admin_new_subscription");
-  assert(a.html.includes(`href="${SITE}/start/admin/#subscriptions"`) && a.html.includes('lang="he" dir="rtl"'), "admin_new_subscription: RTL + admin tab");
-  assert(!a.text.includes("לקוח חוזר") && !a.text.includes("⚠️"), "admin_new_subscription: no returning / duplicate lines by default");
+  eq(a.subject, `🎉 New subscription: Cool Breeze HVAC · ${pro.name} · free trial`);
+  has(a, ["Business: Cool Breeze HVAC", "Name: Dani Levin", `Plan: ${pro.product} ${pro.name} (FR_PRO)`, "Type: Free trial until", "Business phone: +1 (713) 555-0100",
+    "Email: dani@example.com", "Payment provider: paddle"], "admin_new_subscription");
+  assert(a.html.includes(`href="${SITE}/start/admin/#subscriptions"`) && a.html.includes('lang="en" dir="ltr"'), "admin_new_subscription: LTR + admin tab");
+  // owner dates: en-US in the owner timezone, labeled with the zone name (brand.json owner.timezone)
+  assert(/Type: Free trial until [A-Z][a-z]+ \d{1,2}, \d{4} \([A-Za-z ]+ time\)/.test(a.text), "admin_new_subscription: en-US date + timezone label");
+  assert(!a.text.includes("Returning client") && !a.text.includes("⚠️"), "admin_new_subscription: no returning / duplicate lines by default");
   const a2 = render("admin_new_subscription", { ...s.admin_new_subscription.ctx, subscription: { ...s.admin_new_subscription.ctx.subscription!,
     status: "active", current_period_start: "2026-11-26T15:00:00Z", returning: true, trial_duplicate: true } });
-  assert(a2.subject.endsWith("· בתשלום") && a2.text.includes("בתשלום מ-") && a2.text.includes("לקוח חוזר: כן") && a2.text.includes("כבר קיבל ניסיון חינם"),
+  assert(a2.subject.endsWith("· paid") && a2.text.includes("Paid from ") && a2.text.includes("Returning client: Yes") && a2.text.includes("already had a free trial"),
     "admin_new_subscription: paid, returning, duplicate trial");
   const c = render("admin_subscription_canceled", s.admin_subscription_canceled.ctx, s.admin_subscription_canceled.payload);
-  assert(c.subject.startsWith(`ביטול מנוי: Cool Breeze HVAC · ${pro.name} (פעיל עד `) && c.text.includes("היה ב: ניסיון חינם") && c.text.includes("אין חיוב"),
+  assert(c.subject.startsWith(`Subscription canceled: Cool Breeze HVAC · ${pro.name} (active until `) && c.text.includes("Was on: Free trial") && c.text.includes("no charge"),
     "admin_subscription_canceled: scheduled during the trial");
   const e = render("admin_subscription_canceled", { ...s.admin_subscription_canceled.ctx, subscription: { ...s.admin_subscription_canceled.ctx.subscription!,
     status: "canceled", ends_at: "2026-12-26T15:00:00Z" } }, { kind: "ended", from: "active" });
-  assert(e.subject === `מנוי הסתיים: Cool Breeze HVAC · ${pro.name}` && e.text.includes("היה ב: מנוי בתשלום") && !e.text.includes("אין חיוב"), "admin_subscription_canceled: ended, paid");
+  assert(e.subject === `Subscription ended: Cool Breeze HVAC · ${pro.name}` && e.text.includes("Was on: Paid subscription") && !e.text.includes("no charge"), "admin_subscription_canceled: ended, paid");
   eq([TEMPLATES.trial_welcome.audience, TEMPLATES.plan_welcome.audience, TEMPLATES.admin_new_subscription.audience, TEMPLATES.admin_subscription_canceled.audience],
     ["client", "client", "admin", "admin"]);
   eq([TEMPLATES.trial_welcome.transactional, TEMPLATES.plan_welcome.transactional], [true, true], "account / billing confirmations are transactional");

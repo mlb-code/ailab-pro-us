@@ -1,6 +1,7 @@
 // Shared email shell for A8 (same look as A6's quote email: navy header, amber button, cream page).
 // Table layout, inline CSS, 600 px, explicit bgcolor on every cell + a prefers-color-scheme block (dark-mode safe),
-// no text in images, plain-text alternative built from the same blocks. EN = LTR (clients), HE = RTL (Meir).
+// no text in images, plain-text alternative built from the same blocks. All mails are EN = LTR (clients and Meir); HE = RTL is kept
+// working in the renderer but no template uses it (English-only since 2026-11-29).
 import type { Brand } from "../config.ts";
 
 export type EmailBrand = Brand & {
@@ -41,7 +42,7 @@ const SERIF = "Georgia,'Times New Roman',serif";
 
 export const siteUrl = (b: EmailBrand) => (b.site_url || "").replace(/\/$/, "");
 
-/** wraps LTR fragments (amounts, phone numbers, e-mail addresses, codes) inside Hebrew text so they don't flip */
+/** wraps LTR fragments (amounts, phone numbers, e-mail addresses, codes) inside RTL text so they don't flip (lang "he" only) */
 export const ltr = (s: string) => `⁦${s}⁩`;
 
 function blockHtml(b: Block, he: boolean): string {
@@ -91,7 +92,7 @@ function blockText(b: Block): string {
 function footerParts(spec: EmailSpec, brand: EmailBrand): { html: string; text: string } {
   const addr = brand.physical_address || "";
   if (spec.footer === "admin") {
-    const t = `נשלח אוטומטית מ-${ltr(brand.name)}.`;
+    const t = `Sent automatically by ${brand.name}.`;
     return { html: esc(t), text: t };
   }
   const line1 = [brand.name, addr, brand.disclaimers?.footer].filter(Boolean).join(" · ");

@@ -39,9 +39,9 @@ Deno.test("PayPal on: Meir's accepted mail says no link is needed and what happe
   const s = await samples();
   const ctx = s[T_ADMIN_ACCEPTED].ctx, q = ctx.quote!;
   const m = render(T_ADMIN_ACCEPTED, { ...ctx, quote: { ...q, pay_method: "paypal_checkout", pay_link: null } });
-  has(m, ["אמצעי תשלום: PayPal – כפתור בדף ההצעה", "אין צורך לשלוח קישור: הלקוח משלם בכרטיס או ב-PayPal בדף ההצעה.",
-    "כרטיס הלקוח נפתח, הצ'ק-ליסט נשלח", "תשלום התקבל ב-PayPal", "אם הלקוח יעדיף Upwork"], "admin accepted, PayPal");
-  assert(!m.text.includes("לשלוח ללקוח קישור תשלום") && !m.text.includes("Find work"), "no manual link, no Upwork contract");
+  has(m, ["Payment method: PayPal – button on the quote page", "No need to send a link: the client pays by card or PayPal on the quote page.",
+    "the client card opens, the checklist is sent", "Payment received via PayPal", "If the client prefers Upwork"], "admin accepted, PayPal");
+  assert(!m.text.includes("Send the client a payment link") && !m.text.includes("Find work"), "no manual link, no Upwork contract");
 });
 
 Deno.test("PayPal on: final payment due points to the portal button; Upwork and the off-state are unchanged", async () => {
@@ -69,7 +69,7 @@ Deno.test("pay_method from the DB context: client-level mails follow the client'
   const wo = render("web_deposit_ack", w, ON);
   assert(wo.text.includes(`We'll email your secure deposit link ${BRAND.quote_sla_text}.`) && !wo.text.includes("Upwork"), "WEB ack, PayPal on");
   const wl = render("web_deposit_link_requested", s.web_deposit_link_requested.ctx, ON);
-  has(wl, ["לשלוח הצעה:", "צור טיוטת הצעה", "PayPal – כפתור בדף ההצעה"], "WEB owner mail, PayPal on");
+  has(wl, ["Send a quote:", "Create quote draft", "PayPal – button on the quote page"], "WEB owner mail, PayPal on");
   assert(!wl.text.includes("Find work"), "no Upwork contract table with PayPal on");
   assert(render("web_deposit_link_requested", s.web_deposit_link_requested.ctx, OFF).text.includes("Find work"), "PayPal off: Upwork as before");
 });
@@ -93,35 +93,35 @@ Deno.test("payment_receipt: amount, what it was for, last step, next step, refun
   assert(!web.text.includes(PRICEBOOK.refund_rules.rcp_guarantee.label), "WEB final: no satisfaction guarantee");
 });
 
-Deno.test("admin_payment_received: Hebrew notice with amount, PayPal ids, payer e-mail, what's next and the refund button", async () => {
+Deno.test("admin_payment_received: English notice with amount, PayPal ids, payer e-mail, what's next and the refund button", async () => {
   const s = await samples();
   const { ctx } = s.admin_payment_received, pay = ctx.payment!;
   const r = render("admin_payment_received", ctx, OFF);
-  assert(r.subject.startsWith("💳 תשלום התקבל ב-PayPal: Cool Breeze HVAC") && r.subject.includes(usd(pay.amount_cents)), r.subject);
-  assert(r.html.includes('lang="he" dir="rtl"'), "RTL");
+  assert(r.subject.startsWith("💳 Payment received via PayPal: Cool Breeze HVAC") && r.subject.includes(usd(pay.amount_cents)), r.subject);
+  assert(r.html.includes('lang="en" dir="ltr"'), "LTR");
   const days = (PRICEBOOK.refund_rules.deposit as { window_days?: number }).window_days;
-  has(r, ["סוג: מקדמה", `סכום: ${usd(pay.amount_cents)}`, `הצעה: ${PRICEBOOK.items.find((i) => i.code === "RCP")!.name} · הקמה ${usd(ctx.quote!.setup_cents)}`,
-    `מזהה חיוב ב-PayPal: ${pay.provider_capture_id}`, "מייל המשלם ב-PayPal: dani.payer@example.com",
-    "לא צריך לסמן \"שולם\"", "On hold", `החזר מקדמה תוך ${days} ימים מהתשלום: כפתור "החזר"`], "owner notice");
+  has(r, ["Type: Deposit", `Amount: ${usd(pay.amount_cents)}`, `Quote: ${PRICEBOOK.items.find((i) => i.code === "RCP")!.name} · setup ${usd(ctx.quote!.setup_cents)}`,
+    `PayPal capture ID: ${pay.provider_capture_id}`, "Payer's PayPal email: dani.payer@example.com",
+    "No need to mark it \"paid\"", "On hold", `Deposit refund within ${days} days of payment: the "Refund" button`], "owner notice");
   assert(hrefs(r.html).includes(`${SITE}/start/admin/#clients/${ctx.client!.id}`), "button -> the client card");
   const fin = render("admin_payment_received", { ...ctx, payment: { ...pay, kind: "final" } }, OFF);
-  has(fin, ["סוג: תשלום לפני עלייה לאוויר", "סטטוס \"באוויר\""], "owner notice, final");
-  assert(!fin.text.includes("כפתור \"החזר\""), "final: no deposit refund line");
+  has(fin, ["Type: Payment before go-live", "status \"Live\""], "owner notice, final");
+  assert(!fin.text.includes("\"Refund\" button"), "final: no deposit refund line");
 });
 
-Deno.test("admin_paypal_alert: Hebrew per kind (dispute reason translated), our amount vs PayPal's, works without a payment", async () => {
+Deno.test("admin_paypal_alert: copy per kind (dispute reason translated), our amount vs PayPal's, works without a payment", async () => {
   const s = await samples();
   const { ctx, payload } = s.admin_paypal_alert;
   const d = render("admin_paypal_alert", ctx, OFF, payload);
   assert(d.subject.startsWith(PAYPAL_ALERTS.dispute.subject + ": Cool Breeze HVAC"), d.subject);
-  has(d, [`סיבה: ${DISPUTE_REASONS.MERCHANDISE_OR_SERVICE_NOT_RECEIVED} (MERCHANDISE_OR_SERVICE_NOT_RECEIVED)`, `מזהה ב-PayPal: ${payload!.ref}`,
-    `סכום לפי PayPal: ${payload!.paypal_amount}`, `תשלום אצלנו: מקדמה · ${usd(ctx.payment!.amount_cents)}`, ...PAYPAL_ALERTS.dispute.what], "dispute");
+  has(d, [`Reason: ${DISPUTE_REASONS.MERCHANDISE_OR_SERVICE_NOT_RECEIVED} (MERCHANDISE_OR_SERVICE_NOT_RECEIVED)`, `PayPal ID: ${payload!.ref}`,
+    `Amount per PayPal: ${payload!.paypal_amount}`, `Our payment row: Deposit · ${usd(ctx.payment!.amount_cents)}`, ...PAYPAL_ALERTS.dispute.what], "dispute");
   for (const kind of Object.keys(PAYPAL_ALERTS)) {
     const r = render("admin_paypal_alert", ctx, OFF, { kind, ref: "X1" });
     assert(r.subject.startsWith(PAYPAL_ALERTS[kind].subject) && r.text.includes(PAYPAL_ALERTS[kind].what[0]), kind);
   }
   const none = render("admin_paypal_alert", { to: "owner@example.com" }, OFF, { kind: "unknown_capture", ref: "CAP0000001", paypal_amount: "42.00 USD" });
-  has(none, ["תשלום אצלנו: לא נמצא", "סכום לפי PayPal: 42.00 USD", PAYPAL_ALERTS.unknown_capture.what[1]], "no payment row");
+  has(none, ["Our payment row: Not found", "Amount per PayPal: 42.00 USD", PAYPAL_ALERTS.unknown_capture.what[1]], "no payment row");
   assert(hrefs(none.html).includes(`${SITE}/start/admin/#clients`), "button -> clients");
   assert(render("admin_paypal_alert", ctx, OFF, { kind: "weird" }).subject.startsWith(PAYPAL_ALERTS.mismatch.subject), "unknown kind -> mismatch copy");
 });
@@ -130,8 +130,8 @@ Deno.test("admin_upwork_requested: the same Direct Contract checklist as an Upwo
   const s = await samples();
   const { ctx } = s.admin_upwork_requested, q = ctx.quote!;
   const r = render("admin_upwork_requested", ctx, ON);
-  eq(r.subject, "🔁 Cool Breeze HVAC ביקש לשלם דרך Upwork");
-  has(r, ["Pay through Upwork instead", "Find work → Direct Contracts → Create a contract", `אבן דרך 1 (המקדמה): שם: ${UPWORK_MILESTONES.setup_line}`,
-    `אבן דרך 1: סכום: ${usd(q.deposit_cents)}`, `אבן דרך 2: סכום: ${usd((q.setup_cents ?? 0) - (q.deposit_cents ?? 0))}`, "סמן כשולם"], "Upwork request");
+  eq(r.subject, "🔁 Cool Breeze HVAC asked to pay through Upwork");
+  has(r, ["Pay through Upwork instead", "Find work → Direct Contracts → Create a contract", `Milestone 1 (deposit): name: ${UPWORK_MILESTONES.setup_line}`,
+    `Milestone 1: amount: ${usd(q.deposit_cents)}`, `Milestone 2: amount: ${usd((q.setup_cents ?? 0) - (q.deposit_cents ?? 0))}`, "Mark paid"], "Upwork request");
   assert(hrefs(r.html).includes(`${SITE}/start/admin/#quotes/${q.id}`), "button -> the quote");
 });

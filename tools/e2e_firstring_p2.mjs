@@ -205,7 +205,7 @@ async function main() {
     await page.waitForSelector('#digest');
     await admin(page);
     let txt = await page.$eval('#subsBody', e => e.innerText);
-    ok(/שחרור מספר/.test(txt) && /מתוזמן/.test(txt) && /תאריך שחרור/.test(txt) && /נשלחה ב-/.test(txt), 'admin: release scheduled, date, warning sent');
+    ok(/Number release/.test(txt) && /Scheduled/.test(txt) && /Release date/.test(txt) && /Sent on /.test(txt), 'admin: release scheduled, date, warning sent');
     ok(await page.$('[data-postpone]') !== null && await page.$('[data-relnow]') !== null, 'admin: postpone + release now buttons');
     const before = Date.parse(rel.release_at);
     await click(page, '[data-postpone]'); await sleep(300);
@@ -216,13 +216,13 @@ async function main() {
     await shot(page, 'p2-admin-release', '.rel');
     dialogs.length = 0;
     await click(page, '[data-relnow]'); await sleep(300);
-    ok(dialogs.some(m => /לשחרר עכשיו את המספר/.test(m)), 'release now asks first');
+    ok(dialogs.some(m => /Release the number .+ now\?/.test(m)), 'release now asks first');
     rel = (await db(page)).number_releases.find(r => r.client_id === a.client_id);
     ok(rel.force === true && Date.parse(rel.release_at) <= Date.now(), 'release now: due now');
     const tick2 = await page.evaluate(() => window.StartMock.admin.p2Tick());
     ok(tick2.held === 1 && (await db(page)).number_releases.find(r => r.client_id === a.client_id).status === 'held', 'dry-run tick: held, nothing released');
     await admin(page);
-    ok(/מוחזק \(מצב ניסוי\)/.test(await page.$eval('#subsBody', e => e.innerText)), 'admin: held (dry run) shown');
+    ok(/Held \(dry run\)/.test(await page.$eval('#subsBody', e => e.innerText)), 'admin: held (dry run) shown');
     // resubscribe before the real release -> canceled
     await signOut(page);
     await signIn(page, '/start/', 'dana@spanishair.test');
@@ -256,9 +256,9 @@ async function main() {
     await admin(page);
     const card = `[data-sub="${b.client_id}"]`;
     txt = await page.$eval(card, e => e.innerText);
-    ok(/שיחת בדיקה עם המודל האמיתי/.test(txt) && /נכשלה/.test(txt) && /הסוכן אמר מחיר/.test(txt) && /עלות משוערת/.test(txt), 'admin: AI check failed, problems in Hebrew, cost estimate');
+    ok(/Test call with the real model/.test(txt) && /Failed/.test(txt) && /Agent said a price/.test(txt) && /estimated cost/.test(txt), 'admin: AI check failed, problems in English, cost estimate');
     await page.$eval(card + ' .aitx', e => { e.open = true; }); await sleep(100);
-    ok(/תמליל השיחה/.test(await page.$eval(card, e => e.innerText)) && /\$99/.test(await page.$eval(card + ' .aitx', e => e.innerText)), 'admin: transcript incl. what the model tried to say');
+    ok(/Call transcript/.test(await page.$eval(card, e => e.innerText)) && /\$99/.test(await page.$eval(card + ' .aitx', e => e.innerText)), 'admin: transcript incl. what the model tried to say');
     ok(await page.$(card + ' [data-golive]') !== null, 'admin: manual go-live available');
     ok((await overflow(page)).length === 0, 'admin with the AI check: no overflow');
     await shot(page, 'p2-admin-golive-ai', card + ' .aichk');

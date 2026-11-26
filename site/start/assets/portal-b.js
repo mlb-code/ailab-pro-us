@@ -17,7 +17,7 @@
    is kept, with the restart button (numberRelease; home.js adds the same line to the home status). */
 (function () {
   // content-hash version, filled in by tools/asset_version.py (no stale copy after a deploy)
-  const AV = /*asset-v*/{"/assets/paypal_checkout.mjs":"be1c763fe5"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/paypal_checkout.mjs":"e8c38070e2"}/*/asset-v*/;
   const S = window.Start, B = window.Backend, TS = window.TenantSchema, Q = window.StartQ;
   const esc = s => S.esc(s);
   const DAYS = [['mon', 'Monday'], ['tue', 'Tuesday'], ['wed', 'Wednesday'], ['thu', 'Thursday'], ['fri', 'Friday'], ['sat', 'Saturday'], ['sun', 'Sunday']];

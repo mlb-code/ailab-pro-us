@@ -101,12 +101,12 @@ def test_event_and_admin_alert_once_a_day_per_tenant(tmp_path, demo_raw, monkeyp
     assert len(ev) == 2 and "hours.mon" in " ".join(ev[0]["payload"]["problems"])
 
 
-def test_admin_alert_reaches_notify_in_hebrew(tmp_path, demo_raw):
+def test_admin_alert_reaches_notify_in_english(tmp_path, demo_raw):
     sim, _ = broken(tmp_path, demo_raw)
     sim.call().start()
     assert sim.rt.drain(5)
     rows = [e for e in sim.store.select("events") if e["type"] in ("email.outbox", "notify.admin_unset")]
-    assert rows and "קונפיג לקוח לא תקין" in str(rows[-1]["payload"])
+    assert rows and "Client config invalid" in str(rows[-1]["payload"])
 
 
 def test_health_deep_lists_invalid_tenants(tmp_path, demo_raw):

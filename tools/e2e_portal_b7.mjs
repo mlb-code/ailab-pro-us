@@ -469,7 +469,7 @@ async function main() {
     const usageTxt = await page.$eval('#tuBody', e => e.innerText);
     ok(usageTxt.includes('bright-air') && usageTxt.includes('212 / ' + pb.rules.included_usage.voice_minutes), 'admin usage: A7 demo tenant usage');
     ok(usageTxt.includes(tenant.slug) && usageTxt.includes('37 / ') && usageTxt.includes('$0.42') && usageTxt.includes('$1.37'), 'admin usage: runtime key layout (usage/spend/cost:twilio)');
-    // bright-air demo config is not schema-valid -> errors listed in Hebrew
+    // bright-air demo config is not schema-valid -> errors listed in English
     await page.click('#alist [data-k]'); await sleep(200);
     const sel1 = await page.evaluate(() => location.hash);
     await page.goto(BASE + '/start/admin/' + sel1, { waitUntil: 'load' });
@@ -477,17 +477,17 @@ async function main() {
     const brightId = (await db(page)).tenants.find(x => x.slug === 'bright-air').id;
     await page.goto(BASE + '/start/admin/#tenants/' + brightId, { waitUntil: 'load' }); await page.waitForSelector('#tJson'); await sleep(200);
     const errTxt = await page.$eval('#tMsg', e => e.innerText);
-    ok(/business\.main_phone/.test(errTxt) && /שדה חובה חסר/.test(errTxt) && /business\.niche/.test(errTxt), 'editor: schema errors (required, enum) in Hebrew with paths');
+    ok(/business\.main_phone/.test(errTxt) && /Required field missing/.test(errTxt) && /business\.niche/.test(errTxt), 'editor: schema errors (required, enum) in English with paths');
     await page.click('#tSave'); await sleep(200);
     ok((await db(page)).tenants.find(x => x.id === brightId).config.business.main_phone === undefined, 'invalid config is not saved');
     await page.$eval('#tJson', e => { e.value = '{ broken'; }); await page.click('#tCheck');
-    ok(/JSON לא תקין/.test(await page.$eval('#tMsg', e => e.innerText)), 'editor: invalid JSON reported');
+    ok(/Invalid JSON/.test(await page.$eval('#tMsg', e => e.innerText)), 'editor: invalid JSON reported');
     // fix it: valid config
     const valid = { business: { name: 'Bright Air', niche: 'home_services', timezone: 'America/Phoenix', main_phone: '+16025550100' }, hours: { mon: ['07:00', '18:00'] },
       booking: { windows: [['08:00', '12:00']], job_types: ['AC repair'] }, notify: { email: ['ray@brightair.test'] } };
     await page.$eval('#tJson', (e, v) => { e.value = v; e.dispatchEvent(new Event('input')); }, JSON.stringify(valid));
     await page.click('#tCheck');
-    ok(/תקין מול tenant_schema.json/.test(await page.$eval('#tMsg', e => e.innerText)), 'editor: valid config passes');
+    ok(/valid against tenant_schema.json/.test(await page.$eval('#tMsg', e => e.innerText)), 'editor: valid config passes');
     await page.click('#tSave'); await sleep(400);
     D = await db(page);
     ok(D.tenants.find(x => x.id === brightId).config.business.main_phone === '+16025550100' && D.events.some(e => e.type === 'tenant_saved' && e.entity_id === brightId), 'tenant saved through adminSaveTenant + event');
@@ -512,15 +512,15 @@ async function main() {
     await page.$eval('#tNum', e => { e.value = '+17135550188'; }); await page.click('#tSave'); await sleep(400);
     ok((await db(page)).tenants.some(x => x.client_id === newC && x.slug === 'quick-fix-garage' && x.twilio_number === '+17135550188'), 'tenant created for client');
     ok(await page.$('#tSim[disabled]') !== null, 'simulator button present, disabled until the runtime endpoint exists');
-    ok((await overflow(page)).length === 0, 'admin tenants: no overflow (RTL)');
+    ok((await overflow(page)).length === 0, 'admin tenants: no overflow (LTR)');
     // retainer queue: client-paused request flagged, cannot be activated
     const pausedId = await page.evaluate(() => { const x = window.StartMock.admin.db(); const r = x.requests.find(q => q.status === 'queued'); r.paused = true; localStorage.setItem('aplp_mock_db_v1', JSON.stringify(x)); return r.id; });
     await page.goto(BASE + '/start/admin/?r=4#requests', { waitUntil: 'load' }); await page.waitForSelector('#reqList');
-    ok(await page.$('#rp-' + pausedId) !== null && /מושהה ע"י הלקוח/.test(await page.$eval('#rp-' + pausedId, e => e.textContent)), 'admin queue: "paused by client" pill');
+    ok(await page.$('#rp-' + pausedId) !== null && /Paused by client/.test(await page.$eval('#rp-' + pausedId, e => e.textContent)), 'admin queue: "paused by client" pill');
     await page.select('#rs-' + pausedId, 'active'); await page.click('[data-rsave="' + pausedId + '"]'); await sleep(300);
     ok((await db(page)).requests.find(r => r.id === pausedId).status === 'queued', 'admin cannot activate a paused request (UI)');
     ok(await page.evaluate(id => window.AdminBackend.adminSaveRequest(id, { status: 'active' }).then(() => 'ok', e => e.message), pausedId) === 'request_paused', 'admin cannot activate a paused request (backend)');
-    ok(await page.evaluate(() => document.documentElement.lang === 'he' && document.documentElement.dir === 'rtl'), 'admin in Hebrew RTL');
+    ok(await page.evaluate(() => document.documentElement.lang === 'en' && document.documentElement.dir === 'ltr'), 'admin in English LTR');
     await page.close();
   } finally {
     await browser.close();

@@ -213,7 +213,7 @@ export async function draftQuote(questionnaireId: string, deps: DraftDeps): Prom
   return quote;
 }
 
-// ================================================================== send (admin "אשר ושלח")
+// ================================================================== send (admin "Approve and send")
 export interface SendInput { quote_id: string; discount_code?: string | null; pay_method?: string | null; pay_link?: string | null; manual_approved?: boolean }
 const PAY_METHODS = ["paypal_link", "upwork", "wire", "tranzila_link", QV.PAYPAL_METHOD];
 /** Payment rail when none was chosen while PayPal checkout is off: Upwork Direct Contracts (quote_view.mjs). With
