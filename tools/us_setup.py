@@ -552,7 +552,8 @@ def step_storage(ctx):
 # ------------------------------------------------------------------ step: vault + function secrets
 VAULT_KEYS = (("RESEND_API_KEY", "resend_api_key", "Resend key (pg_net e-mail triggers)"),
               ("ANTHROPIC_API_KEY", "anthropic_api_key", "Claude API key"))
-FUNCTION_SECRET_KEYS = ("ANTHROPIC_API_KEY", "RESEND_API_KEY", "ZAPIER_SIGNING_SECRET")
+FUNCTION_SECRET_KEYS = ("ANTHROPIC_API_KEY", "RESEND_API_KEY", "ZAPIER_SIGNING_SECRET", "PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET")
+PADDLE_ENVS = ("sandbox", "production")   # PADDLE_ENV is not a secret, just a switch (checked separately)
 
 
 def vault_put(ctx, name, val, desc):
@@ -619,6 +620,11 @@ def step_secrets(ctx):
         if v:
             check_key(v, k)
             items.append({"name": k, "value": v})
+    penv = (ctx.sec.get("PADDLE_ENV") or "").strip()
+    if penv:
+        if penv not in PADDLE_ENVS:
+            raise SetupError("❌ PADDLE_ENV בקובץ .secrets.env חייב להיות sandbox או production.")
+        items.append({"name": "PADDLE_ENV", "value": penv})
     if secret_key_from_file(ctx):
         items.append({"name": EDGE_SECRET_NAME, "value": ctx.sec[SECRET_KEY_ENV]})
     if not items:
