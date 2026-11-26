@@ -4,7 +4,8 @@ Targets (byte-identical copies; never edit them by hand):
   site/assets/                      static site, questionnaire, quote page (fetch('/assets/pricebook.json'))
   supabase/functions/_shared/       Edge Functions (pricing.ts imports the JSON)
   runtime/app/                      Python runtime (receptionist)
-Also writes site/CNAME = brand.json "domain" (GitHub Pages custom domain).
+Also writes site/CNAME = brand.json "domain" (GitHub Pages custom domain), then re-stamps the ?v=<content hash> versions
+(tools/asset_version.py) so pages never point at an old copy.
 Also: supabase/functions/_shared/{pricing,quote_view}.mjs -> site/assets/ (one pricing + public-view module for server, admin, quote mock),
       runtime/app/tenant_schema.json -> site/assets/tenant_schema.json (tenant config validation in the portal/admin, B7).
 
@@ -19,6 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from schema_lite import validate  # noqa: E402
+import asset_version  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES = ['brand.json', 'pricebook.json']
@@ -176,7 +178,9 @@ def main(argv):
         print('wrote   site/CNAME')
     if check:
         print(f'sync_config --check: {"no drift" if not drift else f"{drift} file(s) drifted; run python3 tools/sync_config.py"}')
-    return 1 if drift else 0
+        return 1 if drift else 0
+    # the copies changed their content hash: re-stamp the ?v= versions in the JS asset maps and every HTML page
+    return asset_version.main([])
 
 
 if __name__ == '__main__':

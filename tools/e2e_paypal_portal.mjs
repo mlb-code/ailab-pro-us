@@ -40,7 +40,7 @@ const FAKE_SDK = `(function () {
 const errs = [], leaks = [], dialogs = [];
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
-await ctx.route('**/assets/brand.json', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(brandOn) }));
+await ctx.route('**/assets/brand.json*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(brandOn) }));
 await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ contentType: 'text/css', body: '' }));
 await ctx.route(/paypal\.com/, r => { leaks.push(r.request().url()); return r.abort(); });   // routes: newest first
 await ctx.route('https://www.paypal.com/sdk/js**', r => r.fulfill({ contentType: 'text/javascript', body: FAKE_SDK }));

@@ -49,7 +49,10 @@
   const payable = q => q.status === 'accepted' && q.payment && q.payment.method === PP && ppOn() && depState(q) === 'due';
   let lastRef = '';   // PayPal reference of the payment made on this page view (receipt note)
 
-  async function getJson(u) { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) throw new Error('http_' + r.status); return r.json(); }
+  // content-hash versions, filled in by tools/asset_version.py (no stale copy after a deploy)
+  const AV = /*asset-v*/{"/assets/brand.json":"8148bbc532","/assets/pricebook.json":"111c878ee6","/assets/quote_view.mjs":"7e387d410e","/assets/paypal_checkout.mjs":"be1c763fe5"}/*/asset-v*/;
+  const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
+  async function getJson(u) { const r = await fetch(vurl(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http_' + r.status); return r.json(); }
 
   async function loadBrand() {
     try { BRAND = await getJson('/assets/brand.json'); } catch (e) { BRAND = {}; }
@@ -71,7 +74,7 @@
   const mockSave = db => { try { localStorage.setItem(MOCK_KEY, JSON.stringify(db)); } catch (e) { /* storage blocked */ } };
   let QV = null, PB = null;
   async function mockDeps() {
-    if (!QV) { QV = await import('/assets/quote_view.mjs'); PB = await getJson('/assets/pricebook.json'); }
+    if (!QV) { QV = await import(vurl('/assets/quote_view.mjs')); PB = await getJson('/assets/pricebook.json'); }
   }
   const mockId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
   function mockFind(db) {
@@ -318,7 +321,7 @@
     const say = (text, kind) => { const m = $('#qPayMsg'); if (m) m.innerHTML = text ? '<div class="notice notice--' + (kind || 'err') + '" role="alert">' + esc(text) + '</div>' : ''; };
     const alt = 'Or pay through Upwork instead (the link below).';
     try {
-      PC = PC || await import('/assets/paypal_checkout.mjs');
+      PC = PC || await import(vurl('/assets/paypal_checkout.mjs'));
       await PC.mount(wrap, {
         brand: BRAND, currency: Q.currency || 'USD',
         create: () => { say(''); track(['pay', 'click'], { method: 'paypal', which: 'deposit' }); return payCreate(); },

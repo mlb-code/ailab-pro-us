@@ -75,6 +75,16 @@ export async function samples(): Promise<Record<string, Sample>> {
       payload: { step: "duplicate_trial", error: "This business phone already had a free trial" } },
     admin_billing_request: { ctx: { to: "owner@example.com", profile, client: planClient, subscription: { plan_code: "FR_STARTER", status: "active" } },
       payload: { what: "plan_change", to: "FR_PRO", start_now: false } },
-    admin_upwork_requested: { ctx: { to: "owner@example.com", profile, quote: { ...accepted, pay_method: "upwork", pay_link: null } } },
+    trial_welcome: { ctx: { to: profile.email, profile, client: planClient, subscription: { id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f70", plan_code: "FR_PRO",
+      status: "trialing", provider: "paddle", trial_ends_at: "2026-12-10T15:00:00Z", current_period_end: null } } },
+    plan_welcome: { ctx: { to: profile.email, profile, client: planClient, subscription: { id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f71", plan_code: "FR_PRO",
+      status: "active", provider: "paddle", current_period_start: "2026-11-26T15:00:00Z", current_period_end: "2026-12-26T15:00:00Z" } } },
+    admin_new_subscription: { ctx: { to: "owner@example.com", profile, client: planClient, subscription: { id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f70",
+      plan_code: "FR_PRO", status: "trialing", provider: "paddle", trial_ends_at: "2026-12-10T15:00:00Z", business_phone: "+17135550100",
+      trial_duplicate: false, returning: false } } },
+    admin_subscription_canceled: { ctx: { to: "owner@example.com", profile, client: planClient, subscription: { id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f70",
+      plan_code: "FR_PRO", status: "trialing", provider: "paddle", trial_ends_at: "2026-12-10T15:00:00Z", cancel_at_period_end: true,
+      business_phone: "+17135550100" } }, payload: { kind: "scheduled", from: "trialing" } },
+    admin_upwork_requested:{ ctx: { to: "owner@example.com", profile, quote: { ...accepted, pay_method: "upwork", pay_link: null } } },
   };
 }

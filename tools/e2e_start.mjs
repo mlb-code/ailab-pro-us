@@ -47,7 +47,7 @@ async function newPage(browser, opts = {}) {
   page.on('request', r => {
     const u = r.url();
     if (/fonts\.(googleapis|gstatic)\.com/.test(u)) return r.respond({ status: 200, contentType: 'text/css', body: '' });
-    if ((opts.founder || opts.brandPatch) && u.endsWith('/assets/brand.json')) {
+    if ((opts.founder || opts.brandPatch) && u.split('?')[0].endsWith('/assets/brand.json')) {
       const b = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8')); if (opts.founder) b.show_founder_price = true; Object.assign(b, opts.brandPatch || {});
       return r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(b) });
     }

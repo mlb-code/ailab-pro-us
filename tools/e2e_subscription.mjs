@@ -120,6 +120,9 @@ async function main() {
        t.config.plan.status === 'trialing' && t.config.plan.service === 'full', 'tenant created from the sign-up profile with the plan block');
     ok(d.onboarding_items.sort((a, b) => a.sort - b.sort).map(o => o.key).join() === 'hours,faq,alerts,calendar,tools,forward_calls,sms', 'subscription checklist order (forward calls last)');
     ok(d.provisioning_jobs.length === 1 && d.provisioning_jobs[0].kind === 'number' && d.provisioning_jobs[0].status === 'pending', 'number job queued');
+    const welcome = d.outbox.filter(m => ['trial_welcome', 'plan_welcome', 'admin_new_subscription'].includes(m.template)).map(m => m.template).sort().join();
+    ok(welcome === 'admin_new_subscription,trial_welcome' && d.outbox.find(m => m.template === 'trial_welcome').to === 'dana@coolbreeze.test',
+      'sign-up: trial_welcome to the customer + admin_new_subscription to Meir, once each');
     await page.click('#tab-onboarding'); await sleep(200);
     ok(/getting your receptionist’s phone number/.test(await body(page)), 'checklist: number on its way');
     ok(!/Request go-live/.test(await body(page)) && !/final payment/i.test(await body(page)), 'no Request go-live / final payment for plan clients');
@@ -233,6 +236,9 @@ async function main() {
     await portal(page, 'billing');
     await click(page, '[data-plan-act="cancel"]'); await sleep(300);
     ok(/Cancelled: works until/.test(await body(page)), 'cancel: works until the end of the paid period');
+    d = await db(page);
+    ok(d.outbox.filter(m => m.template === 'admin_subscription_canceled' && m.kind === 'scheduled').length === 1 &&
+       !d.outbox.some(m => m.template === 'plan_welcome'), 'cancel: one Hebrew alert to Meir; "start paid plan now" was not a new sign-up mail');
     await page.evaluate(() => window.StartMock.admin.billing({ current_period_end: new Date(Date.now() - 60000).toISOString(), scheduled_plan_code: null }));
     await portal(page, 'billing');
     d = await db(page);

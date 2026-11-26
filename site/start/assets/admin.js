@@ -133,8 +133,11 @@
   const msg = (t, kind) => t ? '<div class="notice notice--' + (kind || 'err') + '" role="' + (kind === 'ok' ? 'status' : 'alert') + '">' + esc(t) + '</div>' : '';
 
   // ------------------------------------------------------------ config
+  // content-hash versions, filled in by tools/asset_version.py (no stale copy of the config after a deploy)
+  const AV = /*asset-v*/{"/assets/brand.json":"8148bbc532","/assets/pricebook.json":"111c878ee6","/assets/pricing.mjs":"25da61a6e7"}/*/asset-v*/;
+  const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   async function loadConfig() {
-    const get = async u => { const r = await fetch(u, { cache: 'no-cache' }); if (!r.ok) throw new Error('config ' + r.status); return r.json(); };
+    const get = async u => { const r = await fetch(vurl(u), { cache: 'no-cache' }); if (!r.ok) throw new Error('config ' + r.status); return r.json(); };
     try { [BRAND, PB] = await Promise.all([get('/assets/brand.json'), get('/assets/pricebook.json')]); } catch (e) { BRAND = {}; PB = {}; }
     PB._niches = (BRAND.niches || []).map(n => ({ key: n.key, label: n.label, early: n.status === 'early_access' }));
     window.ADMIN_PB = PB; window.ADMIN_BRAND = BRAND;   // the mock adapter prices drafts with the same config
@@ -915,7 +918,7 @@
   // ------------------------------------------------------------ boot
   (async function boot() {
     await loadConfig();
-    try { P = await import('/assets/pricing.mjs'); window.Pricing = P; }   // same module as the server; the mock uses it too
+    try { P = await import(vurl('/assets/pricing.mjs')); window.Pricing = P; }   // same module as the server; the mock uses it too
     catch (e) { app.innerHTML = '<h1>ניהול</h1>' + msg('מודול התמחור לא נטען: ' + (e && e.message)); return; }
     if (AB.mode === 'off') { header(null); app.innerHTML = '<h1>ניהול</h1>' + msg(ERR.backend_off); return; }
     try { await AB.ready(); } catch (e) { app.innerHTML = '<h1>ניהול</h1>' + msg(errText(e)); return; }

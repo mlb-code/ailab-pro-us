@@ -1471,6 +1471,7 @@
       dup = claim.client_id !== cl.id;
     }
     const ts = now();
+    const isNew = !sub, was = sub ? { status: sub.status, cancel: !!sub.cancel_at_period_end } : null;
     if (!sub) {
       sub = { id: uuid(), client_id: cl.id, provider: a.provider, provider_subscription_id: a.provider_subscription_id, provider_customer_id: a.provider_customer_id || null,
         trial_began_at: a.status === 'trialing' ? ts : null, created_at: ts, money_back_used_at: null, trial_duplicate: false };
@@ -1490,8 +1491,23 @@
     if (['trialing', 'active'].indexOf(sub.status) !== -1) t = provisionClient(db, sub);
     syncClient(db, cl.id);
     if (dup) db.outbox.push({ id: uuid(), to: 'owner', template: 'admin_provisioning_alert', subject: 'הקמה אוטומטית: ניסיון שני לאותו טלפון', created_at: now() });
+    subscriptionEmails(db, sub, cl, isNew, was);
     db.events.push({ id: uuid(), actor: 'system', entity: 'client', entity_id: cl.id, user_id: cl.user_id, type: 'subscription_updated', payload: { plan: sub.plan_code, status: sub.status }, client_visible: true, created_at: now() });
     return { subscription_id: sub.id, client_id: cl.id, tenant_id: t && t.id, status: sub.status, plan_code: sub.plan_code, stale: false, changed: true, trial_duplicate: sub.trial_duplicate };
+  }
+  // private.subscriptions_emails (20261128100000_us_subscription_emails.sql): welcome + Meir's alert once per new row,
+  // Meir's cancel alert when a cancel is scheduled or a row ends without one
+  function subscriptionEmails(db, sub, cl, isNew, was) {
+    const q = (template, key, extra) => { if (!db.outbox.some(m => m.key === key)) db.outbox.push(Object.assign({ id: uuid(), key, sub: sub.id, template, created_at: now() }, extra)); };
+    if (isNew && (sub.status === 'trialing' || sub.status === 'active')) {
+      const tpl = sub.status === 'trialing' ? 'trial_welcome' : 'plan_welcome';
+      q(tpl, tpl + ':' + sub.id, { to: emailOf2(db, cl.user_id), subject: sub.status === 'trialing' ? 'Your free trial has started' : 'Your plan has started' });
+      q('admin_new_subscription', 'admin_new_subscription:' + sub.id, { to: 'owner', subject: 'מנוי חדש' });
+    } else if (!isNew && sub.cancel_at_period_end && !was.cancel && sub.status !== 'canceled') {
+      q('admin_subscription_canceled', 'admin_subscription_canceled:' + sub.id + ':scheduled:' + now().slice(0, 10), { to: 'owner', subject: 'ביטול מנוי', kind: 'scheduled' });
+    } else if (!isNew && sub.status === 'canceled' && was.status !== 'canceled' && !was.cancel) {
+      q('admin_subscription_canceled', 'admin_subscription_canceled:' + sub.id + ':ended', { to: 'owner', subject: 'מנוי הסתיים', kind: 'ended' });
+    }
   }
   function billingSync(db) {   // private.billing_sync (hourly cron)
     const t = Date.now();

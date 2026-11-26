@@ -8,6 +8,11 @@
 //      payment failure stays on the screen; completed -> "setting up" wait until the webhook (mock) made the subscription.
 //      Portal Billing actions for a Paddle subscription (what goes to Paddle: db.paddle_calls), and the admin Paddle ids,
 //      dashboard link and 30-day refund button.
+//   C. Plan intent vs. the price book (regression 2026-11-26: a signed-out ?plan=FR_PRO&niche=home_services visit got the
+//      generic sign-in, then after Google sign-in the profile screen and a WEBSITE questionnaire): pricebook.json failing
+//      once, failing on the whole first page, or an old cached copy without the plans -> still the plan sign-in variant ->
+//      Google (mock OAuth round trip) -> the plan sign-up screen, never the profile screen or a questionnaire. The config is
+//      fetched with the ?v=<content hash> of tools/asset_version.py. A bare ?niche= link opens no questionnaire by itself.
 // SHOTS_DIR=<dir> saves screenshots of each screen at 1440 and 390.
 //   node tools/e2e_signup.mjs        (own static server on E2E_PORT)
 import http from 'node:http';
@@ -69,7 +74,7 @@ function ok(cond, name) { if (cond) pass++; else { fail++; console.log('  FAIL '
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 let paddleRequests = 0;
-async function newPage(browser, { paddle = false } = {}) {
+async function newPage(browser, { paddle = false, pricebook = null, allowConsole = null } = {}) {
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844 });
   await page.emulateTimezone('America/Chicago');
@@ -81,9 +86,10 @@ async function newPage(browser, { paddle = false } = {}) {
     if (/cdn\.paddle\.com\/paddle\/v2\/paddle\.js$/.test(u)) { paddleRequests++; return r.respond({ status: 200, contentType: 'text/javascript', body: FAKE_PADDLE }); }
     if (/paddle\.com/.test(u)) return r.respond({ status: 599, body: 'blocked in tests' });
     if (u.startsWith(BASE + '/assets/brand.json')) return r.respond({ status: 200, contentType: 'application/json', body: paddle ? BRAND_ON : BRAND_OFF });
+    if (pricebook && u.startsWith(BASE + '/assets/pricebook.json')) { const o = pricebook(u); if (o) return r.respond(o); }
     return r.continue();
   });
-  page.on('console', m => { if (m.type() === 'error' && !/blocked in tests/.test(m.text())) errors.push(m.text()); });
+  page.on('console', m => { if (m.type() === 'error' && !/blocked in tests/.test(m.text()) && !(allowConsole && allowConsole.test(m.text()))) errors.push(m.text()); });
   page.on('pageerror', e => errors.push('uncaught: ' + e.message));
   page.on('dialog', d => d.accept());
   return page;
@@ -336,6 +342,52 @@ async function main() {
     txt = await page.$eval('#subsBody', e => e.innerText);
     ok(/נוצל ב-/.test(txt) && await page.$('[data-paddlerefund]') === null, 'admin: refund used, button gone');
     ok((await overflow(page)).length === 0, 'admin: no overflow');
+    await page.close();
+
+    // ================================================================ C. plan intent vs. the price book (regression)
+    console.log('plan intent survives the price book');
+    const pbReqs = []; let pbMode = null;   // pbMode(n) -> a response for the n-th pricebook.json request, or null = the file
+    page = await newPage(browser, { pricebook: u => { pbReqs.push(u); return pbMode ? pbMode(pbReqs.length) : null; }, allowConsole: /status of 503/ });
+    await page.goto(BASE + '/start/?mock=1', { waitUntil: 'load' }); await signOut(page);
+    const avPb = (fs.readFileSync(path.join(SITE, 'start/assets/common.js'), 'utf8').match(/"\/assets\/pricebook\.json":"([0-9a-f]{10})"/) || [])[1];
+    const down = { status: 503, contentType: 'text/plain', body: 'unavailable' };
+    const oldCopy = { status: 200, contentType: 'application/json', body: JSON.stringify({ ...pb, plans: [], rules: { ...pb.rules, subscription: undefined } }) };
+    const pro = plan('FR_PRO');
+    for (const [label, email, mode, named] of [
+      ['fails once', 'once@pb.test', n => n === 1 ? down : null, true],
+      ['fails on the whole first page', 'down@pb.test', n => n <= 3 ? down : null, false],
+      ['old cached copy without the plans', 'stale@pb.test', n => n <= 2 ? oldCopy : null, false]]) {
+      pbReqs.length = 0; pbMode = mode;
+      await page.goto(BASE + '/start/?plan=FR_PRO&niche=home_services&mock=1&mock_providers=google', { waitUntil: 'load' });
+      await page.waitForSelector('#googleBtn', { timeout: 8000 });
+      const eb = await page.$eval('main .eyebrow', e => e.textContent);
+      ok((await text(page, 'main h1')) === 'Start your free trial.' && !/Then pick your plan/.test(await body(page)) &&
+         (named ? eb.startsWith(pro.name + ' · ' + usd(pro.monthly_cents) + '/mo') : /monthly plan · free trial$/.test(eb)), label + ': plan sign-in variant [' + eb + ']');
+      ok(JSON.parse(await page.evaluate(() => sessionStorage.getItem('start_plan'))).plan === 'FR_PRO' && await page.evaluate(() => sessionStorage.getItem('start_intent')) === null,
+         label + ': plan intent kept, no website intent from the niche');
+      if (named) ok(pbReqs.length === 2, label + ': config fetch retried (' + pbReqs.length + ' requests)');
+      ok(!!avPb && pbReqs.every(u => u.endsWith('/assets/pricebook.json?v=' + avPb)), label + ': pricebook.json fetched with its content hash ?v=' + avPb);
+      await page.evaluate(e => sessionStorage.setItem('start_mock_oauth_email', e), email);
+      await page.click('#googleBtn');
+      await page.waitForFunction(() => document.querySelector('#suForm') || document.querySelector('#profileForm') || location.pathname.startsWith('/start/q/'), { timeout: 12000 }).catch(() => null);
+      d = await db(page);
+      const me = d.profiles.find(p => p.email === email);
+      ok(await page.$('#suForm') !== null && await page.$eval('input[name=su_plan][value=FR_PRO]', e => e.checked).catch(() => false) &&
+         await page.$eval('input[name=su_niche][value=home_services]', e => e.checked).catch(() => false), label + ': after Google sign-in, the plan sign-up (Pro, home services)');
+      ok(!!me && !d.questionnaires.some(q => q.user_id === me.id) && await page.$('#profileForm') === null && !(await page.evaluate(() => location.pathname)).startsWith('/start/q/'),
+         label + ': no profile screen, no website questionnaire');
+      await signOut(page);
+    }
+    pbMode = null;
+    console.log('bare niche link');
+    await page.evaluate(() => sessionStorage.removeItem('start_plan'));   // a new visit: no plan intent left from above
+    await signIn(page, '/start/?niche=home_services', 'niche@only.test');
+    await page.waitForSelector('#profileForm');
+    await page.type('#p_full_name', 'Nia Niche'); await page.type('#p_company', 'Niche Heating'); await page.type('#p_phone', '(404) 555-0177');
+    await page.click('#pSave');
+    await page.waitForSelector('#pickH', { timeout: 6000 }).catch(() => null);
+    d = await db(page);
+    ok(await page.$('#pickH') !== null && !d.questionnaires.some(q => q.user_id === d.profiles.find(p => p.email === 'niche@only.test').id), 'bare ?niche=: the plans on the portal home, no questionnaire opened by itself');
     await page.close();
     ok(errors.length === 0, 'no console errors' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
   } finally {

@@ -29,12 +29,17 @@
   const firstCharge = p => S.fmtDate(new Date(Date.now() + trialDays(p) * 86400000).toISOString());
 
   // ------------------------------------------------------------ intent from the plan buttons (kept across the sign-in)
-  const KEY = 'start_plan';
+  const KEY = 'start_plan', PLAN_RX = /^[A-Z][A-Z0-9_]{1,40}$/;
   function readUrl() {
-    const p = new URLSearchParams(location.search), plan = (p.get('plan') || '').toUpperCase();
-    if (/^[A-Z][A-Z0-9_]{1,40}$/.test(plan)) S.ss.set(KEY, JSON.stringify({ plan, niche: p.get('niche') || null }));
+    const p = new URLSearchParams(location.search), plan = (p.get('plan') || '').trim().toUpperCase();
+    if (PLAN_RX.test(plan)) S.ss.set(KEY, JSON.stringify({ plan, niche: p.get('niche') || null }));
   }
-  function intent() { try { const v = JSON.parse(S.ss.get(KEY) || 'null'); return v && planOf(v.plan) ? v : (v && v.plan === 'PICK' ? v : null); } catch (e) { return null; } }
+  /** The plan intent as stored, NOT filtered through the price book: it must survive a price book that hasn't loaded
+      (or failed once, or was an old cached copy) on the sign-in screen and across the OAuth round trip. show() checks the
+      code against the price book later (an unknown code, or PICK, preselects the default plan). */
+  function intent() { try { const v = JSON.parse(S.ss.get(KEY) || 'null'); return v && typeof v.plan === 'string' && PLAN_RX.test(v.plan) ? v : null; } catch (e) { return null; } }
+  /** the price book has the monthly plans (show() needs them) */
+  const ready = () => plans().length > 0;
   const setIntent = (plan, niche) => S.ss.set(KEY, JSON.stringify({ plan, niche: niche || null }));
   const clearIntent = () => S.ss.del(KEY);
 
@@ -274,5 +279,5 @@
     st.ctx.onDone('home');
   }
 
-  window.StartSignup = { readUrl, intent, setIntent, clearIntent, show, plansCardHtml, bindPlansCard, paddleOn, planOf, loadPaddle };
+  window.StartSignup = { readUrl, intent, ready, setIntent, clearIntent, show, plansCardHtml, bindPlansCard, paddleOn, planOf, loadPaddle };
 })();

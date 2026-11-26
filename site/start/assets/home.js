@@ -16,16 +16,22 @@
   // intent from the landing pages: /start/?offer=WEB&niche=home_services (the website questionnaire). FirstRing is sold as a
   // monthly plan since 2026-11-25: an old link with offer=RCP / BNDL / UNSURE goes to the plan sign-up (plan picked there).
   const SU = window.StartSignup;
+  // the stored plan intent (signup.js), whether or not the price book has loaded yet; read raw if signup.js is missing
+  const planIntent = () => { if (SU) return SU.intent(); try { return JSON.parse(S.ss.get('start_plan') || 'null'); } catch (e) { return null; } };
   (function keepIntent() {
-    if (SU) SU.readUrl();   // /start/?plan=FR_PRO&niche=... (monthly-plan sign-up, signup.js)
     const p = new URLSearchParams(location.search);
-    const offer = (p.get('offer') || '').toUpperCase(), niche = p.get('niche') || '';
+    const offer = (p.get('offer') || '').toUpperCase(), niche = p.get('niche') || '', plan = (p.get('plan') || '').trim();
+    if (SU) SU.readUrl();   // /start/?plan=FR_PRO&niche=... (monthly-plan sign-up, signup.js)
+    else if (plan) S.ss.set('start_plan', JSON.stringify({ plan: plan.toUpperCase(), niche: niche || null }));
+    // a plan in the link is the FirstRing sign-up: its niche goes with the plan, never into a website questionnaire
+    if (plan) { S.ss.del('start_intent'); return; }
     if (Q.LEGACY_OFFERS.indexOf(offer) !== -1) {
-      if (SU && !p.get('plan')) SU.setIntent('PICK', niche || null);   // a plan in the same link wins (readUrl above)
+      if (SU) SU.setIntent('PICK', niche || null);
       S.ss.del('start_intent');
       return;
     }
-    if (offer === 'WEB' || niche) S.ss.set('start_intent', JSON.stringify({ offer: offer || null, niche: niche || null }));
+    // only the website link opens the website questionnaire by itself (a bare ?niche= no longer does: no product named)
+    if (offer === 'WEB') { if (SU) SU.clearIntent(); S.ss.set('start_intent', JSON.stringify({ offer, niche: niche || null })); }
   })();
 
   // ------------------------------------------------------------ sign in
@@ -38,7 +44,8 @@
       '<p class="muted small center trust" id="trustLine">Secure sign-in. We never see or store your password. ' +
       '<a href="/legal/privacy/">Privacy</a> · <a href="/legal/terms/">Terms</a></p>' +
       '<div class="or">or with your email</div>' : '';
-    const it = SU && SU.intent(), plan = it && (SU.planOf(it.plan) || (it.plan === 'PICK' ? { pick: true } : null));
+    // a plan intent always gets the plan wording; a code the price book can't resolve (yet) reads like PICK
+    const it = planIntent(), plan = it && ((SU && SU.planOf(it.plan)) || { pick: true });
     const sr = (S.PB.rules || {}).subscription || {}, prod = sr.product || '';
     let web = false; try { web = !plan && (JSON.parse(S.ss.get('start_intent') || 'null') || {}).offer === 'WEB'; } catch (e) { /* no intent */ }
     const how = 'Sign in' + (providers.length ? ' with ' + providers.map(SI.providerName).join(' or ') + ', or' : '') + ' with your email';
@@ -148,7 +155,7 @@
     try { profile = await B.getProfile(); }
     catch (err) { app.innerHTML = S.msgHtml(S.errText(err)); return; }
     S.renderHeader(session, { email: SI.displayEmail(profile, session) });
-    if (SU && SU.intent()) { await startSignup(); return; }   // plan button: the sign-up screen asks the profile fields itself
+    if (planIntent()) { await startSignup(); return; }   // plan button: the sign-up screen asks the profile fields itself
     if (!profileDone(profile) || SI.needsContactEmail(profile)) { showProfile(true); return; }
     if (await followIntent()) return;
     showPortal();
@@ -156,6 +163,14 @@
 
   // monthly plan sign-up (signup.js); an account that already has a running plan goes to Billing instead
   async function startSignup() {
+    // the price book didn't load or had no plans (a failed fetch, an old cached copy): load it once more past the cache.
+    // Still nothing: keep the plan intent and offer a retry, never fall back to the profile or the website questionnaire.
+    if (!SU || !SU.ready()) await S.loadConfig({ force: true });
+    if (!SU || !SU.ready()) {
+      app.innerHTML = S.msgHtml(S.errText(new Error('config'))) + '<div class="btn-row"><button type="button" class="btn btn--primary" id="suRetry">Try again</button></div>';
+      S.$('#suRetry').addEventListener('click', () => location.reload());
+      return;
+    }
     let b = null; try { b = await B.getBilling(); } catch (e) { /* no billing yet */ }
     if (b && b.subscription && b.subscription.status !== 'canceled') { SU.clearIntent(); S.toast('You already have a plan.'); showPortal('billing'); return; }
     S.ss.del('start_intent');
@@ -164,24 +179,29 @@
 
   // landing CTA → straight into a questionnaire (reuses an open draft)
   async function followIntent() {
+    if (planIntent()) return false;   // a FirstRing plan intent is the plan sign-up, never a questionnaire
     let intent = null; try { intent = JSON.parse(S.ss.get('start_intent') || 'null'); } catch (e) { /* ignore */ }
     if (!intent) return false;
     S.ss.del('start_intent');
+    if (intent.offer !== 'WEB') return false;   // only /start/?offer=WEB opens the website questionnaire by itself
     try {
       const list = await B.listQuestionnaires();
       const draft = list.find(q => q.status === 'draft');
       if (draft) { location.href = '/start/q/?id=' + draft.id; return true; }
-      await startNew(intent);
-      return true;
+      return await startNew(intent);
     } catch (err) { return false; }
   }
+  // init = the landing intent (automatic, refused while a plan intent exists); null = the person clicked "Start the
+  // questionnaire" / "Start another questionnaire" on the portal home: their choice, any leftover plan intent is dropped
   async function startNew(init) {
+    if (planIntent()) { if (init) return false; if (SU) SU.clearIntent(); else S.ss.del('start_plan'); }
     const niches = (S.PB._niches || []).map(n => n.key);
     const utm = (window.Measure && window.Measure.firstTouch()) || null;   // first-touch utm_* kept by /assets/measure.js
     const offer = Q.NEW_OFFERS[0];   // new questionnaires: the website only (FirstRing = the monthly plan sign-up)
     const r = await B.createQuestionnaire({ offer, niche: init && niches.indexOf(init.niche) !== -1 ? init.niche : null, utm });
     S.trackFunnel(['quote', 'start'], { offer });
     location.href = '/start/q/?id=' + r.id;
+    return true;
   }
 
   // ------------------------------------------------------------ profile

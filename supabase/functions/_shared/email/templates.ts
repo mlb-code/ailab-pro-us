@@ -27,7 +27,11 @@ export interface EmailCtx {
     billing_mode?: string };
   /** FirstRing monthly plan (public.subscriptions), only for subscription clients */
   subscription?: { plan_code: string; status: string; trial_ends_at?: string | null; current_period_end?: string | null;
-    cancel_at_period_end?: boolean; ends_at?: string | null; provider?: string; service?: string; service_reason?: string; reason?: string };
+    cancel_at_period_end?: boolean; ends_at?: string | null; provider?: string; service?: string; service_reason?: string; reason?: string;
+    /** sign-up / cancellation mails (20261128100000_us_subscription_emails.sql): the subscription row the mail is about */
+    id?: string; current_period_start?: string | null; trial_duplicate?: boolean; created_at?: string | null;
+    /** admin mails only: the business phone given at sign-up; true = this client had an earlier subscription */
+    business_phone?: string | null; returning?: boolean };
   tenant_number?: string | null;
   onboarding?: { total: number; done: number; left: number; left_titles: string[] };
   payment?: { id: string; kind: string; amount_cents: number; method: string | null; status: string; provider?: string | null;
@@ -71,12 +75,28 @@ const depositPct = () => Number((PRICEBOOK.rules as Record<string, unknown>).dep
 const isReceptionist = (ctx: EmailCtx) => (ctx.client?.products ?? ["RCP"]).some((p) => p === "RCP" || p === "BNDL");
 /** FirstRing monthly plan client (no quote, no final payment; go-live is automatic) */
 const isPlan = (ctx: EmailCtx) => ctx.client?.billing_mode === "subscription";
-type PlanRow = { code: string; name: string; monthly_cents: number; included_usage?: { voice_minutes?: number } };
+type PlanRow = { code: string; name: string; product?: string; monthly_cents: number; trial_minutes?: number; included_usage?: { voice_minutes?: number } };
 const planOf = (code?: string | null): PlanRow | undefined =>
   ((PRICEBOOK as unknown as { plans?: PlanRow[] }).plans ?? []).find((p) => p.code === code);
 const planName = (code?: string | null) => planOf(code)?.name ?? code ?? "";
+/** price-book rules.subscription (trial minutes, the approved cancel sentence) */
+const SUB_RULES = () => ((PRICEBOOK.rules as unknown as Record<string, unknown>).subscription ?? {}) as
+  { trial_minutes?: number; texts?: Record<string, string> };
+/** "FirstRing Pro" (product + plan name from the price book) */
+const planLabel = (code?: string | null) => { const p = planOf(code); return p ? `${p.product ?? ""} ${p.name}`.trim() : code ?? ""; };
+const trialMinutes = (p?: PlanRow) => Number(p?.trial_minutes ?? SUB_RULES().trial_minutes ?? 0);
+const minutesOf = (n?: number | null) => (n ? `${Number(n).toLocaleString("en-US")} minutes` : "");
 /** what message mode does, in the words of the terms (owner decision 2026-11-25) */
 const MESSAGE_MODE = "Your line still answers every call, in message mode: it takes the caller's name, number and reason and e-mails them to you. It does not book visits or answer other questions.";
+/** sign-up mails: the one next step (the checklist; go-live is automatic), or nothing to do when the line is already live */
+const setupStep = (ctx: EmailCtx): Block[] => ctx.client?.status === "live"
+  ? [{ p: "Your receptionist is already live. Nothing to do." }]
+  : [{ p: "**Next step:** finish the setup checklist in your portal. After your test call, our automatic checks run and your receptionist goes live on its own." }];
+const startedCta = (ctx: EmailCtx, b: EmailBrand) =>
+  ctx.client?.status === "live" ? { label: "Open my portal", url: portal(b) } : { label: "Finish my setup", url: portal(b, "onboarding") };
+/** Paddle is the merchant of record: card statements and receipts carry its name */
+const paddleNote = (ctx: EmailCtx): Block[] =>
+  ctx.subscription?.provider === "paddle" ? [{ small: "Billing is handled by Paddle, our payment provider. Your receipts come from them." }] : [];
 const FORWARD_OFF = "Don't want calls to reach it at all? Turn off call forwarding on your business phone (the setup checklist in your portal shows how for your phone provider).";
 /** satisfaction guarantee (pricebook refund_rules.rcp_guarantee): [text, "Month D, YYYY" end date] for RCP/BNDL clients, else null */
 function guaranteeOf(ctx: EmailCtx): { text: string; until: string } | null {
@@ -639,6 +659,98 @@ export const TEMPLATES: Record<string, TemplateDef> = {
           ["חבילה נוכחית", ctx.subscription?.plan_code ?? ""], ["חבילה מבוקשת", String(payload?.to ?? "")],
           ["להתחיל עכשיו", payload?.start_now ? "כן" : ""]].filter(([, v]) => v) as Array<[string, string]> },
         { p: "לבצע בספק התשלום (Paddle). אחרי שהספק מאשר, ה-webhook מעדכן את המערכת לבד." },
+      ],
+      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+    };
+  }),
+
+  // ---------------------------------------------------------------- sign-up + cancellation (2026-11-26)
+  // Queued once per subscription row by private.subscriptions_emails() (20261128100000_us_subscription_emails.sql).
+  trial_welcome: client("transactional", true, (ctx, { brand }) => {
+    const sub = ctx.subscription;
+    const p = planOf(sub?.plan_code);
+    const ends = fmtDate(sub?.trial_ends_at);
+    const mins = trialMinutes(p);
+    return {
+      subject: `Your free trial of ${planLabel(sub?.plan_code)} has started`,
+      preheader: `${ends ? `Free until ${ends}. ` : ""}Next step: finish your setup checklist.`,
+      heading: "Your free trial has started",
+      blocks: [
+        { p: `${hi(ctx)} thanks for signing up. Your free trial of **${planLabel(sub?.plan_code)}** is on.` },
+        { facts: [["Free trial until", ends], ["Included in the trial", mins ? `Up to ${minutesOf(mins)} of calls` : ""],
+          ["First charge", p ? `${usd(p.monthly_cents)} on ${ends || "the day the trial ends"}, unless you cancel` : ""]] },
+        ...setupStep(ctx),
+        { small: `Cancel anytime in your portal (Billing) before ${ends || "the trial ends"} and you pay nothing.` },
+        ...paddleNote(ctx),
+      ],
+      cta: startedCta(ctx, brand),
+    };
+  }),
+
+  plan_welcome: client("transactional", true, (ctx, { brand }) => {
+    const sub = ctx.subscription;
+    const p = planOf(sub?.plan_code);
+    return {
+      subject: `Your ${planLabel(sub?.plan_code)} plan has started`,
+      preheader: `${p ? `${usd(p.monthly_cents)}/mo. ` : ""}Next step: finish your setup checklist.`,
+      heading: "Your plan has started",
+      blocks: [
+        { p: `${hi(ctx)} thanks for signing up. Your **${planLabel(sub?.plan_code)}** plan is active.` },
+        { facts: [["Monthly", p ? `${usd(p.monthly_cents)}/mo` : ""], ["Included", p?.included_usage?.voice_minutes ? `${minutesOf(p.included_usage.voice_minutes)} of calls a month` : ""],
+          ["Next charge", fmtDate(sub?.current_period_end)]] },
+        ...setupStep(ctx),
+        { small: SUB_RULES().texts?.cancel || "Cancel anytime in your portal (Billing)." },
+        ...paddleNote(ctx),
+      ],
+      cta: startedCta(ctx, brand),
+    };
+  }),
+
+  admin_new_subscription: toMeir((ctx, { brand }) => {
+    const sub = ctx.subscription;
+    const p = planOf(sub?.plan_code);
+    const trial = sub?.status === "trialing";
+    const tz = brand.owner?.timezone || "UTC";
+    const ends = fmtDate(sub?.trial_ends_at, tz, "he");
+    return {
+      subject: `🎉 מנוי חדש: ${biz(ctx)} · ${planName(sub?.plan_code)} · ${trial ? "ניסיון חינם" : "בתשלום"}`,
+      preheader: trial ? `ניסיון חינם${ends ? ` עד ${ends}` : ""}. ההקמה אוטומטית, אין צורך בפעולה.` : "מנוי בתשלום. ההקמה אוטומטית, אין צורך בפעולה.",
+      heading: trial ? "מנוי חדש: ניסיון חינם" : "מנוי חדש בתשלום",
+      blocks: [
+        { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""],
+          ["חבילה", `${planLabel(sub?.plan_code)} (${sub?.plan_code ?? ""})`],
+          ["סוג", trial ? `ניסיון חינם${ends ? ` עד ${ends}` : ""}` : `בתשלום מ-${fmtDate(sub?.current_period_start ?? sub?.created_at, tz, "he")}`],
+          ["מחיר חודשי", p ? `${usd(p.monthly_cents)}/mo` : ""],
+          ["חיוב ראשון", trial ? ends : ""],
+          ["טלפון עסקי", fmtPhone(sub?.business_phone || ctx.profile?.phone || "")],
+          ["מייל", ctx.profile?.email ?? ""],
+          ["לקוח חוזר", sub?.returning ? "כן, היה לו מנוי קודם" : ""],
+          ["ספק תשלום", sub?.provider ?? ""]] },
+        ...(sub?.trial_duplicate
+          ? [{ p: "⚠️ הטלפון העסקי הזה כבר קיבל ניסיון חינם, ולכן המספר לא נקנה והלקוח לא קיבל מייל פתיחה. פרטים במייל ההקמה הנפרד." } as Block]
+          : []),
+        { small: "ההקמה אוטומטית: כרטיס לקוח, tenant, צ'ק-ליסט ומספר. הלקוח עולה לאוויר לבד אחרי שיחת הבדיקה." },
+      ],
+      cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
+    };
+  }),
+
+  admin_subscription_canceled: toMeir((ctx, { brand, payload }) => {
+    const sub = ctx.subscription;
+    const tz = brand.owner?.timezone || "UTC";
+    const ended = payload?.kind === "ended";
+    const wasTrial = String(payload?.from ?? sub?.status ?? "") === "trialing";
+    const until = fmtDate(ended ? (sub?.ends_at ?? null) : (wasTrial ? sub?.trial_ends_at : sub?.current_period_end), tz, "he");
+    return {
+      subject: ended ? `מנוי הסתיים: ${biz(ctx)} · ${planName(sub?.plan_code)}` : `ביטול מנוי: ${biz(ctx)} · ${planName(sub?.plan_code)}${until ? ` (פעיל עד ${until})` : ""}`,
+      preheader: ended ? "המנוי בוטל. הקו עונה עכשיו במצב הודעות." : "הלקוח ביטל. השירות המלא ממשיך עד סוף התקופה, ואז מצב הודעות.",
+      heading: ended ? "מנוי הסתיים" : "לקוח ביטל מנוי",
+      blocks: [
+        { facts: [["עסק", biz(ctx)], ["שם", ctx.profile?.full_name ?? ""], ["חבילה", `${planLabel(sub?.plan_code)} (${sub?.plan_code ?? ""})`],
+          ["היה ב", wasTrial ? "ניסיון חינם" : "מנוי בתשלום"], [ended ? "הסתיים" : "פעיל עד", until],
+          ["טלפון עסקי", fmtPhone(sub?.business_phone || ctx.profile?.phone || "")], ["מייל", ctx.profile?.email ?? ""]] },
+        ...(wasTrial ? [{ small: "בוטל בתקופת הניסיון: אין חיוב." } as Block] : []),
+        { small: "אין צורך בפעולה. כשהשירות נגמר, שחרור המספר מתוזמן לבד (לשונית המנויים: לדחות או לשחרר עכשיו)." },
       ],
       cta: { label: "פתח את לשונית המנויים", url: admin(brand, "subscriptions") },
     };

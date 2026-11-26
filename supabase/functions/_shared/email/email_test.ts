@@ -542,3 +542,76 @@ Deno.test("FirstRing plan mails: trial reminder, message mode, restored, no go-l
   assert(!/Monthly/.test(live.text) && (!pro || live.text.includes(pro.name)), "plan went_live shows the plan, not a quote fee");
   eq([TEMPLATES.admin_provisioning_alert.audience, TEMPLATES.admin_billing_request.audience, TEMPLATES.trial_ending.transactional], ["admin", "admin", true]);
 });
+
+Deno.test("FirstRing sign-up mails: trial / paid welcome to the customer, Hebrew alerts to Meir (new + cancelled)", async () => {
+  const s = await samples();
+  const plans = (PRICEBOOK as unknown as { plans: Array<{ code: string; name: string; product: string; monthly_cents: number; trial_minutes: number;
+    included_usage: { voice_minutes: number } }> }).plans;
+  const pro = plans.find((p) => p.code === "FR_PRO")!;
+  const cancelText = (PRICEBOOK.rules as unknown as { subscription: { texts: { cancel: string } } }).subscription.texts.cancel;
+  const t = render("trial_welcome", s.trial_welcome.ctx);
+  eq(t.subject, `Your free trial of ${pro.product} ${pro.name} has started`);
+  has(t, ["Hi Dani,", "Free trial until: December 10, 2026", `Included in the trial: Up to ${pro.trial_minutes} minutes of calls`,
+    `First charge: ${usd(pro.monthly_cents)} on December 10, 2026, unless you cancel`, "Next step:", "finish the setup checklist in your portal",
+    "goes live on its own", "Cancel anytime in your portal (Billing) before December 10, 2026 and you pay nothing.", "Paddle"], "trial_welcome");
+  assert(t.html.includes(`href="${SITE}/start/#onboarding"`) && t.html.includes(">Finish my setup</a>"), "trial_welcome: one button, the checklist");
+  assert(!/SMS|text message|guarantee/i.test(t.text) && t.text.split(/\s+/).length < 170, "trial_welcome: short, no SMS / guarantee claims");
+  const p = render("plan_welcome", s.plan_welcome.ctx);
+  eq(p.subject, `Your ${pro.product} ${pro.name} plan has started`);
+  has(p, [`Monthly: ${usd(pro.monthly_cents)}/mo`, `Included: ${pro.included_usage.voice_minutes} minutes of calls a month`, "Next charge: December 26, 2026",
+    "finish the setup checklist", cancelText], "plan_welcome");
+  assert(!/free trial/i.test(p.text), "plan_welcome: no trial wording");
+  // a customer whose line is already live has nothing left to set up; no provider note outside Paddle
+  const live = render("plan_welcome", { ...s.plan_welcome.ctx, client: { ...s.plan_welcome.ctx.client!, status: "live" },
+    subscription: { ...s.plan_welcome.ctx.subscription!, provider: "mock" } });
+  assert(live.text.includes("already live") && !live.text.includes("Next step") && !live.text.includes("Paddle"), "plan_welcome: live client / mock provider");
+  // no trial end date: no "undefined" / empty date
+  const nodate = render("trial_welcome", { ...s.trial_welcome.ctx, subscription: { ...s.trial_welcome.ctx.subscription!, trial_ends_at: null } });
+  assert(nodate.text.includes("before the trial ends") && !/undefined|Free trial until/.test(nodate.text), "trial_welcome without a date");
+
+  const a = render("admin_new_subscription", s.admin_new_subscription.ctx);
+  eq(a.subject, `🎉 מנוי חדש: Cool Breeze HVAC · ${pro.name} · ניסיון חינם`);
+  has(a, ["עסק: Cool Breeze HVAC", "שם: Dani Levin", `חבילה: ${pro.product} ${pro.name} (FR_PRO)`, "סוג: ניסיון חינם עד", "טלפון עסקי: +1 (713) 555-0100",
+    "מייל: dani@example.com", "ספק תשלום: paddle"], "admin_new_subscription");
+  assert(a.html.includes(`href="${SITE}/start/admin/#subscriptions"`) && a.html.includes('lang="he" dir="rtl"'), "admin_new_subscription: RTL + admin tab");
+  assert(!a.text.includes("לקוח חוזר") && !a.text.includes("⚠️"), "admin_new_subscription: no returning / duplicate lines by default");
+  const a2 = render("admin_new_subscription", { ...s.admin_new_subscription.ctx, subscription: { ...s.admin_new_subscription.ctx.subscription!,
+    status: "active", current_period_start: "2026-11-26T15:00:00Z", returning: true, trial_duplicate: true } });
+  assert(a2.subject.endsWith("· בתשלום") && a2.text.includes("בתשלום מ-") && a2.text.includes("לקוח חוזר: כן") && a2.text.includes("כבר קיבל ניסיון חינם"),
+    "admin_new_subscription: paid, returning, duplicate trial");
+  const c = render("admin_subscription_canceled", s.admin_subscription_canceled.ctx, s.admin_subscription_canceled.payload);
+  assert(c.subject.startsWith(`ביטול מנוי: Cool Breeze HVAC · ${pro.name} (פעיל עד `) && c.text.includes("היה ב: ניסיון חינם") && c.text.includes("אין חיוב"),
+    "admin_subscription_canceled: scheduled during the trial");
+  const e = render("admin_subscription_canceled", { ...s.admin_subscription_canceled.ctx, subscription: { ...s.admin_subscription_canceled.ctx.subscription!,
+    status: "canceled", ends_at: "2026-12-26T15:00:00Z" } }, { kind: "ended", from: "active" });
+  assert(e.subject === `מנוי הסתיים: Cool Breeze HVAC · ${pro.name}` && e.text.includes("היה ב: מנוי בתשלום") && !e.text.includes("אין חיוב"), "admin_subscription_canceled: ended, paid");
+  eq([TEMPLATES.trial_welcome.audience, TEMPLATES.plan_welcome.audience, TEMPLATES.admin_new_subscription.audience, TEMPLATES.admin_subscription_canceled.audience],
+    ["client", "client", "admin", "admin"]);
+  eq([TEMPLATES.trial_welcome.transactional, TEMPLATES.plan_welcome.transactional], [true, true], "account / billing confirmations are transactional");
+});
+
+Deno.test("dispatch: sign-up mails go out while client reminders are off (client_emails_enabled = false); Meir's alert waits for 08:00", async () => {
+  const s = await samples();
+  const db = new MemDb(), m = new FakeMailer();
+  db.settingsV.client_emails_enabled = false;
+  const tr = db.add("trial_welcome", s.trial_welcome.ctx, { idem_key: "trial_welcome:sub-1" });
+  const pd = db.add("plan_welcome", s.plan_welcome.ctx, { idem_key: "plan_welcome:sub-2" });
+  const ad = db.add("admin_new_subscription", s.admin_new_subscription.ctx, { idem_key: "admin_new_subscription:sub-1" });
+  const cn = db.add("admin_subscription_canceled", s.admin_subscription_canceled.ctx,
+    { idem_key: "admin_subscription_canceled:sub-1:ended", payload: { kind: "ended", from: "trialing" } });
+  const nud = db.add("onboarding_nudge", s.onboarding_nudge.ctx);
+  await runDispatch(deps(db, m));
+  eq([tr.status, pd.status, ad.status, cn.status, nud.status], ["sent", "sent", "sent", "sent", "skipped"]);
+  eq(m.sent.map((x) => x.key), ["trial_welcome:sub-1", "plan_welcome:sub-2", "admin_new_subscription:sub-1", "admin_subscription_canceled:sub-1:ended"],
+    "the outbox key is the Idempotency-Key");
+  eq([m.sent[0].mail.to, m.sent[2].mail.to, m.sent[2].mail.reply_to], ["dani@example.com", "owner@example.com", "dani@example.com"]);
+  assert(!m.sent[0].mail.headers?.["List-Unsubscribe"], "transactional: no unsubscribe header");
+  await runDispatch(deps(db, m));
+  eq(m.sent.length, 4, "never twice");
+  // night in Israel: the client mail goes now, Meir's alert waits for the morning
+  const db2 = new MemDb(), m2 = new FakeMailer();
+  db2.clock = () => NIGHT_IL.getTime();
+  const t2 = db2.add("trial_welcome", s.trial_welcome.ctx), a2 = db2.add("admin_new_subscription", s.admin_new_subscription.ctx);
+  await runDispatch(deps(db2, m2));
+  eq([t2.status, a2.status, (a2.done as { error?: string }).error], ["sent", "pending", "admin_quiet_hours"]);
+});

@@ -12,10 +12,12 @@
         TenantSchema.validatePatch(patch) -> errors for each top-level key against its property schema
         TenantSchema.messageEn(err) -> readable text (Hebrew wording for the admin lives in admin-tenants.js) */
 (function () {
+  // content-hash versions, filled in by tools/asset_version.py (no stale copy after a deploy)
+  const AV = /*asset-v*/{"/assets/tenant_schema.json":"8580d09be6"}/*/asset-v*/;
   let SCHEMA = null, loading = null;
   function load() {
     if (SCHEMA) return Promise.resolve(SCHEMA);
-    if (!loading) loading = fetch('/assets/tenant_schema.json', { cache: 'no-cache' })
+    if (!loading) loading = fetch('/assets/tenant_schema.json' + (AV['/assets/tenant_schema.json'] ? '?v=' + AV['/assets/tenant_schema.json'] : ''), { cache: 'no-cache' })
       .then(r => { if (!r.ok) throw new Error('tenant_schema ' + r.status); return r.json(); })
       .then(j => { SCHEMA = j; return j; })
       .catch(e => { loading = null; throw e; });

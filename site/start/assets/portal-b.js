@@ -16,6 +16,8 @@
    ended, while the number release is scheduled (client_billing.number_release), the plan card says until when the number
    is kept, with the restart button (numberRelease; home.js adds the same line to the home status). */
 (function () {
+  // content-hash version, filled in by tools/asset_version.py (no stale copy after a deploy)
+  const AV = /*asset-v*/{"/assets/paypal_checkout.mjs":"be1c763fe5"}/*/asset-v*/;
   const S = window.Start, B = window.Backend, TS = window.TenantSchema, Q = window.StartQ;
   const esc = s => S.esc(s);
   const DAYS = [['mon', 'Monday'], ['tue', 'Tuesday'], ['wed', 'Wednesday'], ['thu', 'Thursday'], ['fri', 'Friday'], ['sat', 'Saturday'], ['sun', 'Sunday']];
@@ -375,7 +377,7 @@
     const alt = 'Or reply to any of our emails and we’ll send you a payment link.';
     let PC = null;
     try {
-      PC = await import('/assets/paypal_checkout.mjs');
+      PC = await import('/assets/paypal_checkout.mjs' + (AV['/assets/paypal_checkout.mjs'] ? '?v=' + AV['/assets/paypal_checkout.mjs'] : ''));
       await PC.mount(box, {
         brand: S.BRAND, currency: (S.PB && S.PB.currency) || 'USD',
         create: async () => { say(''); S.trackFunnel(['pay', 'click'], { method: 'paypal', which: 'final' }); return (await B.payCreate(fp.quote.public_token, 'final')).order_id; },

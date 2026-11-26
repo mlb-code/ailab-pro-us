@@ -154,7 +154,7 @@ async function ppPage(on) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
   const p = await ctx.newPage();
   p.on('pageerror', e => errs.push('pp: ' + e.message)); p.on('console', m => m.type() === 'error' && errs.push('pp: ' + m.text()));
-  if (on) await p.route('**/assets/brand.json', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(brandOn) }));
+  if (on) await p.route('**/assets/brand.json*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(brandOn) }));
   // Playwright tries routes newest first: the catch-all goes in first, the SDK fake after it
   await p.route(/paypal\.com/, r => { ppLeaks.push(r.request().url()); return r.abort(); });
   await p.route('https://www.paypal.com/sdk/js**', r => { sdkUrls.push(r.request().url()); return r.fulfill({ contentType: 'text/javascript', body: FAKE_SDK }); });

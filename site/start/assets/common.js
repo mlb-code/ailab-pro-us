@@ -6,15 +6,26 @@
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  let BRAND = {}, PB = {};
-  async function loadConfig() {
-    const get = async u => { const r = await fetch(u, { cache: 'no-cache' }); if (!r.ok) throw new Error('config ' + r.status); return r.json(); };
-    try { [BRAND, PB] = await Promise.all([get('/assets/brand.json'), get('/assets/pricebook.json')]); }
-    catch (e) { BRAND = BRAND || {}; PB = PB || {}; }
+  // content-hash versions, filled in by tools/asset_version.py (a new config = a new URL, so no browser or CDN copy of the
+  // old file is used after a deploy)
+  const AV = /*asset-v*/{"/assets/brand.json":"8148bbc532","/assets/pricebook.json":"111c878ee6"}/*/asset-v*/;
+  const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
+  let BRAND = {}, PB = {}, cfgOk = false;
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+  /** brand.json + pricebook.json. A failed fetch is retried (3 tries, the later ones bypass the browser cache) instead of
+      leaving the portal with an empty price book. `{ force: true }` loads again even after a success (cache bypassed). */
+  async function loadConfig(opts) {
+    const force = !!(opts && opts.force);
+    for (let i = 0; i < 3; i++) {
+      const fresh = force || i > 0;
+      const get = async u => { const r = await fetch(vurl(u), { cache: fresh ? 'reload' : 'no-cache' }); if (!r.ok) throw new Error('config ' + r.status); return r.json(); };
+      try { const [b, p] = await Promise.all([get('/assets/brand.json'), get('/assets/pricebook.json')]); BRAND = b || {}; PB = p || {}; cfgOk = true; break; }
+      catch (e) { if (i < 2) await pause(i ? 1200 : 400); }
+    }
     PB._niches = (BRAND.niches || []).map(n => ({ key: n.key, label: n.label, early: n.status === 'early_access' }));
     fillBrand();
     analytics();
-    return { BRAND, PB };
+    return { BRAND, PB, ok: cfgOk };
   }
   function fillBrand() {
     $$('[data-brand]').forEach(el => { const v = BRAND[el.dataset.brand]; if (typeof v === 'string' && v) el.firstChild ? (el.firstChild.nodeValue = v) : (el.textContent = v); });
@@ -139,7 +150,7 @@
   };
 
   window.Start = {
-    $, $$, esc, loadConfig, get BRAND() { return BRAND; }, get PB() { return PB; }, track, trackFunnel, sla, slaCap, webTimeline, money, priceOf, fmtDate, fmtSize,
+    $, $$, esc, loadConfig, configOk: () => cfgOk, get BRAND() { return BRAND; }, get PB() { return PB; }, track, trackFunnel, sla, slaCap, webTimeline, money, priceOf, fmtDate, fmtSize,
     toast, msgHtml, errText, renderHeader, mockBanner, offline, ls, ss
   };
 })();

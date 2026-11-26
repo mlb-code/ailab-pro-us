@@ -11,7 +11,8 @@ usage:
   python3 tools/build_landing.py --og       force re-render of the OG images (needs `npm install`)
   python3 tools/build_landing.py --list     print the URLs of every generated page (used by tools/urls-landing.txt)
 
-Legal pages (site/legal/*/index.html) are hand-written; their <span data-cfg="pricebook:path"> / "brand:path" values are
+Every local <script src> / <link rel=stylesheet> gets ?v=<content hash> (tools/asset_version.py; a build also re-stamps
+the hand-written pages). Legal pages (site/legal/*/index.html) are hand-written; their <span data-cfg="pricebook:path"> / "brand:path" values are
 re-stamped from config on every build and verified by --check.
 
 Content tokens ({brand}, {price:RCP.setup}, ...) are documented in site/_content/_shared.json. An unknown token
@@ -23,6 +24,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import asset_version  # noqa: E402  (?v=<content hash> on every local script / stylesheet)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'site')
@@ -1503,6 +1507,8 @@ def main(argv):
                 print(base.rstrip('/') + '/' + rel.replace('index.html', ''))
         return 0
     legal = stamp_legal(c)
+    # cache busting: every local <script src> / <link rel=stylesheet> carries ?v=<content hash> (tools/asset_version.py)
+    pages, legal = asset_version.stamp_pages(pages), asset_version.stamp_pages(legal)
     if '--check' in argv:
         bad = 0
         for d in theme_drift(c):
@@ -1540,6 +1546,7 @@ def main(argv):
         with open(p, 'w', encoding='utf-8') as fh:
             fh.write(text)
         print(f'wrote site/{rel}')
+    asset_version.main([])   # the hand-written pages too (portal, quote, admin, demo site, styleguide)
     missing = [s for s in og if not os.path.exists(os.path.join(SITE, 'assets', 'og', s[0] + '.png'))]
     if '--og' in argv:
         render_og(c, og)

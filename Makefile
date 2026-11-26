@@ -1,8 +1,9 @@
 # AI Lab Pro (US) — dev + QA entry points. Run from the repo root.
 #   make install   npm dev deps (Playwright + Puppeteer, no browser download)
 #   make serve     static site on http://localhost:8787 (site/ + /__fixture__/)
+#   make assets    re-stamp ?v=<content hash> on every local script/stylesheet + JS asset maps (after editing site JS/CSS/JSON)
 #   make qa-fast   static checks only (no browsers): secrets, hard-coded values, config sync, price book,
-#                  us_setup self-test, generated pages/fixtures up to date, sign-in helper unit tests, SQL lint, video VO length. CI runs this.
+#                  us_setup self-test, generated pages/fixtures up to date, asset ?v= hashes current, sign-in helper unit tests, SQL lint, video VO length. CI runs this.
 #   make qa        EVERYTHING: qa-fast + browsers (3 engines) + Deno tests + offline Postgres (PGlite) suites.
 #                  Every browser suite gets its own server on a free port (no port clashes). Prefer serial `make qa`:
 #                  under heavy CPU load `-j` causes Playwright launch/click timeouts.
@@ -21,6 +22,9 @@ install:
 serve:
 	PORT=$(PORT) sh tools/serve.sh
 
+assets:
+	$(PY) tools/asset_version.py
+
 secrets:
 	$(PY) tools/check_secrets.py --self-test >/dev/null
 	$(PY) tools/check_secrets.py .
@@ -33,6 +37,7 @@ qa-fast: secrets
 	$(PY) tools/pricebook_test.py
 	$(PY) tools/us_setup.py --self-test
 	$(PY) tools/build_landing.py --check
+	$(PY) tools/asset_version.py --check
 	$(PY) tools/landing_test.py >/dev/null
 	$(NODE) tools/signin_test.mjs >/dev/null
 	$(DENO_RUN) tools/build_quote_fixtures.ts --check
@@ -129,6 +134,7 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/firstring_p2_run.ts
 	$(DENO_RUN) supabase/tests/offline/firstring_p3_run.ts
 	$(DENO_RUN) supabase/tests/offline/questionnaire_web_only_run.ts
+	$(DENO_RUN) supabase/tests/offline/subscription_emails_run.ts
 
 # Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity + Meta Pixel load, events fire,
 # GPC/DNT blocks everything, Clarity masks forms, the pixel maps funnel events and stays off the quote page, first-touch UTM
