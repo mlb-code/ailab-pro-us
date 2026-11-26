@@ -173,7 +173,7 @@
     },
     "paddle": {
       "$comment": "FirstRing monthly plans through Paddle Billing (merchant of record). PUBLIC values only, all PLACEHOLDERS until Meir fills them in from his Paddle account: client_token = Paddle > Developer tools > Authentication > client-side token (test_... in sandbox, live_... in production; Paddle.js only, never an API key). prices = 6 price IDs (pri_...): per plan one 'trial' price (monthly, 14-day trial, card required) for sign-up, and one 'paid' price (same monthly amount, NO trial) for 'Start paid plan' (trial already used) and for plan changes. Secrets are ONLY Edge Function secrets, typed by Meir in Supabase: PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET, PADDLE_ENV (sandbox|production). enabled=false (default), an empty client_token or any empty price = the Paddle checkout is off and the mock / demo path stays (local, tests).",
-      "enabled": false,
+      "enabled": true,
       "env": "sandbox",
       "client_token": "test_2203b7f357ab0d5a49e3d69f431",
       "prices": {

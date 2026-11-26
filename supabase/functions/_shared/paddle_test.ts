@@ -142,7 +142,8 @@ Deno.test("plan mapping: price ids -> plan codes; unknown price / no user -> 200
   eq(priceId("FR_PRO", "paid", BRAND_ON), PRICES.FR_PRO.paid);
   const BRAND_EMPTY = { payments: { paddle: { enabled: true, client_token: "test_x", prices: { FR_PRO: { trial: "", paid: "" } } } } };
   await rejects(() => Promise.resolve().then(() => priceId("FR_PRO", "paid", BRAND_EMPTY)), "price_not_configured");
-  eq([paddleReady(BRAND_ON), paddleReady(BRAND), paddleReady(BRAND_EMPTY)], [true, false, false], "brand.json ships with Paddle off (enabled=false); missing prices = off");
+  const BRAND_OFF = { payments: { paddle: { ...(BRAND.payments as { paddle: Record<string, unknown> }).paddle, enabled: false } } };
+  eq([paddleReady(BRAND_ON), paddleReady(BRAND_OFF), paddleReady(BRAND_EMPTY)], [true, false, false], "enabled=false = off; missing prices = off");
   const s = freshStore(), h = hook(s);
   const r = await post(h, event("subscription.created", sub("trialing", "pri_" + "z".repeat(26))));
   eq([r.status, r.body.result, s.alerts.at(-1)?.kind], [200, "skipped:unknown_price", "unknown_price"]);

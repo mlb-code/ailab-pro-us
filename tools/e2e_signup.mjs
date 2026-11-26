@@ -44,6 +44,8 @@ const pid = s => 'pri_' + s.padEnd(26, '0');
 const PRICES = { FR_STARTER: { trial: pid('startertrial'), paid: pid('starterpaid') }, FR_PRO: { trial: pid('protrial'), paid: pid('propaid') }, FR_BUSINESS: { trial: pid('biztrial'), paid: pid('bizpaid') } };
 const TOKEN = 'test_' + 'e2etoken'.repeat(3);
 const BRAND_ON = JSON.stringify({ ...brand, payments: { ...brand.payments, paddle: { ...brand.payments.paddle, enabled: true, env: 'sandbox', client_token: TOKEN, prices: PRICES } } });
+// the mock path is tested with Paddle forced off, whatever the shipped brand.json says (sandbox may be switched on)
+const BRAND_OFF = JSON.stringify({ ...brand, payments: { ...brand.payments, paddle: { ...brand.payments.paddle, enabled: false } } });
 // stand-in for https://cdn.paddle.com/paddle/v2/paddle.js: records the calls, draws a stub where Paddle's iframe would be
 const FAKE_PADDLE = `window.__pd = { loads: (window.__pd && window.__pd.loads || 0) + 1 };
 window.Paddle = {
@@ -78,7 +80,7 @@ async function newPage(browser, { paddle = false } = {}) {
     if (/fonts\.(googleapis|gstatic)\.com/.test(u)) return r.respond({ status: 200, contentType: 'text/css', body: '' });
     if (/cdn\.paddle\.com\/paddle\/v2\/paddle\.js$/.test(u)) { paddleRequests++; return r.respond({ status: 200, contentType: 'text/javascript', body: FAKE_PADDLE }); }
     if (/paddle\.com/.test(u)) return r.respond({ status: 599, body: 'blocked in tests' });
-    if (paddle && u.startsWith(BASE + '/assets/brand.json')) return r.respond({ status: 200, contentType: 'application/json', body: BRAND_ON });
+    if (u.startsWith(BASE + '/assets/brand.json')) return r.respond({ status: 200, contentType: 'application/json', body: paddle ? BRAND_ON : BRAND_OFF });
     return r.continue();
   });
   page.on('console', m => { if (m.type() === 'error' && !/blocked in tests/.test(m.text())) errors.push(m.text()); });
