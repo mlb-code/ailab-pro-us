@@ -300,7 +300,7 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:6px}
 .su-fine{margin-top:14px}
 .su-pay{max-width:640px}
 .su-line{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
-.paddle-frame{min-height:450px}
+.su-checkout{min-height:450px}   /* NOT "paddle-frame": Paddle.js removes elements with that class (its own iframe class) */
 .paystub{border:2px dashed var(--line-2);border-radius:var(--radius-sm);padding:18px;display:grid;gap:8px;background:var(--wd-card)}
 .su-wait{display:flex;gap:14px;align-items:flex-start;padding:10px 0}
 .spin{flex:none;width:22px;height:22px;border-radius:50%;border:3px solid var(--wd-blue-soft);border-top-color:var(--wd-blue);animation:suspin .9s linear infinite}

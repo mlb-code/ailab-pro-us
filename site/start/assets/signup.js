@@ -211,7 +211,7 @@
     app.innerHTML = '<span class="eyebrow">Step 2 of 2 · Your card</span><h1 class="t" id="payH">Add your card.</h1><p class="lead">' + S.esc(lead) + '</p>' +
       '<section class="card su-pay" aria-labelledby="payH">' +
       '<div class="su-line"><span><b>' + S.esc(p.name) + '</b> · ' + S.money(p.monthly_cents) + '/mo · ' + mins(p) + ' min</span><span class="muted small">' + S.esc(fmtPhone(r.business_phone)) + '</span></div>' +
-      (live ? '<div class="paddle-frame" id="payFrame"><p class="muted small" id="payLoading">Loading the secure card form…</p></div>'
+      (live ? '<div class="su-checkout" id="payFrame"><p class="muted small" id="payLoading">Loading the secure card form…</p></div>'
         : '<div class="paystub" id="payStub"><p><b>Demo checkout</b></p><p class="muted small">Demo mode: no card is needed and nothing is charged. On the live site, the secure card form of our payment provider appears here.</p>' +
           '<button type="button" class="btn btn--primary btn--block" id="demoPay">' + (st.trial ? 'Use demo card · ' + S.money(0) + ' today' : 'Use demo card') + '</button></div>') +
       '<div id="payMsg" aria-live="polite"></div></section>' +
@@ -249,10 +249,10 @@
         items: [{ priceId: price, quantity: 1 }],
         customer: { email: pr.contact_email || pr.email || (st.ctx.session && st.ctx.session.user.email) || '', address: { countryCode: 'US' } },
         customData: { ref: r.ref, user_id: st.ctx.session.user.id, business_phone: r.business_phone },
-        settings: { displayMode: 'inline', frameTarget: 'paddle-frame', frameInitialHeight: 450, variant: 'one-page',
+        settings: { displayMode: 'inline', frameTarget: 'su-checkout', frameInitialHeight: 450, variant: 'one-page',
           frameStyle: 'width:100%;min-width:286px;background-color:transparent;border:none', allowLogout: false, showAddDiscounts: false, locale: 'en', theme: 'light' }
       });
-    }).catch(() => msg('The secure card form didn’t load. Check your connection and try again.'));
+    }).catch(() => { paddleP = null; msg('The secure card form didn’t load. Check your connection and try again.'); });
   }
   async function waiting() {
     onPaddle = null;
