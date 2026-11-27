@@ -278,6 +278,8 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:6px}
 .plan-release{flex-direction:column;gap:8px;margin:0 0 12px}
 .plan-release p{margin:0;color:var(--fg);overflow-wrap:anywhere}
 .plan-release .btn-row{margin:0}
+.plan__records{margin-top:18px;padding-top:6px;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.plan__records p{margin:0}
 
 /* ---------------------------------------------------------------- monthly-plan sign-up (signup.js, 2026-11-26) */
 .su{max-width:640px}

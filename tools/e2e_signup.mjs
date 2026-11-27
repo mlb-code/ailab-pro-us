@@ -343,6 +343,54 @@ async function main() {
     txt = await page.$eval('#subsBody', e => e.innerText);
     ok(/Used on /.test(txt) && await page.$('[data-paddlerefund]') === null, 'admin: refund used, button gone');
     ok((await overflow(page)).length === 0, 'admin: no overflow');
+
+    // ended Paddle plan (launch leftovers 2026-11-27: in a live test the owner, asked to press "Restart my plan", opened
+    // "Receipts and invoices" twice): one restart button, primary; the receipts link apart (divider) and plain
+    console.log('portal billing (paddle, plan ended)');
+    await page.goto(BASE + '/start/?mock=1', { waitUntil: 'load' }); await signOut(page);
+    await signIn(page, '/start/', 'pia@paddle.test');
+    await page.evaluate(() => window.StartMock.admin.runtimeTick());   // the receptionist number (dry run)
+    await page.evaluate(() => window.StartMock.admin.billing({ status: 'canceled', canceled_at: new Date(Date.now() - 26 * 86400000).toISOString(),
+      ends_at: new Date(Date.now() - 25 * 86400000).toISOString(), cancel_at_period_end: false }));
+    ok(((await db(page)).number_releases || []).some(r => r.status === 'scheduled' && r.number), 'plan ended: number release scheduled');
+    const billingLayout = () => page.evaluate(() => {
+      const acts = [...document.querySelectorAll('#panel [data-plan-act]')];
+      const restart = acts.filter(b => b.dataset.planAct === 'resume'), manage = acts.filter(b => b.dataset.planAct === 'manage');
+      const r = restart[0], m = manage[0], rec = document.querySelector('#planRecords'), box = r && r.getBoundingClientRect();
+      return { acts: acts.map(b => b.dataset.planAct), restart: restart.length, manage: manage.length, label: r ? r.textContent : '',
+        primary: !!r && r.classList.contains('btn--primary'), visible: !!box && box.width > 0 && box.height > 0 && getComputedStyle(r).visibility !== 'hidden',
+        inNotice: !!r && !!r.closest('.mmode'), inRelease: !!r && !!r.closest('#planRelease'), noticeBtns: document.querySelectorAll('.mmode button').length,
+        manageLink: !!m && m.classList.contains('linkbtn') && !m.classList.contains('btn'), manageInRecords: !!m && !!rec && rec.contains(m),
+        manageAfter: !!(r && m && (r.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING)), sameRow: !!(r && m && r.parentElement === m.parentElement),
+        divider: !!rec && parseFloat(getComputedStyle(rec).borderTopWidth) >= 1, gap: !!(box && m) && m.getBoundingClientRect().top - box.bottom,
+        days: !!document.querySelector('#planDays') };
+    });
+    // (a) the number is still kept: the restart button is in the release box, the notice above has none
+    await portal(page, 'billing');
+    let L = await billingLayout();
+    ok(L.restart === 1 && L.inRelease && L.primary && L.visible && L.label === 'Restart my plan' && L.noticeBtns === 0,
+      'ended, number kept: one "Restart my plan", primary, in the release box (' + JSON.stringify(L.acts) + ')');
+    ok(L.manage === 1 && L.manageLink && L.manageInRecords && L.divider && L.manageAfter && !L.sameRow && L.gap >= 40,
+      'ended, number kept: "Receipts and invoices" a plain link in its own section below a divider, well below the restart (' + L.gap + 'px)');
+    ok(/Opens Paddle in a new tab/.test(await text(page, '#planRecords')) && !L.days, 'receipts: says it opens Paddle; no "days left" line on an ended plan');
+    ok((await overflow(page)).length === 0, 'billing (paddle, ended, number kept): no overflow');
+    await shot(page, 'portal-billing-paddle-ended-kept');
+    // (b) the number was already released (no release box): the notice holds the one restart button
+    await page.evaluate(() => { const k = 'aplp_mock_db_v1', x = JSON.parse(localStorage.getItem(k));
+      (x.number_releases || []).forEach(r => Object.assign(r, { status: 'released', released_at: new Date().toISOString() })); localStorage.setItem(k, JSON.stringify(x)); });
+    await portal(page, 'billing');
+    L = await billingLayout();
+    ok(!(await page.$('#planRelease')) && L.restart === 1 && L.inNotice && L.primary && L.visible && L.label === 'Restart my plan',
+      'ended, number released: one "Restart my plan", primary and visible, in the message-mode notice (' + JSON.stringify(L.acts) + ')');
+    ok(L.manage === 1 && L.manageLink && L.manageInRecords && L.divider && L.manageAfter && !L.sameRow && L.gap >= 40 && !L.days,
+      'ended, number released: "Receipts and invoices" apart below a divider, no "days left" line (' + L.gap + 'px)');
+    ok((await overflow(page)).length === 0, 'billing (paddle, ended, number released): no overflow');
+    await shot(page, 'portal-billing-paddle-ended-released');
+    const portalCalls = (await db(page)).paddle_calls.filter(c => /portal-sessions/.test(c.path)).length;
+    await page.$eval('#panel [data-plan-act="resume"]', b => b.click());
+    await page.waitForSelector('#suForm', { timeout: 6000 }).catch(() => null);
+    ok(await page.$('#suForm') !== null && (await db(page)).paddle_calls.filter(c => /portal-sessions/.test(c.path)).length === portalCalls,
+      'Restart my plan on an ended Paddle plan: the plan sign-up (new checkout), never the Paddle customer portal');
     await page.close();
 
     // ================================================================ C. plan intent vs. the price book (regression)

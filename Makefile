@@ -96,7 +96,8 @@ qa-subscription:
 
 # Monthly-plan sign-up + Paddle (2026-11-26): /start/?plan=FR_X -> your business (plan switch, consent) -> your card (demo box
 # with Paddle off; with brand.json served ON, Paddle.js FAKED locally) -> portal; one trial per phone; Paddle billing actions;
-# admin Paddle ids + 30-day refund. SHOTS_DIR=<dir> saves screenshots. The webhook + API side: qa-deno (paddle_test.ts), qa-sql.
+# admin Paddle ids + 30-day refund; an ended Paddle plan (number kept / released): one primary restart, receipts apart.
+# SHOTS_DIR=<dir> saves screenshots. The webhook + API side: qa-deno (paddle_test.ts), qa-sql.
 qa-signup:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_signup.mjs
 

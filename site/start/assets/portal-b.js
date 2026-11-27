@@ -116,6 +116,8 @@
     return r && r.number && r.release_at ? { number: r.number, release_at: r.release_at,
       text: 'Your ' + ((((S.PB || {}).rules || {}).subscription || {}).product || 'FirstRing') + ' number ' + fmtPhone(r.number) + ' is kept until ' + S.fmtDate(r.release_at) + '. Restart your plan to keep it.' } : null;
   }
+  // the notice's button restarts the plan (not "Start my plan now" / "Upgrade" for a minutes cap)
+  const RESTART_WHY = why => !!why && why !== 'trial_minutes_used' && why !== 'plan_minutes_used';
   function messageModeHtml(d, noAct) {
     const why = messageMode(d); if (!why) return '';
     const t = planTerms(d);
@@ -1080,6 +1082,8 @@
       : sub.status === 'active' ? (sub.cancel_at_period_end ? (Date.parse(sub.current_period_end) < Date.now() ? 'Ended ' : 'Cancelled: works until ') + fmt(sub.current_period_end) + '.' : 'Renews ' + fmt(sub.current_period_end) + '.')
       : sub.status === 'past_due' ? 'Payment due: please update your card.' : sub.status === 'paused' ? 'Paused.' : 'Ended ' + fmt(sub.ends_at) + '.';
     const live = ['trialing', 'active'].indexOf(sub.status) !== -1 && !sub.cancel_at_period_end && !rl;
+    const mmRestart = !rl && RESTART_WHY(messageMode(d));   // the message-mode notice on Billing shows "Restart my plan"
+    const ended = !!rl || sub.status === 'canceled' || mmRestart;
     const nextBtn = t.next && ['trialing', 'active', 'past_due'].indexOf(sub.status) !== -1
       ? '<button type="button" class="btn btn--primary btn--sm" data-plan-act="upgrade" data-plan="' + esc(t.next.code) + '">Upgrade to ' + esc(t.next.name) + ' · ' + S.money(t.next.monthly_cents) + '/mo · ' +
         Number((t.next.included_usage || {}).voice_minutes || 0).toLocaleString('en-US') + ' min</button>' : '';
@@ -1087,7 +1091,8 @@
       sub.status === 'trialing' ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="start">Start my paid plan now</button>' : '',
       paddle && ['active', 'past_due', 'trialing'].indexOf(sub.status) !== -1 ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="card">Update card</button>' : '',
       ['trialing', 'active'].indexOf(sub.status) !== -1 && !sub.cancel_at_period_end ? '<button type="button" class="linkbtn" data-plan-act="cancel">Cancel plan</button>' : '',
-      sub.cancel_at_period_end || ['canceled', 'past_due', 'paused'].indexOf(sub.status) !== -1 ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="resume">' + (sub.cancel_at_period_end ? 'Keep my plan' : 'Restart my plan') + '</button>' : ''].filter(Boolean).join('');
+      // the plan ended (message mode): the notice above this card holds the one restart button, so none here
+      !mmRestart && (sub.cancel_at_period_end || ['canceled', 'past_due', 'paused'].indexOf(sub.status) !== -1) ? '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="resume">' + (sub.cancel_at_period_end ? 'Keep my plan' : 'Restart my plan') + '</button>' : ''].filter(Boolean).join('');
     const sched = sub.scheduled_plan_code && planOf(sub.scheduled_plan_code) ? '<p class="muted small" id="planSched">Changes to ' + esc(planOf(sub.scheduled_plan_code).name) + ' on ' + fmt(sub.current_period_end) + '.' +
       (paddle ? ' <button type="button" class="linkbtn" data-plan-act="keep" data-plan="' + esc(sub.plan_code) + '">Keep ' + esc(p.name || sub.plan_code) + '</button>' : '') + '</p>' : '';
     // every other plan: up = now (prorated in a paid month), down = from the next billing date (in the trial: now, still free)
@@ -1098,12 +1103,14 @@
       return '<li class="row"><span class="grow"><b>' + esc(x.name) + '</b> · ' + S.money(x.monthly_cents) + '/mo · ' + Number((x.included_usage || {}).voice_minutes || 0).toLocaleString('en-US') + ' min<br><span class="muted small">' + esc(when) + '</span></span>' +
         '<button type="button" class="btn btn--ghost btn--sm" data-plan-act="' + (up ? 'upgrade' : 'downgrade') + '" data-plan="' + esc(x.code) + '">Switch</button></li>';
     }).join('') + '</ul></details>' : '';
-    const manage = paddle ? '<p class="muted small"><button type="button" class="linkbtn" data-plan-act="manage">Receipts and invoices</button></p>' : '';
+    // Paddle's customer portal: kept apart from the plan actions (a divider, small and plain), so it is never mistaken for them
+    const manage = paddle ? '<div class="plan__records" id="planRecords"><button type="button" class="linkbtn" data-plan-act="manage">Receipts and invoices</button>' +
+      '<p class="muted small">Opens Paddle in a new tab.</p></div>' : '';
     return '<section class="card usage plan" aria-labelledby="planH"><h2 class="h-card" id="planH">This month’s usage</h2>' +
       '<p class="plan__name"><b>' + esc(p.name || sub.plan_code) + '</b>' + (p.monthly_cents ? ' · ' + S.money(p.monthly_cents) + '/mo' : '') + ' · <span id="planStatus">' + esc(statusLine) + '</span></p>' + relBox + sched +
       '<div class="meter"><div class="meter__l"><span>' + (t.trial ? 'Trial minutes' : 'Call minutes') + '</span><span class="num" id="planMinutes">' + Math.round(t.used).toLocaleString('en-US') + ' of ' + Number(t.included).toLocaleString('en-US') + ' min</span></div>' +
       '<div class="bar" role="progressbar" aria-label="' + (t.trial ? 'Trial minutes used' : 'Call minutes used') + '" aria-valuemin="0" aria-valuemax="' + t.included + '" aria-valuenow="' + Math.round(t.used) + '"><i class="' + (pct >= 100 ? 'is-full' : pct >= 80 ? 'is-high' : '') + '" style="width:' + pct + '%"></i></div></div>' +
-      (t.days != null && !rl ? '<p class="small" id="planDays">' + t.days + ' day' + (t.days === 1 ? '' : 's') + ' left in this ' + (t.trial ? 'trial' : 'billing period') + (t.end ? ' (until ' + fmt(t.end) + ')' : '') + '.</p>' : '') +
+      (t.days != null && !ended ? '<p class="small" id="planDays">' + t.days + ' day' + (t.days === 1 ? '' : 's') + ' left in this ' + (t.trial ? 'trial' : 'billing period') + (t.end ? ' (until ' + fmt(t.end) + ')' : '') + '.</p>' : '') +
       '<p class="muted small">We never charge per minute. You get an email at 80% and 100%. At 100%, calls switch to message mode (name, number and reason, emailed to you) until ' + (t.trial ? 'your trial ends or you start your plan' : 'your next billing date or an upgrade') + '.</p>' +
       '<div id="msg_plan" aria-live="polite"></div>' + (acts ? '<div class="btn-row">' + acts + '</div>' : '') + change + manage + '</section>';
   }
@@ -1134,7 +1141,7 @@
       const ask = confirmText(act, t, b.dataset.plan);
       if (ask && !confirm(ask)) return;
       b.disabled = true;
-      const box = S.$('#msg_plan') ? 'msg_plan' : 'msg_plan_mm';
+      const box = b.closest('.mmode') || !S.$('#msg_plan') ? 'msg_plan_mm' : 'msg_plan';   // the message next to the button pressed
       try {
         let r;
         if (paddle) {
@@ -1164,7 +1171,8 @@
     }));
   }
   function usageHtml(d) {
-    if (isPlan(d)) return messageModeHtml(d, !!numberRelease(d)) + planHtml(d);   // one restart button: in the plan card's release box
+    // one restart button: in the plan card's release box while the number is kept, otherwise in the message-mode notice
+    if (isPlan(d)) return messageModeHtml(d, !!numberRelease(d)) + planHtml(d);
     if (!d.usage || !isRcp(d)) return '';
     const inc = (S.PB.rules && S.PB.rules.included_usage) || {};
     const meter = (label, v, max, unit) => {
