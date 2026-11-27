@@ -31,8 +31,8 @@ class Settings:
 class FakeTwilioRest:
     """AvailablePhoneNumbers + IncomingPhoneNumbers, recording every request."""
 
-    def __init__(self, available=("+17135551234", "+17135555678"), owned=None, fail=0):
-        self.available, self.owned, self.fail = list(available), dict(owned or {}), fail
+    def __init__(self, available=("+17135551234", "+17135555678"), owned=None, fail=0, no_geodata=False):
+        self.available, self.owned, self.fail, self.no_geodata = list(available), dict(owned or {}), fail, no_geodata
         self.reqs: list[httpx.Request] = []
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
@@ -42,6 +42,8 @@ class FakeTwilioRest:
             return httpx.Response(500, json={"code": 20500})
         q = dict(parse_qsl(req.url.query.decode()))
         if req.url.path.endswith("/AvailablePhoneNumbers/US/Local.json"):
+            if self.no_geodata and q.get("NearNumber"):  # Twilio: "Geodata not available for number"
+                return httpx.Response(400, json={"code": 400})
             nums = [n for n in self.available if not q.get("AreaCode") or n.startswith("+1" + q["AreaCode"])]
             return httpx.Response(200, json={"available_phone_numbers": [{"phone_number": n} for n in nums]})
         if req.url.path.endswith("/IncomingPhoneNumbers.json") and req.method == "GET":
@@ -144,6 +146,16 @@ def test_live_falls_back_to_a_nearby_number(store):
     assert tenant(store)["twilio_number"] == "+12815550001"
     near = [dict(parse_qsl(r.url.query.decode())) for r in rest.reqs if "AvailablePhoneNumbers" in r.url.path]
     assert near[1].get("NearNumber") == "+17135550100"
+
+
+def test_live_near_search_without_geodata_falls_back_to_any_us_number(store):
+    # found by the first live sign-up (27.11.2026): the area code had no numbers and NearNumber answered 400
+    rest = FakeTwilioRest(available=("+12815550001",), no_geodata=True)
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    assert p.run_due(NOW)["done"] == 1
+    assert tenant(store)["twilio_number"] == "+12815550001"
+    assert store.select("provisioning_jobs", id=j["id"])[0]["result"]["same_area"] is False
 
 
 def test_failures_retry_then_fail_loudly(store):

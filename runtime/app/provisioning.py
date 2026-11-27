@@ -297,7 +297,7 @@ class Provisioner:
         number = tw.owned(slug)  # bought before a crash: reuse, never buy twice
         bought = False
         if not number:
-            found = (tw.search(area=area) if area else []) or (tw.search(near=main) if area else []) or tw.search()
+            found = (tw.search(area=area) if area else []) or (self._search_near(tw, main) if area else []) or tw.search()
             if not found:
                 raise RuntimeError(f"no US local number available near area code {area}")
             number = found[0]
@@ -454,6 +454,17 @@ class Provisioner:
             log.exception("could not update number release %s", row.get("id"))
 
     # --- helpers -----------------------------------------------------------------------------------------
+    @staticmethod
+    def _search_near(tw: "TwilioNumbers", main: str | None) -> list[str]:
+        """Numbers near the business line. Twilio answers 400 ("Geodata not available") for some numbers; that must
+        not fail the job, the caller falls back to any US local number."""
+        if not main:
+            return []
+        try:
+            return tw.search(near=main)
+        except RuntimeError:
+            return []
+
     def numbers(self) -> TwilioNumbers:
         if self._numbers is None:
             self._numbers = TwilioNumbers(self.env.get("TWILIO_ACCOUNT_SID", "") or getattr(self.settings, "twilio_account_sid", ""),
