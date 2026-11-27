@@ -69,11 +69,11 @@
     },
     "cost": {
       "q": "What does it cost, exactly?",
-      "a": "One monthly price, no setup fee. Starter is {price:FR_STARTER.monthly} a month with {minutes:FR_STARTER} voice minutes, Pro is {price:FR_PRO.monthly} with {minutes:FR_PRO}, and Business is {price:FR_BUSINESS.monthly} with {minutes:FR_BUSINESS}. Every plan starts with a {trial_days}-day free trial (up to {trial_minutes} minutes): we need a card to start, and the first charge comes when the trial ends. {minutes_text}"
+      "a": "One monthly price, no setup fee. Starter is {price:FR_STARTER.monthly} a month with {minutes:FR_STARTER} voice minutes, Pro is {price:FR_PRO.monthly} with {minutes:FR_PRO}, and Business is {price:FR_BUSINESS.monthly} with {minutes:FR_BUSINESS}. Pro and Business also answer in Spanish and include a chat box on your website (set up for you on request). Every plan starts with a {trial_days}-day free trial (up to {trial_minutes} minutes): we need a card to start, and the first charge comes when the trial ends. {minutes_text}"
     },
     "ai_disclosure": {
       "q": "Will callers know it's AI?",
-      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Text messages to callers are switched off for now. If texting is turned on for your account later, it first asks the caller's permission to text a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
+      "a": "Yes. The greeting tells callers they're speaking with an AI assistant, and if someone asks, it says it's an AI assistant, not a person. The greeting also says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Text messages to callers are switched off for now. If texting is turned on for your account later, it first asks the caller's permission to text a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",
@@ -156,26 +156,20 @@
     "link": "Book a 15-minute video call"
   },
   "why": {
-    "$comment": "Compact dark strip after the hero (2026-11-25): heading + three cited stats (number, one line, source). Only cited numbers: each stat needs source + source_url (verified 2026-10-12). Never invent a number.",
+    "$comment": "Compact dark strip after the hero (2026-11-25; 2026-11-27: the three texting stats were removed while SMS is off at launch). Each entry is EITHER a cited stat (num + text + source + https source_url, verified) OR a plain product statement (title + text, no number, no source). Never invent a number; statements must be true of the product as shipped.",
     "title": "Your customers won't *wait*. A missed call goes to the next company.",
     "stats": [
       {
-        "num": "84%",
-        "text": "of US consumers have opted in to receive texts from businesses.",
-        "source": "SimpleTexting 2025 survey of 1,000 US consumers (Dec 2024)",
-        "source_url": "https://simpletexting.com/2025-texting-and-sms-marketing-statistics/"
+        "title": "Every call answered, day or night",
+        "text": "Forward the calls you can't take. Your AI assistant picks up nights, weekends and while you're busy."
       },
       {
-        "num": "71%",
-        "text": "of consumers want to be able to text a business back.",
-        "source": "SimpleTexting 2025 survey of 1,000 US consumers (Dec 2024)",
-        "source_url": "https://simpletexting.com/2025-texting-and-sms-marketing-statistics/"
+        "title": "A real conversation, not voicemail",
+        "text": "Callers get answers to their questions, book a time or leave their details."
       },
       {
-        "num": "53%",
-        "text": "of US consumers have texted a business and never got a reply.",
-        "source": "Textmagic survey of 1,800 US consumers (Mar 2025)",
-        "source_url": "https://textmagic.com/blog/consumer-sms-survey"
+        "title": "An email summary of every call",
+        "text": "Name, number and what they need, sent to your inbox."
       }
     ]
   },

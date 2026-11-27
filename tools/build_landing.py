@@ -404,10 +404,18 @@ def missed_fold(c, steps, gist=None):
 
 def section_why(c):
     """Compact dark "why" strip (2026-11-25): heading plus three cited stats (number, one line, source). Numbers count
-    up once in view (landing.js, motion only); the final value is always the DOM text."""
+    up once in view (landing.js, motion only); the final value is always the DOM text. 2026-11-27: an entry without
+    "num" is a plain product statement (title + text, no digits, no source)."""
     w = c.shared['why']
     cards = []
     for s_ in w['stats']:
+        if not s_.get('num'):
+            # plain product statement (2026-11-27): no number, so no source; it must not smuggle a number in
+            if not s_.get('title') or not s_.get('text') or any(ch.isdigit() for ch in s_['title'] + s_['text']):
+                raise SystemExit('build_landing: a why.stats statement needs title + text and no numbers (numbers need num + source)')
+            cards.append(f'<li class="stat stat--plain"><div class="stat__txt"><p class="stat__head">{c.h(s_["title"])}</p>'
+                         f'<p>{c.h(s_["text"])}</p></div></li>')
+            continue
         if not (s_.get('source') and s_.get('source_url', '').startswith('https://')):
             raise SystemExit('build_landing: every why.stats entry needs source + https source_url (no uncited numbers)')
         cards.append(f'<li class="stat"><p class="stat__num num" data-count>{esc(s_["num"])}</p><div class="stat__txt">'

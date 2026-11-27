@@ -287,6 +287,8 @@ main>.section:nth-of-type(odd):not(.section--amber){background:none}
 .stat__txt{display:grid;gap:6px;min-width:0}
 .stat p{font-size:.93rem}
 .stat .stat__src{font-size:.74rem;color:var(--fg-3)}
+.stat--plain{grid-template-columns:minmax(0,1fr)}
+.stat .stat__head{font-family:var(--sans-head);font-size:1.12rem;line-height:1.25;font-weight:800;letter-spacing:-.02em;color:var(--wd-sun)}
 @media (max-width:860px){.stats{grid-template-columns:1fr}.stat .stat__num{min-width:2.6em}}
 
 /* ---------- demo: you pick on the left, the call runs on an ink phone on the right ---------- */
