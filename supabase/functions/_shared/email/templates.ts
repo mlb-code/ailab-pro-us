@@ -645,16 +645,25 @@ export const TEMPLATES: Record<string, TemplateDef> = {
   admin_provisioning_alert: toMeir((ctx, { brand, payload }) => {
     const step = String(payload?.step ?? "");
     const label: Record<string, string> = { setup: "Automatic setup (client card, tenant, checklist)", duplicate_trial: "Second free trial for the same business phone",
-      forwarding_self_confirmed: "Call forwarding confirmed by the client, not verified" };
+      forwarding_self_confirmed: "Call forwarding confirmed by the client, not verified",
+      // the setup assistant (setup-agent function, public.setup_agent_alert): one e-mail per kind per day
+      setup_agent_budget: "Setup assistant: spend limit or daily budget reached", setup_agent_auth: "Setup assistant: API key refused",
+      setup_agent_down: "Setup assistant: AI provider not answering" };
     const next: Record<string, string> = {
       duplicate_trial: "This business phone already had a free trial. No number was bought. If that's OK: 'Retry: setup' in the Subscriptions tab.",
       forwarding_self_confirmed: "The client confirmed call forwarding themselves, without a verified test call: the test call reached the "
         + "receptionist number without carrier forwarding data, so we can't tell whether calls to the business line are really "
         + "forwarded. Nothing to retry. Call the business line yourself (or ask the client to) and check that the receptionist answers "
         + "before relying on it. The Subscriptions tab shows this client as 'Forwarding unverified (self-confirmed)'.",
+      setup_agent_budget: "The setup assistant is paused for an hour; customers see the forms meanwhile. Check the Console Workspace "
+        + "spend limit and private.settings.setup_agent_daily_budget_usd.",
+      setup_agent_auth: "The setup assistant is paused for an hour; customers see the forms meanwhile. Check the Edge Function secret "
+        + "ANTHROPIC_API_KEY_SETUP (or ANTHROPIC_API_KEY) in Supabase.",
+      setup_agent_down: "Customers were shown 'try again' and the forms. Nothing to do unless it keeps happening (check the provider's status page).",
     };
     return {
-      subject: step === "forwarding_self_confirmed" ? `⚠️ Call forwarding unverified: ${biz(ctx)}` : `⚠️ Automatic setup: ${biz(ctx)}`,
+      subject: step === "forwarding_self_confirmed" ? `⚠️ Call forwarding unverified: ${biz(ctx)}`
+        : step.startsWith("setup_agent_") ? `⚠️ ${label[step] ?? "Setup assistant"}` : `⚠️ Automatic setup: ${biz(ctx)}`,
       preheader: label[step] ?? step,
       heading: "Check this client's setup",
       blocks: [
