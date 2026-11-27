@@ -175,20 +175,20 @@
     "paddle": {
       "$comment": "FirstRing monthly plans through Paddle Billing (merchant of record). PUBLIC values only, all PLACEHOLDERS until Meir fills them in from his Paddle account: client_token = Paddle > Developer tools > Authentication > client-side token (test_... in sandbox, live_... in production; Paddle.js only, never an API key). prices = 6 price IDs (pri_...): per plan one 'trial' price (monthly, 14-day trial, card required) for sign-up, and one 'paid' price (same monthly amount, NO trial) for 'Start paid plan' (trial already used) and for plan changes. Secrets are ONLY Edge Function secrets, typed by Meir in Supabase: PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET, PADDLE_ENV (sandbox|production). enabled=false (default), an empty client_token or any empty price = the Paddle checkout is off and the mock / demo path stays (local, tests).",
       "enabled": true,
-      "env": "sandbox",
-      "client_token": "test_2203b7f357ab0d5a49e3d69f431",
+      "env": "production",
+      "client_token": "live_c784483852b4d7c68ba3f8212ec",
       "prices": {
         "FR_STARTER": {
-          "trial": "pri_01m8br3hd6jq9pkxv2g17phh2j",
-          "paid": "pri_01m8br43dsb0131ggkqxfc3jwb"
+          "trial": "pri_01m8cj1w041e34nj7m29evjvpn",
+          "paid": "pri_01m8cj2f56pj9z6rax6dn12526"
         },
         "FR_PRO": {
-          "trial": "pri_01m8br4xpxspqyty2k2qqeazyv",
-          "paid": "pri_01m8br5fj3g2j2h11dmnky9vzs"
+          "trial": "pri_01m8cj2zt6hwpfbvyzdyhncktf",
+          "paid": "pri_01m8cj3b0v74hcgtenrgpdv5pg"
         },
         "FR_BUSINESS": {
-          "trial": "pri_01m8br64zhjh3b4yarv6z8ya6c",
-          "paid": "pri_01m8br6bazcnw2yfsfrfftd2pf"
+          "trial": "pri_01m8cj3nrqae3qc121exmmpm60",
+          "paid": "pri_01m8cj3xm2cs9a8fqsydp2a32f"
         }
       }
     }
