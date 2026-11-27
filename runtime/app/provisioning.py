@@ -3,7 +3,11 @@ and when the client finishes the setup checklist). Run by the cron `POST /jobs/t
 
 Kinds:
   number      buy a US local number near the client's area code and point its four webhooks at this runtime
-              (voice incoming / fallback / status, SMS incoming), then write `tenants.twilio_number`.
+              (voice incoming / fallback / status, SMS incoming), then write `tenants.twilio_number`. Search order:
+              same area code -> near the business line (NearNumber) -> same state (InRegion, app.area_codes) -> any
+              US local number. A narrower search that finds nothing or that Twilio rejects (4xx, e.g. "Geodata not
+              available") moves on to the next one; the job result says which one matched (`match`, `same_area`,
+              `same_region`).
   golive_sim  run the simulator checks against the client's real config (app.golive). The job row's result is what
               the database trigger reads: passed + subscription trialing/active -> client and tenant go live.
 
@@ -38,6 +42,7 @@ from typing import Any, Callable
 
 import httpx
 
+from .area_codes import state_for_area
 from .store import Store, StoreError
 
 log = logging.getLogger("rt.provisioning")
@@ -123,6 +128,14 @@ def simulated_number(area: str | None, seed: str, taken: set[str]) -> str:
     raise RuntimeError("no fictional number left for this area code")
 
 
+class TwilioError(RuntimeError):
+    """A Twilio REST error answer; `status` = the HTTP status."""
+
+    def __init__(self, message: str, status: int):
+        super().__init__(message)
+        self.status = status
+
+
 class TwilioNumbers:
     """Twilio REST (AvailablePhoneNumbers + IncomingPhoneNumbers). `transport` = httpx.MockTransport in tests."""
 
@@ -140,15 +153,18 @@ class TwilioNumbers:
                 code = str(r.json().get("code", ""))
             except ValueError:
                 pass
-            raise RuntimeError(f"twilio {r.request.method} {r.request.url.path} -> {r.status_code} {code}".strip())
+            raise TwilioError(f"twilio {r.request.method} {r.request.url.path} -> {r.status_code} {code}".strip(), r.status_code)
         return r.json()
 
-    def search(self, *, area: str | None = None, near: str | None = None, limit: int = 5) -> list[str]:
+    def search(self, *, area: str | None = None, near: str | None = None, region: str | None = None,
+               limit: int = 5) -> list[str]:
         params: dict[str, Any] = {"VoiceEnabled": "true", "SmsEnabled": "true", "PageSize": limit}
         if area:
             params["AreaCode"] = area
         if near:
             params.update(NearNumber=near, Distance=50)
+        if region:
+            params["InRegion"] = region
         data = self._ok(self.http.get(f"/2010-04-01/Accounts/{self.sid}/AvailablePhoneNumbers/US/Local.json", params=params))
         return [x["phone_number"] for x in data.get("available_phone_numbers") or [] if x.get("phone_number")]
 
@@ -302,16 +318,26 @@ class Provisioner:
         tw = self.numbers()
         number = tw.owned(slug)  # bought before a crash: reuse, never buy twice
         bought = False
+        match = "existing" if number else ""
+        region = state_for_area(area)
         if not number:
-            found = (tw.search(area=area) if area else []) or (self._search_near(tw, main) if area else []) or tw.search()
+            # narrowest first; the unfiltered search is the only one whose error fails the attempt (retried)
+            for match, search in (("same_area", lambda: self._try_search(tw, area=area) if area else []),
+                                  ("near", lambda: self._search_near(tw, main) if area else []),
+                                  ("same_region", lambda: self._try_search(tw, region=region) if region else []),
+                                  ("any", lambda: tw.search())):
+                found = search()
+                if found:
+                    break
             if not found:
                 raise RuntimeError(f"no US local number available near area code {area}")
             number = found[0]
             tw.buy(number, base, slug)
             bought = True
         self.store.update("tenants", tenant["id"], {"twilio_number": number})
-        return "done", {"number": number, "dry_run": False, "area_code": area, "bought": bought,
-                        "same_area": bool(area and number.startswith(f"+1{area}"))}
+        return "done", {"number": number, "dry_run": False, "area_code": area, "bought": bought, "match": match,
+                        "region": region, "same_area": bool(area and number.startswith(f"+1{area}")),
+                        "same_region": bool(region and state_for_area(area_code(number)) == region)}
 
     def _golive(self, tenant: dict[str, Any], now: datetime) -> tuple[str, dict[str, Any]]:
         from .golive import live_ai_enabled
@@ -463,13 +489,22 @@ class Provisioner:
     @staticmethod
     def _search_near(tw: "TwilioNumbers", main: str | None) -> list[str]:
         """Numbers near the business line. Twilio answers 400 ("Geodata not available") for some numbers; that must
-        not fail the job, the caller falls back to any US local number."""
+        not fail the job, the caller falls back to a number in the same state, then to any US local number."""
         if not main:
             return []
+        return Provisioner._try_search(tw, near=main)
+
+    @staticmethod
+    def _try_search(tw: "TwilioNumbers", **kw: Any) -> list[str]:
+        """A narrower search: nothing found or rejected by Twilio (4xx) = [] (try the next one). A Twilio outage (5xx,
+        429) is raised, so the attempt is retried later instead of buying a number far away."""
         try:
-            return tw.search(near=main)
-        except RuntimeError:
-            return []
+            return tw.search(**kw)
+        except TwilioError as e:
+            if 400 <= e.status < 500 and e.status != 429:
+                log.info("number search %s rejected (%s); trying the next one", sorted(kw), e.status)
+                return []
+            raise
 
     def numbers(self) -> TwilioNumbers:
         if self._numbers is None:

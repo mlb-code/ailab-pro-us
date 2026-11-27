@@ -28,11 +28,17 @@ class Settings:
     twilio_auth_token = "test-token"
 
 
-class FakeTwilioRest:
-    """AvailablePhoneNumbers + IncomingPhoneNumbers, recording every request."""
+# state per area code for the fake's InRegion filter (written out here, independent of app.area_codes)
+FAKE_STATES = {"713": "TX", "281": "TX", "832": "TX", "512": "TX", "472": "NC", "919": "NC", "212": "NY"}
 
-    def __init__(self, available=("+17135551234", "+17135555678"), owned=None, fail=0, no_geodata=False):
+
+class FakeTwilioRest:
+    """AvailablePhoneNumbers + IncomingPhoneNumbers, recording every request. region_status = the HTTP status an
+    InRegion search answers instead of results (e.g. 400 or 503)."""
+
+    def __init__(self, available=("+17135551234", "+17135555678"), owned=None, fail=0, no_geodata=False, region_status=None):
         self.available, self.owned, self.fail, self.no_geodata = list(available), dict(owned or {}), fail, no_geodata
+        self.region_status = region_status
         self.reqs: list[httpx.Request] = []
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
@@ -44,7 +50,10 @@ class FakeTwilioRest:
         if req.url.path.endswith("/AvailablePhoneNumbers/US/Local.json"):
             if self.no_geodata and q.get("NearNumber"):  # Twilio: "Geodata not available for number"
                 return httpx.Response(400, json={"code": 400})
+            if self.region_status and q.get("InRegion"):
+                return httpx.Response(self.region_status, json={"code": self.region_status})
             nums = [n for n in self.available if not q.get("AreaCode") or n.startswith("+1" + q["AreaCode"])]
+            nums = [n for n in nums if not q.get("InRegion") or FAKE_STATES.get(n[2:5]) == q["InRegion"]]
             return httpx.Response(200, json={"available_phone_numbers": [{"phone_number": n} for n in nums]})
         if req.url.path.endswith("/IncomingPhoneNumbers.json") and req.method == "GET":
             n = self.owned.get(q.get("FriendlyName"))
@@ -156,6 +165,82 @@ def test_live_near_search_without_geodata_falls_back_to_any_us_number(store):
     assert p.run_due(NOW)["done"] == 1
     assert tenant(store)["twilio_number"] == "+12815550001"
     assert store.select("provisioning_jobs", id=j["id"])[0]["result"]["same_area"] is False
+
+
+def searches(rest):
+    return [dict(parse_qsl(r.url.query.decode())) for r in rest.reqs if "AvailablePhoneNumbers" in r.url.path]
+
+
+def test_live_sold_out_area_without_geodata_stays_in_the_same_state(store):
+    # the first live sign-up (27.11.2026): 713 (Houston) sold out, NearNumber 400 -> the job bought +1 472 (North
+    # Carolina). Now a Texas number comes before any US number.
+    rest = FakeTwilioRest(available=("+14725550001", "+12815550001"), no_geodata=True)
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    assert p.run_due(NOW)["done"] == 1
+    assert tenant(store)["twilio_number"] == "+12815550001"
+    q = searches(rest)
+    assert [x.get("AreaCode") for x in q[:1]] == ["713"] and q[1].get("NearNumber") == "+17135550100"
+    assert q[2].get("InRegion") == "TX" and "AreaCode" not in q[2] and "NearNumber" not in q[2] and len(q) == 3
+    res = store.select("provisioning_jobs", id=j["id"])[0]["result"]
+    assert (res["match"], res["region"], res["same_area"], res["same_region"]) == ("same_region", "TX", False, True)
+
+
+def test_live_same_area_match_is_recorded(store):
+    rest = FakeTwilioRest()
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    p.run_due(NOW)
+    res = store.select("provisioning_jobs", id=j["id"])[0]["result"]
+    assert (res["match"], res["same_area"], res["same_region"]) == ("same_area", True, True) and len(searches(rest)) == 1
+
+
+def test_live_nothing_in_the_state_falls_back_to_any_us_number(store):
+    rest = FakeTwilioRest(available=("+14725550001",), no_geodata=True)
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    assert p.run_due(NOW)["done"] == 1
+    assert tenant(store)["twilio_number"] == "+14725550001"
+    q = searches(rest)
+    assert q[2].get("InRegion") == "TX" and q[3] == {"VoiceEnabled": "true", "SmsEnabled": "true", "PageSize": "5"}
+    res = store.select("provisioning_jobs", id=j["id"])[0]["result"]
+    assert (res["match"], res["same_area"], res["same_region"]) == ("any", False, False)
+
+
+def test_live_region_search_rejected_still_buys_a_number(store):
+    rest = FakeTwilioRest(available=("+14725550001",), no_geodata=True, region_status=400)
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    assert p.run_due(NOW)["done"] == 1
+    assert tenant(store)["twilio_number"] == "+14725550001"
+    assert store.select("provisioning_jobs", id=j["id"])[0]["result"]["match"] == "any"
+
+
+def test_live_twilio_outage_on_a_narrow_search_retries_instead_of_buying_far_away(store):
+    rest = FakeTwilioRest(available=("+14725550001",), no_geodata=True, region_status=503)
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    assert p.run_due(NOW)["retry"] == 1
+    assert rest.buys() == [] and not tenant(store)["twilio_number"]
+    assert store.select("provisioning_jobs", id=j["id"])[0]["status"] == "pending"
+
+
+def test_live_unknown_area_code_skips_the_state_search(store):
+    row = tenant(store)
+    row["config"]["business"]["main_phone"] = "+14165550100"  # Toronto: no US state
+    store.update("tenants", "t-new", {"config": row["config"]})
+    rest = FakeTwilioRest(available=("+14725550001",), no_geodata=True)
+    j = job(store)
+    p, _ = prov(store, env={"TWILIO_PROVISION_LIVE": "1"}, rest=rest)
+    assert p.run_due(NOW)["done"] == 1
+    assert not any("InRegion" in x for x in searches(rest))
+    res = store.select("provisioning_jobs", id=j["id"])[0]["result"]
+    assert (res["match"], res["region"], res["same_region"]) == ("any", None, False)
+
+
+def test_area_code_state_table():
+    from app.area_codes import state_for_area
+    assert [state_for_area(a) for a in ("713", "281", "472", "212", "202", "416", None, "")] == ["TX", "TX", "NC", "NY", "DC", None, None, None]
 
 
 def test_failures_retry_then_fail_loudly(store):
