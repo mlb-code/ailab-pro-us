@@ -1,0 +1,128 @@
+{
+  "$comment": "Setup assistant contract v1 (design 2026-11-27, section 2.3): POST /functions/v1/setup-agent with the user's JWT, body <= 4 KB. One contract for the web portal and the later iOS app. Source of truth: supabase/functions/_shared/setup_contract.json; tools/sync_config.py copies it to site/assets/. The Deno tests validate every response of the function against it.",
+  "$defs": {
+    "Request": {
+      "type": "object", "additionalProperties": false, "required": ["v", "client_turn_id", "input"],
+      "properties": {
+        "v": { "const": 1 },
+        "client_turn_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{8,64}$" },
+        "input": { "anyOf": [
+          { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "resume" } } },
+          { "type": "object", "additionalProperties": false, "required": ["type", "text"],
+            "properties": { "type": { "const": "message" }, "text": { "type": "string", "minLength": 1, "maxLength": 1000 } } },
+          { "type": "object", "additionalProperties": false, "required": ["type", "proposal_id"],
+            "properties": { "type": { "enum": ["confirm", "change"] }, "proposal_id": { "type": "string", "maxLength": 40 } } },
+          { "type": "object", "additionalProperties": false, "required": ["type", "choice_id"],
+            "properties": { "type": { "const": "choose" }, "choice_id": { "type": "string", "maxLength": 80 } } },
+          { "type": "object", "additionalProperties": false, "required": ["type", "event"],
+            "properties": { "type": { "const": "event" },
+              "event": { "enum": ["calendar_returned", "test_started", "test_changed", "forms_saved", "back_online"] } } }
+        ] }
+      }
+    },
+    "Response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["v", "conversation_id", "status", "messages", "progress", "composer", "fallback", "limits"],
+      "properties": {
+        "v": { "const": 1 },
+        "conversation_id": { "type": "string" },
+        "status": { "enum": ["active", "complete", "unavailable"] },
+        "messages": { "type": "array", "maxItems": 200, "items": { "$ref": "#/$defs/Message" } },
+        "progress": { "$ref": "#/$defs/Progress" },
+        "composer": { "$ref": "#/$defs/Composer" },
+        "fallback": { "anyOf": [ { "type": "null" }, { "$ref": "#/$defs/Fallback" } ] },
+        "limits": { "type": "object", "additionalProperties": false, "required": ["messages_left_today"],
+          "properties": { "messages_left_today": { "type": "integer", "minimum": 0 } } }
+      }
+    },
+    "Error": {
+      "type": "object", "additionalProperties": false, "required": ["error"],
+      "properties": {
+        "error": { "enum": ["not_signed_in", "not_a_plan_client", "turn_in_progress", "bad_input", "bad_json", "payload_too_large",
+                            "rate_limited", "method_not_allowed", "server_not_configured", "server_error"] },
+        "retry_after_s": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "Message": {
+      "type": "object", "additionalProperties": false, "required": ["id", "seq", "role", "text", "created_at", "blocks"],
+      "properties": {
+        "id": { "type": "string" }, "seq": { "type": "integer", "minimum": 1 },
+        "role": { "enum": ["assistant", "user", "note"] },
+        "text": { "type": "string", "maxLength": 2000 },
+        "created_at": { "type": "string" },
+        "blocks": { "type": "array", "maxItems": 6, "items": { "$ref": "#/$defs/Block" } },
+        "unanswered": { "type": "boolean", "$comment": "only on a user message the assistant did not answer (the model failed): show 'Try again', which resends the same client_turn_id" },
+        "client_turn_id": { "type": "string", "$comment": "only together with unanswered: the id to resend" },
+        "retry_input": { "$comment": "only together with unanswered: the input to resend (a message's text, or the button press)" }
+      }
+    },
+    "Progress": {
+      "type": "object", "additionalProperties": false, "required": ["steps", "done", "total", "topic", "go_live"],
+      "properties": {
+        "steps": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["key", "title", "status", "required"],
+          "properties": { "key": { "type": "string" }, "title": { "type": "string" }, "status": { "enum": ["todo", "done", "need_help"] },
+                          "required": { "type": "boolean" } } } },
+        "done": { "type": "integer", "minimum": 0 }, "total": { "type": "integer", "minimum": 0 },
+        "topic": { "type": ["string", "null"] },
+        "go_live": { "enum": ["waiting_number", "steps_left", "testing", "delayed", "live"] }
+      }
+    },
+    "Composer": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "hint", "quick_replies"],
+      "properties": {
+        "enabled": { "type": "boolean" }, "hint": { "type": "string", "maxLength": 120 },
+        "quick_replies": { "type": "array", "maxItems": 4, "items": { "type": "object", "additionalProperties": false, "required": ["label", "input"],
+          "properties": { "label": { "type": "string", "maxLength": 60 },
+            "input": { "type": "object", "additionalProperties": false, "required": ["type", "text"],
+              "properties": { "type": { "const": "message" }, "text": { "type": "string", "maxLength": 1000 } } } } } }
+      }
+    },
+    "Fallback": {
+      "type": "object", "additionalProperties": false, "required": ["reason", "item_key", "retry_after_s"],
+      "properties": {
+        "reason": { "enum": ["assistant_unavailable", "budget", "limit", "disabled"] },
+        "item_key": { "type": ["string", "null"] },
+        "retry_after_s": { "type": ["integer", "null"] }
+      }
+    },
+    "Field": {
+      "type": "object", "additionalProperties": false, "required": ["key", "label", "kind", "value", "text"],
+      "properties": {
+        "key": { "type": "string" }, "label": { "type": "string" },
+        "kind": { "enum": ["hours", "list", "text", "prices", "faq", "phone", "time", "choice", "url"] },
+        "value": {}, "text": { "type": "string", "maxLength": 4000 }
+      }
+    },
+    "Block": { "anyOf": [
+      { "type": "object", "additionalProperties": false,
+        "required": ["type", "proposal_id", "topic", "item_key", "title", "status", "fields", "actions"],
+        "properties": {
+          "type": { "const": "summary_card" }, "proposal_id": { "type": "string" }, "topic": { "type": "string" },
+          "item_key": { "type": "string" }, "title": { "type": "string" },
+          "status": { "enum": ["pending", "confirmed", "superseded", "failed"] },
+          "fields": { "type": "array", "items": { "$ref": "#/$defs/Field" } },
+          "note": { "type": "string" },
+          "actions": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"],
+            "properties": { "id": { "enum": ["confirm", "change"] }, "label": { "type": "string" } } } }
+        } },
+      { "type": "object", "additionalProperties": false, "required": ["type", "id", "options"],
+        "properties": { "type": { "const": "choices" }, "id": { "type": "string" },
+          "options": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"],
+            "properties": { "id": { "type": "string", "maxLength": 80 }, "label": { "type": "string" } } } } } },
+      { "type": "object", "additionalProperties": false, "required": ["type", "action", "provider", "tenant_id"],
+        "properties": { "type": { "const": "action" }, "action": { "const": "connect_calendar" }, "provider": { "enum": ["google", "calendly"] },
+          "tenant_id": { "type": "string" } } },
+      { "type": "object", "additionalProperties": false, "required": ["type", "action", "carrier", "forward_to", "business_phone"],
+        "properties": { "type": { "const": "action" }, "action": { "const": "forwarding_instructions" }, "carrier": { "type": "string" },
+          "forward_to": { "type": ["string", "null"] }, "business_phone": { "type": ["string", "null"] } } },
+      { "type": "object", "additionalProperties": false, "required": ["type", "action", "item_id", "number", "state"],
+        "properties": { "type": { "const": "action" }, "action": { "const": "test_call" }, "item_id": { "type": "string" },
+          "number": { "type": ["string", "null"] },
+          "state": { "enum": ["ready", "waiting", "unverified", "direct", "mismatch", "passed", "no_number"] } } },
+      { "type": "object", "additionalProperties": false, "required": ["type", "item_key", "label"],
+        "properties": { "type": { "const": "open_form" }, "item_key": { "type": "string" }, "label": { "type": "string" } } },
+      { "type": "object", "additionalProperties": false, "required": ["type", "kind", "text"],
+        "properties": { "type": { "const": "notice" }, "kind": { "enum": ["info", "ok", "err"] }, "text": { "type": "string", "maxLength": 600 } } }
+    ] }
+  }
+}
