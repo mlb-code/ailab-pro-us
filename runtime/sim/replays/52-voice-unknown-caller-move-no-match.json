@@ -1,33 +1,5 @@
 {
- "08b091c246584c439d329442": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_007",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1344,
-    "output_tokens": 28
-   }
-  }
- },
- "2361db594ca3fb2f08db5d9b": {
+ "1313ba00bfe325ac36bf3eb8": {
   "request": {
    "last_message": {
     "content": [
@@ -58,12 +30,40 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 976,
+    "input_tokens": 1053,
     "output_tokens": 28
    }
   }
  },
- "b1e11e6e7f6d4b0f656b6346": {
+ "19455062bc0beac6deae2f52": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1421,
+    "output_tokens": 28
+   }
+  }
+ },
+ "1efdb2c9f1c4e2409227b277": {
   "request": {
    "last_message": {
     "content": [
@@ -93,12 +93,41 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1260,
+    "input_tokens": 1337,
     "output_tokens": 45
    }
   }
  },
- "d767f8dbb64d80c6dc6bd13f": {
+ "336b5961ba38dbd343491b19": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can't find a booking for this number. What phone number is the booking under, and what name is it under?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1131,
+    "output_tokens": 34
+   }
+  }
+ },
+ "9f1166f62711b157a423871f": {
   "request": {
    "last_message": {
     "content": [
@@ -129,37 +158,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1177,
+    "input_tokens": 1254,
     "output_tokens": 32
-   }
-  }
- },
- "e5d12723094a5bb296e77656": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can't find a booking for this number. What phone number is the booking under, and what name is it under?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1054,
-    "output_tokens": 34
    }
   }
  }

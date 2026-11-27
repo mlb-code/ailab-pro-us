@@ -1,11 +1,48 @@
 {
- "19f447dedc8675e014c54bd9": {
+ "1b8cd6699f1f45c7ef3ec4bd": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_005",
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My furnace stopped working, I'm in 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "date_from": null,
+      "job_type": "Furnace repair",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 910,
+    "output_tokens": 37
+   }
+  }
+ },
+ "259366ff63147fa30c42cf1c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
       "type": "tool_result"
      }
     ],
@@ -16,18 +53,46 @@
   "response": {
    "content": [
     {
-     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM.",
+     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1228,
-    "output_tokens": 19
+    "input_tokens": 1460,
+    "output_tokens": 21
    }
   }
  },
- "78846da0f719236b960b4580": {
+ "5fc51556359ccc5dfd118ade": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1056,
+    "output_tokens": 34
+   }
+  }
+ },
+ "60bf77519ff4052a7d1a297e": {
   "request": {
    "last_message": {
     "content": [
@@ -57,12 +122,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1318,
+    "input_tokens": 1395,
     "output_tokens": 26
    }
   }
  },
- "7ee1175d14b45b3cd8b9cf62": {
+ "61e385ac6e812937e4772d3b": {
   "request": {
    "last_message": {
     "content": [
@@ -98,55 +163,18 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1103,
+    "input_tokens": 1180,
     "output_tokens": 75
    }
   }
  },
- "b5ca7a3b42322cc984984fab": {
+ "901085c40d584d710b1e038f": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My furnace stopped working, I'm in 77019",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_001",
-     "input": {
-      "date_from": null,
-      "job_type": "Furnace repair",
-      "zip": "77019"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 833,
-    "output_tokens": 37
-   }
-  }
- },
- "ca633828d878787f0302d23d": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_005",
       "type": "tool_result"
      }
     ],
@@ -157,42 +185,14 @@
   "response": {
    "content": [
     {
-     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
+     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1383,
-    "output_tokens": 21
-   }
-  }
- },
- "e3d13c9397ab59beb2f39832": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 979,
-    "output_tokens": 34
+    "input_tokens": 1305,
+    "output_tokens": 19
    }
   }
  }

@@ -1,5 +1,33 @@
 {
- "231c22c90e160dec547e4ec1": {
+ "8aa43556c638453821ed83db": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1093,
+    "output_tokens": 28
+   }
+  }
+ },
+ "8faf810736d2d8e7ffc1091c": {
   "request": {
    "last_message": {
     "content": [
@@ -29,40 +57,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 930,
+    "input_tokens": 1007,
     "output_tokens": 47
    }
   }
  },
- "9c33df2d7acb3df3a06e1a46": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1016,
-    "output_tokens": 28
-   }
-  }
- },
- "e552c2575a02360ffcea2594": {
+ "c93c9e3858575883aa92efb7": {
   "request": {
    "last_message": {
     "content": [
@@ -94,7 +94,7 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 840,
+    "input_tokens": 917,
     "output_tokens": 36
    }
   }

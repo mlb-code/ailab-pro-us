@@ -1,5 +1,33 @@
 {
- "3a4756c2529f896e8d50b5f3": {
+ "d3b40aec43f3978f917820b4": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks for reaching out. Please ask a parent or guardian to call us, or our team can call this number back. I've let the team know.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1024,
+    "output_tokens": 40
+   }
+  }
+ },
+ "e15e731a2746283394ed4db7": {
   "request": {
    "last_message": {
     "content": [
@@ -33,36 +61,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 839,
+    "input_tokens": 916,
     "output_tokens": 70
-   }
-  }
- },
- "b16d90ab1259bb646ca2d5e9": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks for reaching out. Please ask a parent or guardian to call us, or our team can call this number back. I've let the team know.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 947,
-    "output_tokens": 40
    }
   }
  }

@@ -41,7 +41,8 @@ from twilio.twiml.voice_response import VoiceResponse
 from . import crypto, guard
 from .runtime_ctx import Runtime
 from .tenants import TenantConfigError, TenantRecord, load_record
-from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, sms_on, twiml_gather, twiml_say_hangup)
+from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, sms_on, speech_hints, twiml_gather,
+                    twiml_say_hangup)
 
 log = logging.getLogger("rt.voice_stream")
 
@@ -72,7 +73,8 @@ def relay_twiml(rt: Runtime, request: Request, tenant: TenantRecord, call_sid: s
     relay = connect.conversation_relay(
         url=f"{ws_base(rt, request)}/voice/relay?t={token}", welcome_greeting=greeting(tenant, sms_on(rt)),
         welcome_greeting_interruptible="none", interruptible="speech", language=guard.ENGLISH_LANG,
-        tts_provider=provider, voice=voice, transcription_provider="Deepgram", dtmf_detection=False)
+        tts_provider=provider, voice=voice, transcription_provider="Deepgram", dtmf_detection=False,
+        hints=speech_hints(tenant.config) or None)  # the tenant's names, services and FAQ terms, spelled right
     if "es" in tenant.config.voice.languages:  # ADD-ES: the Spanish voice + STT, switched per turn with a `language` frame
         es_provider, es_voice = tts(tenant, "es")
         relay.language(code=guard.SPANISH_LANG, tts_provider=es_provider, voice=es_voice, transcription_provider="Deepgram")
@@ -248,5 +250,6 @@ async def voice_relay_end(request: Request) -> Response:
             "call_sid": call_sid, "status": str(form.get("SessionStatus", "")), "error": str(form.get("ErrorCode", ""))})
         c = rt.engine.find_convo(tenant, "voice", call_sid)
         from .voice import voice_for
-        return Response(twiml_gather(REPEAT_TEXT, *voice_for(tenant, (c.meta.get("lang") if c else None))), media_type=TWIML)
+        return Response(twiml_gather(REPEAT_TEXT, *voice_for(tenant, (c.meta.get("lang") if c else None)),
+                                     hints=speech_hints(tenant.config)), media_type=TWIML)
     return Response(twiml_say_hangup(""), media_type=TWIML)

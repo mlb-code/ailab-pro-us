@@ -134,6 +134,15 @@ def _manage_text(cfg: TenantConfig, channel: str = "") -> str:
             "found, say so and offer take_message.")
 
 
+# Voice only (2026-11-27, first live customer test): the caller's words reach us through speech-to-text, which can
+# turn a brand or place name into a common word ("Do you service train units?" for the FAQ "Do you service Trane
+# units?"). The match stays inside the configured facts; nothing outside them may be answered.
+VOICE_SOUND_ALIKE_RULE = (
+    "The caller's words come from speech-to-text and can be misheard: a word that sounds like a name, brand, service "
+    "or place in the facts above (for example \"train units\" when the FAQ says \"Trane units\") means that one, so "
+    "answer from that entry. If nothing above matches, do not guess: offer to take a message.")
+
+
 def _voice_prompt(cfg: TenantConfig) -> str:
     """Short prompt for the phone (latency): same facts and every hard rule, fewer words."""
     b = cfg.business
@@ -148,6 +157,7 @@ Languages: {languages}
 {prices}
 FAQ (answer only from these; otherwise offer to take a message):
 {faq}
+{VOICE_SOUND_ALIKE_RULE}
 
 Flow: ask what is wrong, then the ZIP, one question at a time. get_availability, offer at most two returned slots by label. Once one is picked, get name and service address, then book_slot with that slot_id (phone is known; another number only if offered). Confirm in one sentence, then end_conversation. Say goodbye once, in the same reply as end_conversation; after it returns, write nothing.
 A ZIP not in the service area list means you cannot book: call take_message in that same reply, without asking first.
@@ -194,6 +204,7 @@ Languages: {languages}
 {prices}
 FAQ (listings, open houses, the agent; answer only from these, otherwise offer to take a message):
 {faq}
+{VOICE_SOUND_ALIKE_RULE}
 
 {LEAD_MARKER}, one question at a time, in this order (skip what the caller already said):
 {screening_lines(cfg)}

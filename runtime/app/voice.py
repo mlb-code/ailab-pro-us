@@ -441,15 +441,54 @@ def twiml_say_hangup(text: str, voice: str | None = None, lang: str = guard.ENGL
     return str(vr)
 
 
-def twiml_gather(text: str, voice: str, barge_in: bool = True, lang: str = guard.ENGLISH_LANG) -> str:
+HINTS_MAX = 50          # phrases
+HINTS_MAX_CHARS = 1000  # the whole comma-separated list (it is a TwiML attribute)
+_HINT_WORD = re.compile(r"(?<![\w'])([A-Z][A-Za-z0-9]*(?:['&-][A-Za-z0-9]+)*)")
+_HINT_SKIP = {"i", "i'm", "i'll", "i've", "i'd", "we", "we're", "we'll", "yes", "no", "our", "you", "your", "the", "a",
+              "an", "it", "it's", "if", "and", "or", "please", "sorry", "thanks", "ok", "okay"}
+
+
+def speech_hints(cfg: Any) -> str:
+    """Speech recognition hints for this tenant (Twilio `hints`, ConversationRelay and <Gather>): the business name,
+    job types, price-list names, service-area places, and the names in the FAQ (capitalized words that do not start a
+    sentence, e.g. the brand "Trane" in "Do you service Trane units?"). Only the tenant's own configured facts; they
+    make the transcript spell those words right, so the brain can match the FAQ. "" = none."""
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(phrase: str) -> None:
+        p = " ".join(str(phrase or "").replace(",", " ").split())[:100]
+        if len(p) < 2 or p.lower() in seen or p.lower() in _HINT_SKIP or len(out) >= HINTS_MAX:
+            return
+        seen.add(p.lower())
+        out.append(p)
+
+    add(cfg.business.name)
+    for x in list(cfg.booking.job_types) + [i.name for i in cfg.pricing.items] + list(cfg.business.service_area_places):
+        add(x)
+    for f in cfg.faq:
+        for part in (f.q, f.a):
+            for sentence in re.split(r"(?<=[.!?])\s+", part):
+                for m in _HINT_WORD.finditer(sentence):
+                    if m.start() > 0 and sentence[:m.start()].strip():  # not the first word of the sentence
+                        add(m.group(1))
+    text = ""
+    for p in out:
+        if len(text) + len(p) + 1 > HINTS_MAX_CHARS:
+            break
+        text = f"{text},{p}" if text else p
+    return text
+
+
+def twiml_gather(text: str, voice: str, barge_in: bool = True, lang: str = guard.ENGLISH_LANG, hints: str = "") -> str:
     """Speak `text` and listen. `barge_in=False` (the greeting with the call notice): <Say> before <Gather>, so the
     caller cannot cut the notice off and nothing they say is processed before it ends. `lang` = the STT language and
-    the <Say> language of this turn (es-US once the caller used Spanish)."""
+    the <Say> language of this turn (es-US once the caller used Spanish). `hints` = speech_hints(tenant config)."""
     vr = VoiceResponse()
     if not barge_in:
         _say(vr, text, voice, lang)
     g = vr.gather(input="speech", action="/voice/turn", method="POST", speech_model="phone_call", enhanced=True,
-                  speech_timeout="auto", action_on_empty_result=True, language=lang)
+                  speech_timeout="auto", action_on_empty_result=True, language=lang, hints=hints or None)
     if barge_in:
         _say(g, text, voice, lang)
     return str(vr)
@@ -469,7 +508,7 @@ def twiml_for(turn: VoiceTurn, tenant: TenantRecord) -> str:
         return twiml_dial(turn.reply, voice, turn.dial, lang)
     if turn.end:
         return twiml_say_hangup(turn.reply, voice, lang)
-    return twiml_gather(turn.reply, voice, lang=lang)
+    return twiml_gather(turn.reply, voice, lang=lang, hints=speech_hints(tenant.config))
 
 
 def twiml_reject() -> str:
@@ -521,7 +560,8 @@ async def voice_incoming(request: Request) -> Response:
     if mode == "stream":
         from .voice_stream import relay_twiml
         return _xml(relay_twiml(rt, request, tenant, call_sid))
-    return _xml(twiml_gather(greeting(tenant, sms_on(rt)), tenant.config.voice.tts_voice, barge_in=False))
+    return _xml(twiml_gather(greeting(tenant, sms_on(rt)), tenant.config.voice.tts_voice, barge_in=False,
+                             hints=speech_hints(tenant.config)))
 
 
 async def _safe_voice(rt: Runtime, form: Any, step: str) -> str:
