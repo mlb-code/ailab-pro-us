@@ -84,7 +84,7 @@ def _footer_en() -> str:
 PREFIX = {"urgent": "[URGENT] ", "human_needed": "[HUMAN NEEDED] "}
 QUALIFICATION_TITLES = (("intent", "Lead type"), ("area", "Area / property"), ("property_address", "Property address"),
                         ("timeline", "Timeline"), ("price_range", "Price range"), ("pre_approval", "Pre-approval"),
-                        ("motivation", "Motivation"), ("has_agent", "Working with an agent"))
+                        ("has_agent", "Working with an agent"))
 
 
 def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str, str, str]:
@@ -146,11 +146,14 @@ def dispatch_rows(d: dict[str, Any]) -> list[tuple[str, Any]]:
 
 
 # --- daily summary (owner) ----------------------------------------------------------------
-def daily_summary(business: str, d: dict[str, Any]) -> tuple[str, str, str]:
+def daily_summary(business: str, d: dict[str, Any], sms_enabled: bool = False) -> tuple[str, str, str]:
+    """sms_enabled = settings.sms_enabled (SMS_ENABLED master switch, via NotifyPolicy): off = no texting rows, because
+    no text is answered or sent and the owner would only see zeros for a feature that is switched off."""
     subject = f"Today: {d['calls_answered']} calls answered, {d['booked']} booked"
     pairs = [("Calls answered", d["calls_answered"]), ("Jobs booked", d["booked"]),
-             ("Messages taken", d["messages"]), ("Urgent", d["urgent"]),
-             ("Text conversations", d["sms_threads"]), ("Missed callers texted back", d["text_backs"])]
+             ("Messages taken", d["messages"]), ("Urgent", d["urgent"])]
+    if sms_enabled:
+        pairs += [("Text conversations", d["sms_threads"]), ("Missed callers texted back", d["text_backs"])]
     pairs += dispatch_rows(d)
     leads = d.get("leads") or []
     text = "\n".join([subject, f"{business}, {d['date']}", ""] + [f"{k}: {v}" for k, v in pairs]

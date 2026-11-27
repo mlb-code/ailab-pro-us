@@ -35,7 +35,7 @@ Auth on the wire: HTTP Basic (API key as user name, empty password). `X-System: 
 ```
 `type` by lead intent: buyer -> Property Inquiry, seller -> Seller Inquiry, renter/unknown -> General Inquiry.
 `description` carries every screening answer (intent, area, timeline, price range, pre-approval, property address,
-motivation, already working with an agent) and, for bookings, the booked window.
+already working with an agent) and, for bookings, the booked window.
 
 ## Delivery
 Same path as the other CRM links (`runtime/app/crm/`): the delivery queue, 1 try + retries on 429/5xx/network, exactly

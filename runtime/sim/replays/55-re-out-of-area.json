@@ -1,5 +1,5 @@
 {
- "49bed9dd328f198e596d3455": {
+ "2d8aa178d3c7606050e0bd8d": {
   "request": {
    "last_message": {
     "content": [
@@ -28,12 +28,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1414,
+    "input_tokens": 1551,
     "output_tokens": 38
    }
   }
  },
- "49d8a69d8d43822a58cbbc54": {
+ "377e97c59e90af3ad80daab9": {
   "request": {
    "last_message": {
     "content": [
@@ -59,7 +59,6 @@
       "email": null,
       "has_agent": "no",
       "intent": "buyer",
-      "motivation": null,
       "name": null,
       "pre_approval": "pre_approved",
       "price_range": "400k",
@@ -72,12 +71,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1267,
-    "output_tokens": 73
+    "input_tokens": 1409,
+    "output_tokens": 68
    }
   }
  },
- "a108ca126398357b5154a47d": {
+ "4aa58acdb08784c606ee0291": {
   "request": {
    "last_message": {
     "content": [
@@ -100,12 +99,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1602,
+    "input_tokens": 1739,
     "output_tokens": 25
    }
   }
  },
- "e671728c0eae34e402223fbb": {
+ "f2075c5ecc68e5c8a6b552ff": {
   "request": {
    "last_message": {
     "content": [
@@ -137,7 +136,7 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1503,
+    "input_tokens": 1640,
     "output_tokens": 53
    }
   }

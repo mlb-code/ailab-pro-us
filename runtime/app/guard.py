@@ -634,11 +634,20 @@ def sms_segments(text: str) -> int:
 
 # ---- fair housing (real-estate niche) -----------------------------------------------------------
 # The assistant may never ask about, mention or steer by a protected class (Fair Housing Act: race, color, religion,
-# national origin, sex, familial status, disability). The prompt forbids it; this is the code-level backstop on the
-# reply, applied for real-estate tenants only (home-services replies legitimately say "family-owned", "kids' room").
+# national origin, sex, familial status, disability; many states and cities add source of income). The prompt forbids
+# it; this is the code-level backstop on the reply, applied for real-estate tenants only (home-services replies
+# legitimately say "family-owned", "kids' room"). 2026-11-27 (legal review): + source of income, more sex / familial
+# status / national origin / race and color / religion / disability wording, and "why are you moving" (the retired
+# motivation question). Words that are also place or home terms ("Temple", "accent wall", "blinds") are left out.
 FAIR_HOUSING = re.compile(
     r"\b(race|racial|ethnic\w*|hispanic|latino|latina|black|white|asian|jewish|muslim|christian|catholic|church\w*|"
-    r"synagogue|mosque|national origin|immigrants?|citizenship|disab\w+|wheelchair|handicap\w*|"
+    r"synagogue|mosque|religio\w*|national origin|nationality|country of origin|foreigners?|immigrants?|citizenship|"
+    r"people of colou?r|skin colou?r|minorit(y|ies)|caucasian|african[- ]american|"
+    r"disab\w+|wheelchair|handicap\w*|mental(ly)? ill\w*|special needs|"
+    r"section[- ]?8|(housing )?vouchers?|source of income|(government|public) assistance|welfare|food stamps|"
+    r"pregnan\w*|familial status|expecting a baby|(how many|any|do you have) (kids|children)|"
+    r"gender|(single|young) (moms?|mothers|dads?|fathers|women|men|guys|girls)|(men|women|ladies|guys) only|"
+    r"why (are|is) (you|she|he|they) (moving|selling)|what('?s| is) prompting the move|reason for (moving|selling)|"
     r"(families|family|people|folks|couples|singles|professionals) (with|without) (kids|children)|"
     r"(no|not for|not suited for|perfect for|great for|ideal for) (kids|children|families|singles|seniors|retirees|students)|"
     r"(good|bad|safe|rough|nice|quiet|changing|up[- ]and[- ]coming|transitional) (neighborhood|area|part of town)|"

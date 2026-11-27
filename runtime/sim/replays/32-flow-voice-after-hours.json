@@ -1,33 +1,5 @@
 {
- "06cd6871002c1b9cfe0132aa": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're all set for Monday Oct 12, 8 AM to 12 PM.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1138,
-    "output_tokens": 19
-   }
-  }
- },
- "0a7b5153cd20d4598e0012f7": {
+ "7453a10cea90b32a46fba3ec": {
   "request": {
    "last_message": {
     "content": [
@@ -63,12 +35,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1018,
+    "input_tokens": 1113,
     "output_tokens": 71
    }
   }
  },
- "92e92bf0e8e9081ecb7edb8f": {
+ "ad894912e9ccf423c1c28ff0": {
   "request": {
    "last_message": {
     "content": [
@@ -100,12 +72,40 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 746,
+    "input_tokens": 841,
     "output_tokens": 36
    }
   }
  },
- "b11c8ab27349e01578cdc731": {
+ "b0f857a189222b752999516b": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 8 AM to 12 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1233,
+    "output_tokens": 19
+   }
+  }
+ },
+ "bb5957136503f1875555c7d9": {
   "request": {
    "last_message": {
     "content": [
@@ -128,7 +128,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 890,
+    "input_tokens": 985,
     "output_tokens": 34
    }
   }

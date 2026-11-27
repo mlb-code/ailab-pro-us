@@ -69,7 +69,7 @@ assistant collected (`qualify_lead`), only the ones the caller gave:
                            "pre_approval": "pre_approved", "has_agent": "no"}}
 ```
 Keys: `intent` (buyer | seller | renter), `area`, `timeline`, `price_range`, `pre_approval` (pre_approved | cash | not_yet),
-`property_address`, `motivation`, `has_agent` (yes | no), `email`. `lead.created` also carries `name`, `address`,
+`property_address`, `has_agent` (yes | no), `email`. `lead.created` also carries `name`, `address`,
 `job_type` and `email` when known. Web-chat visitors (ADD-CHAT) have no caller id: `contact` is the phone number (or
 e-mail) they typed, `channel` is `"chat"`.
 

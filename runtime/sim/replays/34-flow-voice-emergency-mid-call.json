@@ -1,36 +1,5 @@
 {
- "081c23477349d6a6c6066e0b": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My AC is making a weird noise",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 736,
-    "output_tokens": 30
-   }
-  }
- },
- "580c71d77fbec323e4b2c28a": {
+ "47f1adb189aeef4e951b0d32": {
   "request": {
    "last_message": {
     "content": [
@@ -56,7 +25,38 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 860,
+    "input_tokens": 955,
+    "output_tokens": 30
+   }
+  }
+ },
+ "b5bb4a4fa8102b0640f3aa47": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My AC is making a weird noise",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 831,
     "output_tokens": 30
    }
   }

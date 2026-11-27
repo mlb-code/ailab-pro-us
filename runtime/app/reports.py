@@ -292,7 +292,7 @@ class Reporter:
         if not self.state.get(f"{done_key}:stored"):
             self._store_report(tenant, "report.daily_summary", data)
             self.state.put(f"{done_key}:stored", True, tenant.id)
-        subject, text, html = T.daily_summary(tenant.config.business.name, data)
+        subject, text, html = T.daily_summary(tenant.config.business.name, data, sms_enabled=self.notifier.policy.sms_enabled)
         sent = self.notifier.send_owner_report(tenant, "daily_summary", subject, text, html, f"daily:{day}") \
             if tenant.status == "live" else [{"status": "skipped", "reason": "tenant_not_live"}]
         if _failed(sent):  # not marked done: the next tick tries again

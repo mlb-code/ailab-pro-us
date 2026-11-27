@@ -161,7 +161,8 @@ def test_lead_alert_and_zapier_payload_carry_the_screening_answers(tmp_path):
     res = eng.handle(tenant, "sms", "+15125550183", "selling", "s2", MON_10)
     c = eng.find_convo(tenant, "sms", "s2")
     lead = lead_from(c, res.actions[0])
-    assert lead["qualification"] == {"intent": "seller", "area": "Mueller", "timeline": "later this year", "motivation": "relocating",
+    # "motivation" is retired (fair housing, 2026-11-27): a model that still sends it is not stored or forwarded
+    assert lead["qualification"] == {"intent": "seller", "area": "Mueller", "timeline": "later this year",
                                      "property_address": "4512 Berkman Dr, Austin 78723", "has_agent": "no"}
     subject, text, html, sms = T.lead_alert("Maple & Main Realty", "lead", lead)
     assert subject.startswith("New lead: Seller · Listing consultation · Linda Torres")

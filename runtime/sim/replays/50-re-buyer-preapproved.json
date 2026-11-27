@@ -1,14 +1,14 @@
 {
- "1e99d586916c2b914f38814d": {
+ "051f52fcff2d5a6436b2c39b": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
       "type": "text"
      },
      {
-      "text": "Customer: We're pre-approved",
+      "text": "Customer: In the next 3 months",
       "type": "text"
      }
     ],
@@ -19,25 +19,28 @@
   "response": {
    "content": [
     {
-     "text": "Are you already working with an agent?",
+     "text": "Do you have a price range in mind?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1542,
-    "output_tokens": 17
+    "input_tokens": 1497,
+    "output_tokens": 16
    }
   }
  },
- "3bf00eb339e3a4db6a21411f": {
+ "0af0301c3946eb2a7202021b": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_015",
-      "type": "tool_result"
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Between 450k and 700k",
+      "type": "text"
      }
     ],
     "role": "user"
@@ -47,18 +50,18 @@
   "response": {
    "content": [
     {
-     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "text": "Are you pre-approved for a mortgage, paying cash, or not there yet?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 2172,
-    "output_tokens": 25
+    "input_tokens": 1587,
+    "output_tokens": 24
    }
   }
  },
- "6ffa483227e76b88b2df8be3": {
+ "1995c27d6892cb5270c19158": {
   "request": {
    "last_message": {
     "content": [
@@ -94,43 +97,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 2048,
+    "input_tokens": 2184,
     "output_tokens": 74
    }
   }
  },
- "7847ae8d7e076f9e9d1ee116": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Between 450k and 700k",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Are you pre-approved for a mortgage, paying cash, or not there yet?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1445,
-    "output_tokens": 24
-   }
-  }
- },
- "8e6b7b850200a9211a36128a": {
+ "1f8037b9a396d77566370bdf": {
   "request": {
    "last_message": {
     "content": [
@@ -159,12 +131,99 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1792,
+    "input_tokens": 1929,
     "output_tokens": 38
    }
   }
  },
- "9301ec3f2a2fc83b0e65ae8d": {
+ "6cba93628c0ee294418e8fe8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_011",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2075,
+    "output_tokens": 31
+   }
+  }
+ },
+ "8ce8697da7f2f89e9a3f0ced": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: We're pre-approved",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1684,
+    "output_tokens": 17
+   }
+  }
+ },
+ "a75b0c55950646eb6e1c9456": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_015",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2308,
+    "output_tokens": 25
+   }
+  }
+ },
+ "aa755845dcc9fa17aa4b76a4": {
   "request": {
    "last_message": {
     "content": [
@@ -190,12 +249,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1260,
+    "input_tokens": 1401,
     "output_tokens": 22
    }
   }
  },
- "c583936bebe8564ad66e83cc": {
+ "c4bd0d67a1fe17d7b2bbb83b": {
   "request": {
    "last_message": {
     "content": [
@@ -221,7 +280,6 @@
       "email": null,
       "has_agent": "no",
       "intent": "buyer",
-      "motivation": null,
       "name": null,
       "pre_approval": "pre_approved",
       "price_range": "Between 450k and 700k",
@@ -234,67 +292,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1638,
-    "output_tokens": 80
-   }
-  }
- },
- "cb440bfa3197a15611f2e0f8": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: In the next 3 months",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Do you have a price range in mind?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1355,
-    "output_tokens": 16
-   }
-  }
- },
- "db30e4c4f366c3abe7b4de08": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_011",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1939,
-    "output_tokens": 31
+    "input_tokens": 1780,
+    "output_tokens": 75
    }
   }
  }

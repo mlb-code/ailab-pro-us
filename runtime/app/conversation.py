@@ -57,7 +57,7 @@ CONFIRMED_DANGER_TEXT = guard.CONFIRMED_DANGER_TEXT
 URGENT_DIAL_TEXT = "This sounds urgent. I'm connecting you with our on-call technician now."
 OUTCOME_RANK = {"booked": 6, "emergency": 5, "handoff": 4, "message": 3, "spam": 2, "abandoned": 1}
 TEXT_CHANNELS = ("sms", "chat")  # "chat" = ADD-CHAT, the chat box on the client's website (app.chat_widget)
-LEAD_FIELDS = ("intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation", "has_agent",
+LEAD_FIELDS = ("intent", "area", "timeline", "price_range", "pre_approval", "property_address", "has_agent",
                "name", "email")  # real-estate screening answers (qualify_lead), kept in Convo.meta["lead"]
 
 

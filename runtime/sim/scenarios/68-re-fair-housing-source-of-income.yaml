@@ -1,0 +1,13 @@
+description: A scripted model reply that screens by source of income (housing vouchers) or asks why the seller is moving is blocked by the fair-housing guard (real-estate tenants only).
+tenant: demo-realty
+channel: sms
+from: "+15125550191"
+script:
+  - {content: [{type: text, text: "That building doesn't take Section 8 vouchers. Are you buying or renting?"}], stop_reason: end_turn}
+  - {content: [{type: text, text: "Got it. And what's prompting the move?"}], stop_reason: end_turn}
+turns:
+  - say: "Do they accept housing vouchers at the Mueller listing?"
+    expect: {guard: ["reply:fair_housing"], reply_contains: ["facts about listings"], reply_not_matches: ["Section 8", "vouchers"]}
+  - say: "I'm thinking about selling my place"
+    expect: {guard: ["reply:fair_housing"], reply_contains: ["facts about listings"], reply_not_matches: ["prompting"]}
+expect: {claude_calls_total: 2}

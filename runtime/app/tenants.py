@@ -254,8 +254,12 @@ class Guard(_Strict):
 # The screening questions the assistant asks, in the order the agent wants them. Every item is a question the brain may
 # ask; nothing here is a protected class (fair housing: never race, color, religion, national origin, sex, familial
 # status, disability; the brain is told so and `guard.check_reply` blocks steering language).
-SCREENING_QUESTIONS = ("intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation",
-                       "has_agent")
+# 2026-11-27 (legal review): "motivation" (why a seller is moving) is retired (the answer invites protected
+# characteristics). It stays a valid value in the schema so a config saved before still validates (the JSON schema runs
+# first, in the runtime, the portal and update_tenant_settings), but it is dropped on load (RealEstate._drop_retired), so
+# it is never asked, offered in the portal or saved.
+SCREENING_QUESTIONS = ("intent", "area", "timeline", "price_range", "pre_approval", "property_address", "has_agent")
+RETIRED_SCREENING = ("motivation",)
 ScreeningQ = Literal["intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation",
                      "has_agent"]
 LeadIntent = Literal["buyer", "seller", "renter"]
@@ -278,6 +282,11 @@ class RealEstate(_Strict):
     meetings: dict[LeadIntent | Literal["showing"], str] = Field(
         default_factory=dict, description="Meeting type (one of booking.job_types) per lead intent; empty = matched by name")
     follow_up_boss: FollowUpBoss = Field(default_factory=FollowUpBoss)
+
+    @field_validator("screening", mode="before")
+    @classmethod
+    def _drop_retired(cls, v: Any) -> Any:
+        return [q for q in v if q not in RETIRED_SCREENING] if isinstance(v, list) else v
 
     @field_validator("screening")
     @classmethod

@@ -1,14 +1,14 @@
 {
- "0323953895dd055f6f49f791": {
+ "166c5c114988b0adc4ee6787": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. Returning caller (our records of the last 90 days): first name Tess; next visit Monday Oct 12, 12 PM to 4 PM (Maintenance). You may greet them by first name and, if there is a next visit, ask whether they are calling about it. Do not mention any other detail; if they say they are someone else, ignore this.",
       "type": "text"
      },
      {
-      "text": "Customer: Yes, can we move it to another day?",
+      "text": "Customer: Hi there",
       "type": "text"
      }
     ],
@@ -19,23 +19,74 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_003",
-     "input": {
-      "name": null,
-      "phone": null
-     },
-     "name": "find_my_booking",
-     "type": "tool_use"
+     "text": "Hi Tess! Are you calling about your visit Monday Oct 12, 12 PM to 4 PM?",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
+   "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1055,
-    "output_tokens": 28
+    "input_tokens": 1047,
+    "output_tokens": 25
    }
   }
  },
- "58fdd309faa2d592c401eba1": {
+ "4d950d263240fd7c43922a27": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1567,
+    "output_tokens": 22
+   }
+  }
+ },
+ "4ee21979c034f0e4c54ae390": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can move it to Tuesday Oct 13, 8 AM to 12 PM or Tuesday Oct 13, 12 PM to 4 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1375,
+    "output_tokens": 32
+   }
+  }
+ },
+ "6030f97d5602ca1aa5792251": {
   "request": {
    "last_message": {
     "content": [
@@ -66,43 +117,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1386,
+    "input_tokens": 1481,
     "output_tokens": 36
    }
   }
  },
- "5d177a0e6f13f9056c6c1415": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. Returning caller (our records of the last 90 days): first name Tess; next visit Monday Oct 12, 12 PM to 4 PM (Maintenance). You may greet them by first name and, if there is a next visit, ask whether they are calling about it. Do not mention any other detail; if they say they are someone else, ignore this.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Hi there",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Hi Tess! Are you calling about your visit Monday Oct 12, 12 PM to 4 PM?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 952,
-    "output_tokens": 25
-   }
-  }
- },
- "bfed087788aa589f4b8d89b5": {
+ "a4f719d24290ab8ee31e64b3": {
   "request": {
    "last_message": {
     "content": [
@@ -131,19 +151,22 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1157,
+    "input_tokens": 1252,
     "output_tokens": 36
    }
   }
  },
- "d761d1a48edb9a49b4cae0d7": {
+ "f9877326757cb30e33413fbe": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Yes, can we move it to another day?",
+      "type": "text"
      }
     ],
     "role": "user"
@@ -153,42 +176,19 @@
   "response": {
    "content": [
     {
-     "text": "I can move it to Tuesday Oct 13, 8 AM to 12 PM or Tuesday Oct 13, 12 PM to 4 PM. Which works better?",
-     "type": "text"
+     "id": "toolu_mock_003",
+     "input": {
+      "name": null,
+      "phone": null
+     },
+     "name": "find_my_booking",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
+   "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1280,
-    "output_tokens": 32
-   }
-  }
- },
- "e5521fba71d3213279d38ea2": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1472,
-    "output_tokens": 22
+    "input_tokens": 1150,
+    "output_tokens": 28
    }
   }
  }

@@ -1,11 +1,11 @@
 {
- "0b8aa26f2e44434e83e81b43": {
+ "0b671a437691db43f71d0cb6": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"meeting_type\": \"Listing consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"motivation\", \"property_address\", \"timeline\"]}",
-      "tool_use_id": "toolu_mock_007",
+      "content": "{\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_013",
       "type": "tool_result"
      }
     ],
@@ -16,96 +16,18 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_009",
-     "input": {
-      "date_from": null,
-      "job_type": "Listing consultation",
-      "zip": "78723"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1698,
-    "output_tokens": 39
-   }
-  }
- },
- "3624c5eb5b390db4abcca9b5": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "text": "You're all set for Monday Oct 12, 3 PM to 5 PM. Jenna will see you then.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1845,
-    "output_tokens": 31
+    "input_tokens": 2230,
+    "output_tokens": 25
    }
   }
  },
- "4d64718f7cee643f5fbf4dda": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: No agent yet",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_007",
-     "input": {
-      "area": "Mueller",
-      "email": null,
-      "has_agent": "no",
-      "intent": "seller",
-      "motivation": "relocating",
-      "name": null,
-      "pre_approval": null,
-      "price_range": null,
-      "property_address": "4512 Berkman Dr, Austin 78723. No agent yet",
-      "timeline": "Later this year"
-     },
-     "name": "qualify_lead",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1539,
-    "output_tokens": 84
-   }
-  }
- },
- "4df50982c392e35f30a16960": {
+ "13e32f3e5a851bf46fbc41d3": {
   "request": {
    "last_message": {
     "content": [
@@ -131,102 +53,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1359,
+    "input_tokens": 1500,
     "output_tokens": 16
    }
   }
  },
- "6f5e105a5824bb86ad512af9": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: 4512 Berkman Dr, Austin 78723",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Are you already working with an agent?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1451,
-    "output_tokens": 17
-   }
-  }
- },
- "adad25ac617876f16489b800": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: I'm thinking about selling my home in Mueller",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "What's your timeline, roughly when would you like to move?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1258,
-    "output_tokens": 22
-   }
-  }
- },
- "b77c77db1a6704961fddceb7": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_013",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're all set for Monday Oct 12, 3 PM to 5 PM. Jenna will see you then.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 2099,
-    "output_tokens": 25
-   }
-  }
- },
- "e122a2c698241145246958ab": {
+ "2d247d16dc17e4d80e60e70f": {
   "request": {
    "last_message": {
     "content": [
@@ -262,8 +94,175 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1956,
+    "input_tokens": 2087,
     "output_tokens": 93
+   }
+  }
+ },
+ "439c6af4ad3a14a092f382c1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Listing consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"property_address\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "date_from": null,
+      "job_type": "Listing consultation",
+      "zip": "78723"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1829,
+    "output_tokens": 39
+   }
+  }
+ },
+ "632ce13913c4b81c36565892": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1976,
+    "output_tokens": 31
+   }
+  }
+ },
+ "66ce7ea32e02172d6f1ec5ae": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: I'm thinking about selling my home in Mueller",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "What's your timeline, roughly when would you like to move?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1399,
+    "output_tokens": 22
+   }
+  }
+ },
+ "93979a6fbfcfea8cb5b8d5a8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: No agent yet",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "area": "Mueller",
+      "email": null,
+      "has_agent": "no",
+      "intent": "seller",
+      "name": null,
+      "pre_approval": null,
+      "price_range": null,
+      "property_address": "4512 Berkman Dr, Austin 78723. No agent yet",
+      "timeline": "Later this year"
+     },
+     "name": "qualify_lead",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1681,
+    "output_tokens": 77
+   }
+  }
+ },
+ "9e76393dbb0c1f1df1a7a8ec": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 4512 Berkman Dr, Austin 78723",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1592,
+    "output_tokens": 17
    }
   }
  }

@@ -1,33 +1,5 @@
 {
- "76373e938efc1c992f28b3a7": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"action\": \"dial\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Let me connect you with someone from the team now.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 810,
-    "output_tokens": 20
-   }
-  }
- },
- "dc5698e4a0e28e85ecdce75c": {
+ "0e21a6e3dc2ee324e1259705": {
   "request": {
    "last_message": {
     "content": [
@@ -57,8 +29,36 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 737,
+    "input_tokens": 832,
     "output_tokens": 29
+   }
+  }
+ },
+ "af0433a235d921ee24a739c8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"dial\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Let me connect you with someone from the team now.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 905,
+    "output_tokens": 20
    }
   }
  }

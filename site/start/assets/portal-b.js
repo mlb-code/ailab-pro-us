@@ -885,8 +885,9 @@
   // (config.real_estate, only when business.niche is real_estate) and the website chat box snippet (config.webchat, ADD-CHAT).
   // The client edits agent_name / screening (order = the order asked) / renters; meetings and follow_up_boss are ours.
   const RE_QUESTIONS = [['intent', 'Buying, selling or renting?'], ['area', 'Which area or property?'], ['timeline', 'Timeline'], ['price_range', 'Price range / budget'],
-    ['pre_approval', 'Pre-approved for a mortgage? (buyers)'], ['property_address', 'Property address (sellers)'], ['motivation', 'What’s prompting the move? (sellers)'], ['has_agent', 'Already working with an agent?']];
-  const FAIR_HOUSING = 'We never ask about race, religion, national origin, family status or disability, and the assistant never steers callers toward or away from an area (fair housing).';
+    ['pre_approval', 'Pre-approved for a mortgage? (buyers)'], ['property_address', 'Property address (sellers)'], ['has_agent', 'Already working with an agent?']];
+  // 2026-11-27 (legal review): "What's prompting the move?" retired (the runtime drops it from saved configs)
+  const FAIR_HOUSING = 'We never ask about race or color, religion, national origin, sex, family status, disability or source of income, or why someone is moving, and the assistant never steers callers toward or away from an area (fair housing).';
   const isRealEstate = cfg => !!(cfg && cfg.business && cfg.business.niche === 'real_estate');
   const reLabel = k => (RE_QUESTIONS.find(q => q[0] === k) || [k, k])[1];
   function screeningHtml(cfg) {

@@ -334,29 +334,30 @@ async function main() {
     ok(reT.id === tenant.id, 'seedTenant({niche: real_estate}) upgrades the client’s tenant');
     await page.goto(BASE + '/start/?r=5#receptionist', { waitUntil: 'load' }); await page.waitForSelector('#rxPause');
     await page.$eval('#setScreen', x => { x.open = true; });
-    ok((await page.$$('#rxre_list .qreq')).length === 8 && (await page.$$('#rxre_list input[type=checkbox]:checked')).length === 8, 'screening card: 8 questions, all asked');
+    ok((await page.$$('#rxre_list .qreq')).length === 7 && (await page.$$('#rxre_list input[type=checkbox]:checked')).length === 7, 'screening card: 7 questions, all asked (no motivation question)');
+    ok(!/prompting the move/i.test(await page.$eval('#setScreen', e => e.innerText)), 'screening card: never asks why someone is moving');
     const reLabels = await page.$eval('#setScreen', e => e.innerText);
     ok(/Buying, selling or renting\?/.test(reLabels) && /Pre-approved for a mortgage\? \(buyers\)/.test(reLabels) && /Already working with an agent\?/.test(reLabels), 'screening card: plain-language labels');
-    ok(/race, religion, national origin, family status or disability/.test(reLabels) && /fair housing/.test(reLabels), 'screening card: fair-housing note');
+    ok(/race or color, religion, national origin, sex, family status, disability or source of income/.test(reLabels) && /fair housing/.test(reLabels), 'screening card: fair-housing note');
     ok(await page.$eval('#rxre_agent', e => e.value) === 'Jenna Harper' && await page.$eval('#rxre_agent', e => e.getAttribute('maxlength')) === String(schema.$defs.RealEstate.properties.agent_name.maxLength), 'agent name shown, max length from the schema');
     ok(await page.$eval('[data-reup="intent"]', b => b.disabled) && await page.$eval('[data-redown="has_agent"]', b => b.disabled), 'first row cannot move up, last cannot move down');
     // at least one question
     await page.$$eval('#rxre_list input[type=checkbox]', cs => cs.forEach(c => { c.checked = false; }));
     await page.$eval('[data-rxsave="screen"]', b => b.click()); await sleep(150);
     ok(/Keep at least one question/.test(await page.$eval('#rxMsg_screen', e => e.innerText)), 'screening: at least one question required');
-    ok((await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate.screening.length === 8, 'screening: refused form saved nothing');
+    ok((await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate.screening.length === 7, 'screening: refused form saved nothing');
     await page.$$eval('#rxre_list input[type=checkbox]', cs => cs.forEach(c => { c.checked = true; }));
-    // uncheck Timeline, move "Already working with an agent?" to the top (7 clicks), take rental leads
+    // uncheck Timeline, move "Already working with an agent?" to the top (6 clicks), take rental leads
     await page.$eval('#rxre_q_timeline', c => { c.checked = false; });
-    for (let i = 0; i < 7; i++) await page.click('[data-reup="has_agent"]');
-    ok((await page.$$eval('#rxre_list .qreq', rs => rs.map(r => r.dataset.rek))).join() === 'has_agent,intent,area,timeline,price_range,pre_approval,property_address,motivation', 'move up reorders the list');
+    for (let i = 0; i < 6; i++) await page.click('[data-reup="has_agent"]');
+    ok((await page.$$eval('#rxre_list .qreq', rs => rs.map(r => r.dataset.rek))).join() === 'has_agent,intent,area,timeline,price_range,pre_approval,property_address', 'move up reorders the list');
     ok(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-redown') === 'has_agent'), 'focus moves to the row’s other arrow when up is no longer possible');
     ok(!(await page.$eval('#rxre_q_timeline', c => c.checked)), 'unchecked question stays unchecked after reordering');
     await page.$eval('#rxre_renters', c => { c.checked = true; });
     await setVal(page, '#rxre_agent', '  Jenna Harper  ');
     await page.$eval('[data-rxsave="screen"]', b => b.click()); await sleep(300);
     let re = (await db(page)).tenants.find(x => x.id === tenant.id).config.real_estate;
-    ok(re.screening[0] === 'has_agent' && re.screening.indexOf('timeline') === -1 && re.screening.length === 7, 'screening saved: has_agent first, timeline skipped');
+    ok(re.screening[0] === 'has_agent' && re.screening.indexOf('timeline') === -1 && re.screening.length === 6, 'screening saved: has_agent first, timeline skipped');
     ok(re.renters === true && re.agent_name === 'Jenna Harper', 'renters + trimmed agent name saved');
     ok(re.follow_up_boss && re.follow_up_boss.enabled === false && re.meetings && typeof re.meetings === 'object', 'follow_up_boss + meetings kept (one-level merge, never sent by the portal)');
     ok((await db(page)).events.filter(e => e.type === 'settings_updated' && e.entity_id === tenant.id).pop().payload.fields.join() === 'real_estate', 'settings_updated logs only real_estate');

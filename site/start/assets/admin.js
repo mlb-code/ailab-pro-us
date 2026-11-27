@@ -134,7 +134,7 @@
 
   // ------------------------------------------------------------ config
   // content-hash versions, filled in by tools/asset_version.py (no stale copy of the config after a deploy)
-  const AV = /*asset-v*/{"/assets/brand.json":"1834018b68","/assets/pricebook.json":"024d5191c3","/assets/pricing.mjs":"c1b9f9ffc0"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/brand.json":"1834018b68","/assets/pricebook.json":"d5a6684ad1","/assets/pricing.mjs":"c1b9f9ffc0"}/*/asset-v*/;
   const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   async function loadConfig() {
     const get = async u => { const r = await fetch(vurl(u), { cache: 'no-cache' }); if (!r.ok) throw new Error('config ' + r.status); return r.json(); };

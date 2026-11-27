@@ -1,5 +1,5 @@
 {
- "7461fb9c806bb727d0233df9": {
+ "08ce3bc41c8730044445c7a5": {
   "request": {
    "last_message": {
     "content": [
@@ -25,12 +25,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1135,
+    "input_tokens": 1277,
     "output_tokens": 22
    }
   }
  },
- "798c4a081b6ff4d0a1ba1f4f": {
+ "0ead2e7bcee57bb26912d72c": {
   "request": {
    "last_message": {
     "content": [
@@ -56,7 +56,6 @@
       "email": null,
       "has_agent": "no",
       "intent": "buyer",
-      "motivation": null,
       "name": null,
       "pre_approval": "pre_approved",
       "price_range": "500k",
@@ -69,18 +68,18 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1247,
-    "output_tokens": 76
+    "input_tokens": 1389,
+    "output_tokens": 71
    }
   }
  },
- "c940fdb8eaf75f30d1a873c2": {
+ "11ba8b91c82abf3e092d6f40": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_005",
+      "content": "{\"meeting_type\": \"Buyer consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_003",
       "type": "tool_result"
      }
     ],
@@ -91,18 +90,52 @@
   "response": {
    "content": [
     {
-     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "id": "toolu_mock_005",
+     "input": {
+      "date_from": null,
+      "job_type": "Buyer consultation",
+      "zip": "78702"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1534,
+    "output_tokens": 38
+   }
+  }
+ },
+ "28263c1717561afa8be81b5b": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1543,
-    "output_tokens": 31
+    "input_tokens": 1910,
+    "output_tokens": 25
    }
   }
  },
- "d5cf6d7bde2e8c965442e4f9": {
+ "32b4f04bffc399085f66c1ff": {
   "request": {
    "last_message": {
     "content": [
@@ -138,18 +171,18 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1652,
+    "input_tokens": 1789,
     "output_tokens": 71
    }
   }
  },
- "db1ad2cc90ee504674e6df85": {
+ "648381cd39b749275bfada8c": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_005",
       "type": "tool_result"
      }
     ],
@@ -160,48 +193,14 @@
   "response": {
    "content": [
     {
-     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1773,
-    "output_tokens": 25
-   }
-  }
- },
- "e87ad9091a052a4ccdf1050d": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"meeting_type\": \"Buyer consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"pre_approval\", \"price_range\", \"timeline\"]}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_005",
-     "input": {
-      "date_from": null,
-      "job_type": "Buyer consultation",
-      "zip": "78702"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1397,
-    "output_tokens": 38
+    "input_tokens": 1680,
+    "output_tokens": 31
    }
   }
  }

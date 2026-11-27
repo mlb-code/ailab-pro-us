@@ -43,7 +43,7 @@
     "paused": false,
     "real_estate": {
       "agent_name": "Jenna Harper",
-      "screening": ["intent", "area", "timeline", "price_range", "pre_approval", "property_address", "motivation", "has_agent"],
+      "screening": ["intent", "area", "timeline", "price_range", "pre_approval", "property_address", "has_agent"],
       "renters": false,
       "meetings": {"buyer": "Buyer consultation", "seller": "Listing consultation", "showing": "Home showing", "renter": "Rental consultation"},
       "follow_up_boss": {"enabled": false, "source": "", "assigned_to": ""}

@@ -1,33 +1,5 @@
 {
- "107f91928f0a4bba2f643014": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1288,
-    "output_tokens": 21
-   }
-  }
- },
- "1db5fe258d1bff66d6d01ae2": {
+ "19f447dedc8675e014c54bd9": {
   "request": {
    "last_message": {
     "content": [
@@ -50,12 +22,47 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1133,
+    "input_tokens": 1228,
     "output_tokens": 19
    }
   }
  },
- "715950d49e3c1f770e28de42": {
+ "78846da0f719236b960b4580": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Thanks",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1318,
+    "output_tokens": 26
+   }
+  }
+ },
+ "7ee1175d14b45b3cd8b9cf62": {
   "request": {
    "last_message": {
     "content": [
@@ -91,47 +98,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1008,
+    "input_tokens": 1103,
     "output_tokens": 75
    }
   }
  },
- "9f1c29cbcf2a726f405241c8": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Thanks",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_009",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1223,
-    "output_tokens": 26
-   }
-  }
- },
- "a93bdc451f777dc42ebfc91e": {
+ "b5ca7a3b42322cc984984fab": {
   "request": {
    "last_message": {
     "content": [
@@ -163,12 +135,40 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 738,
+    "input_tokens": 833,
     "output_tokens": 37
    }
   }
  },
- "cf146906fa3845731840e8ff": {
+ "ca633828d878787f0302d23d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1383,
+    "output_tokens": 21
+   }
+  }
+ },
+ "e3d13c9397ab59beb2f39832": {
   "request": {
    "last_message": {
     "content": [
@@ -191,7 +191,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 884,
+    "input_tokens": 979,
     "output_tokens": 34
    }
   }

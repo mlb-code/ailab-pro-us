@@ -40,12 +40,11 @@ class RE_LEAD:
         "price_range": "Do you have a price range in mind?",
         "pre_approval": "Are you pre-approved for a mortgage, paying cash, or not there yet?",
         "property_address": "What's the address of the property?",
-        "motivation": "What's prompting the move?",
         "has_agent": "Are you already working with an agent?",
     }
     STEP_KEY = (("buying, selling", "intent"), ("area, neighborhood", "area"), ("timeline", "timeline"),
                 ("price range", "price_range"), ("pre-approved", "pre_approval"), ("property address", "property_address"),
-                ("why they are selling", "motivation"), ("working with an agent", "has_agent"))
+                ("working with an agent", "has_agent"))
     INTENT = [(re.compile(r"\b(rent|renting|lease|apartment for rent)\b", re.I), "renter"),
               (re.compile(r"\b(sell|selling|list my|worth|home value|what.s my (house|home))\b", re.I), "seller"),
               (re.compile(r"\b(buy|buying|purchase|look(ing)? for a (house|home|place)|see|showing|tour|still available|house hunt\w*|relocat\w+)\b", re.I), "buyer")]
@@ -58,14 +57,13 @@ class RE_LEAD:
            (re.compile(r"\b(not (yet|pre[- ]?approved)|no pre[- ]?approval|haven'?t talked to a (bank|lender)|need a lender)\b", re.I), "not_yet")]
     AGENT = [(re.compile(r"\b(not|no|without|don'?t have)( an| a)?( other)? (agent|realtor)|\bno,? (not yet|i'?m not)\b|\bnot working with\b", re.I), "no"),
              (re.compile(r"\b(already )?(working|signed) with (an|my|another|a) (agent|realtor)|\bhave an agent\b|\bmy agent\b", re.I), "yes")]
-    MOTIVE = re.compile(r"\b(relocat\w+|downsiz\w+|upsiz\w+|divorce|inherit\w+|job (change|transfer|offer)|new job|retir\w+|growing family|need more space|moving (closer|out of state|for work))\b", re.I)
 
     @classmethod
     def step_key(cls, step: str, intent: str | None) -> str | None:
         key = next((k for needle, k in cls.STEP_KEY if needle in step), None)
         if key in ("pre_approval",) and intent != "buyer":
             return None
-        if key in ("property_address", "motivation") and intent != "seller":
+        if key == "property_address" and intent != "seller":
             return None
         if key == "price_range" and intent == "seller":
             return None
@@ -99,11 +97,15 @@ class RE_LEAD:
             if rx.search(text):
                 out["has_agent"] = v
                 break
-        if m := cls.MOTIVE.search(text):
-            out["motivation"] = m.group(0)
         if m := re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", text):
             out["email"] = m.group(0)
         return out
+# a caller who says they are a young child (brain.CHILD_RULE: under 13 -> no personal details, parent / call back)
+_YOUNG = r"([1-9]|1[0-2]|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
+CHILD = re.compile(rf"\b(i'?m|i am|im)( only)? {_YOUNG}( (years?|yrs?)[- ]old)?\b(?! ?(am|pm|minutes?|mins?|hours?|o'?clock|miles?|:))|"
+                   r"\b(i'?m|i am)( only)? (a kid|a little kid|a child)\b|\bi'?m in (\d|first|second|third|fourth|fifth|sixth) grade\b", re.I)
+CHILD_REPLY = ("Thanks for reaching out. Please ask a parent or guardian to call us, or our team can call this number back. "
+               "I've let the team know.")
 MOVE = re.compile(r"\b(move|reschedule|change|push)\b", re.I)
 CANCEL_APPT = re.compile(r"\bcancel\b", re.I)
 YES = re.compile(r"\b(yes|yeah|yep|sure|please do|go ahead|correct|that'?s right)\b", re.I)
@@ -179,6 +181,23 @@ class MockBrain:
         return resp
 
     # --- the rules -----------------------------------------------------------------------
+    def _child(self, n: int, system: str, customer: list[str], results: list[tuple[str, dict]],
+               last: Any) -> dict[str, Any] | None:
+        """brain.CHILD_RULE: a young child gets no questions about personal details; one take_message with only the
+        need, marked "child caller", then the parent / call-back line."""
+        if "under 13" not in system or not any(CHILD.search(t) for t in customer):
+            return None
+        if any(name == "take_message" for name, _ in results):
+            if isinstance(last, list) and any(b.get("type") == "tool_result" for b in last):
+                return self._reply(CHILD_REPLY)
+            return self._tool(n, "end_conversation", {"outcome": "message"}) if BYE.match(customer[-1]) else \
+                self._reply("Please ask a parent or guardian to call us. Goodbye for now.")
+        need = next((t for t in customer if INTENT.search(t)), customer[0])
+        need = re.sub(r"\b(my name is|this is)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?", "", need)
+        need = ADDRESS.sub("", need).strip(" ,.")
+        return self._tool(n, "take_message", {"summary": f"Child caller (under 13), no personal details taken: {need[:150]}",
+                                              "urgency": "normal", "name": None, "address": None, "job_type": None})
+
     def _decide(self, req: dict[str, Any]) -> dict[str, Any]:
         system: str = req.get("system", "")
         messages: list[dict[str, Any]] = req.get("messages", [])
@@ -207,6 +226,8 @@ class MockBrain:
         ctx = " ".join(t for m in messages if m["role"] == "user" for t in _texts(m.get("content") or [])
                        if t.startswith("[context]"))
         last = messages[-1]["content"] if messages else []
+        if (r := self._child(n, system, customer, results, last)):
+            return r
         if "LEAD SCREENING" in system:
             return self._real_estate(n, system, messages, results, customer, tool_names, job_types)
         if isinstance(last, list) and any(b.get("type") == "tool_result" for b in last):
@@ -376,7 +397,7 @@ class MockBrain:
             if key and key not in lead:
                 return self._reply(RE_LEAD.QUESTIONS[key])
         return self._tool(n, "qualify_lead", {k: lead.get(k) for k in ("intent", "area", "timeline", "price_range", "pre_approval",
-                                                                       "property_address", "motivation", "has_agent", "name", "email")})
+                                                                       "property_address", "has_agent", "name", "email")})
     # --- appointment manager (find / move / cancel the caller's own booking; returning-caller greeting) ----------
     def _manage(self, n: int, messages: list[dict[str, Any]], tool_names: dict[str, str], results: list[tuple[str, dict]],
                 customer: list[str], ctx: str) -> dict[str, Any] | None:

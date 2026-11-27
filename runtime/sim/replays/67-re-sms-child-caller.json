@@ -1,0 +1,69 @@
+{
+ "5b00025198231bb76db71aee": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: I'm 10 and I want to know if you sell houses in Mueller",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "address": null,
+      "job_type": null,
+      "name": null,
+      "summary": "Child caller (under 13), no personal details taken: I'm 10 and I want to know if you sell houses in Mueller",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1402,
+    "output_tokens": 68
+   }
+  }
+ },
+ "635f4c6b8645ee0d4544c502": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks for reaching out. Please ask a parent or guardian to call us, or our team can call this number back. I've let the team know.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1509,
+    "output_tokens": 40
+   }
+  }
+ }
+}

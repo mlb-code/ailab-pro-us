@@ -14,9 +14,10 @@ Card **Lead screening questions**. The client edits, and the portal saves throug
 | Questions | 8 fixed questions, each with a checkbox (ask / skip) and up/down arrows. **The list order is the order the assistant asks.** At least one question must stay on. | `real_estate.screening` (array of the question keys, no duplicates, max 8) |
 | Rental leads | "Also take rental leads" | `real_estate.renters` |
 
-The 8 questions and their keys: Buying, selling or renting? (`intent`) · Which area or property? (`area`) · Timeline
+The 7 questions and their keys: Buying, selling or renting? (`intent`) · Which area or property? (`area`) · Timeline
 (`timeline`) · Price range / budget (`price_range`) · Pre-approved for a mortgage? (`pre_approval`) · Property address
-(`property_address`) · What's prompting the move? (`motivation`) · Already working with an agent? (`has_agent`).
+(`property_address`) · Already working with an agent? (`has_agent`). ("What's prompting the move?" (`motivation`) was
+retired on 2026-11-27 for fair housing: a saved config that still lists it validates, and the runtime drops it on load.)
 
 The card carries a fair-housing note: the assistant never asks about race, religion, national origin, family status
 or disability, and never steers callers toward or away from an area. The question list is fixed for that reason —
