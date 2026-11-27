@@ -12,6 +12,9 @@
 |---|---|
 | Call transcripts, summaries, caller number (`from_e164`) | cleared after 90 days (row kept: outcome, duration, cost; no number hash — a hashed US number is reversible) |
 | SMS messages | deleted after 90 days |
+| Runtime conversation state (`runtime_state` `convo:%`: transcript, Claude history, collected name/address/number) | deleted 90 days after the last write (`20261129100000_us_retention_runtime_state.sql`, test `retention_runtime_state_test.sql`) |
+| Per-caller runtime state (`lookup:%`, `lang:%`, `textback:%`, `safetextback:%`, `limit:%`, `review:%`) | deleted 90 days after the last write; SMS thread counters, usage/spend counters and idempotency flags are kept |
+| Runtime events that copy caller details (`zapier.pending`, `alert.pending`, `zapier.dead_letter`, `email.outbox`, `sms.outbox`; actor `runtime`) | deleted after 90 days; other events (activity log, `appointment.*` for monthly Results, admin actions) are kept |
 | Bookings | deleted 2 years after the job date |
 | Consent log (`sms_consent`: texting consent at booking, opt-outs/opt-ins, missed-call text notice; legal v1.1) | kept **5 years**, then deleted. Not part of the 90-day cleanup and **not** deleted when a client is anonymised (`tenant_id` has no FK on purpose). Admin-only read; written by the runtime (service role). |
 | Cancelled client, 30 days after `ended_at` | `private.anonymize_client()`: **personal + operational data deleted** — tenant (→ calls/SMS/bookings/opt-outs/credentials), onboarding items, requests (+ attachments), **every `private.quote_drafts` row** of the client's quotes (Claude raw output), **every `admin_notes` row on the client's entities** (client, its quotes, questionnaires, tenants, requests, leads with the same e-mail). If the user has no other live client and is not admin: also the user's events, unaccepted quotes, leads with the same e-mail and the auth user (→ profile, questionnaires, attachments). |

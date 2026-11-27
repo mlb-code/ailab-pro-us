@@ -1,103 +1,5 @@
 {
- "0fffb29661b689e3fad89954": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: The second one please",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_009",
-     "input": {
-      "booking_id": "B1",
-      "slot_id": "2026-10-13T12:00-16:00"
-     },
-     "name": "reschedule_booking",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1367,
-    "output_tokens": 36
-   }
-  }
- },
- "416c38a3504d7ad03a905b25": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1453,
-    "output_tokens": 22
-   }
-  }
- },
- "ad698a03fe2bde74a8327601": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"Maintenance\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77019\"}], \"ok\": true}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_005",
-     "input": {
-      "date_from": null,
-      "job_type": "Maintenance",
-      "zip": "77019"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1137,
-    "output_tokens": 36
-   }
-  }
- },
- "cb641c469136a6fcd21cf81f": {
+ "0323953895dd055f6f49f791": {
   "request": {
    "last_message": {
     "content": [
@@ -128,12 +30,48 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1036,
+    "input_tokens": 1055,
     "output_tokens": 28
    }
   }
  },
- "d08b0b98fa41a3812d04a532": {
+ "58fdd309faa2d592c401eba1": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The second one please",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_009",
+     "input": {
+      "booking_id": "B1",
+      "slot_id": "2026-10-13T12:00-16:00"
+     },
+     "name": "reschedule_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1386,
+    "output_tokens": 36
+   }
+  }
+ },
+ "5d177a0e6f13f9056c6c1415": {
   "request": {
    "last_message": {
     "content": [
@@ -159,12 +97,46 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 933,
+    "input_tokens": 952,
     "output_tokens": 25
    }
   }
  },
- "f89dabf6faf2591087435588": {
+ "bfed087788aa589f4b8d89b5": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"Maintenance\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77019\"}], \"ok\": true}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "date_from": null,
+      "job_type": "Maintenance",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1157,
+    "output_tokens": 36
+   }
+  }
+ },
+ "d761d1a48edb9a49b4cae0d7": {
   "request": {
    "last_message": {
     "content": [
@@ -187,8 +159,36 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1260,
+    "input_tokens": 1280,
     "output_tokens": 32
+   }
+  }
+ },
+ "e5521fba71d3213279d38ea2": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1472,
+    "output_tokens": 22
    }
   }
  }

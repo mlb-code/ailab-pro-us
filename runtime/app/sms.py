@@ -7,6 +7,7 @@ so quiet hours do not apply), at most 320 characters. Messages are logged in `sm
 (Twilio retries of the same MessageSid are ignored), segments count toward monthly usage, and a
 booking queues one reminder 24 h before the visit. Proactive messages (text-back, reminder,
 booking confirmation after a call) go through `app.sms_outbound.Outbound`.
+SMS_ENABLED off (production default until A2P 10DLC): no TwiML reply at all (`_inbound_sms_off`).
 """
 from __future__ import annotations
 
@@ -56,6 +57,8 @@ def handle_inbound(rt: Runtime, form: dict[str, str]) -> str:
         ts.opt_out(contact, "sms", body)  # Twilio Advanced Opt-Out already confirmed it: stay silent
         rt.dispatcher.note_opt_out(tenant, contact, now)
         return ""
+    if not getattr(rt.settings, "sms_enabled", False):
+        return _inbound_sms_off(rt, tenant, ts, contact, sid, body, now)
     if body.strip() == "1" and rt.dispatcher.ack_sms(tenant, contact, now):  # staff: "I'm handling the alert"
         hooks.record_sms(rt.store, rt.state, tenant, twilio_sid=None, contact_e164=contact, direction="outbound",
                          body=SMS_ACK_TEXT, segments=guard.sms_segments(SMS_ACK_TEXT))
@@ -80,6 +83,28 @@ def handle_inbound(rt: Runtime, form: dict[str, str]) -> str:
                          body=reply, segments=guard.sms_segments(reply),
                          claude_cost_usd=res.cost_usd, guard_rules=res.guard)
     return reply
+
+
+def _inbound_sms_off(rt: Runtime, tenant, ts, contact: str, sid: str, body: str, now) -> str:
+    """SMS_ENABLED off (no A2P 10DLC campaign yet): an inbound text gets NO reply from us (a TwiML reply is an outbound
+    message too). The message is already logged; an opt-out (STOP, or a sentence asking not to be texted) and a START
+    are still recorded so they hold once texting is switched on. Carrier-required STOP/HELP auto-replies on US long
+    codes come from Twilio itself (default opt-out handling / Advanced Opt-Out), not from this code. Anything else
+    becomes one e-mail lead alert to the owner per SMS thread, so a customer who texts is not lost. No Claude."""
+    kw = guard.sms_keyword(body)
+    if kw == "stop" or guard.wants_no_texts(body):
+        ts.opt_out(contact, "sms", body)
+        rt.dispatcher.note_opt_out(tenant, contact, now)
+    elif kw == "start" and ts.is_opted_out(contact):
+        ts.opt_in(contact, "sms", body)
+    elif kw != "help" and body.strip() and not ts.is_opted_out(contact):
+        convo_id = thread_id(rt.state, tenant, contact, now)
+        rt.deliver(tenant, [{"type": "alert", "kind": "lead", "urgency": "normal", "contact": contact, "channel": "sms",
+                             "convo_id": convo_id,
+                             "summary": f"Text message received (texting is off, no reply was sent): {body.strip()[:240]}"}],
+                   convo_id)
+    ts.log_event("sms.not_replied", {"message_sid": sid, "reason": "sms_disabled"})
+    return ""
 
 
 @router.post("/sms/incoming")

@@ -2,10 +2,10 @@
 -- Success = message starts with PADDLE_TESTS_PASSED. Offline: deno run -A --node-modules-dir=none supabase/tests/offline/paddle_run.ts
 do $$
 declare
-  ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); uc uuid := gen_random_uuid();
+  ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); uc uuid := gen_random_uuid(); ud uuid := gen_random_uuid(); cd uuid;
   r jsonb; ref_a text; ref_b text; ca uuid; n int; c int := 0; s public.subscriptions; consent constant text := 'I agree to the Terms of Service and the Service Agreement v2.0.';
 begin
-  insert into auth.users (id, email) values (ua, 'pad-a@example.com'), (ub, 'pad-b@example.com'), (uc, 'pad-c@example.com');
+  insert into auth.users (id, email) values (ua, 'pad-a@example.com'), (ub, 'pad-b@example.com'), (uc, 'pad-c@example.com'), (ud, 'pad-d@example.com');
   update public.profiles set company = 'Paddle HVAC', phone = '(713) 555-0142' where id = ua;
   update public.profiles set company = 'Second Try HVAC', phone = '(713) 555-0142' where id = ub;
 
@@ -91,6 +91,45 @@ begin
 
   perform public.billing_paddle_alert('sub_01paddletest0000000000000a', 'unknown_price', 'pri_x');
   if not exists (select 1 from public.events e where e.type = 'paddle_alert' and e.entity_id = ca) then raise exception 'FAIL alert event'; end if; c := c + 1;
+
+  -- ---------------------------------------------------------------- webhook order (20261129100100_us_paddle_link_transactions.sql)
+  -- "Start paid plan": the charges arrive BEFORE subscription.created wrote the row -> stored unlinked; the link RPC (called
+  -- by paddle-webhook after every subscription event) stamps the client and starts the money-back window from the earliest
+  -- charge > 0.
+  r := public.billing_paddle_transaction('txn_01dzero', 'sub_01paddletest0000000000000d', 'completed', 'web', 0, 'USD', now() - interval '2 hours', now());
+  r := public.billing_paddle_transaction('txn_01dearly', 'sub_01paddletest0000000000000d', 'completed', 'web', 4900, 'USD', now() - interval '1 hour', now());
+  r := public.billing_paddle_transaction('txn_01dlate', 'sub_01paddletest0000000000000d', 'completed', 'subscription_recurring', 4900, 'USD', now(), now());
+  if (r ->> 'known_subscription')::boolean or (r ->> 'first_paid')::boolean then raise exception 'FAIL setup: early transaction linked %', r; end if;
+  r := public.billing_paddle_link_transactions('sub_01paddletest0000000000000d');
+  if (r ->> 'linked')::int <> 0 or (r ->> 'first_paid')::boolean then raise exception 'FAIL link before the row exists %', r; end if; c := c + 1;
+  r := public.billing_upsert_subscription('paddle', 'sub_01paddletest0000000000000d', 'active', 'FR_STARTER', ud, 'ctm_01testd',
+    null, now() - interval '1 hour', now() + interval '30 days', false, true, null, null, now(), '+13125550160');
+  cd := (r ->> 'client_id')::uuid;
+  if cd is null then raise exception 'FAIL paid-start upsert %', r; end if;
+  begin perform public.billing_paddle_money_back_target(cd); raise exception 'FAIL money-back open before the link';
+  exception when sqlstate 'P0001' then if sqlerrm <> 'money_back_window_closed' then raise; end if; end; c := c + 1;
+  r := public.billing_paddle_link_transactions('sub_01paddletest0000000000000d');
+  if (r ->> 'linked')::int <> 3 or not (r ->> 'first_paid')::boolean then raise exception 'FAIL link %', r; end if; c := c + 1;
+  select * into s from public.subscriptions where client_id = cd;
+  if s.first_paid_transaction_id is distinct from 'txn_01dearly' or s.first_paid_at > now() - interval '50 minutes'
+     or s.first_paid_at < now() - interval '70 minutes' then raise exception 'FAIL first paid from the earliest charge %', to_jsonb(s); end if; c := c + 1;
+  if exists (select 1 from private.paddle_transactions t where t.provider_subscription_id = 'sub_01paddletest0000000000000d'
+              and t.client_id is distinct from cd) then raise exception 'FAIL transactions not stamped with the client'; end if; c := c + 1;
+  if (public.billing_paddle_money_back_target(cd)) ->> 'transaction_id' <> 'txn_01dearly' then raise exception 'FAIL money-back target after link'; end if; c := c + 1;
+  r := public.billing_paddle_link_transactions('sub_01paddletest0000000000000d');
+  if (r ->> 'linked')::int <> 0 or (r ->> 'first_paid')::boolean then raise exception 'FAIL link not idempotent %', r; end if;
+  if (select first_paid_transaction_id from public.subscriptions where client_id = cd) <> 'txn_01dearly' then raise exception 'FAIL link moved first paid'; end if; c := c + 1;
+  if not exists (select 1 from public.events e where e.type = 'paddle_transactions_linked' and e.entity_id = cd) then
+    raise exception 'FAIL link event'; end if; c := c + 1;
+  -- A's trial: the first paid date set earlier is never moved by a link
+  r := public.billing_paddle_link_transactions('sub_01paddletest0000000000000a');
+  if (r ->> 'first_paid')::boolean then raise exception 'FAIL link moved A''s first paid %', r; end if; c := c + 1;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', ud, 'role', 'authenticated')::text, true);
+  begin perform public.billing_paddle_link_transactions('sub_01paddletest0000000000000d'); raise exception 'FAIL client ran the link';
+  exception when insufficient_privilege then null; end; c := c + 1;
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
 
   -- ---------------------------------------------------------------- the same business phone: no second trial, paid start allowed
   perform set_config('role', 'authenticated', true);

@@ -12,7 +12,8 @@ recipient) remembered in `runtime_state`; a retry of the same turn sends nothing
 Failures are logged in `events` (`notify.failed`) and never raise into the call/SMS flow.
 
 Owner = the client's alert contacts (`notify.sms`, `notify.email`). Lead alerts and usage alerts
-(80% / 100%, e-mail + SMS) are operational and always go out. Only the daily summary and the monthly
+(80% / 100%, e-mail + SMS) are operational and always go out; the SMS copies only with SMS_ENABLED on (off: e-mail
+only, and a lead alert for a client with no alert e-mail goes to the account e-mail, see `_lead`). Only the daily summary and the monthly
 report wait for `client_emails_enabled` (SPEC 5: off until Meir approves the copy); they are still
 generated and stored for the portal. Owner-alert SMS are written to `sms_messages` and counted in
 `usage:<tenant>:<month>:owner_sms_segments`, separately from the client's included usage. Meir's notices: English, 08:00-23:00 in the admin timezone (brand.json owner.timezone); outside those hours
@@ -51,6 +52,8 @@ class NotifyPolicy:
     admin_email: str = ""
     admin_tz: str = "UTC"  # real value: brand.json owner.timezone
     admin_hours: tuple[int, int] = (8, 23)
+    # SMS_ENABLED (settings.sms_enabled): off = no owner SMS at all; owner alerts go by e-mail only (`_owner_sms`)
+    sms_enabled: bool = False
 
     @classmethod
     def from_env(cls, settings: Any, env: dict[str, str] | None = None) -> "NotifyPolicy":
@@ -60,7 +63,8 @@ class NotifyPolicy:
         enabled = (flag.lower() in ("1", "true", "yes")) if flag else bool(getattr(settings, "is_sim", False))
         return cls(client_emails_enabled=enabled,
                    admin_email=env.get("ADMIN_EMAIL") or str(owner.get("admin_email") or ""),
-                   admin_tz=str(owner.get("timezone") or "UTC"))
+                   admin_tz=str(owner.get("timezone") or "UTC"),
+                   sms_enabled=bool(getattr(settings, "sms_enabled", False)))
 
 
 def _h(v: str) -> str:
@@ -90,6 +94,11 @@ def lead_from(convo: Any, action: dict[str, Any] | None = None) -> dict[str, Any
             "summary": m.get("summary") or action.get("summary") or "",
             "channel": getattr(convo, "channel", "") or action.get("channel", ""),
             "transcript": list(getattr(convo, "transcript", None) or [])}
+    if meta.get("transcript_withheld"):  # recording objection: name + phone only (ConversationEngine._withhold_transcript)
+        from ..guard import RECORDING_DECLINED_SUMMARY
+        lead.update(email="", qualification={}, address="", job_type="", summary=RECORDING_DECLINED_SUMMARY,
+                    transcript=[], recording_declined=True)
+        return lead
     if b.get("start") and b.get("end"):
         lead["booking"] = {"start": b["start"], "end": b["end"]}
         lead["booking_label"] = slot_label(datetime.fromisoformat(b["start"]), datetime.fromisoformat(b["end"]))
@@ -195,6 +204,8 @@ class Notifier:
         key = f"{kind}:{idem}"
         out = self._owner_email(tenant, "lead_alert", subject, text, html, key)
         out += self._owner_sms(tenant, "lead_alert", sms, key)
+        if not self.policy.sms_enabled and not tenant.config.notify.email:
+            out += self._lead_email_fallback(tenant, subject, text, html, key)
         if self.zapier:
             data = {k: lead.get(k) for k in ("name", "phone", "address", "job_type", "urgency", "summary", "channel")}
             data["kind"] = kind
@@ -205,6 +216,19 @@ class Notifier:
                 out.append({"channel": "zapier", "event": "booking.created",
                             **self.zapier.emit(tenant, "booking.created", idem, {**data, **lead["booking"]})})
         return out
+
+    def _lead_email_fallback(self, tenant: TenantRecord, subject: str, text: str, html: str,
+                             key: str) -> list[dict[str, Any]]:
+        """SMS_ENABLED off and the client's alert contacts are SMS numbers only: the lead goes to the account e-mail
+        (store.account_email); with none, Meir gets a note (no caller details) so the lead is not silently lost."""
+        try:
+            acct = self.store.account_email(tenant.client_id) if tenant.client_id else None
+        except Exception:  # noqa: BLE001 - lookup problems fall through to the admin note
+            acct = None
+        if acct:
+            return self._owner_email(tenant, "lead_alert", subject, text, html, f"{key}:acct", to=[acct])
+        return self._admin("notify_failed", tenant, "Lead alert not delivered: texting is off and this client has no "
+                           "alert e-mail or account e-mail. Ask them for an alert e-mail.", self.clock(), key=f"noemail:{key}")
 
     # --- channels -------------------------------------------------------------------------------
     def _once(self, key: str) -> bool:
@@ -233,6 +257,9 @@ class Notifier:
         out = []
         if not tenant.config.notify.sms:
             return out
+        if not self.policy.sms_enabled:  # SMS_ENABLED off: the e-mail copy of the same alert is the owner's channel
+            self._event(tenant, "notify.skipped", {"channel": "sms", "tag": tag, "reason": "sms_disabled"})
+            return [{"channel": "sms", "tag": tag, "status": "skipped", "reason": "sms_disabled"}]
         if not tenant.twilio_number:
             self._event(tenant, "notify.skipped", {"channel": "sms", "tag": tag, "reason": "no_twilio_number"})
             return [{"channel": "sms", "tag": tag, "status": "skipped", "reason": "no_twilio_number"}]

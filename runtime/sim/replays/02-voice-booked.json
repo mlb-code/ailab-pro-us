@@ -1,5 +1,5 @@
 {
- "0aa8d6cf4800a258dd92761a": {
+ "5b9a56c74519bb45c6961595": {
   "request": {
    "last_message": {
     "content": [
@@ -22,49 +22,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1114,
+    "input_tokens": 1133,
     "output_tokens": 19
    }
   }
  },
- "6fec5e2cfdb3b7d2a5126cd1": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My furnace stopped working, I'm in 77019",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_001",
-     "input": {
-      "date_from": null,
-      "job_type": "Furnace repair",
-      "zip": "77019"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 719,
-    "output_tokens": 37
-   }
-  }
- },
- "7c191d89a2dd52ea6dfb334e": {
+ "7f07cffcf852584e6838deb2": {
   "request": {
    "last_message": {
     "content": [
@@ -100,12 +63,49 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 988,
+    "input_tokens": 1008,
     "output_tokens": 75
    }
   }
  },
- "f3c189d102655a3443b7e2ba": {
+ "a93bdc451f777dc42ebfc91e": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My furnace stopped working, I'm in 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "date_from": null,
+      "job_type": "Furnace repair",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 738,
+    "output_tokens": 37
+   }
+  }
+ },
+ "cf146906fa3845731840e8ff": {
   "request": {
    "last_message": {
     "content": [
@@ -128,7 +128,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 864,
+    "input_tokens": 884,
     "output_tokens": 34
    }
   }

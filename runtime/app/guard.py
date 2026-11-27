@@ -48,10 +48,13 @@ SMS_MAX_CHARS = 600
 SMS_REPLY_MAX = 320
 VOICE_MAX_SENTENCES = 2
 
-# Call disclosure (SA §8 item 2): played first on every AI-answered call, never removable. The version id goes
-# into the consent log with every text that relies on it.
-DISCLOSURE = "This call may be recorded and transcribed by us and our service providers, and we may text you about it."
-DISCLOSURE_VERSION = "2026-10-12"
+# Call disclosure (SA §8 item 2): played first on every AI-answered call, never removable. It says plainly that the
+# caller is speaking with an AI assistant (legal review 2026-11-27, 2.1: "virtual assistant" alone could be a remote
+# human), then the recording/transcription + texting notice. The version id goes into the consent log with every text
+# that relies on it.
+DISCLOSURE = ("You're speaking with an AI assistant. "
+              "This call may be recorded and transcribed by us and our service providers, and we may text you about it.")
+DISCLOSURE_VERSION = "2026-11-27"
 # Texting consent at booking (SA §8 item 3b). Voice asks about the confirmation + one reminder; by text the reply
 # itself is the confirmation, so only the reminder is asked about.
 CONSENT_PROMPT_VERSION = "2026-10-12"
@@ -74,6 +77,8 @@ def consent_no_voice(label: str | None, bye: bool = False) -> str:
 CONSENT_YES_SMS = "Great, we'll text you a reminder before the visit. Reply STOP to opt out."
 CONSENT_NO_SMS = "No problem, no reminder texts. Reply here if you need anything."
 VOICE_NO_TEXT_TEXT = "Got it, we won't text you. What else can I help you with?"
+# Webhooks / Zapier / CRM after a recording objection carry only name + phone and this line (`recording_declined`).
+RECORDING_DECLINED_SUMMARY = "Caller declined recording; please call them back."
 RECORDING_OBJECTION_TEXT = ("No problem. I'll stop here and won't keep a transcript of this call. "
                             "The team will call you back at the number you're calling from. Goodbye.")
 
@@ -83,7 +88,8 @@ HELP_WORDS = {"HELP", "INFO"}
 
 
 def robot_answer(business: str) -> str:
-    return f"I'm the virtual assistant for {business}. I can get you booked or take a message for the team."
+    """"Are you a human / a real person / a robot?": a direct answer, never "virtual assistant" alone."""
+    return f"I'm an AI assistant, not a person. I work for {business} and can get you booked or take a message for the team."
 
 
 def stop_confirmation(business: str, phone: str = "") -> str:
@@ -300,7 +306,8 @@ def language_fixed_reply(text: str, cfg: TenantConfig) -> str:
 
 
 # ---- ADD-ES: Spanish line (voice + SMS). English stays the default; these apply once a caller uses Spanish -----
-DISCLOSURE_ES = ("Esta llamada puede ser grabada y transcrita por nosotros y nuestros proveedores de servicio, y podemos "
+DISCLOSURE_ES = ("Está hablando con un asistente de IA (inteligencia artificial). "
+                 "Esta llamada puede ser grabada y transcrita por nosotros y nuestros proveedores de servicio, y podemos "
                  "enviarle mensajes de texto.")
 SPANISH_INVITE = "Para español, hable en español."
 STOP_WORDS_ES = {"PARAR", "ALTO", "CANCELAR", "DETENER", "BAJA", "NOMAS", "NOMÁS"}
@@ -335,7 +342,8 @@ def consent_no_voice_es(label: str | None, bye: bool = False) -> str:
 
 
 def robot_answer_es(business: str) -> str:
-    return f"Soy el asistente virtual de {business}. Puedo agendar su visita o tomar un mensaje para el equipo."
+    return (f"Soy un asistente de IA (inteligencia artificial), no una persona. Trabajo para {business} y puedo agendar "
+            "su visita o tomar un mensaje para el equipo.")
 
 
 def stop_confirmation_es(business: str, phone: str = "") -> str:

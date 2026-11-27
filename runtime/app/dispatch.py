@@ -392,7 +392,9 @@ class Dispatcher:
         return a
 
     def sms_enabled(self, tenant: TenantRecord) -> bool:
-        return bool(self.rt.settings.dispatch_sms_alerts and tenant.config.dispatch.sms_alerts)
+        # SMS_ENABLED (master switch) off = staff alerts are voice calls, whatever the dispatch flags say
+        return bool(getattr(self.rt.settings, "sms_enabled", False) and self.rt.settings.dispatch_sms_alerts
+                    and tenant.config.dispatch.sms_alerts)
 
     def send_round(self, tenant: TenantRecord, call_sid: str, attempt: int, now: datetime) -> dict[str, Any]:
         a = self.alert_state(tenant, call_sid)

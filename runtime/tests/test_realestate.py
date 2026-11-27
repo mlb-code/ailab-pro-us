@@ -143,10 +143,11 @@ def test_fair_housing_guard_lets_facts_through_and_ignores_home_services():
 # --- greeting ----------------------------------------------------------------------------------------------------
 def test_greeting_names_the_agent_and_keeps_the_notice():
     g = greeting(tenant_with())
-    assert g.startswith("Hi, this is Jenna Harper's virtual assistant at Maple & Main Realty, an AI. Sorry Jenna missed you!")
+    assert g.startswith("Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry Jenna missed you! "
+                        "You're speaking with an AI assistant.")
     assert guard.DISCLOSURE in g
     g2 = greeting(tenant_with(real_estate={"agent_name": ""}))
-    assert "the virtual assistant for Maple & Main Realty" in g2 and "Sorry we missed your call" in g2
+    assert "the assistant for Maple & Main Realty" in g2 and "Sorry we missed your call" in g2
 
 
 # --- owner alert + Zapier payload ---------------------------------------------------------------------------------

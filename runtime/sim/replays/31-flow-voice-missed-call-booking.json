@@ -1,15 +1,12 @@
 {
- "6fec5e2cfdb3b7d2a5126cd1": {
+ "107f91928f0a4bba2f643014": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My furnace stopped working, I'm in 77019",
-      "type": "text"
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
      }
     ],
     "role": "user"
@@ -19,59 +16,18 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_001",
-     "input": {
-      "date_from": null,
-      "job_type": "Furnace repair",
-      "zip": "77019"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
+     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
+   "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 719,
-    "output_tokens": 37
+    "input_tokens": 1288,
+    "output_tokens": 21
    }
   }
  },
- "9dd0d8a281a1310023ffb612": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Thanks",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_009",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1204,
-    "output_tokens": 26
-   }
-  }
- },
- "bdb83565239a9753c2582fd7": {
+ "1db5fe258d1bff66d6d01ae2": {
   "request": {
    "last_message": {
     "content": [
@@ -94,12 +50,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1114,
+    "input_tokens": 1133,
     "output_tokens": 19
    }
   }
  },
- "c28cffb382eaa0d303db1834": {
+ "715950d49e3c1f770e28de42": {
   "request": {
    "last_message": {
     "content": [
@@ -135,19 +91,22 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 988,
+    "input_tokens": 1008,
     "output_tokens": 75
    }
   }
  },
- "e8d1910c8389306808e3341b": {
+ "9f1c29cbcf2a726f405241c8": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Thanks",
+      "type": "text"
      }
     ],
     "role": "user"
@@ -157,18 +116,59 @@
   "response": {
    "content": [
     {
-     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
-     "type": "text"
+     "id": "toolu_mock_009",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
+   "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1269,
-    "output_tokens": 21
+    "input_tokens": 1223,
+    "output_tokens": 26
    }
   }
  },
- "f3c189d102655a3443b7e2ba": {
+ "a93bdc451f777dc42ebfc91e": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My furnace stopped working, I'm in 77019",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "date_from": null,
+      "job_type": "Furnace repair",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 738,
+    "output_tokens": 37
+   }
+  }
+ },
+ "cf146906fa3845731840e8ff": {
   "request": {
    "last_message": {
     "content": [
@@ -191,7 +191,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 864,
+    "input_tokens": 884,
     "output_tokens": 34
    }
   }

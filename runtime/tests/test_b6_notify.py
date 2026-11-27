@@ -58,7 +58,7 @@ class Ctx:
         self.zap = ZapierClient(self.store, self.state, "master-test-secret",
                                 http=httpx.Client(transport=httpx.MockTransport(self._zap)), sleep=lambda s: None)
         self.notifier = Notifier(self.store, self.state, self.email, TwilioSms(self.twilio), self.zap,
-                                 NotifyPolicy(client_emails_enabled=enabled, admin_email=ADMIN,
+                                 NotifyPolicy(sms_enabled=True, client_emails_enabled=enabled, admin_email=ADMIN,
                                                   admin_tz="Asia/Jerusalem"))
 
     def _zap(self, request):

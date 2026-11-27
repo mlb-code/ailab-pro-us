@@ -154,7 +154,7 @@ def cmd_selftest(_args) -> int:
 
     _, resp = sim.twilio.start_call(tenant.twilio_number, harness.CALLER)
     tw = parse_twiml(resp.text)
-    check(resp.status_code == 200 and (tw.relay_url or tw.gather) and "virtual assistant" in tw.text,
+    check(resp.status_code == 200 and (tw.relay_url or tw.gather) and "AI assistant" in tw.text,
           f"signed /voice/incoming answers with greeting ({'stream' if tw.relay_url else 'gather'})")
     check("transcribed" in tw.text, "greeting discloses transcription")
     bad = sim.twilio.post("/voice/incoming", sim.twilio.call_params(tenant.twilio_number, harness.CALLER, "CA1"), signed=False)

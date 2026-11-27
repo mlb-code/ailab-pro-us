@@ -172,7 +172,8 @@ class SafeMode:
         business (tenant tz, else Eastern) and the caller's area-code zone."""
         ts = self.rt.store.for_tenant(bt.id)
         quiet = not guard.in_window(guard.window_zones(bt.timezone, to), now, "textback")
-        reason = ("opted_out" if ts.is_opted_out(to) else "quiet_hours" if quiet
+        reason = ("sms_disabled" if not getattr(self.rt.settings, "sms_enabled", False)
+                  else "opted_out" if ts.is_opted_out(to) else "quiet_hours" if quiet
                   else "no_twilio_client" if self.rt.outbound.client is None else "")
         if reason:
             ts.log_event("sms.not_sent", {"kind": "safe_textback", "reason": reason})
@@ -189,6 +190,8 @@ class SafeMode:
 
     def sms(self, bt: BrokenTenant, form: dict[str, str], now: datetime) -> str:
         reply = self._sms_reply(bt, form, now)
+        if reply and not getattr(self.rt.settings, "sms_enabled", False):
+            return ""  # SMS_ENABLED off: logged, opt-outs recorded, Meir alerted; no reply leaves the line
         if reply:
             self.rt.store.for_tenant(bt.id).insert("sms_messages", {
                 "contact_e164": form.get("From", ""), "direction": "outbound", "body": reply, "twilio_sid": None})

@@ -3,7 +3,7 @@ kind: flow
 channel: voice
 steps:
   - call: {}
-    expect: {reply_contains: ["virtual assistant", "transcribed"]}
+    expect: {reply_contains: ["speaking with an AI assistant", "transcribed"]}
   - say: "My furnace stopped working, I'm in 77019"
     advance_seconds: 20
     expect: {reply_matches: ["12 PM to 4 PM"]}

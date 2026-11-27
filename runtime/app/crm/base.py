@@ -133,6 +133,8 @@ def build_lead(state: StateStore | None, tenant: Any, payload: dict[str, Any]) -
         "channel": channel,
         "convo_id": convo_id,
     }
+    if base.get("recording_declined"):  # recording objection: name + phone only (lead_from), flagged for the CRM
+        lead["recording_declined"] = True
     if base.get("booking"):
         b = base["booking"]
         lead["booking"] = {"start": b["start"], "end": b["end"], "label": base.get("booking_label")

@@ -1,97 +1,5 @@
 {
- "486cd84660271a274dae0d03": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Yes please",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_005",
-     "input": {
-      "booking_id": "B1",
-      "reason": null
-     },
-     "name": "cancel_booking",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1269,
-    "output_tokens": 29
-   }
-  }
- },
- "4e06dfcd6188d960ec1133f8": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Done. Your visit Monday Oct 12, 12 PM to 4 PM has been cancelled.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1349,
-    "output_tokens": 23
-   }
-  }
- },
- "a47274934056946140d45f7c": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"AC repair\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77005\"}], \"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I found your AC repair visit Monday Oct 12, 12 PM to 4 PM. Do you want me to cancel it?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1169,
-    "output_tokens": 29
-   }
-  }
- },
- "f52026c264c3a6eda6cb7229": {
+ "3d510e28499eba8d67dbb16a": {
   "request": {
    "last_message": {
     "content": [
@@ -122,8 +30,100 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1068,
+    "input_tokens": 1092,
     "output_tokens": 28
+   }
+  }
+ },
+ "3e191e32ed9d4d663b69b44c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Done. Your visit Monday Oct 12, 12 PM to 4 PM has been cancelled.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1373,
+    "output_tokens": 23
+   }
+  }
+ },
+ "98b862f5a620c896c67eb993": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"AC repair\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77005\"}], \"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I found your AC repair visit Monday Oct 12, 12 PM to 4 PM. Do you want me to cancel it?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1193,
+    "output_tokens": 29
+   }
+  }
+ },
+ "ab65bbd8b59b80647a425211": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Yes please",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "booking_id": "B1",
+      "reason": null
+     },
+     "name": "cancel_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1293,
+    "output_tokens": 29
    }
   }
  }
