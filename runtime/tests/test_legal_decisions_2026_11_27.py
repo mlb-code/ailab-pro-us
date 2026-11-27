@@ -230,3 +230,41 @@ def test_no_speaker_identification_is_switched_on_anywhere(tmp_path):
     sim = harness.build(tmp_path)
     _, r = sim.twilio.start_call(sim.tenant("demo-hvac").twilio_number, harness.CALLER)
     assert not re.search(r"diariz|speaker|biometric|voiceprint", r.text, re.I)
+
+
+# --- the legal documents (v2.2, November 27, 2026) carry the memo's clauses ---------------------------------------------------
+LEGAL = Path(__file__).resolve().parents[2] / "site" / "legal"
+
+
+def _doc(name: str) -> str:
+    return re.sub(r"<[^>]+>", "", (LEGAL / name / "index.html").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("doc, sentence", [
+    ("privacy", "We never use callers' call, text or chat content, or callers' details, for our own purposes, including to "
+                "improve or train our products or any AI model."),                                                   # item 4
+    ("service-agreement", "Your own privacy notice. Your privacy notice to your customers (for example on your website) will "
+                          "say that you use service providers, including AI providers"),                                 # item 5
+    ("service-agreement", "(i) the fees paid for the services (including fees paid to Paddle.com, our reseller, for your "
+                          "FirstRing plan) in the 6 months"),                                                         # item 6
+    ("terms", "(i) the fees paid for the services (including fees paid to Paddle.com, our reseller, for your FirstRing plan)"),
+    ("service-agreement", "You agree that these limits are a reasonable allocation of risk, reflected in our prices"),
+    ("service-agreement", "This includes claims by your callers or customers about a call, message or booking handled by the "
+                          "service"),                                                                                 # item 7
+    ("service-agreement", "No third-party beneficiaries. This Agreement is only for you and us."),                    # item 8
+    ("terms", "No third-party beneficiaries. These Terms are only for you and us."),
+    ("terms", "Payment disputes. Disputes about the payment transaction itself (for example a charge, chargeback or refund "
+              "processed by Paddle.com) are governed by the Paddle Buyer Terms"),                                     # item 9
+    ("service-agreement", "Health information from callers. Callers sometimes mention health details"),               # item 10
+    ("privacy", "We do not use session-replay tools on our website."),                                                # item 13
+    ("privacy", "We do not create voiceprints or use anyone's voice to identify them."),                              # item 20
+])
+def test_the_legal_documents_carry_the_memo_clauses(doc, sentence):
+    assert sentence in _doc(doc)
+
+
+def test_no_old_wording_is_left():
+    assert "the amounts you paid us" not in _doc("terms") + _doc("service-agreement")
+    assert "aggregated or de-identified data." not in _doc("privacy") and "Clarity" not in _doc("privacy")
+    for doc in ("terms", "service-agreement", "privacy", "refund"):
+        assert "Version 2.2 · Effective date: November 27, 2026" in _doc(doc), doc
