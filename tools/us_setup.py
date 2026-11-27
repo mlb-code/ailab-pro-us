@@ -17,7 +17,8 @@ What it does (every step is safe to re-run):
   vault      Vault: ailab_us_project_url + ailab_us_service_role_key (A8 pg_net). Since 22.10.2026 the value is the
              new-style SECRET key from .secrets.env (SUPABASE_SECRET_KEY, see supabase-keys); the legacy service_role JWT
              is only a fallback (warned) until the legacy keys are switched off. resend_api_key / anthropic_api_key when present
-  secrets    Edge Function secrets (ANTHROPIC_API_KEY, RESEND_API_KEY, ZAPIER_SIGNING_SECRET, and SB_SERVICE_KEY =
+  secrets    Edge Function secrets (ANTHROPIC_API_KEY, ANTHROPIC_API_KEY_SETUP (optional: the setup assistant's own Workspace
+             key), RESEND_API_KEY, ZAPIER_SIGNING_SECRET, and SB_SERVICE_KEY =
              SUPABASE_SECRET_KEY when present; supabase/functions/_shared/keys.ts reads it)
   functions  deploy supabase/functions/<slug>/index.ts (Supabase CLI if installed, else Management API)
   cron       select private.install_email_jobs() (A8), then verify every pg_cron job named in the migrations
@@ -552,7 +553,10 @@ def step_storage(ctx):
 # ------------------------------------------------------------------ step: vault + function secrets
 VAULT_KEYS = (("RESEND_API_KEY", "resend_api_key", "Resend key (pg_net e-mail triggers)"),
               ("ANTHROPIC_API_KEY", "anthropic_api_key", "Claude API key"))
-FUNCTION_SECRET_KEYS = ("ANTHROPIC_API_KEY", "RESEND_API_KEY", "ZAPIER_SIGNING_SECRET", "PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET")
+# ANTHROPIC_API_KEY_SETUP (optional): the setup assistant's own key, in its own Console Workspace with a spend cap; the
+# setup-agent function falls back to ANTHROPIC_API_KEY without it (design 2026-11-27, section 4.2)
+FUNCTION_SECRET_KEYS = ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_SETUP", "RESEND_API_KEY", "ZAPIER_SIGNING_SECRET", "PADDLE_API_KEY",
+                        "PADDLE_WEBHOOK_SECRET")
 PADDLE_ENVS = ("sandbox", "production")   # PADDLE_ENV is not a secret, just a switch (checked separately)
 
 
@@ -984,6 +988,10 @@ def checklist(ctx):
     if not sec.get("ANTHROPIC_API_KEY"):
         add("מפתח Claude: console.anthropic.com → API Keys → Create → .secrets.env בשורה ANTHROPIC_API_KEY= ואז:\n"
             "       python3 tools/us_setup.py --only vault,secrets")
+    if not sec.get("ANTHROPIC_API_KEY_SETUP"):
+        add("Setup assistant key (optional, recommended before turning the assistant on): console.anthropic.com -> Workspaces ->\n"
+            "       create 'FirstRing setup assistant', set its monthly spend limit, create an API key in it, paste it into\n"
+            "       .secrets.env as ANTHROPIC_API_KEY_SETUP= and run: python3 tools/us_setup.py --only secrets")
     if not sec.get("GOOGLE_OAUTH_CLIENT_ID"):
         add("Google (לא חובה): ב-Google Cloud → Credentials → OAuth client (Web). Authorized redirect URI:\n"
             f"       https://{ref}.supabase.co/auth/v1/callback ; להדביק ID+Secret ב-.secrets.env ולהריץ --only google,config")

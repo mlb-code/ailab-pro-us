@@ -25,6 +25,7 @@ import us_setup_check as C  # noqa: E402
 TOKEN = "sbp_" + "a1" * 20
 RESEND = "re_" + "Zz9" * 6
 ANTHROPIC = "sk-ant-" + "q" * 30
+ANTHROPIC_SETUP = "sk-ant-" + "s" * 30   # the setup assistant's own Workspace key
 GCID = "1234-test.apps.googleusercontent.com"
 GSEC = "GOCSPX-" + "w" * 24
 PUB = "sb_publishable_" + "p" * 24
@@ -163,7 +164,7 @@ class Base(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             rc = S.run(argv, transport=fake)
         text = out.getvalue()
-        for secret in (TOKEN, RESEND, ANTHROPIC, GSEC, SRK, NEWKEY):
+        for secret in (TOKEN, RESEND, ANTHROPIC, ANTHROPIC_SETUP, GSEC, SRK, NEWKEY):
             self.assertNotIn(secret, text, "a secret was printed")
         self.assertNotIn("Bearer " + TOKEN[:6], text)
         return rc, text
@@ -452,13 +453,34 @@ class TestSetup(Base):
         names = S.cron_job_names()
         for n in ("ailab-us-retention", "ailab-us-expire-quotes", "ailab-us-email-dispatch", "ailab-us-email-scan",
                   "ailab-us-monthly-invoice", "ailab-us-quote-expiring", "ailab-us-storage-purge", "ailab-us-billing-sync",
-                  "ailab-us-number-release"):
+                  "ailab-us-number-release", "ailab-us-setup-retention"):
             self.assertIn(n, names)
-        self.assertEqual(len(names), 9)  # + ailab-us-billing-sync (20261125100000_us_subscriptions.sql) + ailab-us-number-release (*_us_firstring_p2.sql)
+        self.assertEqual(len(names), 10)  # + ailab-us-billing-sync (20261125100000_us_subscriptions.sql) + ailab-us-number-release (*_us_firstring_p2.sql) + ailab-us-setup-retention (*_us_setup_agent.sql)
         self.assertTrue(S.has_email_jobs())
         self.assertIn("email-unsubscribe", S.NO_VERIFY_JWT)
         self.assertTrue({"quote-view", "quote-accept"} <= S.NO_VERIFY_JWT)
         self.assertIn("RESEND_API_KEY", S.FUNCTION_SECRET_KEYS)
+
+    def test_setup_assistant_key_is_sent_when_present_and_its_function_keeps_verify_jwt(self):
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "ANTHROPIC_API_KEY": ANTHROPIC, "ANTHROPIC_API_KEY_SETUP": ANTHROPIC_SETUP})
+        fake = FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+        rc, out = self.run_cli(["--only", "secrets"], fake)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual({s["name"] for s in fake.secrets[0]}, {"ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_SETUP"})
+        self.assertIn({"name": "ANTHROPIC_API_KEY_SETUP", "value": ANTHROPIC_SETUP}, fake.secrets[0])
+        self.assertIn("ANTHROPIC_API_KEY_SETUP", S.FUNCTION_SECRET_KEYS)
+        self.assertNotIn("setup-agent", S.NO_VERIFY_JWT)   # the customer's JWT is checked by the gateway too
+        # optional: without it, nothing changes (the function falls back to ANTHROPIC_API_KEY)
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "ANTHROPIC_API_KEY": ANTHROPIC})
+        fake = FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+        rc, out = self.run_cli(["--only", "secrets"], fake)
+        self.assertEqual({s["name"] for s in fake.secrets[0]}, {"ANTHROPIC_API_KEY"})
+        # a malformed key stops before anything is sent
+        self.secrets({"SUPABASE_ACCESS_TOKEN": TOKEN, "ANTHROPIC_API_KEY_SETUP": "sk-ant-x'; echo"})
+        fake = FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
+        rc, out = self.run_cli(["--only", "secrets"], fake)
+        self.assertEqual(rc, 1)
+        self.assertEqual(fake.secrets, [])
 
     def test_only_vault_without_service_key_fails_loudly(self):
         fake = FakeApi(projects=[{"id": REF, "name": "ailab-us", "status": "ACTIVE_HEALTHY"}], coming_up=0)
