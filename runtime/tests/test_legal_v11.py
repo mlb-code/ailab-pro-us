@@ -87,16 +87,44 @@ def test_safe_mode_greeting_has_the_disclosure_before_listening():
     assert guard.DISCLOSURE_NO_SMS in safe_greeting("Acme") and "text" not in safe_greeting("Acme")
 
 
-def test_stream_mode_holds_speech_until_the_greeting_has_played(tmp_path):
-    """welcomeGreetingInterruptible=none + a prompt sent during the greeting is processed only after its end."""
+def test_stream_mode_discards_speech_said_over_the_notice_and_asks_again(tmp_path):
+    """welcomeGreetingInterruptible=none, and (legal review 2026-11-27, privacy 3.1) a prompt that arrives while the
+    greeting with the call notice is playing is discarded, not processed after it: it never reaches the assistant, the
+    transcript or the stored conversation. Once the notice has ended the caller is asked again; only what they say
+    after the notice is processed."""
+    import json
+    from app.voice_stream import NOTICE_REASK
     sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="40", VOICE_GREETING_HOLD="1")
     words = len(greeting(sim.tenant("demo-hvac"), sms=True).split())
     call = sim.call()
     call.start()
     t0 = time.perf_counter()
-    call.say("Hi, my AC is broken")
-    assert time.perf_counter() - t0 >= words / 40 * 0.8
+    again = call.say("This is Dana Overtalk at 9 Hidden Lane, my AC is broken")
+    assert again.text == NOTICE_REASK and not again.end
+    assert time.perf_counter() - t0 >= words / 40 * 0.8          # the first answer comes only after the notice
+    reply = call.say(ASK)
+    assert reply.text and reply.text != NOTICE_REASK and not reply.end
     call.hangup()
+    row = sim.store.select("calls", call_sid=call.call_sid)[0]
+    said = [t["text"] for t in row["transcript"] if t.get("who") == "customer"]
+    assert said == [ASK]
+    stored = json.dumps(row) + json.dumps(sim.store.select("runtime_state")) + json.dumps(sim.store.select("events"))
+    assert "Overtalk" not in stored and "Hidden Lane" not in stored
+
+
+def test_stream_mode_speech_after_the_notice_is_answered_directly(tmp_path):
+    """The rule only covers the notice: a caller who waits for it gets a normal answer to the first thing they say."""
+    from app.voice_stream import NOTICE_REASK
+    sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="40", VOICE_GREETING_HOLD="1")
+    words = len(greeting(sim.tenant("demo-hvac"), sms=True).split())
+    call = sim.call()
+    call.start()
+    time.sleep(words / 40 + 0.2)
+    reply = call.say(ASK)
+    assert reply.text and reply.text != NOTICE_REASK
+    call.hangup()
+    row = sim.store.select("calls", call_sid=call.call_sid)[0]
+    assert [t["text"] for t in row["transcript"] if t.get("who") == "customer"] == [ASK]
 
 
 # --- 2. texting consent at booking -----------------------------------------------------------------------------

@@ -86,9 +86,9 @@ class Settings:
     voice_mode: str = "stream"
     voice_silence_s: float = 7.0
     voice_tts_wps: float = 2.5
-    # Hold a caller prompt that arrives while the greeting (with the call notice) is still playing until its
-    # estimated end, so nothing the caller says reaches Claude before the notice is complete (SA §8).
-    # The simulator's VOICE_TTS_WPS=1000 makes the hold ~0 there; VOICE_GREETING_HOLD=0 switches it off.
+    # Discard a caller prompt that arrives while the greeting (with the call notice) is still playing (before its
+    # estimated end) and ask again once it has ended, so nothing the caller says over the notice is processed (SA §8,
+    # Privacy §3.2). VOICE_GREETING_HOLD=0 switches it off (the simulator does, see sim.harness.SIM_VOICE_ENV).
     voice_greeting_hold: bool = True
     # Relay socket closed without an `end` from us: wait this long for /voice/relay-end (-> continue with
     # <Gather>) or the call status callback (-> finalize) before closing the call ourselves.

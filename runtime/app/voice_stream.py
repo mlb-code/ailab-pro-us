@@ -7,8 +7,10 @@ Twilio runs streaming STT + TTS; we exchange JSON over the socket:
     out: text {token, last, interruptible} | end {handoffData}
 The welcome greeting (with the call notice, `guard.disclosure(sms)`) is spoken by Twilio from the TwiML with
 welcomeGreetingInterruptible="none" (the caller cannot cut it off), and a prompt that arrives while it is
-still playing (estimated from its length) is held until it has ended: nothing the caller says reaches
-Claude before the notice is complete (SA §8, "AI and recording notice").
+still playing (estimated from its length) is discarded, not processed later (legal review 2026-11-27,
+privacy item 3.1): it never reaches Claude, the transcript or any record. When the notice has ended and
+something was discarded, the caller is asked again (NOTICE_REASK), so the first prompt we process always
+comes after the notice (SA §8, "AI and recording notice").
 After `end`, Twilio requests the Connect action (/voice/relay-end) with HandoffData: we answer
 <Dial> (handoff / urgent line) or <Hangup>. If the relay session fails, /voice/relay-end
 continues the same call in turn-based <Gather> mode (same conversation state).
@@ -47,6 +49,8 @@ from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, sms_on, speech
 log = logging.getLogger("rt.voice_stream")
 
 TOKEN_TTL_S = 900
+# said once the call notice has ended, if the caller spoke over it (their words were discarded, not heard)
+NOTICE_REASK = "Sorry, I couldn't hear you while that message was playing. How can I help you today?"
 
 
 def ws_base(rt: Runtime, request_or_ws: Any) -> str:
@@ -154,10 +158,16 @@ class RelaySession:
         greeting_s = speaking_seconds(self.rt, greeting(self.tenant, sms_on(self.rt)))
         greeting_ends = loop.time() + greeting_s
         timeout = self.rt.settings.voice_silence_s + greeting_s
+        spoke_over_notice = False
         while True:
             try:
                 msg = await asyncio.wait_for(self.queue.get(), timeout)
             except asyncio.TimeoutError:
+                if spoke_over_notice:  # the notice has ended; the words said over it were dropped: ask again (not a silent turn)
+                    spoke_over_notice = False
+                    await self.send({"type": "text", "token": NOTICE_REASK, "last": True, "interruptible": True})
+                    timeout = self.rt.settings.voice_silence_s + speaking_seconds(self.rt, NOTICE_REASK)
+                    continue
                 msg = {"type": "prompt", "voicePrompt": "", "last": True, "_silence": True}
             if msg is None:  # socket closed by Twilio: hang-up OR relay failure -> wait for relay-end / status
                 await run_in_threadpool(flow.relay_lost, self.tenant, self.call_sid, now())
@@ -172,8 +182,14 @@ class RelaySession:
             if kind != "prompt" or not msg.get("last", True):
                 continue
             hold = greeting_ends - loop.time()
-            if hold > 0 and self.rt.settings.voice_greeting_hold and not msg.get("_silence"):  # caller spoke over the notice: process it once it has ended
-                await asyncio.sleep(hold)
+            if hold > 0 and self.rt.settings.voice_greeting_hold and not msg.get("_silence"):
+                # caller spoke over the notice: discarded (its words are never sent to Claude, stored or logged);
+                # wait for the notice's end, then ask again unless the caller speaks after it
+                spoke_over_notice = True
+                timeout = hold
+                log.info("relay: speech during the call notice discarded")
+                continue
+            spoke_over_notice = False
             turn = await run_in_threadpool(flow.turn, self.tenant, self.call_sid, self.caller,
                                            str(msg.get("voicePrompt") or ""), now(), self._sentence_sink())
             ending = bool(turn.end or turn.dial or turn.dispatch)

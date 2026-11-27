@@ -25,8 +25,11 @@ TENANTS_DIR = SIM_DIR / "tenants"
 CALLER = "+17135550123"
 
 
-# Simulator voice timing: 1 s of silence counts as a silent turn; speaking time is not simulated.
-SIM_VOICE_ENV = {"VOICE_SILENCE_SECONDS": "1.0", "VOICE_TTS_WPS": "1000", "VOICE_RELAY_GRACE_SECONDS": "1.0"}
+# Simulator voice timing: 1 s of silence counts as a silent turn; speaking time is not simulated. The scripted
+# caller speaks right after the call starts, so the notice rule (speech over the greeting is discarded) is off here;
+# tests/test_legal_v11.py switches it on with VOICE_GREETING_HOLD=1 and a real speaking rate.
+SIM_VOICE_ENV = {"VOICE_SILENCE_SECONDS": "1.0", "VOICE_TTS_WPS": "1000", "VOICE_RELAY_GRACE_SECONDS": "1.0",
+                 "VOICE_GREETING_HOLD": "0"}
 
 
 def sim_settings(data_dir: Path, **env: str) -> settings_mod.Settings:

@@ -22,8 +22,8 @@ assistant, recorded and transcribed by us and our service providers; "and we may
 SMS_ENABLED is on). A tenant's custom greeting that lacks any part of it gets the full sentence appended; it cannot be
 removed. The caller's speech is not processed before the
 greeting ends: gather mode plays the greeting with <Say> BEFORE <Gather> (no barge-in), stream mode sets
-welcomeGreetingInterruptible="none" and holds the first prompt until the greeting's estimated end
-(`voice_stream`). A caller who objects to recording ends the call with no transcript kept
+welcomeGreetingInterruptible="none" and discards any prompt that arrives before the greeting's estimated end, then
+asks again (`voice_stream`). A caller who objects to recording ends the call with no transcript kept
 (`transcript_withheld`), and the transcript keeps only the greeting as proof of the notice.
 """
 from __future__ import annotations
