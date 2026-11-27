@@ -121,7 +121,7 @@
     }
   },
   "refund_rules": {
-    "status": "final (standard-alignment pass 2026-10-12; no attorney review yet)",
+    "status": "final (standard-alignment pass 2026-10-12)",
     "deposit": {
       "refund_pct": 100,
       "window_days": 7,
@@ -160,7 +160,7 @@
       "applies": "quotes for RCP / BNDL (setup fee + monthly) accepted before 2026-11-25"
     },
     "subscription": {
-      "status": "draft 2026-11-25 for the monthly plans; owner to confirm, no attorney review yet",
+      "status": "final: approved by Meir 2026-11-27 for the monthly plans (14-day free trial, cancel anytime, 30-day money-back on the first paid month, refunded through Paddle)",
       "codes": [
         "FR_STARTER",
         "FR_PRO",

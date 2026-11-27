@@ -8,7 +8,7 @@
 
   // content-hash versions, filled in by tools/asset_version.py (a new config = a new URL, so no browser or CDN copy of the
   // old file is used after a deploy)
-  const AV = /*asset-v*/{"/assets/brand.json":"d51bc30ba3","/assets/pricebook.json":"d5a6684ad1"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/brand.json":"f100dea5cc","/assets/pricebook.json":"8b97c46fbd"}/*/asset-v*/;
   const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   let BRAND = {}, PB = {}, cfgOk = false;
   const pause = ms => new Promise(r => setTimeout(r, ms));
