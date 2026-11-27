@@ -75,7 +75,8 @@ const bset = buckets.map((b) => `${b.id}:${b.public ? "public" : "private"}`).jo
 bset === "client-files:private,videos-public:public" ? ok(`buckets ${bset}`) : bad("buckets", bset);
 
 const jobs = await q<{ jobname: string }>(`select jobname from cron.job order by jobname`);
-jobs.length === 4 && jobs.some((j) => j.jobname === "ailab-us-billing-sync") && jobs.some((j) => j.jobname === "ailab-us-number-release") ? ok(`cron jobs: ${jobs.map((j) => j.jobname).join(", ")}`) : bad("cron jobs", JSON.stringify(jobs));
+jobs.length === 5 && jobs.some((j) => j.jobname === "ailab-us-billing-sync") && jobs.some((j) => j.jobname === "ailab-us-number-release") &&
+  jobs.some((j) => j.jobname === "ailab-us-plan-yearly-reminder") ? ok(`cron jobs: ${jobs.map((j) => j.jobname).join(", ")}`) : bad("cron jobs", JSON.stringify(jobs));
 
 const law = await q<{ v: string }>(`select e.enumlabel v from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'niche'`);
 const niches = law.map((r) => r.v).join(",");

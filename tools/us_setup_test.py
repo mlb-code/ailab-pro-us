@@ -452,9 +452,11 @@ class TestSetup(Base):
         names = S.cron_job_names()
         for n in ("ailab-us-retention", "ailab-us-expire-quotes", "ailab-us-email-dispatch", "ailab-us-email-scan",
                   "ailab-us-monthly-invoice", "ailab-us-quote-expiring", "ailab-us-storage-purge", "ailab-us-billing-sync",
-                  "ailab-us-number-release"):
+                  "ailab-us-number-release", "ailab-us-plan-yearly-reminder"):
             self.assertIn(n, names)
-        self.assertEqual(len(names), 9)  # + ailab-us-billing-sync (20261125100000_us_subscriptions.sql) + ailab-us-number-release (*_us_firstring_p2.sql)
+        # + ailab-us-billing-sync (20261125100000_us_subscriptions.sql) + ailab-us-number-release (*_us_firstring_p2.sql)
+        # + ailab-us-plan-yearly-reminder (20261130100000_us_subscription_cancel_yearly_emails.sql)
+        self.assertEqual(len(names), 10)
         self.assertTrue(S.has_email_jobs())
         self.assertIn("email-unsubscribe", S.NO_VERIFY_JWT)
         self.assertTrue({"quote-view", "quote-accept"} <= S.NO_VERIFY_JWT)
