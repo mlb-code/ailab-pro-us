@@ -52,8 +52,10 @@ MAX_MESSAGE_CHARS = 2000
 MAX_MESSAGES_PER_IP_HOUR = 90
 MAX_SESSIONS_PER_IP_DAY = 40
 MAX_CONCURRENT = 8
-# one short sentence (launch 2026-11-27): AI assistant + the chat is saved for the business (+ no card numbers)
-NOTICE = "You're chatting with an AI assistant; this chat is saved to help the business respond, so please don't type card numbers."
+# launch 2026-11-27: AI assistant + the chat is saved for the business (+ no card numbers); legal review 2026-11-27
+# (privacy 3.7): + it is processed by our service providers, including AI providers (Privacy Policy §3.2)
+NOTICE = ("You're chatting with an AI assistant. This chat is saved to help the business respond and is processed by our "
+          "service providers, including AI providers, so please don't type card numbers.")
 
 
 def greeting(tenant: TenantRecord) -> str:

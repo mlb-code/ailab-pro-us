@@ -117,11 +117,14 @@ def test_reporter_monthly_passes_the_switch(tmp_path, demo_raw):
 
 
 # --- chat box notice ----------------------------------------------------------------------------------------------
-def test_chat_notice_is_one_short_sentence_about_ai_and_saving():
+def test_chat_notice_is_short_and_names_ai_saving_and_service_providers():
+    """Legal review 2026-11-27 (privacy 3.7): the notice also says the chat is processed by our service providers,
+    including AI providers (two short sentences)."""
     from app.chat_widget import NOTICE
-    assert NOTICE.startswith("You're chatting with an AI assistant")
+    assert NOTICE.startswith("You're chatting with an AI assistant.")
     assert "saved to help the business respond" in NOTICE
-    assert NOTICE.count(".") == 1 and NOTICE.endswith(".") and len(NOTICE) <= 140
+    assert "processed by our service providers, including AI providers" in NOTICE and "card numbers" in NOTICE
+    assert NOTICE.count(".") == 2 and NOTICE.endswith(".") and len(NOTICE) <= 200
 
 
 # --- children under 13 -------------------------------------------------------------------------------------------
@@ -185,6 +188,29 @@ def test_fair_housing_guard_blocks_the_new_characteristics(text):
 
 
 @pytest.mark.parametrize("text", [
+    "How old are you, if you don't mind me asking?",
+    "Are you married or single?",
+    "What's your marital status?",
+    "Is your partner transgender?",
+    "Are you a veteran?",
+    "What's your immigration status?",
+    "Do you have a green card?",
+    "Do you have a criminal record?",
+    "Have you ever been convicted of a crime?",
+    "That complex doesn't rent to felons.",
+    "What's your sexual orientation?",
+])
+def test_fair_housing_guard_blocks_state_and_local_characteristics(text):
+    """Legal review 2026-11-27 (privacy 3.9): characteristics many states and cities protect (age, marital status, sexual
+    orientation, gender identity, military or veteran status, immigration status, criminal history)."""
+    out = guard.check_reply(text, REALTY, "sms")
+    assert "fair_housing" in out.violations and out.text == guard.FAIR_HOUSING_TEXT
+
+
+@pytest.mark.parametrize("text", [
+    "The roof's age is about 8 years and the water heater is new.",
+    "A VA loan works for that listing; Jenna can explain the steps.",
+    "The HOA allows pets and the garage fits two cars.",
     "1420 Oak Ridge Dr has an accent wall and new blinds.",
     "The open house in Temple is Saturday at 10.",
     "Jenna can meet you Monday at 3 PM. What's the property address?",

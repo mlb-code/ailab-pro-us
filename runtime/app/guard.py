@@ -678,6 +678,9 @@ def sms_segments(text: str) -> int:
 # legitimately say "family-owned", "kids' room"). 2026-11-27 (legal review): + source of income, more sex / familial
 # status / national origin / race and color / religion / disability wording, and "why are you moving" (the retired
 # motivation question). Words that are also place or home terms ("Temple", "accent wall", "blinds") are left out.
+# 2026-11-27 (legal review, privacy 3.9): + characteristics many states and cities protect (age, marital status, sexual
+# orientation, gender identity, military or veteran status, immigration status, criminal history), as questions or
+# labels only: "the roof's age" or "a VA loan" stay allowed.
 FAIR_HOUSING = re.compile(
     r"\b(race|racial|ethnic\w*|hispanic|latino|latina|black|white|asian|jewish|muslim|christian|catholic|church\w*|"
     r"synagogue|mosque|religio\w*|national origin|nationality|country of origin|foreigners?|immigrants?|citizenship|"
@@ -691,7 +694,10 @@ FAIR_HOUSING = re.compile(
     r"(no|not for|not suited for|perfect for|great for|ideal for) (kids|children|families|singles|seniors|retirees|students)|"
     r"(good|bad|safe|rough|nice|quiet|changing|up[- ]and[- ]coming|transitional) (neighborhood|area|part of town)|"
     r"(kind|type|sort) of (people|residents|neighbors)|who lives (there|in the area)|demographics?|school (rating|ranking)s?|"
-    r"good schools)\b", re.I)
+    r"good schools|how old are you|your age|age group|marital status|are you (married|single|divorced|separated|widowed)|"
+    r"sexual orientation|lgbt\w*|transgender|gender identity|(military|veteran) status|"
+    r"are you (a veteran|in the military|on active duty)|immigration status|undocumented|illegal (immigrants?|aliens?)|"
+    r"green card|criminal (record|history|background)|felon(y|ies|s)?|(been|ever) (arrested|convicted))\b", re.I)
 FAIR_HOUSING_TEXT = ("I can share facts about listings and the area, and the agent can walk you through any area you like. "
                      "What else can I help with?")
 
