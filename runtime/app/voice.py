@@ -17,7 +17,7 @@ the cap hears one short sentence (+ one owner alert a day), later ones are rejec
 Billable minutes come from Twilio's status callback (CallDuration, rounded up per call) and feed
 the monthly usage meter (80% / 100% alerts).
 
-Call notice (SA §8 item 2, legal v1.1): every call starts with `DISCLOSURE` (AI assistant, recorded and
+Call notice (SA §8 item 2, legal v1.1; AI wording 2026-11-27): every call starts with `DISCLOSURE` (AI assistant, recorded and
 transcribed by us and our service providers, we may text you). A tenant's custom greeting that lacks any part
 of it gets the full sentence appended; it cannot be removed. The caller's speech is not processed before the
 greeting ends: gather mode plays the greeting with <Say> BEFORE <Gather> (no barge-in), stream mode sets
@@ -65,9 +65,12 @@ FALLBACK_TEXT = "Sorry, we're having trouble right now. Someone from our team wi
 REPEAT_TEXT = "Sorry, could you say that again?"
 DISCLOSURE = guard.DISCLOSURE
 # every part of the notice must be in the greeting (a custom greeting that only says "calls may be recorded for
-# quality" would drop the service providers and the texting notice)
+# quality" would drop the service providers and the texting notice). The last part is the AI disclosure: it needs
+# "AI assistant" / "an AI" / "artificial intelligence" (a business called "AI Plumbing" does not count), so a
+# client-written greeting without it gets the standard notice added.
 DISCLOSURE_PARTS = (re.compile(r"\brecorded\b", re.I), re.compile(r"\btranscribed\b", re.I),
-                    re.compile(r"\bservice providers?\b", re.I), re.compile(r"\btext\b", re.I))
+                    re.compile(r"\bservice providers?\b", re.I), re.compile(r"\btext\b", re.I),
+                    re.compile(r"\b(?:an\s+AI\b|AI\s+(?:assistant|receptionist|agent)|artificial\s+intelligence)", re.I))
 
 MAX_TURNS = 12
 MAX_CALL = timedelta(minutes=6)
@@ -85,10 +88,10 @@ def default_greeting(cfg: Any) -> str:
     """Generated greeting per niche (the call notice is added by `greeting`)."""
     if cfg.business.niche == "real_estate":
         agent = (cfg.real_estate.agent_name or "").strip()
-        who = f"{agent}'s virtual assistant at {cfg.business.name}" if agent else f"the virtual assistant for {cfg.business.name}"
+        who = f"{agent}'s assistant at {cfg.business.name}" if agent else f"the assistant for {cfg.business.name}"
         missed = f"Sorry {agent.split()[0]} missed you! " if agent else "Sorry we missed your call! "
-        return f"Hi, this is {who}, an AI. {missed}{DISCLOSURE} What are you calling about?"
-    return f"Thanks for calling {cfg.business.name}. I'm the virtual assistant, an AI. {DISCLOSURE} How can I help?"
+        return f"Hi, this is {who}. {missed}{DISCLOSURE} What are you calling about?"
+    return f"Thanks for calling {cfg.business.name}. {DISCLOSURE} How can I help?"
 
 
 def greeting(tenant: TenantRecord) -> str:
@@ -395,8 +398,9 @@ class VoiceFlow:
 
 
 def summary(c: Convo) -> str:
-    if c.meta.get("transcript_withheld") and not c.booking:
-        return "Caller objected to recording; transcript not kept. Call them back."
+    if c.meta.get("transcript_withheld"):  # no job type, address or problem text (only the booked time, if any)
+        booked = f" Booked: {c.booking.get('label') or c.booking.get('start')}." if c.booking else ""
+        return f"Caller objected to recording; transcript not kept. Call them back.{booked}"[:400]
     if c.booking:
         return f"Booked: {c.booking.get('job_type')} {c.booking.get('label') or c.booking.get('start')}"[:400]
     if c.message:

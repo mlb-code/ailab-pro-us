@@ -370,7 +370,7 @@ class Rep:
         self.state = StateStore(self.store)
         self.email = RecEmail()
         notifier = Notifier(self.store, self.state, self.email, TwilioSms(FakeTwilioClient()), None,
-                            NotifyPolicy(client_emails_enabled=True, admin_email=ADMIN, admin_tz="Asia/Jerusalem"))
+                            NotifyPolicy(sms_enabled=True, client_emails_enabled=True, admin_email=ADMIN, admin_tz="Asia/Jerusalem"))
         self.rep = Reporter(self.store, self.state, notifier, weekly_enabled=weekly)
         self.ts = self.store.for_tenant(self.tenant.id)
 

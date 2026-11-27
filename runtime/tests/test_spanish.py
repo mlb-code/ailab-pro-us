@@ -46,7 +46,8 @@ def test_spanish_fixed_texts_carry_business_phone_and_opt_out_word():
     s = guard.stop_confirmation_es("Cool Breeze HVAC", "+17135550100")
     assert "Cool Breeze HVAC" in s and "+17135550100" in s and "INICIAR" in s
     assert "PARAR" in guard.help_text_es("Cool Breeze HVAC", "+17135550100") and "+17135550100" in guard.help_text_es("x", "+17135550100")
-    assert "PARAR" in guard.start_confirmation_es("x") and "asistente virtual" in guard.robot_answer_es("x")
+    assert "PARAR" in guard.start_confirmation_es("x") and guard.robot_answer_es("x").startswith("Soy un asistente de IA")
+    assert "no una persona" in guard.robot_answer_es("x") and guard.DISCLOSURE_ES.startswith("Está hablando con un asistente de IA")
     assert guard.consent_answer_es("Sí, claro") == "yes" and guard.consent_answer_es("No, mejor no") == "no"
     assert guard.consent_answer_es("no me mande mensajes") == "no" and guard.consent_answer_es("quizás") is None
 
@@ -99,7 +100,7 @@ def test_engine_detects_switches_and_remembers_the_language(tmp_path, demo_raw):
     # the robot question, in Spanish, gets the Spanish answer without Claude
     eng.handle(tenant, "sms", harness.CALLER, "Hola otra vez, necesito una cita por favor", "s1", MON_9)
     r3 = eng.handle(tenant, "sms", harness.CALLER, "Hola, por favor, are you a robot?", "s1", MON_9)  # mostly Spanish
-    assert "robot_question" in r3.guard and r3.reply.startswith("Soy el asistente virtual")
+    assert "robot_question" in r3.guard and r3.reply.startswith("Soy un asistente de IA")
 
 
 def test_spanish_sms_templates_follow_the_number(tmp_path, demo_raw):

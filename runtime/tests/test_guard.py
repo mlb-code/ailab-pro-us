@@ -27,7 +27,7 @@ def patched(demo_raw, **config_patch):
 
 
 def test_fixed_texts_name_the_business():
-    assert "Biz" in guard.robot_answer("Biz") and "virtual assistant" in guard.robot_answer("Biz")
+    assert guard.robot_answer("Biz").startswith("I'm an AI assistant, not a person.") and "Biz" in guard.robot_answer("Biz")
     assert "STOP" not in guard.stop_confirmation("Biz") or "START" in guard.stop_confirmation("Biz")
     assert "STOP" in guard.start_confirmation("Biz")
     assert "+1555" in guard.help_text("Biz", "+1555") and "STOP" in guard.help_text("Biz", "+1555")
@@ -175,7 +175,7 @@ def test_check_reply_discount_human_advice_empty(cfg):
     assert guard.check_reply("Sure, 20% off today!", cfg, "sms").text == guard.NO_DISCOUNT_TEXT
     assert guard.check_reply("I can't offer a discount, sorry.", cfg, "sms").violations == []
     r = guard.check_reply("I'm a real person, not a bot.", cfg, "voice")
-    assert r.violations == ["claims_human"] and "virtual assistant" in r.text
+    assert r.violations == ["claims_human"] and "AI assistant, not a person" in r.text
     r = guard.check_reply("You should try resetting the breaker yourself.", cfg, "sms")
     assert r.violations == ["advice"] and "technician" in r.text
     r = guard.check_reply("", cfg, "sms")

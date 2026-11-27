@@ -19,7 +19,7 @@ Env: `RUNTIME_MODE` (prod|sim), `STORE_BACKEND` (json|supabase), `DATA_DIR`, `SU
 **secret key**, `sb_secret_…`, made by `tools/us_setup.py --only supabase-keys`; the variable name is historical, the legacy service_role JWT is no longer used),
 `TWILIO_AUTH_TOKEN`, `PUBLIC_BASE_URL`, `OAUTH_BASE_URL` (optional: calendar OAuth connect link + redirect URI on our own domain, e.g. `https://rt.ailabpro.co`, needed for Google verification; empty = `PUBLIC_BASE_URL`), `CRED_KEY` (base64 32 bytes), `BRAIN_MODE` (mock|replay|record|live), `GLOBAL_DAILY_BUDGET_USD`,
 `VOICE_MODE` (stream = ConversationRelay, production default | gather = turn-based fallback), `VOICE_SILENCE_SECONDS` (7),
-`VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `SMS_BOOKING_REPLIES` (0 = off until 10DLC: booking texts ask for C/R/X replies, see `app/appointments.py`), `WEEKLY_REPORT` (0 = off: weekly results e-mail to owners), `VOICE_RELAY_GRACE_SECONDS` (20).
+`VOICE_TTS_WPS` (2.5), `TWILIO_ACCOUNT_SID` (outbound SMS + Lookup), `RUNTIME_ADMIN_TOKEN` (Bearer for the single cron `POST /jobs/tick`: SMS jobs + delivery queue + reports; `JOBS_TOKEN` accepted as alias), `JOBS_LOOP_SECONDS` (optional in-process SMS jobs, 0 = off), `SMS_ENABLED` (master switch, **off by default in production**, on in the simulator: off = no outbound SMS at all, no texting-consent question or text promise on calls, owner alerts by e-mail only, inbound texts logged + opt-outs recorded but never answered; `/health` shows `sms_enabled`), `SMS_BOOKING_REPLIES` (0 = off until 10DLC: booking texts ask for C/R/X replies, see `app/appointments.py`), `WEEKLY_REPORT` (0 = off: weekly results e-mail to owners), `VOICE_RELAY_GRACE_SECONDS` (20).
 
 Voice/SMS routes: `/voice/incoming|turn|dial-result|status|fallback|relay-end`, WebSocket `/voice/relay`, `/sms/incoming|status`; cron `/jobs/tick` (B6 routes).
 ADD-DISPATCH (on-call dispatcher, `app/dispatch.py`, tenant config `dispatch`): urgent call while closed (or `daytime_too`) ->
@@ -42,10 +42,11 @@ Twilio cost estimate per call: `TWILIO_VOICE_USD_PER_MIN` (default 0.0785 = inbo
 0.07, list prices assumed Oct 2026; 0.0125 when `VOICE_MODE=gather`), billed in whole minutes; SMS `TWILIO_SMS_USD_PER_SEGMENT`.
 Invalid tenant config = safe mode (`app/voice_safe.py`): polite sentence + name/number message, SMS text-back, minimal SMS replies
 (STOP/HELP still work), event `tenant_config_invalid` + Hebrew admin alert once a day; `/health/deep` lists `tenants_invalid`.
-Consent rules (legal v1.1, SA §8; `tests/test_legal_v11.py`, scenarios 46-49): every greeting carries `guard.DISCLOSURE` (a custom
-greeting missing any part gets it appended; stream mode holds caller speech until the greeting ends, `VOICE_GREETING_HOLD`);
+Consent rules (legal v1.1, SA §8; `tests/test_legal_v11.py`, scenarios 46-49; AI wording + SMS switch + objection data:
+`tests/test_launch_fixes_2026_11_27.py`): every greeting carries `guard.DISCLOSURE` ("You're speaking with an AI assistant. ..."; a custom
+greeting missing any part, the AI wording included, gets it appended; stream mode holds caller speech until the greeting ends, `VOICE_GREETING_HOLD`);
 after a booking the assistant asks before texting (confirmation + reminder only on "yes"); a recording objection ends the call
-with `calls.transcript_withheld`; opt-outs by keyword, sentence or voice; texting window in the business AND caller (area-code)
+with `calls.transcript_withheld` and keeps only name + phone (webhooks/Zapier/CRM get those plus `recording_declined: true`); opt-outs by keyword, sentence or voice; texting window in the business AND caller (area-code)
 zone; locked SMS templates; every decision in `sms_consent` (5 years, `supabase/migrations/20261012100000_us_sms_consent.sql`).
 B5/B6 hooks used by voice/SMS: `app/_stubs_b56.py` (`get_provider`, `owner_alert`, `emit`).
 Model and brand name come from `app/brand.json` (synced from `config/brand.json`).

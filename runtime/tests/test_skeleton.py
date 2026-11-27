@@ -90,7 +90,7 @@ def test_signed_voice_incoming_greets(sim):
     tw = parse_twiml(r.text)
     assert r.status_code == 200 and tw.relay_url.startswith("ws://testserver/voice/relay?t=")
     assert tw.connect_action == "/voice/relay-end"
-    assert "Cool Breeze HVAC" in tw.text and "virtual assistant" in tw.text and "transcribed" in tw.text
+    assert "Cool Breeze HVAC" in tw.text and "AI assistant" in tw.text and "transcribed" in tw.text
     assert sim.store.select("events", type="voice.incoming")
 
 
@@ -515,7 +515,7 @@ def test_sim_call_and_sms_cli(capsys):
     assert sim_main(["call", "--tenant", "demo-hvac", "--say", "my ac is broken"]) == 0
     assert sim_main(["sms", "--tenant", "demo-hvac", "--text", "hello"]) == 0
     out = capsys.readouterr().out
-    assert "virtual assistant" in out and "customer: hello" in out
+    assert "AI assistant" in out and "customer: hello" in out
 
 
 def test_booking_provider_defaults_to_calendly(demo_raw):

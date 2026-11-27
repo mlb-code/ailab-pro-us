@@ -102,7 +102,7 @@ def test_guard_catches_discount_and_robot(make):
     assert "50%" not in r["reply"] and "$45" not in r["reply"]
     calls = sim.rt.engine.llm.calls
     r = say(sim, tok, "are you a robot?").json()
-    assert "virtual assistant" in r["reply"].lower() and sim.rt.engine.llm.calls == calls
+    assert "ai assistant, not a person" in r["reply"].lower() and sim.rt.engine.llm.calls == calls
     r = say(sim, tok, "I smell gas in the kitchen").json()
     assert "911" in r["reply"]
     assert sim.twilio_client.outbox == [] and sim.rt.alert_log == []

@@ -53,16 +53,24 @@ def sms(sim, body, frm=harness.CALLER):
 # --- 1. the call notice --------------------------------------------------------------------------------------
 
 def test_disclosure_is_the_memo_sentence_and_in_every_default_greeting():
-    assert DISCLOSURE == ("This call may be recorded and transcribed by us and our service providers, "
+    assert DISCLOSURE == ("You're speaking with an AI assistant. "
+                          "This call may be recorded and transcribed by us and our service providers, "
                           "and we may text you about it.")
     t = load_file(harness.TENANTS_DIR / "demo-hvac.json")
     g = greeting(t)
-    assert DISCLOSURE in g and "virtual assistant" in g and "AI" in g and has_disclosure(g)
+    assert DISCLOSURE in g and "AI assistant" in g and has_disclosure(g)
+    assert g.count("AI") == 1  # the default greeting no longer says it twice
 
 
 @pytest.mark.parametrize("text,ok", [
     (DISCLOSURE, True),
-    ("Calls are recorded and transcribed by our service providers, and we may text you.", True),
+    ("Calls are recorded and transcribed by our service providers, and we may text you. I'm an AI assistant.", True),
+    ("This is an AI. Calls are recorded and transcribed by our service providers, and we may text you.", True),
+    ("Calls are recorded and transcribed by our service providers, and we may text you.", False),  # no AI wording
+    ("Thanks for calling AI Plumbing. Calls are recorded and transcribed by our service providers, and we may text "
+     "you.", False),  # "AI" in a business name is not the disclosure
+    ("Hi, I'm the virtual assistant. Calls are recorded and transcribed by our service providers, and we may text "
+     "you.", False),  # "virtual assistant" alone could be a remote person
     ("This call may be transcribed.", False),
     ("Calls may be recorded for quality.", False),
     ("This call may be recorded and transcribed by our service providers.", False),  # no texting notice

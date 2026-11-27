@@ -96,6 +96,11 @@ class Settings:
     twilio_account_sid: str = ""
     jobs_token: str = field(default="", repr=False)  # accepted by /jobs/tick as RUNTIME_ADMIN_TOKEN alias
     jobs_loop_s: float = 0.0  # optional; the cron is POST /jobs/tick. > 0: also run SMS jobs in-process
+    # SMS master switch (SMS_ENABLED). OFF by default in production until the A2P 10DLC campaign is approved: with it off
+    # no SMS leaves the runtime (Outbound.send, safe-mode text-back, owner SMS alerts, TwiML replies to inbound texts),
+    # the call never asks for texting consent or promises a text, and owner alerts go by e-mail only. Inbound texts are
+    # still logged and opt-outs (STOP) still recorded. The simulator (RUNTIME_MODE=sim, fake Twilio) defaults to on.
+    sms_enabled: bool = False
     # ADD-REV kill switch (REVIEW_REQUESTS_ENABLED). Off by default: review texts need a 10DLC campaign that
     # covers them and consent collected for them; the tenant's `review_requests.enabled` must be on as well.
     review_requests_enabled: bool = False
@@ -146,7 +151,14 @@ class Settings:
             "twilio_rest_configured": bool(self.twilio_account_sid),
             "jobs_token_configured": bool(self.jobs_token),
             "review_requests_enabled": self.review_requests_enabled,
+            "sms_enabled": self.sms_enabled,
         }
+
+
+def _flag(value: str | None, default: bool = False) -> bool:
+    """An on/off env value: unset or empty = `default`."""
+    v = (value or "").strip().lower()
+    return default if not v else v in ("1", "true", "yes", "on")
 
 
 def load(env: dict[str, str] | None = None) -> Settings:
@@ -189,6 +201,7 @@ def load(env: dict[str, str] | None = None) -> Settings:
         jobs_loop_s=float(env.get("JOBS_LOOP_SECONDS", "0")),
         review_requests_enabled=(env.get("REVIEW_REQUESTS_ENABLED") or "0").strip().lower()
         in ("1", "true", "yes", "on"),
+        sms_enabled=_flag(env.get("SMS_ENABLED"), default=sim),
         dispatch_sms_alerts=(env.get("DISPATCH_SMS_ALERTS") or "0").strip().lower() in ("1", "true", "yes", "on"),
         sms_booking_replies=(env.get("SMS_BOOKING_REPLIES") or "0").strip().lower() in ("1", "true", "yes", "on"),
         weekly_report=(env.get("WEEKLY_REPORT") or "0").strip().lower() in ("1", "true", "yes", "on"),

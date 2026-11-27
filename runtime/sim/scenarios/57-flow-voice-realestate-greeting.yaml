@@ -5,7 +5,7 @@ channel: voice
 from: "+15125550189"
 steps:
   - call: {}
-    expect: {reply_contains: ["Jenna Harper's virtual assistant", "Maple & Main Realty", "transcribed"]}
+    expect: {reply_contains: ["Jenna Harper's assistant", "Maple & Main Realty", "speaking with an AI assistant", "transcribed"]}
   - say: "Hi, I want to buy a house in East Austin"
     advance_seconds: 10
     expect: {reply_matches: ["timeline|when"]}

@@ -1,11 +1,12 @@
 {
- "1b9aecffb6dd6ae80fb77e3c": {
+ "0675be80478efe0797b63d68": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_001",
+      "content": "{\"ok\": false, \"reason\": \"duplicate\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_005",
       "type": "tool_result"
      }
     ],
@@ -16,18 +17,24 @@
   "response": {
    "content": [
     {
-     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
-     "type": "text"
+     "id": "toolu_mock_007",
+     "input": {
+      "name": null,
+      "summary": "Customer already booked that day and called again",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
+   "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 989,
-    "output_tokens": 34
+    "input_tokens": 1252,
+    "output_tokens": 45
    }
   }
  },
- "30a5a230fe60c6966c0fd226": {
+ "30bb858c5ad77412c71e4c81": {
   "request": {
    "last_message": {
     "content": [
@@ -63,40 +70,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1107,
+    "input_tokens": 1131,
     "output_tokens": 70
    }
   }
  },
- "8fa36b934f526232df140584": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_007",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1311,
-    "output_tokens": 28
-   }
-  }
- },
- "9ec44d1df8d66f67c3eb1392": {
+ "576d06f901914158cbb96af5": {
   "request": {
    "last_message": {
     "content": [
@@ -128,19 +107,18 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 845,
+    "input_tokens": 869,
     "output_tokens": 36
    }
   }
  },
- "c7576d553289b5635b294a6b": {
+ "9988194a7f09e6b695a2ed3b": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": false, \"reason\": \"duplicate\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_005",
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_001",
       "type": "tool_result"
      }
     ],
@@ -151,20 +129,42 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_007",
-     "input": {
-      "name": null,
-      "summary": "Customer already booked that day and called again",
-      "urgency": "normal"
-     },
-     "name": "take_message",
-     "type": "tool_use"
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
+   "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1228,
-    "output_tokens": 45
+    "input_tokens": 1013,
+    "output_tokens": 34
+   }
+  }
+ },
+ "bfa1303b854807275acc6f84": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1335,
+    "output_tokens": 28
    }
   }
  }

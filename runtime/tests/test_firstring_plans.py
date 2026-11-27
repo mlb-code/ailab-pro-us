@@ -138,7 +138,7 @@ def notifier(tmp_path, demo_raw, **plan):
     raw = with_plan(demo_raw, **plan)
     rec = store.upsert_tenant(load_record(raw))
     state, email, tw = StateStore(store), RecEmail(), FakeTwilioClient()
-    n = Notifier(store, state, email, TwilioSms(tw), None, NotifyPolicy(client_emails_enabled=False, admin_email=ADMIN,
+    n = Notifier(store, state, email, TwilioSms(tw), None, NotifyPolicy(sms_enabled=True, client_emails_enabled=False, admin_email=ADMIN,
                                                                        admin_tz="UTC"))
     return n, UsageMeter(state, {"voice_minutes": 400, "sms_segments": 1000}), rec, email
 

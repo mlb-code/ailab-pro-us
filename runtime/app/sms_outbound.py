@@ -1,5 +1,8 @@
 """Every SMS we send that is not a direct TwiML reply goes through `Outbound.send` (one choke point).
 
+Master switch: `SMS_ENABLED` (settings.sms_enabled, off by default in production until A2P 10DLC is approved). Off =
+`send` refuses with reason `sms_disabled` and no job (text-back, reminder, review) is queued at all.
+
 Rules enforced here for all kinds (text-back, booking confirmation, reminder), SA §8:
 - never to a number that opted out (STOP, a sentence, or "don't text me" on a call) or is on the tenant
   blocklist, checked at send time;
@@ -80,6 +83,11 @@ def reminder_text(tenant: TenantRecord, booking: dict[str, Any], replies: bool =
     return f"{sms_business_name(tenant)}: reminder of your visit {when}. Reply here to change it. Reply STOP to opt out."  # short: 1 segment with a 44-char SMS name
 
 
+def sms_enabled(settings: Any) -> bool:
+    """The global SMS master switch (SMS_ENABLED)."""
+    return bool(getattr(settings, "sms_enabled", False))
+
+
 def booking_replies(settings: Any, tenant: TenantRecord) -> bool:
     """Two-way booking texts: global switch (off until 10DLC) AND the tenant's appointment manager."""
     return bool(getattr(settings, "sms_booking_replies", False)) and tenant.config.booking.self_service
@@ -148,7 +156,9 @@ class Outbound:
         cfg = tenant.config
         ts = self.store.for_tenant(tenant.id)
         reason = ""
-        if guard.is_blocked(to, cfg):
+        if not sms_enabled(self.settings):
+            reason = "sms_disabled"
+        elif guard.is_blocked(to, cfg):
             reason = "blocklist"
         elif ts.is_opted_out(to):
             reason = "opted_out"
@@ -198,6 +208,10 @@ class Outbound:
         return list(self.state.get(self._jobs_key(tenant.id)) or [])
 
     def _add_job(self, tenant: TenantRecord, job: dict[str, Any]) -> dict[str, Any]:
+        if not sms_enabled(self.settings) and job.get("kind") != "dispatch_alert":
+            # SMS off: nothing is queued (the dispatch repeat is a voice call and still runs)
+            self.store.for_tenant(tenant.id).log_event("sms.not_queued", {"kind": job.get("kind"), "reason": "sms_disabled"})
+            return {}
         with self._lock:
             jobs = self.jobs(tenant)
             if any(j.get("dedupe") == job["dedupe"] for j in jobs):
@@ -272,6 +286,8 @@ class Outbound:
         ok, reason = self.review_enabled(tenant)
         if not ok:
             return reason
+        if not sms_enabled(self.settings):
+            return "sms_disabled"
         if guard.is_blocked(contact, tenant.config):
             return "blocklist"
         if ts.is_opted_out(contact):
@@ -423,20 +439,28 @@ def after_turn(rt, tenant: TenantRecord, c, now: datetime) -> None:
     lead = {k: v for k, v in (c.meta.get("lead") or {}).items() if v}
     extra = {"qualification": lead} if lead else {}
     contact = c.contact if c.contact.startswith("+") else (c.collected.get("phone") or c.collected.get("email") or "")
+    # Recording objection (`transcript_withheld`): name + phone only, flagged; no address, job type, e-mail, problem
+    # text or screening answers (see ConversationEngine._withhold_transcript).
+    withheld = bool(c.meta.get("transcript_withheld"))
+    declined = {"recording_declined": True, "summary": guard.RECORDING_DECLINED_SUMMARY} if withheld else {}
     if c.booking and not c.meta.get("booking_followup"):
         c.meta["booking_followup"] = True
         changed = True
+        keys = ("name", "start", "end", "event_id") if withheld else ("name", "address", "job_type", "urgency", "start",
+                                                                       "end", "event_id")
         rt.emit(tenant, "booking.created", {"channel": c.channel, "convo_id": c.convo_id,
                                             "contact": c.booking.get("phone") or contact,
-                                            **{k: c.booking.get(k) for k in ("name", "address", "job_type", "urgency",
-                                                                              "start", "end", "event_id")}, **extra},
+                                            **{k: c.booking.get(k) for k in keys}, **({} if withheld else extra),
+                                            **declined},
                 str(c.booking.get("event_id")))
     if c.outcome in ("booked", "message", "handoff", "emergency") and not c.meta.get("lead_emitted"):
         c.meta["lead_emitted"] = True
         changed = True
-        details = {k: c.collected.get(k) for k in ("name", "address", "job_type", "email") if c.collected.get(k)}
+        keys = ("name",) if withheld else ("name", "address", "job_type", "email")
+        details = {k: c.collected.get(k) for k in keys if c.collected.get(k)}
         rt.emit(tenant, "lead.created", {"channel": c.channel, "convo_id": c.convo_id, "contact": contact,
-                                         "outcome": c.outcome, "urgency": c.urgency, **details, **extra}, c.convo_id)
+                                         "outcome": c.outcome, "urgency": c.urgency, **details,
+                                         **({} if withheld else extra), **declined}, c.convo_id)
     changed = _appointment_followups(rt, tenant, c, now) or changed
     if changed:
         rt.engine.save_convo(c)

@@ -521,18 +521,35 @@ class Engine:
         return done(reply, end=c.ended or dialing, **extra)
 
     # --- consent (SA §8) ---------------------------------------------------------------------------
-    @staticmethod
-    def _should_ask_consent(ts: TenantStore, c: Convo) -> bool:
-        """A booking was made and the caller was not asked yet (and has not opted out)."""
+    def _should_ask_consent(self, ts: TenantStore, c: Convo) -> bool:
+        """A booking was made and the caller was not asked yet (and has not opted out). Never while SMS_ENABLED is off:
+        no texts can go out, so the caller is neither asked nor promised one (the booking is confirmed by voice)."""
+        if not getattr(self.settings, "sms_enabled", False):
+            return False
         return bool(c.booking) and "sms_consent" not in c.meta and not ts.is_opted_out(c.contact)
 
     def _withhold_transcript(self, c: Convo) -> None:
         """Caller objected to recording/transcription: keep only the greeting (proof of the notice) and a marker.
-        Claude's history goes too, so nothing the caller said is kept anywhere in the conversation state."""
+        Claude's history goes too, so nothing the caller said is kept anywhere in the conversation state.
+
+        What is still kept and may leave (decided conservatively, legal review 2026-11-27 item 2.6): only what the
+        client needs to call back, i.e. the caller's name (if already given) and phone number. Address, job type,
+        e-mail, ZIP, problem text, a taken message's summary and real-estate screening answers are dropped from the
+        conversation state, so the `lead.created` / `call.completed` webhooks, Zapier, CRM sync (`crm.build_lead`
+        reads this state) and `lead_from` cannot send them. Those payloads carry `recording_declined: true` and
+        `guard.RECORDING_DECLINED_SUMMARY` instead (`sms_outbound.after_turn`, `notify.core.lead_from`). A booking
+        made earlier in the call stays (it is in the client's calendar); its webhook already went out at booking time."""
         greeting = [t for t in c.transcript[:1] if t.get("who") == "assistant"]
         c.transcript = greeting + [{"who": "system", "text": "Transcript withheld: the caller objected to recording."}]
         c.messages = []
         c.meta["transcript_withheld"] = True
+        c.collected = {k: v for k, v in (c.collected or {}).items() if k in ("name", "phone") and v}
+        if c.message:
+            c.message = {"summary": guard.RECORDING_DECLINED_SUMMARY, "urgency": c.message.get("urgency") or c.urgency,
+                         "name": c.message.get("name") or c.collected.get("name")}
+        c.meta.pop("lead", None)  # real-estate screening answers
+        if isinstance(c.meta.get("dispatch_collect"), dict):
+            c.meta["dispatch_collect"].pop("zip", None)
 
     def _consent_rules(self, tenant: TenantRecord, ts: TenantStore, c: Convo, channel: str, text: str,
                        actions: list, notes: list[str]) -> tuple[str, bool, str | None] | None:

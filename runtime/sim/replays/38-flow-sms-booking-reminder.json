@@ -1,5 +1,104 @@
 {
- "06e91ada05c2d053e502083f": {
+ "195642a06a78d9ebf0d3f068": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My name is Dana Miller",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Thanks, Dana. What's the street address for the visit?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1317,
+    "output_tokens": 21
+   }
+  }
+ },
+ "552ad85d1a1b927bb3474c3a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 77005",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77005"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 969,
+    "output_tokens": 36
+   }
+  }
+ },
+ "8f99dea88189b076516248df": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, my AC is blowing warm air",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 869,
+    "output_tokens": 30
+   }
+  }
+ },
+ "d4804d33e17fa10a42d6906d": {
   "request": {
    "last_message": {
     "content": [
@@ -22,12 +121,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1511,
+    "input_tokens": 1535,
     "output_tokens": 19
    }
   }
  },
- "28d082904c4c8ff756f16e7c": {
+ "dffbff6b2ff4c74fb7b5cf94": {
   "request": {
    "last_message": {
     "content": [
@@ -63,102 +162,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1390,
+    "input_tokens": 1414,
     "output_tokens": 71
    }
   }
  },
- "44623e54bacd249507b34c96": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Hi, my AC is blowing warm air",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 845,
-    "output_tokens": 30
-   }
-  }
- },
- "62e89574c3046fd271c8af94": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My name is Dana Miller",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks, Dana. What's the street address for the visit?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1293,
-    "output_tokens": 21
-   }
-  }
- },
- "7fc3d5aa6286ba5242549d2f": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}, {\"label\": \"Wednesday Oct 14, 8 AM to 12 PM\", \"slot_id\": \"2026-10-14T08:00-12:00\"}, {\"label\": \"Wednesday Oct 14, 12 PM to 4 PM\", \"slot_id\": \"2026-10-14T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can get a technician out Tuesday Oct 13, 12 PM to 4 PM or Wednesday Oct 14, 8 AM to 12 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1091,
-    "output_tokens": 35
-   }
-  }
- },
- "ca52976aec0419bbb17388d4": {
+ "f38700cfe6edd5940b88db72": {
   "request": {
    "last_message": {
     "content": [
@@ -184,22 +193,19 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1200,
+    "input_tokens": 1224,
     "output_tokens": 19
    }
   }
  },
- "caac92cca8bff857b05884a3": {
+ "fcf84565c24fa3b7372e61ac": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: 77005",
-      "type": "text"
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}, {\"label\": \"Wednesday Oct 14, 8 AM to 12 PM\", \"slot_id\": \"2026-10-14T08:00-12:00\"}, {\"label\": \"Wednesday Oct 14, 12 PM to 4 PM\", \"slot_id\": \"2026-10-14T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
      }
     ],
     "role": "user"
@@ -209,20 +215,14 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_003",
-     "input": {
-      "date_from": null,
-      "job_type": "AC repair",
-      "zip": "77005"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
+     "text": "I can get a technician out Tuesday Oct 13, 12 PM to 4 PM or Wednesday Oct 14, 8 AM to 12 PM. Which works better?",
+     "type": "text"
     }
    ],
-   "stop_reason": "tool_use",
+   "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 945,
-    "output_tokens": 36
+    "input_tokens": 1115,
+    "output_tokens": 35
    }
   }
  }

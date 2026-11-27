@@ -1,76 +1,5 @@
 {
- "1c17fcdb0f1b11c47125ebd7": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_007",
-     "input": {
-      "name": null,
-      "summary": "Customer wants to change a booking we could not find",
-      "urgency": "normal"
-     },
-     "name": "take_message",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1145,
-    "output_tokens": 45
-   }
-  }
- },
- "2a40deeea4da0946f27a2cba": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: I need to move my appointment",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_001",
-     "input": {
-      "name": null,
-      "phone": null
-     },
-     "name": "find_my_booking",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 861,
-    "output_tokens": 28
-   }
-  }
- },
- "3c271d4a16a4f768ea5724b8": {
+ "11667f4221451c3526381717": {
   "request": {
    "last_message": {
     "content": [
@@ -94,12 +23,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 939,
+    "input_tokens": 959,
     "output_tokens": 34
    }
   }
  },
- "6eda044fe132a221bca1f4bb": {
+ "1e441b82e4e31464a2f37eb6": {
   "request": {
    "last_message": {
     "content": [
@@ -130,12 +59,83 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1063,
+    "input_tokens": 1082,
     "output_tokens": 32
    }
   }
  },
- "9b57ecaf93283af15e7ad303": {
+ "6f798934c7639ab3631a5185": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "name": null,
+      "summary": "Customer wants to change a booking we could not find",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1165,
+    "output_tokens": 45
+   }
+  }
+ },
+ "92d70d2ea2a8ad27936f5c86": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: I need to move my appointment",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "name": null,
+      "phone": null
+     },
+     "name": "find_my_booking",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 881,
+    "output_tokens": 28
+   }
+  }
+ },
+ "dfc22f95a4c835c9b19825f8": {
   "request": {
    "last_message": {
     "content": [
@@ -158,7 +158,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1229,
+    "input_tokens": 1249,
     "output_tokens": 28
    }
   }
