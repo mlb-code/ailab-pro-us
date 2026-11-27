@@ -255,7 +255,9 @@
       const c = pad(), price = c.prices[st.plan][st.trial ? 'trial' : 'paid'], pr = st.ctx.profile || {};
       P.Checkout.open({
         items: [{ priceId: price, quantity: 1 }],
-        customer: { email: pr.contact_email || pr.email || (st.ctx.session && st.ctx.session.user.email) || '', address: { countryCode: 'US' } },
+        // e-mail only: Paddle rejects a US country without a postal code ("Postal code is required for country code: US")
+        // and we do not collect a ZIP, so the country comes from Paddle's own geolocation and the card form
+        customer: { email: pr.contact_email || pr.email || (st.ctx.session && st.ctx.session.user.email) || '' },
         customData: { ref: r.ref, user_id: st.ctx.session.user.id, business_phone: r.business_phone },
         settings: { displayMode: 'inline', frameTarget: 'su-checkout', frameInitialHeight: 450, variant: 'one-page',
           frameStyle: 'width:100%;min-width:286px;background-color:transparent;border:none', allowLogout: false, showAddDiscounts: false, locale: 'en', theme: 'light' }

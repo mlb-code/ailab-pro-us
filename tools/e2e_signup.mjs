@@ -275,6 +275,7 @@ async function main() {
     const uid = d.profiles.find(p => p.email === 'pia@paddle.test').id;
     ok(paddleRequests === 1 && pd.env === 'sandbox' && pd.init.token === TOKEN, 'Paddle.js loaded on the card step only: sandbox + client-side token');
     ok(pd.open.items.length === 1 && pd.open.items[0].priceId === PRICES.FR_PRO.trial && pd.open.items[0].quantity === 1, 'checkout: the trial price of the chosen plan');
+    ok(!('address' in pd.open.customer), 'no address prefill: Paddle rejects a US country without a postal code (we collect no ZIP)');
     ok(pd.open.customer.email === 'pia@paddle.test' && pd.open.customData.ref === ref && pd.open.customData.user_id === uid && pd.open.customData.business_phone === '+15125550144', 'customer e-mail prefilled, customData ref + user id + business phone');
     ok(pd.open.settings.displayMode === 'inline' && pd.open.settings.frameTarget === 'su-checkout' && pd.open.settings.allowLogout === false, 'inline checkout in the page');
     ok(await page.$('#payStub') === null && !/Demo checkout/.test(await body(page)), 'no demo box when Paddle is on');
