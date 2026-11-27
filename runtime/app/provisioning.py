@@ -92,11 +92,17 @@ def dry_write(settings: Any, env: dict[str, str] | None = None) -> bool:
     return bool(getattr(settings, "is_sim", False)) or (e.get("TWILIO_PROVISION_DRY_WRITE") or "").strip().lower() in _ON
 
 
-def webhooks(base_url: str) -> dict[str, str]:
-    """The four webhooks every number needs (docs: b9-readiness §2.5-2.6). ConversationRelay is returned by the runtime."""
+def webhooks(base_url: str, env: Any = None) -> dict[str, str]:
+    """The four webhooks every number needs (docs: b9-readiness §2.5-2.6). ConversationRelay is returned by the runtime.
+
+    VOICE_FALLBACK_URL (optional, https): a static TwiML file hosted OUTSIDE this server (the site: /voice-fallback.xml),
+    fetched with GET, so a caller still hears a sentence when this server is down. Unset = this server's /voice/fallback,
+    which only covers an error inside a running server."""
     b = base_url.rstrip("/")
+    static = ((os.environ if env is None else env).get("VOICE_FALLBACK_URL") or "").strip()
+    fallback = (static, "GET") if static.startswith("https://") else (f"{b}/voice/fallback", "POST")
     return {"VoiceUrl": f"{b}/voice/incoming", "VoiceMethod": "POST",
-            "VoiceFallbackUrl": f"{b}/voice/fallback", "VoiceFallbackMethod": "POST",
+            "VoiceFallbackUrl": fallback[0], "VoiceFallbackMethod": fallback[1],
             "StatusCallback": f"{b}/voice/status", "StatusCallbackMethod": "POST",
             "SmsUrl": f"{b}/sms/incoming", "SmsMethod": "POST"}
 

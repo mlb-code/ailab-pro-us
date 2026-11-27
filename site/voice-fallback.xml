@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Static voice fallback, served by GitHub Pages (not by the call server). Twilio fetches it with GET when the call
+     server does not answer (VoiceFallbackUrl, set from VOICE_FALLBACK_URL). Keep it generic: it serves every number,
+     and nothing is logged on our side, so it must not promise a call back. -->
+<Response>
+  <Say voice="Polly.Joanna-Neural" language="en-US">Thank you for calling. We are sorry, we cannot take your call right now because of a technical problem. Please call back in a few minutes. If this is an emergency, hang up and dial 9 1 1.</Say>
+  <Hangup/>
+</Response>
