@@ -1,0 +1,46 @@
+# Outage watch: every 5 minutes GitHub checks that the call server, the site, the backup voice file and the database
+# answer (tools/health_watch.py), and e-mails the owner when something goes down, once an hour while it stays down,
+# and once when it is back. It runs on GitHub's machines, so it still works when Railway or Supabase is down.
+# GitHub may start a scheduled run several minutes late; expect to hear about an outage within about 5 to 20 minutes.
+# Secrets used: RESEND_API_KEY (sends the e-mail), US_SUPABASE_URL (optional: adds the database check).
+# The state between runs (down since when, last e-mail) is one small file kept in the Actions cache.
+name: health-watch
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: health-watch
+  cancel-in-progress: false
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the last state
+        uses: actions/cache/restore@v4
+        with:
+          path: .health-state
+          key: health-state-${{ github.run_id }}
+          restore-keys: health-state-
+      - name: Check and alert
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SUPABASE_URL: ${{ secrets.US_SUPABASE_URL }}
+        id: watch
+        run: |
+          python3 tools/health_watch.py --self-test
+          before=$(cat .health-state/state.json 2>/dev/null || true)
+          rc=0; python3 tools/health_watch.py --state .health-state/state.json || rc=$?
+          after=$(cat .health-state/state.json 2>/dev/null || true)
+          [ "$before" != "$after" ] && echo "changed=true" >> "$GITHUB_OUTPUT"
+          exit $rc
+      - name: Save the state (only when it changed)
+        if: always() && steps.watch.outputs.changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .health-state
+          key: health-state-${{ github.run_id }}
