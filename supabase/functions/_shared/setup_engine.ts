@@ -9,7 +9,7 @@ import { BRAND, PRICEBOOK } from "./config.ts";
 import { buildModelMessages, parseTurn, type HistoryRow } from "./setup_prompt.ts";
 import { type SetupModel, SetupModelError, type Usage } from "./setup_model.ts";
 import {
-  addProv, AFTER_HOURS, ALL_TOPICS, baseHash, CARRIER_KEYS, CARRIERS, cardFor, type ConvState, currentTopic, DATA_TOPICS, emptyProv, fmtPhone,
+  addProv, AFTER_HOURS, baseHash, CARRIER_KEYS, CARRIERS, cardFor, type ConvState, currentTopic, DATA_TOPICS, emptyProv, fmtPhone,
   fullItemData, isTopic, type Item, itemStatusAfter, type Niche, OPTIONAL_ITEMS, provenance, redact, settingsErr, SKIPPABLE, type Snapshot,
   testState, TITLES, type Topic, TOPIC_ITEM, topicDataFromItemData, topicDone, topicFromConfig, topicsFor, topicToData, tzLabel,
 } from "./setup_rules.ts";
@@ -386,8 +386,8 @@ async function event(c: Ctx, ev: string) {
     return testCallStep(c, (t) => c.text.push(t));
   }
   if (ev === "forms_saved") {
-    const seen: Record<string, string> = c.state.seen ?? {};
-    const changed = c.snap.items.filter((i) => seen[i.key] && seen[i.key] !== `${i.status}`);
+    const seen: Record<string, string> = c.state.seen ?? {}, nowSeen = seenOf(c.snap);
+    const changed = c.snap.items.filter((i) => seen[i.key] && seen[i.key] !== nowSeen[i.key]);
     if (!changed.length) return;
     c.state.last_card = null;
     return askNext(c, `I see you updated ${changed.map((i) => (i.title ?? i.key).toLowerCase()).join(" and ")} in the form.`);
@@ -434,7 +434,7 @@ async function checkProposals(c: Ctx, ops: any[], focus: Topic | null): Promise<
 async function modelTurn(c: Ctx, text: string, topic: Topic | null): Promise<{ parsed: { reply: string; ops: any[] } | null; failed: string } | SetupModelError> {
   let parsed: { reply: string; ops: any[] } | null = null, failed = "", repair = "";
   for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt === 1 && now(c) - c.t0 > 40_000) break;   // keep the whole turn inside the 90 s lock
+    if (attempt === 1 && now(c) - c.t0 > 25_000) break;   // 25 s + one call (30 s timeout, 1 SDK retry) stays inside the 90 s lock
     let out: unknown;
     try { out = await callModel(c, text, topic, repair); }
     catch (e) {
@@ -452,7 +452,9 @@ async function modelTurn(c: Ctx, text: string, topic: Topic | null): Promise<{ p
   }
   return { parsed, failed };
 }
-const CLAIMS = /\b(saved|all set|you'?re live|connected|done)\b/i;
+const CLAIMS = /\b(saved|all set|you'?re live|i'?ve (?:saved|updated|set|changed))\b/i;   // a reply may not claim a save that did not happen
+/** Log-safe reason: an error code or the first word, never customer content. */
+const reasonCode = (r: string) => (/^invalid_setting:[\w.[\]]+/.exec(r) ?? [r.split(/[\s:]/)[0]])[0].slice(0, 60);
 async function message(c: Ctx, text: string, raw: string): Promise<"ok" | SetupModelError> {
   let topic = currentTopic(c.snap, c.state);
   // "yes" to "Is (713) 555-0100 the number your customers call?" needs no model
@@ -467,7 +469,7 @@ async function message(c: Ctx, text: string, raw: string): Promise<"ok" | SetupM
   const { parsed } = r;
   let failed = r.failed;
   if (!parsed) {
-    log(c, "setup_turn_fixed_text", { reason: failed.slice(0, 80) });
+    log(c, "setup_turn_fixed_text", { reason: reasonCode(failed) });
     c.text.push(FIXED_REPHRASE);
     if (topic) c.blocks.push({ type: "open_form", item_key: TOPIC_ITEM[topic], label: "Fill this one in the form instead" });
     return "ok";
@@ -530,7 +532,7 @@ async function message(c: Ctx, text: string, raw: string): Promise<"ok" | SetupM
   if (failed && !proposed) {
     const t = topic ?? "faq";
     const n = ((c.state.attempts ??= {})[t] = (c.state.attempts[t] ?? 0) + 1);
-    log(c, "setup_proposal_rejected", { topic: t, reason: failed.slice(0, 80), attempts: n });
+    log(c, "setup_proposal_rejected", { topic: t, reason: reasonCode(failed), attempts: n });
     c.text.push(FIXED_REPHRASE);
     if (n >= 2 && topic) c.blocks.push({ type: "open_form", item_key: TOPIC_ITEM[topic], label: "Want to fill this one in the form instead?" });
     return "ok";
@@ -557,14 +559,30 @@ async function requestHelp(c: Ctx, msg: string) {
 }
 
 // ------------------------------------------------------------------ state hygiene
+/** Per item: status + a short hash of its data (without our stamps), so a form save is noticed even when the status stays. */
+function seenOf(s: Snapshot): Record<string, string> {
+  const h = (str: string) => { let x = 5381; for (let i = 0; i < str.length; i++) x = ((x << 5) + x + str.charCodeAt(i)) | 0; return (x >>> 0).toString(36); };
+  return Object.fromEntries(s.items.map((i) => {
+    const { saved_at: _a, confirmed_at: _b, via: _c, test_started_at: _d, ...d } = i.data ?? {};
+    return [i.key, `${i.status}:${h(JSON.stringify(d))}`];
+  }));
+}
+const bytes = (v: unknown) => new TextEncoder().encode(JSON.stringify(v)).length;
+/** Card blocks must fit the message row (blocks < 16,000 bytes): big values fall back to their ready text. */
+function fitBlocks(blocks: any[]): any[] {
+  if (bytes(blocks) < 15000) return blocks;
+  const slim = blocks.map((b) => b?.type === "summary_card" ? { ...b, fields: b.fields.map((f: any) => ({ ...f, value: null, text: String(f.text).slice(0, 2500) })) } : b);
+  return bytes(slim) < 15000 ? slim : slim.filter((b) => b?.type !== "choices");
+}
 function boundState(st: any) {
   for (const k of ["redacted_now", "modelOps"]) delete st[k];
   if (st.notes) for (const k of Object.keys(st.notes)) if (!isTopic(k)) delete st.notes[k];
   if (st.drafts) for (const k of Object.keys(st.drafts)) if (!isTopic(k)) delete st.drafts[k];
   st.skipped = [...new Set(st.skipped ?? [])]; st.answered = [...new Set(st.answered ?? [])];
   for (const key of ["drafts", "notes"]) {
-    while (JSON.stringify(st).length >= 15000 && st[key] && Object.keys(st[key]).length) delete st[key][Object.keys(st[key])[0]];
+    while (bytes(st) >= 15000 && st[key] && Object.keys(st[key]).length) delete st[key][Object.keys(st[key])[0]];
   }
+  if (bytes(st) >= 15000 && st.prov) st.prov = { ...st.prov, n: st.prov.n.slice(-150), u: st.prov.u.slice(-5) };
   return st;
 }
 
@@ -607,7 +625,9 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
     client_turn_id: role === "none" ? null : req.client_turn_id, role, text: inText, blocks: [], needs_model: needsModel });
   if ("replay" in b) return respond(open, await snap0(), state0, present(b.messages, statuses));   // a retried request: the stored answer
   if ("error" in b) {
-    if (b.error === "turn_in_progress") return inp.type === "resume" ? respond(open, await snap0(), state0, []) : { status: 409, body: { error: "turn_in_progress" } };
+    if (b.error === "turn_in_progress") {
+      return inp.type === "resume" ? respond(open, await snap0(), state0, present(open.messages, statuses)) : { status: 409, body: { error: "turn_in_progress" } };
+    }
     if (b.error === "rate_limited") return { status: 429, body: { error: "rate_limited", retry_after_s: Math.max(1, b.retry_after_s ?? 60) } };
     if (b.error === "budget") await deps.store.alert(req.userId, "budget", "global daily budget reached").catch(() => {});
     const reason = b.error === "limit" ? "limit" : b.error === "disabled" ? "disabled"
@@ -628,7 +648,7 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
     const nudged = c.state.redacted_now ? true : c.state.nudged;
     const st = boundState(c.state);
     if (nudged) st.nudged = true;
-    st.seen = Object.fromEntries(c.snap.items.map((i) => [i.key, i.status]));
+    st.seen = seenOf(c.snap);
     const topic = currentTopic(c.snap, st);
     return deps.store.finish(open.conversation.id, c.lock, { ...c.out, state: st, topic, status: topic ? "active" : "complete", input_seq: c.seq,
       usage: { model: c.usage.model, tokens_in: c.usage.input_tokens + c.usage.cache_read_input_tokens + c.usage.cache_creation_input_tokens,
@@ -665,7 +685,7 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
     }
     const textOut = c.text.join(" ").replace(/[ \t]+/g, " ").trim().slice(0, 2000);
     if (textOut || c.blocks.length) {
-      c.out.messages.push({ role: "assistant", text: textOut, blocks: c.blocks.slice(0, 6), model_json: { reply: textOut.slice(0, 350), ops: c.modelOps } });
+      c.out.messages.push({ role: "assistant", text: textOut, blocks: fitBlocks(c.blocks.slice(0, 6)), model_json: { reply: textOut.slice(0, 350), ops: c.modelOps } });
     }
     // the cards ride on the last assistant message of the turn
     c.out.proposals = c.out.proposals.map((p) => ({ ...p, msg_index: c.out.messages.length - 1 })).filter((p) => p.msg_index >= 0);

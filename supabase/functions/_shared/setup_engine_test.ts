@@ -466,3 +466,39 @@ Deno.test("no receptionist number yet: test_call state no_number, the conversati
   eq(blocks(r2, "action").pop().state, "no_number");
   eq(r2.body.status, "active");
 });
+Deno.test("size: a full FAQ (25 long pairs) still fits the message row; over the item limit it is the forms' 'too long'", async () => {
+  const t = world();
+  const pairs = Array.from({ length: 25 }, (_, i) => ({ q: `Question ${"q".repeat(140)} ${String.fromCharCode(65 + i)}?`, a: `Answer ${"a".repeat(430)}.` }));
+  const model = scriptedSetupModel([turn("Your questions.", [propose("faq", { items: pairs })])]);
+  await send(t, model, { type: "resume" });
+  t.item("faq").data.setup_confirmed = { services: "x", area: "x", prices: "x" };
+  t.item("hours").status = "done";
+  const r = await send(t, model, msg("here are my questions"));
+  eq(cards(r)[0].fields[0].label, "Questions & answers (25)");
+  assert(new TextEncoder().encode(JSON.stringify(r.body.messages.at(-1).blocks)).length < 16000);
+  const huge = Array.from({ length: 25 }, (_, i) => ({ q: `Question ${"q".repeat(280)} ${String.fromCharCode(65 + i)}?`, a: `Answer ${"a".repeat(580)}.` }));
+  const m2 = scriptedSetupModel([turn("Q.", [propose("faq", { items: huge })]), turn("Q.", [propose("faq", { items: huge })])]);
+  const r2 = await send(t, m2, msg("and these"));
+  assert(stateMsg(m2.requests[1]).includes("data_too_large: This is too long to save"), "the item's 20,000-byte limit, in the forms' words");
+  eq(lastText(r2), "I couldn't fit that into the settings. Could you say it more briefly?");
+});
+Deno.test("logs carry ids, op names and counts, never the customer's words or the model's text", async () => {
+  const t = world();
+  const lines: string[] = [];
+  const model = scriptedSetupModel([turn("Here's what I understood, Maria.", [propose("services", { items: ["Secret-Sauce Drain Cleaning"] })]),
+    turn("x", [propose("services", { items: ["Bad 4242 item"] })]), turn("x", [propose("services", { items: ["Bad 4242 item"] })])]);
+  const extra = { log: (ev: string, f: Record<string, unknown>) => lines.push(JSON.stringify({ ev, ...f })) };
+  await send(t, model, { type: "resume" }, tid(), extra);
+  await send(t, model, msg("secret sauce drain cleaning for 5551234"), tid(), extra);
+  await send(t, model, msg("we do bad items"), tid(), extra);
+  const all = lines.join("\n");
+  assert(lines.length > 3 && /setup_ops/.test(all) && /setup_proposal_rejected/.test(all));
+  for (const s of ["Secret", "sauce", "5551234", "Maria", "4242", "bad items"]) assert(!all.toLowerCase().includes(s.toLowerCase()), `log leaks "${s}"`);
+});
+Deno.test("a normal question is not mistaken for a claimed save", async () => {
+  const t = world();
+  const model = scriptedSetupModel([turn("Got it. What time are you done on Fridays?", [])]);
+  await send(t, model, { type: "resume" });
+  const r = await send(t, model, msg("we work weekdays"));
+  eq(lastText(r), "Got it. What time are you done on Fridays?");
+});

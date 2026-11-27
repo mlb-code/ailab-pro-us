@@ -439,7 +439,9 @@ export function addProv(prov: Prov, text: string): Prov {
     const d = m.replace(/\D/g, "").slice(-10); push(prov.p, d, 40);
   }
   for (const m of t.match(/[^\s@<>()"',;]+@[^\s@<>()"',;]+\.[A-Za-z]{2,}/g) ?? []) push(prov.e, m.toLowerCase(), 20);
-  for (const m of t.match(/(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?/gi) ?? []) if (m.includes("/") || /^https?:/i.test(m)) push(prov.u, normUrl(m), 20);
+  for (const m of t.match(/(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?/gi) ?? []) {
+    if ((m.includes("/") || /^https?:/i.test(m)) && m.length <= 500) push(prov.u, normUrl(m), 10);
+  }
   for (const w of ["noon", "midnight"]) if (new RegExp(`\\b${w}\\b`, "i").test(t)) push(prov.w, w, 4);
   return prov;
 }

@@ -4,7 +4,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { BRAND } from "../_shared/config.ts";
 import { scriptedSetupModel } from "../_shared/setup_model.ts";
-import { MemorySetupStore, MemoryUserDb, RestUserDb } from "../_shared/setup_store.ts";
+import { MemoryUserDb, RestUserDb } from "../_shared/setup_store.ts";
 import { assert, eq } from "../_shared/test_util.ts";
 import { addClient, contractErrors, propose, turn, world } from "../_shared/setup_fixtures_test.ts";
 import { makeHandler, parseRequest } from "./index.ts";
@@ -90,11 +90,11 @@ Deno.test("http: a full card round trip through the handler; another user's JWT 
 });
 Deno.test("live wiring: settings go through PostgREST with the caller's JWT + the public key, never the service key", async () => {
   const calls: Array<{ url: string; headers: Record<string, string>; body?: string }> = [];
-  const f = (async (u: string | URL | Request, init?: RequestInit) => {
+  const f = ((u: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(u), headers: init?.headers as Record<string, string>, body: init?.body as string });
-    if (String(u).endsWith("/auth/v1/user")) return new Response('{"id":"u1"}');
-    if (String(u).includes("/rpc/update_onboarding_item")) return new Response('{"id":"i1","key":"hours","status":"todo","data":{}}');
-    return new Response("[]");
+    if (String(u).endsWith("/auth/v1/user")) return Promise.resolve(new Response('{"id":"u1"}'));
+    if (String(u).includes("/rpc/update_onboarding_item")) return Promise.resolve(new Response('{"id":"i1","key":"hours","status":"todo","data":{}}'));
+    return Promise.resolve(new Response("[]"));
   }) as typeof fetch;
   const db = new RestUserDb("https://proj.supabase.co", "sb_publishable_x", "user-jwt", f);
   eq(await db.user(), { id: "u1" });
@@ -107,5 +107,4 @@ Deno.test("live wiring: settings go through PostgREST with the caller's JWT + th
   assert(calls.some((c) => c.url.endsWith("/rest/v1/rpc/update_onboarding_item") && JSON.parse(c.body!).p_id === "i1"));
   assert(calls.some((c) => c.url.endsWith("/rest/v1/rpc/setup_preview_step")));
   assert(calls.some((c) => c.url.includes("onboarding_items?select=") && c.url.includes("client_id=eq.c1")));
-  void MemorySetupStore;
 });
