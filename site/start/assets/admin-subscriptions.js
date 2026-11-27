@@ -6,7 +6,8 @@
    Plan names and prices come from the price book (ctx.PB.plans), never typed here.
    Phase 2 (2026-11-25): AB.adminSubscriptionsExtra = RPC admin_subscriptions_extra: the number release after the service
    ended (scheduled date, warning, dry run) with "postpone 14 days" (admin_postpone_number_release) and "release now"
-   (admin_release_number_now, asks first), and the go-live live AI check (status, problems, cost estimate, transcript). */
+   (admin_release_number_now, asks first), and the go-live live AI check (status, problems, cost estimate, transcript).
+   2026-11-27: extra.forwarding.unverified (the client self-confirmed the forwarding test) shows a "Forwarding unverified" badge. */
 (function () {
   let C = null, rows = [], loadErr = null;
   const SUB_ST = { trialing: 'Free trial', active: 'Active', past_due: 'Payment failed', paused: 'Paused', canceled: 'Canceled' };
@@ -51,6 +52,8 @@
   }
   async function load() { try { rows = await C.AB.adminSubscriptions(); loadErr = null; } catch (e) { rows = []; loadErr = err(e); } await loadExtra(); }
 
+  // 2026-11-27 (20261129100200_us_forwarding_self_confirmed.sql): forwarding step passed without a verified forward
+  function fwdUnverified(r) { const f = (extra[r.client_id] || {}).forwarding; return !!(f && f.unverified); }
   function releaseHtml(r, rel) {
     if (!rel) return '';
     const esc = C.esc, open = ['scheduled', 'held', 'failed'].indexOf(rel.status) !== -1;
@@ -120,7 +123,8 @@
       if (pad) facts.push(['Paddle', 'subscription ' + (s.provider_subscription_id || '—') + ' · customer ' + (s.provider_customer_id || '—')]);
       return '<li class="card sub" data-sub="' + esc(r.client_id) + '"><div class="row"><h3>' + esc(r.business_name || r.email || '—') + '</h3>' +
         '<span class="pill pill--' + (SUB_PILL[s.status] || 'todo') + '">' + esc(SUB_ST[s.status] || s.status) + '</span>' + C.pill('client', r.client_status) +
-        (s.trial_duplicate ? '<span class="pill pill--need_help">Second trial for the same phone</span>' : '') + (mm ? '<span class="pill pill--paused">Messages only</span>' : '') + '</div>' +
+        (s.trial_duplicate ? '<span class="pill pill--need_help">Second trial for the same phone</span>' : '') + (mm ? '<span class="pill pill--paused">Messages only</span>' : '') +
+        (fwdUnverified(r) ? '<span class="pill pill--pending" data-fwd-unverified title="The test call came without carrier forwarding data: call the business line to check">Forwarding unverified (self-confirmed)</span>' : '') + '</div>' +
         '<p class="muted small"><bdi dir="ltr">' + esc(r.email || '') + '</bdi></p>' +
         '<dl class="kv">' + facts.map(([k, v]) => '<dt>' + esc(k) + '</dt><dd><bdi dir="auto">' + esc(v) + '</bdi></dd>').join('') + '</dl>' +
         (pad ? '<p class="small plan-ids"><a href="' + esc(dash() + '/subscriptions-v2/' + encodeURIComponent(s.provider_subscription_id || '')) + '" target="_blank" rel="noopener" data-paddle-link>Open subscription in Paddle</a>' +

@@ -644,16 +644,23 @@ export const TEMPLATES: Record<string, TemplateDef> = {
 
   admin_provisioning_alert: toMeir((ctx, { brand, payload }) => {
     const step = String(payload?.step ?? "");
-    const label: Record<string, string> = { setup: "Automatic setup (client card, tenant, checklist)", duplicate_trial: "Second free trial for the same business phone" };
+    const label: Record<string, string> = { setup: "Automatic setup (client card, tenant, checklist)", duplicate_trial: "Second free trial for the same business phone",
+      forwarding_self_confirmed: "Call forwarding confirmed by the client, not verified" };
+    const next: Record<string, string> = {
+      duplicate_trial: "This business phone already had a free trial. No number was bought. If that's OK: 'Retry: setup' in the Subscriptions tab.",
+      forwarding_self_confirmed: "The client confirmed call forwarding themselves, without a verified test call: the test call reached the "
+        + "receptionist number without carrier forwarding data, so we can't tell whether calls to the business line are really "
+        + "forwarded. Nothing to retry. Call the business line yourself (or ask the client to) and check that the receptionist answers "
+        + "before relying on it. The Subscriptions tab shows this client as 'Forwarding unverified (self-confirmed)'.",
+    };
     return {
-      subject: `⚠️ Automatic setup: ${biz(ctx)}`,
+      subject: step === "forwarding_self_confirmed" ? `⚠️ Call forwarding unverified: ${biz(ctx)}` : `⚠️ Automatic setup: ${biz(ctx)}`,
       preheader: label[step] ?? step,
       heading: "Check this client's setup",
       blocks: [
         { facts: [["Client", biz(ctx)], ["Step", label[step] ?? step], ["Details", String(payload?.error ?? "")],
           ["Plan", ctx.subscription?.plan_code ?? ""], ["Subscription status", ctx.subscription?.status ?? ""]] },
-        { p: step === "duplicate_trial" ? "This business phone already had a free trial. No number was bought. If that's OK: 'Retry: setup' in the Subscriptions tab."
-          : "The subscription is saved. After you fix the problem: 'Retry: setup' in the Subscriptions tab in the admin." },
+        { p: next[step] ?? "The subscription is saved. After you fix the problem: 'Retry: setup' in the Subscriptions tab in the admin." },
       ],
       cta: { label: "Open the Subscriptions tab", url: admin(brand, "subscriptions") },
     };

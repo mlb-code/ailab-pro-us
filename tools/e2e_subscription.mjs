@@ -267,11 +267,19 @@ async function main() {
     let txt = await page.$eval('#subsBody', e => e.innerText);
     ok(txt.includes('Cool Breeze HVAC') && txt.includes(biz.name) && txt.includes('Phone number') && txt.includes('Go-live check') && txt.includes('Done'), 'admin: subscription, plan, jobs');
     ok(txt.includes('Dry run') && txt.includes('Not used'), 'admin: dry-run flag + money-back not used');
+    ok(txt.includes('Forwarding unverified (self-confirmed)') && (await page.$$('[data-fwd-unverified]')).length === 1, 'admin: self-confirmed forwarding shows the unverified badge');
+    ok((await db(page)).outbox.filter(m => m.template === 'admin_provisioning_alert' && (m.payload || {}).step === 'forwarding_self_confirmed').length === 1,
+       'admin: one forwarding_self_confirmed alert to Meir');
     await click(page, '[data-moneyback]'); await sleep(300);
     txt = await page.$eval('#subsBody', e => e.innerText);
     ok(/Used on /.test(txt), 'admin: money-back recorded');
     await click(page, '[data-retry="golive_sim"]'); await sleep(300);
     ok((await db(page)).provisioning_jobs.find(j => j.kind === 'golive_sim').status === 'pending', 'admin: retry queues the job again');
+    await page.evaluate(() => { const k = 'aplp_mock_db_v1', d = JSON.parse(localStorage.getItem(k)); const it = d.onboarding_items.find(o => o.key === 'forward_calls');
+      it.data = Object.assign({}, it.data, { verified: 'forwarded_from', unverified: false }); localStorage.setItem(k, JSON.stringify(d)); });
+    await page.reload({ waitUntil: 'load' }); await page.waitForSelector('.subs .sub', { timeout: 5000 });
+    ok(!(await page.$eval('#subsBody', e => e.innerText)).includes('Forwarding unverified') && (await page.$$('[data-fwd-unverified]')).length === 0,
+       'admin: a verified forward shows no badge');
     ok((await overflow(page)).length === 0, 'admin subscriptions: no overflow');
     await sleep(3500);   // let the toast go before the screenshot
     await shot(page, 'admin-subscriptions');

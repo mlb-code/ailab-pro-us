@@ -544,6 +544,22 @@ Deno.test("FirstRing plan mails: trial reminder, message mode, restored, no go-l
   eq([TEMPLATES.admin_provisioning_alert.audience, TEMPLATES.admin_billing_request.audience, TEMPLATES.trial_ending.transactional], ["admin", "admin", true]);
 });
 
+Deno.test("admin_provisioning_alert: each step has a human label; self-confirmed forwarding has no Retry line", async () => {
+  const s = await samples();
+  const ctx = s.admin_provisioning_alert.ctx;
+  const dup = render("admin_provisioning_alert", ctx, { step: "duplicate_trial", error: "x" });
+  has(dup, ["Step: Second free trial for the same business phone", "'Retry: setup'"], "duplicate_trial");
+  const setup = render("admin_provisioning_alert", ctx, { step: "setup", error: "tenant failed" });
+  has(setup, ["Step: Automatic setup (client card, tenant, checklist)", "Details: tenant failed", "'Retry: setup'"], "setup");
+  const fwd = render("admin_provisioning_alert", ctx, { step: "forwarding_self_confirmed",
+    error: "Call forwarding: UNVERIFIED, self-confirmed by the client." });
+  has(fwd, ["Step: Call forwarding confirmed by the client, not verified", "confirmed call forwarding themselves, without a verified test call",
+    "Call the business line yourself", "Forwarding unverified (self-confirmed)", "UNVERIFIED, self-confirmed by the client"], "forwarding_self_confirmed");
+  assert(!/retry/i.test(fwd.text.replace("Nothing to retry", "")), "forwarding_self_confirmed: no Retry line");
+  assert(fwd.subject.startsWith("⚠️ Call forwarding unverified:") && !fwd.text.includes("forwarding_self_confirmed"),
+    "forwarding_self_confirmed: human subject, no raw step key");
+});
+
 Deno.test("FirstRing sign-up mails: trial / paid welcome to the customer, Hebrew alerts to Meir (new + cancelled)", async () => {
   const s = await samples();
   const plans = (PRICEBOOK as unknown as { plans: Array<{ code: string; name: string; product: string; monthly_cents: number; trial_minutes: number;

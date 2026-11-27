@@ -797,7 +797,7 @@
     }
     return null;
   }
-  const RE_SCREENING = ['intent', 'area', 'timeline', 'price_range', 'pre_approval', 'property_address', 'motivation', 'has_agent'];
+  const RE_SCREENING = ['intent', 'area', 'timeline', 'price_range', 'pre_approval', 'property_address', 'has_agent'];   // motivation retired 2026-11-27
   const rsNum = v => typeof v === 'number' ? v : (v && typeof v === 'object' && typeof v.usd === 'number' ? v.usd : null);
   const thisMonth = () => new Date().toISOString().slice(0, 7);
   // usage for one tenant+month from runtime_state; accepts the runtime key layout (usage:<t>:<m>:<kind>) and the
@@ -1741,7 +1741,15 @@
           if (!it || it.key !== 'forward_calls' || !db.clients.some(c => c.id === it.client_id && c.user_id === u.id)) throw bErr('not_your_item');
           if (!(it.data || {}).test_unverified_at) throw bErr('no_test_call');
           if (it.data.test_direct) throw bErr('called_directly');
-          it.status = 'done'; it.done_at = now(); it.data = Object.assign({}, it.data, { test_call_at: it.data.test_unverified_at, verified: 'self_confirmed' });
+          // 20261129100200_us_forwarding_self_confirmed.sql: recorded as UNVERIFIED, an admin-only event + one admin e-mail
+          it.status = 'done'; it.done_at = now(); it.data = Object.assign({}, it.data, { test_call_at: it.data.test_unverified_at, verified: 'self_confirmed',
+            unverified: true, self_confirmed_at: now(), self_confirmed_by: 'client' });
+          db.events.push({ id: uuid(), actor: 'client', entity: 'client', entity_id: it.client_id, user_id: u.id, type: 'forwarding_self_confirmed',
+            payload: { item: it.id, test_call_id: it.data.test_call_id || null, test_call_at: it.data.test_unverified_at, by: 'client' }, client_visible: false, created_at: now() });
+          if (!db.outbox.some(m => m.template === 'admin_provisioning_alert' && m.idem_key === 'admin_provisioning_alert:forwarding_self_confirmed:' + it.id)) {
+            db.outbox.push({ id: uuid(), idem_key: 'admin_provisioning_alert:forwarding_self_confirmed:' + it.id, to: 'owner', template: 'admin_provisioning_alert',
+              subject: 'Call forwarding unverified', payload: { step: 'forwarding_self_confirmed' }, created_at: now() });
+          }
           autoGoLive(db, it.client_id);
           return it;
         });
@@ -1895,8 +1903,13 @@
           admin(db, u);
           return db.clients.filter(c => c.billing_mode === 'subscription').map(c => {
             const r = relOf(db, c.id), j = db.provisioning_jobs.filter(x => x.client_id === c.id && x.kind === 'golive_sim').sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0];
+            const fw = db.onboarding_items.filter(o => o.client_id === c.id && o.key === 'forward_calls').sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
             return { client_id: c.id, release: r ? Object.assign({}, r, { result: undefined, would_release: (r.result || {}).would_release || null }) : null,
-              golive: j ? { status: j.status, updated_at: j.updated_at, passed: (j.result || {}).passed, ai_check: (j.result || {}).ai_check || null } : null };
+              golive: j ? { status: j.status, updated_at: j.updated_at, passed: (j.result || {}).passed, ai_check: (j.result || {}).ai_check || null } : null,
+              // 20261129100200_us_forwarding_self_confirmed.sql: unverified = done without carrier forwarding data
+              forwarding: fw ? { status: fw.status, verified: (fw.data || {}).verified || null, unverified: fw.status === 'done' && (fw.data || {}).verified !== 'forwarded_from',
+                self_confirmed_at: (fw.data || {}).self_confirmed_at || null, self_confirmed_by: (fw.data || {}).self_confirmed_by || null,
+                test_call_at: (fw.data || {}).test_call_at || null } : null };
           });
         });
       },
