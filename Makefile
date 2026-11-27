@@ -138,6 +138,7 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/subscription_emails_run.ts
 	$(DENO_RUN) supabase/tests/offline/retention_runtime_state_run.ts
 	$(DENO_RUN) supabase/tests/offline/forwarding_self_confirmed_run.ts
+	$(DENO_RUN) supabase/tests/offline/setup_agent_run.ts
 
 # Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity + Meta Pixel load, events fire,
 # GPC/DNT blocks everything, Clarity masks forms, the pixel maps funnel events and stays off the quote page, first-touch UTM
