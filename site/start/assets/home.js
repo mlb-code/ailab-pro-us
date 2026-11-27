@@ -282,21 +282,21 @@
 
   // FirstRing monthly plan (portal-b.js): free trial -> setup checklist -> automatic test calls -> live. No quote, no deposit.
   function planStage(d) {
-    const t = window.PortalB.planTerms(d), ob = d.ob || [], req = ob.filter(o => o.key !== 'tools' && o.key !== 'sms');
-    const left = req.filter(o => o.status !== 'done').length, plan = (t && t.plan && t.plan.name) || 'Your plan';
+    const t = window.PortalB.planTerms(d), pr = window.PortalB.obProgress(d);   // same count as the checklist tab
+    const left = pr.total - pr.done, plan = (t && t.plan && t.plan.name) || 'Your plan';
     const trial = t && t.trial ? ' Free trial until ' + S.fmtDate(t.sub.trial_ends_at) + '.' : '';
     const rl = window.PortalB.numberRelease && window.PortalB.numberRelease(d);   // the number is kept until a date (plan ended)
     // plan steps (no questionnaire / quote / deposit): Plan started (trial until X) -> Setup checklist -> Test call -> Live
     const stages = [t && t.trial ? 'Plan started · trial until ' + S.fmtDate(t.sub.trial_ends_at) : 'Plan started', 'Setup checklist', 'Test call', 'Live'];
-    const r = planStageOf(d, t, req, left, plan, trial, rl);
+    const r = planStageOf(d, t, pr, left, plan, trial, rl);
     return Object.assign(r, { stages });
   }
-  function planStageOf(d, t, req, left, plan, trial, rl) {
+  function planStageOf(d, t, pr, left, plan, trial, rl) {
     if (window.PortalB.messageMode(d)) return { i: 3, text: 'Your receptionist is in message mode: calls are answered and messages are emailed to you. ' +
       (rl ? rl.text :'See Billing to restart full answering.'), action: { id: 'goBilling', label: 'Open Billing' } };
     if (d.client.status === 'live') return { i: 3, text: 'You’re live on ' + plan + '. Calls you miss are answered for you.' + trial, action: null };
     if (d.client.status === 'testing') return { i: 2, text: 'Setup done. We’re running automatic test calls against your settings; you’ll be live within minutes.' + trial, action: null };
-    return { i: 1, text: plan + ' is set up.' + trial + ' Setup checklist: ' + (req.length - left) + ' of ' + req.length + ' steps done. You go live automatically when it’s done.',
+    return { i: 1, text: plan + ' is set up.' + trial + ' Setup checklist: ' + pr.done + ' of ' + pr.total + ' steps done. You go live automatically when it’s done.',
       action: { id: 'goOnboarding', label: left ? 'Continue the setup checklist' : 'Review your setup' } };
   }
   function stageOf(d) {

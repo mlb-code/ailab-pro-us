@@ -136,6 +136,10 @@
     "youtube": "",
     "x": ""
   },
+  "texting": {
+    "$comment": "Business texting (SMS) on the customer-facing site. enabled=false (launch default, until US carriers approve our A2P 10DLC registration): the client portal hides the 'Texting registration' setup step for FirstRing plan clients and does not count it. Turn it on together with the runtime's SMS_ENABLED switch (Railway env); the step then comes back by itself. Go-live never waits for this step (the server treats 'sms' as optional either way).",
+    "enabled": false
+  },
   "show_founder_price": false,
   "quote_sla_text": "within 1 business day",
   "business_days_text": "Sunday–Thursday, Israel time",

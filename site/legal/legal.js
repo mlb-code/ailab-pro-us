@@ -9,7 +9,7 @@
     return path.split('.').reduce(function (o, k) { return o && o[k] !== undefined ? o[k] : undefined; }, obj);
   }
   // content-hash version, filled in by tools/asset_version.py (no stale copy after a deploy)
-  var AV = /*asset-v*/{"/assets/brand.json":"c749ef27aa"}/*/asset-v*/;
+  var AV = /*asset-v*/{"/assets/brand.json":"d51bc30ba3"}/*/asset-v*/;
   fetch('../../assets/brand.json' + (AV['/assets/brand.json'] ? '?v=' + AV['/assets/brand.json'] : ''), { cache: 'no-cache' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (brand) {

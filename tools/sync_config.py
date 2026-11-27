@@ -60,6 +60,9 @@ def validate_config():
         if claude.get(key) and len(prices.get(claude[key]) or []) != 4:
             errs.append(f'brand: claude.price_usd_per_mtok needs [in, out, cache_read, cache_write] for claude.{key}')
     errs += ['brand: ' + e for e in paypal_errors(brand)]
+    texting = brand.get('texting')   # public flag for the portal's texting step; a missing section = texting off
+    if texting is not None and not (isinstance(texting, dict) and isinstance(texting.get('enabled'), bool)):
+        errs.append('brand: texting.enabled must be true or false')
     return errs
 
 

@@ -38,12 +38,17 @@ let pass = 0, fail = 0;
 function ok(cond, name) { if (cond) pass++; else { fail++; console.log('  FAIL ' + name); } }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
+// brand.json as shipped, or with a patch (texting.enabled on) for the "texting step comes back" check
+const BRAND = JSON.parse(fs.readFileSync(path.join(SITE, 'assets/brand.json'), 'utf8'));
+let brandPatch = null;
 async function newPage(browser) {
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844 });
   await page.emulateTimezone('America/Chicago');
   await page.setRequestInterception(true);
-  page.on('request', r => /fonts\.(googleapis|gstatic)\.com/.test(r.url()) ? r.respond({ status: 200, contentType: 'text/css', body: '' }) : r.continue());
+  page.on('request', r => /fonts\.(googleapis|gstatic)\.com/.test(r.url()) ? r.respond({ status: 200, contentType: 'text/css', body: '' })
+    : brandPatch && r.url().split('?')[0] === BASE + '/assets/brand.json' ? r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...BRAND, ...brandPatch }) })
+    : r.continue());
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push('uncaught: ' + e.message));
   page.on('dialog', d => d.accept());
@@ -114,6 +119,8 @@ async function main() {
     await portal(page);
     ok((await page.$$eval('[role=tab]', t => t.map(x => x.textContent))).join() === 'Home,Setup checklist,Requests,Quotes,Billing', 'plan client tabs');
     ok(/Pro is set up\. Free trial until/.test(await body(page)), 'home: plan + trial, no quote/deposit steps');
+    ok(BRAND.texting && BRAND.texting.enabled === false, 'brand.json ships with texting off (launch)');
+    ok(/Setup checklist: 0 of 5 steps done/.test(await body(page)), 'home: 0 of 5 required steps (texting step not counted)');
     let d = await db(page), t = d.tenants[0];
     ok(t.slug === 'cool-breeze-hvac' && t.status === 'sandbox' && !t.twilio_number && t.config.business.name === 'Cool Breeze HVAC' &&
        t.config.business.main_phone === '+17135550100' && t.config.notify.email[0] === 'dana@coolbreeze.test' && t.config.plan.code === 'FR_PRO' &&
@@ -133,6 +140,8 @@ async function main() {
     ok(/^\+171355501\d\d$/.test(t.twilio_number) && t.twilio_number !== t.config.business.main_phone, 'dry-run number near the area code (fictional 555-01xx), never the business line');
     await portal(page, 'onboarding');
     ok(/Go-live is automatic: finish the 5 steps left/.test(await body(page)), 'automatic go-live panel');
+    ok(await page.$('#ob-sms') === null && (await page.$$('.obstep')).length === 6, 'texting off: no texting registration step (6 steps shown)');
+    ok(/^0 of 5 steps done\. Optional: “Connect other tools”\./.test(await page.$eval('#obCount', e => e.innerText)), 'checklist count = the home count (required steps), optional step named');
 
     // ---------------------------------------------------------------- checklist saves -> live config
     console.log('checklist');
@@ -197,6 +206,13 @@ async function main() {
     ok(d.clients[0].status === 'testing' && d.provisioning_jobs.some(j => j.kind === 'golive_sim' && j.status === 'pending'), 'checklist done (texting optional): testing + go-live check queued');
     await portal(page, 'onboarding');
     ok(/running automatic test calls/.test(await body(page)), 'portal: final checks running');
+    ok(/^5 of 5 steps done\./.test(await page.$eval('#obCount', e => e.innerText)), 'all steps done: 5 of 5 next to "All steps done" (no 6 of 7)');
+    brandPatch = { texting: { enabled: true } };   // texting switched on: the step comes back by itself, still optional
+    await portal(page, 'onboarding');
+    ok(await page.$('#ob-sms') !== null && /^5 of 5 steps done\. Optional: “Connect other tools”, “Texting registration/.test(await page.$eval('#obCount', e => e.innerText)),
+      'texting on: texting registration step shown again, listed as optional, count unchanged');
+    ok(/running automatic test calls/.test(await body(page)), 'texting on: go-live still does not wait for the texting step');
+    brandPatch = null;
 
     // ---------------------------------------------------------------- automatic go-live
     console.log('go-live');

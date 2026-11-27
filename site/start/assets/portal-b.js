@@ -9,7 +9,8 @@
    Client-facing text: US English. No prices or brand strings typed here (pricebook/brand JSON only).
    FirstRing monthly plans (2026-11-25, clients.billing_mode = 'subscription', Backend.getBilling = RPC client_billing):
    every checklist save goes straight into the live config on the server (private.onboarding_apply; no owner merge), the
-   checklist order is hours -> FAQ -> alerts -> calendar -> (tools) -> forward calls last -> (texting, optional), go-live
+   checklist order is hours -> FAQ -> alerts -> calendar -> (tools) -> forward calls last -> (texting, optional; hidden while
+   brand.json texting.enabled is off), go-live
    is automatic (simulator checks, no "Request go-live", no final payment), and Billing shows the plan, this period's
    minutes, days left, Upgrade / Start now / Cancel / Restart (Backend.changePlan / cancelPlan / resumePlan). Message
    mode (trial ended, cancelled, past due, paused, minutes used up) is shown at the top of every tab. After the service
@@ -73,6 +74,18 @@
   let state = { open: null, testPoll: null, calendarReturn: null };
   // ------------------------------------------------------------ FirstRing plan helpers (numbers from the price book)
   const isPlan = d => !!(d.client && d.client.billing_mode === 'subscription');
+  // brand.json texting.enabled: business texting is off until US carriers approve our registration (A2P 10DLC); the
+  // runtime's SMS_ENABLED is the twin switch. Off = a plan client's 'sms' step ("Texting registration") is not shown or counted.
+  const textingOn = () => !!(S.BRAND.texting && S.BRAND.texting.enabled === true);
+  const OPTIONAL_STEPS = ['tools', 'sms'];   // automatic go-live never waits for these (same list as the server's go-live checks)
+  /** Setup checklist progress, one count for the checklist tab and the home status. Plan clients count the required steps
+      (what automatic go-live waits for; optional ones listed apart), quote clients every step, as before. */
+  function obProgress(d) {
+    const items = (d.ob || []).slice().sort((a, b) => a.sort - b.sort);
+    const optional = isPlan(d) ? items.filter(o => OPTIONAL_STEPS.indexOf(o.key) !== -1) : [];
+    const counted = items.filter(o => optional.indexOf(o) === -1);
+    return { items, optional, done: counted.filter(o => o.status === 'done').length, total: counted.length };
+  }
   const plansPB = () => (S.PB && S.PB.plans) || [];
   const planOf = code => plansPB().find(p => p.code === code) || null;
   const subOf = d => (d.billing && d.billing.subscription) || null;
@@ -137,6 +150,7 @@
     try { await TS.load(); d.schemaOk = true; } catch (e) { d.schemaOk = false; }
     const [ob, tenant, reqs] = await Promise.all([B.listOnboarding(), B.getTenant().catch(() => null), B.listRequests()]);
     d.ob = (ob || []).filter(o => o.client_id === d.client.id || !o.client_id); d.tenant = tenant; d.requests = reqs || [];
+    if (isPlan(d) && !textingOn()) d.ob = d.ob.filter(o => o.key !== 'sms');   // texting off: no texting step (it is optional for go-live)
     d.billing = isPlan(d) && B.getBilling ? await B.getBilling().catch(() => null) : null;
     if (tenant && isRcp(d)) {
       const [usage, calls, sms, bookings] = await Promise.all([B.getUsage(tenant.id).catch(() => null), B.listCalls(tenant.id), B.listSms(tenant.id), B.listBookings(tenant.id)]);
@@ -292,12 +306,12 @@
     return '<div class="vslot" data-video="onb-' + esc(it.key) + '" data-script="' + esc(VIDEO_SCRIPT[it.key] || '') + '"' + (inner ? '' : ' hidden') + '>' + inner + '</div>';
   }
   function onboardingHtml(d) {
-    const items = d.ob.slice().sort((a, b) => a.sort - b.sort);
-    const done = items.filter(i => i.status === 'done').length;
-    const pct = items.length ? Math.round(done / items.length * 100) : 0;
+    const pr = obProgress(d), items = pr.items, done = pr.done;
+    const pct = pr.total ? Math.round(done / pr.total * 100) : 0;
+    const opt = pr.optional.length ? ' Optional: ' + pr.optional.map(o => '“' + esc(o.title) + '”').join(', ') + '.' : '';
     if (!state.open || !items.some(i => i.key === state.open)) state.open = (items.find(i => i.status !== 'done') || {}).key || null;
-    return messageModeHtml(d) + '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p>' + done + ' of ' + items.length + ' steps done. Each step saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
-      '<div class="bar" role="progressbar" aria-label="Setup checklist progress" aria-valuemin="0" aria-valuemax="' + items.length + '" aria-valuenow="' + done + '"><i style="width:' + pct + '%"></i></div>' +
+    return messageModeHtml(d) + '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p id="obCount">' + done + ' of ' + pr.total + ' steps done.' + opt + ' Each step saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
+      '<div class="bar" role="progressbar" aria-label="Setup checklist progress" aria-valuemin="0" aria-valuemax="' + pr.total + '" aria-valuenow="' + done + '"><i style="width:' + pct + '%"></i></div>' +
       '<div class="vslot spaced" data-video="onb-welcome" data-script="01-welcome" hidden></div></section>' +
       (d.schemaOk === false ? S.msgHtml('Some settings can’t be checked right now. Please reload the page.') : '') + autoGoLiveHtml(d) +
       '<div id="calReturn"></div><ol class="obsteps">' + items.map((it, i) => '<li><details class="obstep" id="ob-' + esc(it.key) + '" data-key="' + esc(it.key) + '"' + (state.open === it.key ? ' open' : '') + '>' +
@@ -307,13 +321,13 @@
   // plan clients: no "Request go-live" and no final payment; the server goes live after the automatic test calls
   function autoGoLiveHtml(d) {
     if (!isPlan(d)) return '';
-    const req = d.ob.filter(o => o.key !== 'tools' && o.key !== 'sms'), left = req.filter(o => o.status !== 'done');
+    const pr = obProgress(d), left = pr.total - pr.done;
     const job = k => ((d.billing || {}).setup || []).find(j => j.kind === k) || {};
     const num = job('number'), sim = job('golive_sim'), st = d.client.status;
     let text, kind = 'info';
     if (st === 'live') { text = 'You’re live. Calls forwarded from your business line are answered.'; kind = 'ok'; }
     else if (!(d.tenant && d.tenant.twilio_number)) text = num.status === 'delayed' ? 'Getting your receptionist’s phone number is taking longer than usual. We’re on it and will email you.' : 'We’re getting your receptionist’s phone number (usually a few minutes). You can fill in the other steps now.';
-    else if (left.length) text = 'Go-live is automatic: finish the ' + left.length + ' step' + (left.length === 1 ? '' : 's') + ' left (the test call through your business line is the last one), then we run test calls against your settings and switch you live. No extra payment.';
+    else if (left) text = 'Go-live is automatic: finish the ' + left + ' step' + (left === 1 ? '' : 's') + ' left (the test call through your business line is the last one), then we run test calls against your settings and switch you live. No extra payment.';
     else if (sim.status === 'delayed') text = 'Our final checks found something to fix. We’re looking at it and will email you shortly.';
     else text = 'All steps done. We’re running automatic test calls against your settings now; you’ll be live within minutes and get an email.';
     return '<div class="golive golive--auto" id="autoGoLive">' + S.msgHtml(text, kind) + '</div>';
@@ -1173,5 +1187,5 @@
     if (tab === 'billing') bindPlanActions(d, api, 'billing');   // home.js binds the rest of Billing
     return false;
   }
-  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay, isPlan, planTerms, messageMode, numberRelease };
+  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay, isPlan, planTerms, messageMode, numberRelease, obProgress };
 })();
