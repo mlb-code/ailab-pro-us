@@ -19,7 +19,7 @@
     tenants_slug_key: 'That slug is taken. Pick another slug.', tenants_twilio_number_key: 'That number is already assigned to another tenant.',
     tenants_slug_check: 'slug: lowercase letters, digits and hyphens, 3–60 characters.', tenants_twilio_number_check: 'The Twilio number must be in E.164 format, for example +17135550100.'
   };
-  const err = e => { const m = (e && (e.code || e.message)) || ''; for (const k in E) if (m.indexOf(k) !== -1) return E[k]; return C.errText(e); };
+  const err = e => { const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || ''; for (const k in E) if (m.indexOf(k) !== -1) return E[k]; return C.errText(e); };
   const toE164 = s => { const dg = String(s || '').replace(/\D/g, ''); return /^\+/.test(String(s || '').trim()) ? '+' + dg : dg.length === 10 ? '+1' + dg : dg.length === 11 && dg[0] === '1' ? '+' + dg : null; };
   const money = usd => C.money(Math.round((usd || 0) * 100));
   const keyOf = (t, cid) => t ? t.id : 'new-' + cid;

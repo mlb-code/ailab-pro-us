@@ -178,7 +178,7 @@
     }));
   }
   function errText(e) {
-    const m = (e && (e.code || e.message)) || '';
+    const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || '';
     if (/field_not_allowed/.test(m)) return 'That setting can’t be changed here. Send us a Request instead.';
     if (/invalid_setting:dispatch\.contacts\[(\d+)\]\.phone/.test(m)) return 'Person ' + (+/\[(\d+)\]/.exec(m)[1] + 1) + ': a US mobile number, not listed twice.';
     if (/invalid_setting:dispatch\.schedule/.test(m)) return 'A shift needs a day, a start and end time (HH:MM) and someone from your team.';

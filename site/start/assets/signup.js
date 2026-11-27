@@ -69,7 +69,9 @@
     too_many_checkouts: 'Too many tries today. Please email us and we’ll help.', mock_billing_disabled: 'Online sign-up opens very soon. Please email us and we’ll set you up.',
     bad_plan_code: 'Please pick a plan.'
   };
-  const errText = e => { const m = (e && (e.code || e.message)) || ''; for (const k in ERR) if (m.indexOf(k) !== -1) return ERR[k]; return S.errText(e); };
+  // a Postgres error carries code 'P0001' and the reason in message: look at both (27.11.2026, first live sign-up test)
+  const errKey = e => e ? [e.code, e.message].filter(Boolean).join(' ') : '';
+  const errText = e => { const m = errKey(e); for (const k in ERR) if (m.indexOf(k) !== -1) return ERR[k]; return S.errText(e); };
 
   // ------------------------------------------------------------ screen 1: your business
   let st = null;   // { ctx, plan, niche, trial: true|false, checkout }
@@ -180,7 +182,7 @@
         st.checkout = r;
         showCheckout();
       } catch (err) {
-        const m = (err && (err.code || err.message)) || '';
+        const m = errKey(err);
         if (/trial_already_used/.test(m)) { switchToPaid(); return; }
         if (/already_subscribed/.test(m)) { clearIntent(); S.toast(ERR.already_subscribed); st.ctx.onDone('billing'); return; }
         btn.disabled = false; btn.textContent = goLabel(); box.innerHTML = S.msgHtml(errText(err));

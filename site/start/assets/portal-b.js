@@ -626,7 +626,7 @@
     } catch (e) { if (btn) btn.disabled = false; errBox('msg_' + key, [settingsErr(e)]); }
   }
   function settingsErr(e) {
-    const m = (e && (e.code || e.message)) || '';
+    const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || '';
     if (/field_not_allowed/.test(m)) return 'That setting can’t be changed here. Send us a Request instead.';
     if (/not_your/.test(m)) return 'You can only change your own settings.';
     const inv = /invalid_setting:([\w.\[\]]+)/.exec(m);
@@ -928,7 +928,7 @@
     return { real_estate, errs: errs.length ? errs : schemaErrs(real_estate, 'real_estate', 'Screening') };
   }
   function screeningErr(e) {
-    const m = (e && (e.code || e.message)) || '';
+    const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || '';
     if (/invalid_setting:real_estate\.follow_up_boss|invalid_setting:real_estate\.meetings/.test(m)) return 'That part of the screening setup is managed by us. Send us a Request.';
     if (/invalid_setting:real_estate\.agent_name/.test(m)) return 'Agent name wasn’t accepted (up to 80 characters). Please check it and save again.';
     if (/invalid_setting:real_estate\.screening/.test(m)) return 'The question list wasn’t accepted (each question once, from the list above). Please reload and try again.';
@@ -1008,7 +1008,7 @@
   }
   const REQ_ERR = { request_locked: 'This request is already being worked on, so it can’t be changed.', too_many_requests: 'You have 25 open requests — that’s the limit. Cancel one or wait for us to finish one.',
     request_title_length: 'Please give the request a short title (up to 200 characters).', no_client: 'Requests open once your project has started.' };
-  const reqErr = e => { const m = (e && (e.code || e.message)) || ''; for (const k in REQ_ERR) if (m.indexOf(k) !== -1) return REQ_ERR[k]; return S.errText(e); };
+  const reqErr = e => { const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || ''; for (const k in REQ_ERR) if (m.indexOf(k) !== -1) return REQ_ERR[k]; return S.errText(e); };
   function bindRequests(d, api) {
     S.$('#reqForm').addEventListener('submit', async e => {
       e.preventDefault();
@@ -1143,7 +1143,7 @@
         await api.refresh(tab, ['#planH', '#mmH']);
       } catch (e) {
         b.disabled = false;
-        const m = (e && (e.code || e.message)) || '';
+        const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || '';
         const k = Object.keys(PLAN_ERR).find(x => m.indexOf(x) !== -1);
         errBox(box, [k ? PLAN_ERR[k] : S.errText(e)]);
       }

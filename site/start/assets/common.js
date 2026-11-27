@@ -96,7 +96,7 @@
     backend_off: 'The client portal is opening soon.'
   };
   function errText(e) {
-    const m = (e && (e.code || e.message || e.error_description || e.msg)) || String(e || '');
+    const m = (e && [e.code, e.message, e.error_description, e.msg].filter(Boolean).join(' ')) || String(e || '');
     for (const k in ERR) if (m.indexOf(k) !== -1) return ERR[k];
     if (/rate limit|too many|429|security purposes/i.test(m)) return 'Too many attempts. Please wait a minute and try again.';
     if (/expired|invalid.*(otp|token)|token.*(invalid|expired)/i.test(m)) return 'That code is wrong or has expired. You can request a new one.';

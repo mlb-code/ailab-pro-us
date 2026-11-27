@@ -25,7 +25,7 @@
   const paddleCfg = () => ((C.BRAND || window.ADMIN_BRAND || {}).payments || {}).paddle || {};
   const dash = () => paddleCfg().env === 'production' ? 'https://vendors.paddle.com' : 'https://sandbox-vendors.paddle.com';
   const mbOpen = s => !!(s.first_paid_at && s.first_paid_transaction_id && Date.parse(s.first_paid_at) > Date.now() - 30 * 86400000);
-  const err = e => { const m = (e && (e.code || e.message)) || ''; for (const k in E) if (m.indexOf(k) !== -1) return E[k]; return C.errText(e); };
+  const err = e => { const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || ''; for (const k in E) if (m.indexOf(k) !== -1) return E[k]; return C.errText(e); };
   const planName = code => ((C.PB.plans || []).find(p => p.code === code) || {}).name || code || '—';
   const planPrice = code => { const p = (C.PB.plans || []).find(x => x.code === code); return p && p.monthly_cents ? C.moneyText(p.monthly_cents) + ' per month' : ''; };
   const d8 = v => v ? C.fmtDate(v) : '—';

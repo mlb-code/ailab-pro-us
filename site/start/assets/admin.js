@@ -94,7 +94,7 @@
     paypal_error: 'PayPal returned an error. Try again, and if it repeats: pass it to Claude.'
   };
   function errText(e) {
-    const m = (e && (e.code || e.message || e.msg)) || String(e || '');
+    const m = (e && [e.code, e.message, e.msg].filter(Boolean).join(' ')) || String(e || '');
     for (const k in ERR) if (m.indexOf(k) !== -1) return ERR[k];
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Cannot reach the server. Check your connection and try again.';
     return 'Something went wrong: ' + m;
