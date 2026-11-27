@@ -51,7 +51,8 @@
 <li>Consent records: which version of the call notice played, the caller's answer when the assistant asked whether it may text a booking confirmation and a reminder (yes or no, with the words used), the time, the number and the call record, and each opt-out or opt-in with how it was made. If a caller objects to recording or transcription, we keep only a note of the objection and the call details, not a transcript.</li>
 <li>Call and message metadata: time, duration, delivery status, line type (mobile or landline).</li>
 </ul>
-<p><strong>AI and recording notice.</strong> Every call answered by the AI begins with a spoken notice that the caller is speaking with an AI assistant, that the call may be recorded and transcribed by us and our service providers, and that the business may text the caller about the call. The notice plays before the assistant processes anything the caller says. Call audio is streamed to our service providers to convert speech to text and text to speech; we do not store it. If a caller objects to recording or transcription, the assistant stops and we do not keep a transcript of the conversation. We use callers' information only to provide the service to the business and do not use it to train AI models; our service providers process it under their own terms, which limit how they may use it (section 6).</p>
+<p><strong>AI and recording notice.</strong> Every call answered by the AI begins with a spoken notice that the caller is speaking with an AI assistant, that the call may be recorded and transcribed by us and our service providers, and that the business may text the caller about the call. The notice plays before the assistant processes anything the caller says. If a caller asks whether they are talking to a person, the assistant says it is an AI assistant, not a person. Call audio is streamed to our service providers to convert speech to text and text to speech; we do not store it. If a caller objects to recording or transcription, the assistant stops and we do not keep a transcript of the conversation. We use callers' information only to provide the service to the business and do not use it to train AI models; our service providers process it under their own terms, which limit how they may use it (section 6).</p>
+<p><strong>Text messaging is currently switched off.</strong> Until US carrier registration (A2P 10DLC) is approved for a business's line and we turn texting on, the service sends no text messages, and texts sent to a business's service number are not answered. We log them (and record STOP or START requests) and notify the business by email so it can follow up.</p>
 <h3>3.3 From website visitors</h3>
 <ul>
 <li>Usage data from analytics tools (Google Analytics and Microsoft Clarity): pages viewed, device and browser type, approximate location (city level), clicks and scrolls, and which steps of the quote process were reached (for example: questionnaire started or submitted, quote opened or accepted, payment button clicked). These tools use cookies or similar technology (for example Google's <span class="mono">_ga</span> cookies and Clarity's <span class="mono">_clck</span> and <span class="mono">_clsk</span> cookies).
@@ -117,16 +118,19 @@
 <table>
 <thead><tr><th>Data</th><th>Kept for</th></tr></thead>
 <tbody>
-<tr><td>Call transcripts and text message content</td><td>90 days, then deleted automatically</td></tr>
-<tr><td>Technical logs</td><td>30 days</td></tr>
+<tr><td>Call transcripts, call summaries, callers' phone numbers on call records, and text message content</td><td>90 days, then deleted automatically</td></tr>
+<tr><td>The AI's conversation records (transcript and the details a caller gave during the call, text or chat) and per-caller technical records (phone line type, preferred language, rate limits)</td><td>90 days after the last activity, then deleted automatically</td></tr>
+<tr><td>Event records that copy caller details (lead alerts, outgoing email and text copies, CRM and Zapier deliveries)</td><td>90 days, then deleted automatically</td></tr>
+<tr><td>Operational records without transcripts or caller numbers (call time, duration, outcome and cost; other service events)</td><td>While you are a client, for reporting. Deleted with your account</td></tr>
+<tr><td>Email sending log (which email was sent, to whom, and whether it was delivered)</td><td>180 days after the email was sent or failed, then deleted automatically</td></tr>
 <tr><td>Texting consent and opt-out records (the consent log)</td><td>5 years, then deleted automatically. An opt-out stays in effect for as long as the business uses our service.</td></tr>
-<tr><td>Booking records in our system (date, job details, status)</td><td>2 years, for accounting and dispute records. The copy in your own calendar stays under your control.</td></tr>
+<tr><td>Booking records in our system (customer name, phone, address, date, job details, status)</td><td>2 years after the appointment date, then deleted automatically, for accounting and dispute records. They are deleted earlier if your account data is deleted (below). The copy in your own calendar stays under your control.</td></tr>
 <tr><td>Account, questionnaire, Quotes</td><td>While you are a client. Deleted 30 days after your service ends, or sooner if you ask</td></tr>
 <tr><td>Invoices and contract acceptance records</td><td>As long as tax and accounting law requires (generally 7 years)</td></tr>
 <tr><td>Backups</td><td>Weekly backups, kept up to 35 days</td></tr>
 </tbody>
 </table>
-<p>When your service ends, you can ask for an export of your data within 30 days. After that we delete it, except booking records (kept 2 years, as above), the consent log (kept 5 years, as above) and records we must keep by law.</p>
+<p>When your service ends, you can ask for an export of your data within 30 days. After that we delete it, including booking records, except the consent log (kept 5 years, as above) and records we must keep by law.</p>
 
 <h2>8. Security</h2>
 <p>We use encryption in transit, encrypted storage of access tokens, access controls per client, signed webhooks, and the minimum access we need. No system is perfectly secure. If a breach affects your information, we will notify you as the law requires.</p>
