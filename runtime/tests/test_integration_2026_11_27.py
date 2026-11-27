@@ -1,6 +1,7 @@
 """Launch integration follow-ups (2026-11-27), after the copy/legal and runtime branches were merged:
 
 - Daily summary: the texting rows ("Text conversations", "Missed callers texted back") show only with SMS_ENABLED on.
+- Monthly report e-mail: the same for "Missed callers texted back" and "SMS segments used" (launch leftovers).
 - Chat box notice: says the visitor is chatting with an AI assistant and that the chat is saved to help the business.
 - Children: a caller who says or clearly appears to be under 13 is not asked for personal details.
 - Real estate: the fair-housing guard names every protected characteristic; no motivation question.
@@ -57,6 +58,62 @@ def test_reporter_passes_the_switch_off(tmp_path, demo_raw):
 def test_reporter_passes_the_switch_on(tmp_path, demo_raw):
     text = _daily_text(tmp_path, demo_raw, sms_on=True)
     assert "Text conversations: 1" in text and "Missed callers texted back:" in text
+
+
+# --- monthly report vs SMS_ENABLED (launch leftovers, same switch as the daily summary) ------------------------------
+MONTH = {"calls_answered": 3, "after_hours_calls": 1, "booked": 2, "messages": 1, "urgent": 1, "text_backs": 4,
+         "sms_threads": 2, "month_label": "September 2026", "usage": {"voice_minutes": 120.0, "sms_segments": 300.0},
+         "included": {"voice_minutes": 400.0, "sms_segments": 1000.0}, "avg_job_value_usd": 450.0,
+         "est_value_usd": 900.0, "monthly_fee_usd": 300.0, "roi_multiple": 3.0}
+MONTH_SMS_ROWS = ("Missed callers texted back", "SMS segments used")
+
+
+def test_monthly_report_hides_texting_rows_when_sms_is_off():
+    for kwargs in ({}, {"sms_enabled": False}):  # default = off, like production
+        _, text, html = T.monthly_roi("Cool Breeze HVAC", MONTH, **kwargs)
+        for row in MONTH_SMS_ROWS:
+            assert row not in text and row not in html
+        # every other row, the estimated value and the ROI are unchanged
+        for line in ("Calls answered by the AI receptionist: 3", "of them after hours: 1", "Jobs booked: 2",
+                     "Estimated value of booked jobs: $900 (2 x $450 average job)", "Value vs. your monthly fee: 3.0x",
+                     "Messages taken for call-back: 1", "Urgent requests flagged: 1", "Voice minutes used: 120 of 400"):
+            assert line in text, line
+
+
+def test_monthly_report_shows_texting_rows_when_sms_is_on():
+    _, text, html = T.monthly_roi("Cool Breeze HVAC", MONTH, sms_enabled=True)
+    assert "Missed callers texted back: 4" in text and "SMS segments used: 300 of 1000" in text
+    assert all(row in html for row in MONTH_SMS_ROWS)
+    lines = [ln.split(":")[0] for ln in text.splitlines() if ":" in ln]
+    assert lines.index("Urgent requests flagged") < lines.index("Missed callers texted back") < \
+        lines.index("Voice minutes used") < lines.index("SMS segments used")  # the order before the switch existed
+
+
+def test_monthly_report_dispatch_rows_stay_with_sms_off():
+    d = {**MONTH, "dispatch": {"urgent_transfers": 2, "connected": 1, "avg_accept_s": 40, "alerts_sent": 1}}
+    for sms_on in (False, True):
+        _, text, _ = T.monthly_roi("Cool Breeze HVAC", d, sms_enabled=sms_on)
+        lines = [ln.split(":")[0] for ln in text.splitlines() if ":" in ln]
+        i = lines.index("Urgent calls sent to your on-call team")
+        assert lines.index("Urgent requests flagged") < i < lines.index("Voice minutes used")
+        assert lines[i + 1:i + 3] == ["connected to a technician", "average time to pick up"]
+
+
+def _monthly_text(tmp_path, demo_raw, sms_on: bool) -> str:
+    r = R(tmp_path, demo_raw)
+    r.notifier.policy.sms_enabled = sms_on
+    seed_day(r, datetime(2026, 9, 15, 0, 0, tzinfo=CHI))
+    r.state.put(f"usage:{r.tenant.id}:2026-09:voice_minutes", 120.0)
+    res = r.rep.monthly(r.tenant, datetime(2026, 10, 1, 9, 0, tzinfo=CHI))
+    assert res and res["sent"][0]["status"] == "sent"
+    return [m.text for m, _ in r.email.sent if m.subject.startswith("Your September 2026 report")][-1]
+
+
+def test_reporter_monthly_passes_the_switch(tmp_path, demo_raw):
+    off = _monthly_text(tmp_path / "off", demo_raw, sms_on=False)
+    assert "Calls answered by the AI receptionist: 3" in off and not any(row in off for row in MONTH_SMS_ROWS)
+    on = _monthly_text(tmp_path / "on", demo_raw, sms_on=True)
+    assert "Missed callers texted back: 1" in on and "SMS segments used:" in on
 
 
 # --- chat box notice ----------------------------------------------------------------------------------------------

@@ -167,15 +167,20 @@ def daily_summary(business: str, d: dict[str, Any], sms_enabled: bool = False) -
 
 
 # --- monthly ROI report (owner) ------------------------------------------------------------
-def monthly_roi(business: str, r: dict[str, Any]) -> tuple[str, str, str]:
+def monthly_roi(business: str, r: dict[str, Any], sms_enabled: bool = False) -> tuple[str, str, str]:
+    """sms_enabled = settings.sms_enabled (SMS_ENABLED, via NotifyPolicy), as in `daily_summary`: off = no texting rows
+    ("Missed callers texted back", "SMS segments used"); the other rows, the estimated value and the ROI do not use them."""
     subject = f"Your {r['month_label']} report: {r['calls_answered']} calls answered, {r['booked']} booked"
     pairs = [("Calls answered by the AI receptionist", r["calls_answered"]),
              ("  of them after hours", r["after_hours_calls"]),
              ("Jobs booked", r["booked"]), ("Messages taken for call-back", r["messages"]),
-             ("Urgent requests flagged", r["urgent"]), ("Missed callers texted back", r["text_backs"]),
-             ("Voice minutes used", f"{r['usage']['voice_minutes']:g} of {r['included']['voice_minutes']:g}"),
-             ("SMS segments used", f"{r['usage']['sms_segments']:g} of {r['included']['sms_segments']:g}")]
-    pairs[6:6] = dispatch_rows(r)
+             ("Urgent requests flagged", r["urgent"])]
+    if sms_enabled:
+        pairs.append(("Missed callers texted back", r["text_backs"]))
+    pairs += dispatch_rows(r)
+    pairs.append(("Voice minutes used", f"{r['usage']['voice_minutes']:g} of {r['included']['voice_minutes']:g}"))
+    if sms_enabled:
+        pairs.append(("SMS segments used", f"{r['usage']['sms_segments']:g} of {r['included']['sms_segments']:g}"))
     if r.get("est_value_usd") is not None:
         pairs.insert(3, ("Estimated value of booked jobs", f"{money(r['est_value_usd'])} "
                                                            f"({r['booked']} x {money(r['avg_job_value_usd'])} average job)"))

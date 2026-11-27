@@ -3,7 +3,8 @@
 - `daily_summary`: per tenant, at `notify.daily_summary` (default 19:00) in the tenant's timezone.
   Covers everything since the previous summary (or local midnight), so nothing falls between days.
 - `monthly_roi`: per tenant, for the previous calendar month, from the 1st at 09:00 tenant time:
-  calls answered (and after hours), jobs booked, messages, urgent, text-backs, usage vs. included,
+  calls answered (and after hours), jobs booked, messages, urgent, text-backs (e-mail row only with SMS_ENABLED on, like
+  the daily summary), usage vs. included,
   estimated value of booked jobs (= bookings x the average job value the client sets; omitted
   until set) and that value as a multiple of the RCP monthly fee (read from pricebook.json).
 - `admin_daily`: 08:00 in the admin timezone (brand.json owner.timezone), English, to Meir: per tenant calls / bookings / leads, Claude and
@@ -313,7 +314,7 @@ class Reporter:
         if not self.state.get(f"{done_key}:stored"):
             self._store_report(tenant, "report.monthly_roi", data)
             self.state.put(f"{done_key}:stored", True, tenant.id)
-        subject, text, html = T.monthly_roi(tenant.config.business.name, data)
+        subject, text, html = T.monthly_roi(tenant.config.business.name, data, sms_enabled=self.notifier.policy.sms_enabled)
         idle = not (data["calls_answered"] or data["booked"] or any(data["usage"].values()))
         if tenant.status != "live":
             sent = [{"status": "skipped", "reason": "tenant_not_live"}]
