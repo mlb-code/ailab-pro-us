@@ -186,6 +186,48 @@ Deno.test("transactions: first paid charge (money-back window), \$0 trial charge
   eq(s.txs.get("txn_01firstpaid")!.p_total_cents, 24900);
 });
 
+Deno.test("transactions before the subscription row (webhook order): linked later; a paid start opens the money-back window", async () => {
+  const txEv = (id: string, total: string, origin: string, billed: number, subscriptionId: string | null = SID) =>
+    event("transaction.completed", { id, status: "completed", origin, subscription_id: subscriptionId, billed_at: at(billed),
+      details: { totals: { total, grand_total: total, currency_code: "USD" } } });
+  // "Start paid plan" (no trial): the first charge arrives before subscription.created
+  const s = freshStore(), h = hook(s);
+  s.checkouts.get(REF)!.trial = false;
+  eq((await post(h, txEv("txn_01paidstart", "24900", "web", t0))).body.result, "recorded_unlinked", "no subscription row yet");
+  const created = await post(h, event("subscription.created", sub("active", PRICES.FR_PRO.paid)));
+  eq(created.body.result, "applied:active+first_paid", "subscription.created links it and starts the window");
+  eq([s.subs.get(SID)!.first_paid_transaction_id, s.subs.get(SID)!.first_paid_at], ["txn_01paidstart", at(t0)]);
+  eq(s.linked.has("txn_01paidstart"), true);
+  eq((await post(h, event("subscription.updated", sub("active", PRICES.FR_PRO.paid)))).body.result, "applied:active", "idempotent: no second first-paid");
+  eq((await post(h, txEv("txn_01second", "24900", "subscription_recurring", t0 + 30 * DAY))).body.result, "recorded");
+  eq(s.subs.get(SID)!.first_paid_transaction_id, "txn_01paidstart", "later charges do not move it");
+  // the admin refund button now finds the charge
+  s.users.set("jwt-admin", { id: crypto.randomUUID(), is_admin: true });
+  s.subs.get(SID)!.first_paid_at = at(Date.now() - 2 * DAY);
+  const target = await s.moneyBackTarget(s.subs.get(SID)!.client_id);
+  eq(target.transaction_id, "txn_01paidstart");
+
+  // trial sign-up: the $0 transaction arrives first; linked later, but $0 never starts the window
+  const t = freshStore(), ht = hook(t);
+  eq((await post(ht, txEv("txn_01zerofirst", "0", "web", t0))).body.result, "recorded_unlinked");
+  eq((await post(ht, event("subscription.created", sub("trialing", PRICES.FR_PRO.trial)))).body.result, "applied:trialing");
+  eq([t.linked.has("txn_01zerofirst"), t.subs.get(SID)!.first_paid_at], [true, null], "$0 linked, no money-back window");
+  eq((await post(ht, txEv("txn_01renewal", "24900", "subscription_recurring", t0 + 14 * DAY))).body.result, "first_paid", "the first real charge");
+
+  // the link RPC fails (e.g. the migration is not applied yet): the subscription is still applied, Meir is alerted
+  const f = freshStore(), hf = hook(f);
+  f.failLink = true;
+  eq((await post(hf, event("subscription.created", sub("trialing", PRICES.FR_PRO.trial)))).body.result, "applied:trialing");
+  eq(f.alerts.at(-1)!.kind, "link_transactions_failed");
+
+  // a charge with no subscription id at all is flagged for a manual refund; one with an id waits silently
+  const g = freshStore(), hg = hook(g);
+  eq((await post(hg, txEv("txn_01orphan", "4900", "api", t0, null))).body.result, "recorded_unlinked");
+  eq(g.alerts.map((a) => a.kind), ["transaction_without_subscription"]);
+  await post(hg, txEv("txn_01waits", "4900", "web", t0));
+  eq(g.alerts.length, 1, "an unlinked charge with a subscription id is not an alert");
+});
+
 Deno.test("database errors: permanent -> 200 + alert; temporary -> 500, not marked seen (Paddle retries)", async () => {
   const s = freshStore(), h = hook(s);
   s.failNext = "user_not_found";

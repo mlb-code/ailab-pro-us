@@ -18,6 +18,8 @@ export interface PaddleStore {
   eventSeen(id: string): Promise<boolean>;
   eventLog(e: { event_id: string; type: string; occurred_at: string | null; entity_id: string | null; result: string }): Promise<void>;
   transaction(t: TxArgs): Promise<{ known_subscription: boolean; first_paid: boolean }>;
+  /** transactions that arrived before the subscription row: link them, set first_paid_at (20261129100100) */
+  linkTransactions(sid: string): Promise<{ linked: number; first_paid: boolean }>;
   alert(sid: string | null, kind: string, detail: string): Promise<void>;
   moneyBackTarget(clientId: string): Promise<{ provider_subscription_id: string; transaction_id: string; status: string }>;
   moneyBackDone(clientId: string, refundId: string, adminId: string): Promise<void>;
@@ -44,6 +46,9 @@ export class RestPaddleStore extends RestStore implements PaddleStore {
     await this.rpc("billing_paddle_event_log", { p_event_id: e.event_id, p_type: e.type, p_occurred_at: e.occurred_at, p_entity_id: e.entity_id, p_result: e.result });
   }
   transaction(t: TxArgs) { return this.rpc<{ known_subscription: boolean; first_paid: boolean }>("billing_paddle_transaction", { ...t }); }
+  linkTransactions(sid: string) {
+    return this.rpc<{ linked: number; first_paid: boolean }>("billing_paddle_link_transactions", { p_subscription_id: sid });
+  }
   async alert(sid: string | null, kind: string, detail: string) {
     await this.rpc("billing_paddle_alert", { p_subscription_id: sid, p_kind: kind, p_detail: detail });
   }
@@ -118,11 +123,32 @@ export class MemoryPaddleStore implements PaddleStore {
   transaction(t: TxArgs) {
     this.txs.set(t.p_transaction_id, { ...t });
     const s = t.p_subscription_id ? this.subs.get(t.p_subscription_id) : undefined;
+    if (s) this.linked.add(t.p_transaction_id);
     let first = false;
     if (s && ["completed", "paid"].includes(t.p_status) && (t.p_total_cents ?? 0) > 0 && !s.first_paid_at) {
       s.first_paid_at = t.p_billed_at ?? t.p_occurred_at ?? iso(); s.first_paid_transaction_id = t.p_transaction_id; first = true;
     }
     return Promise.resolve({ known_subscription: !!s, first_paid: first });
+  }
+  linked = new Set<string>();   // transaction ids linked to their subscription (mirror of paddle_transactions.client_id)
+  failLink = false;              // tests: the link RPC is missing / fails
+  linkTransactions(sid: string) {   // same rules as public.billing_paddle_link_transactions
+    if (this.failLink) return Promise.reject(new DbError("http_404"));
+    const s = this.subs.get(sid);
+    if (!s) return Promise.resolve({ linked: 0, first_paid: false });
+    const mine = [...this.txs.values()].filter((t) => t.p_subscription_id === sid);
+    let linked = 0;
+    for (const t of mine) if (!this.linked.has(String(t.p_transaction_id))) { this.linked.add(String(t.p_transaction_id)); linked++; }
+    let first = false;
+    if (!s.first_paid_at) {
+      const paid = mine.filter((t) => ["completed", "paid"].includes(String(t.p_status)) && Number(t.p_total_cents ?? 0) > 0)
+        .sort((a, b) => String(a.p_billed_at ?? a.p_occurred_at ?? "").localeCompare(String(b.p_billed_at ?? b.p_occurred_at ?? "")));
+      if (paid.length) {
+        s.first_paid_at = String(paid[0].p_billed_at ?? paid[0].p_occurred_at ?? iso()); s.first_paid_transaction_id = String(paid[0].p_transaction_id);
+        first = true;
+      }
+    }
+    return Promise.resolve({ linked, first_paid: first });
   }
   alert(sid: string | null, kind: string, detail: string) { this.alerts.push({ sid, kind, detail }); return Promise.resolve(); }
   moneyBackTarget(clientId: string) {

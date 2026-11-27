@@ -61,13 +61,28 @@ async function onSubscription(ev: J, deps: HookDeps): Promise<string> {
   const r = await s.upsert(m.args);
   if (ref && ev.event_type === "subscription.created") await s.checkoutDone(ref, sid);
   for (const n of m.notes) await s.alert(sid, n, String(ev.event_type));
-  return r.stale ? "stale" : "applied:" + m.args.p_status;
+  // Paddle does not order webhooks: a transaction.completed processed before this subscription row existed was stored
+  // unlinked ("recorded_unlinked"). Link it now, and start the money-back window from its first charge > 0 (a paid start).
+  let linkedFirst = false;
+  try {
+    linkedFirst = (await s.linkTransactions(sid)).first_paid;
+  } catch (e) {   // the subscription itself is applied; the next subscription event links again
+    console.error("paddle_link_failed", sid, e instanceof Error ? e.message.slice(0, 120) : "unknown");
+    await s.alert(sid, "link_transactions_failed", String(ev.event_type));
+  }
+  return (r.stale ? "stale" : "applied:" + m.args.p_status) + (linkedFirst ? "+first_paid" : "");
 }
 
 async function onTransaction(ev: J, deps: HookDeps): Promise<string> {
   const t = mapTransactionEvent(ev);
   if (!t) return "skipped:bad_transaction";
   const r = await deps.store.transaction(t);
+  // A charge with no subscription id at all can never be linked later (a one-off or a malformed event): logged for Meir as a
+  // paddle_alert event; a money-back for it is a manual refund in the Paddle dashboard. Unlinked WITH an id is normal: the
+  // subscription event links it (onSubscription -> linkTransactions).
+  if (!r.known_subscription && !t.p_subscription_id && t.p_status !== "payment_failed" && (t.p_total_cents ?? 0) > 0) {
+    await deps.store.alert(null, "transaction_without_subscription", `${t.p_transaction_id} ${t.p_total_cents} ${t.p_currency ?? ""}`);
+  }
   return t.p_status === "payment_failed" ? "payment_failed" : r.first_paid ? "first_paid" : r.known_subscription ? "recorded" : "recorded_unlinked";
 }
 

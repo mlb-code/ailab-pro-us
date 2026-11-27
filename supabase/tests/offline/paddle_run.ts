@@ -42,6 +42,19 @@ const MUTATIONS: Array<[string, string]> = [
     language sql stable as $f$ select s.id is not null and private.money_back_used(s) is null $f$;`],
   ["first paid date moves", `update pg_catalog.pg_proc set prosrc = replace(prosrc, 'and s.first_paid_at is null then', 'then')
     where proname = 'billing_paddle_transaction';`],
+  ["unlinked transactions never linked", `update pg_catalog.pg_proc set prosrc = replace(prosrc, 'and client_id is null;', 'and false;')
+    where proname = 'billing_paddle_link_transactions';`],
+  ["link ignores the paid start", `update pg_catalog.pg_proc set prosrc = replace(prosrc, 'if s.first_paid_at is null then', 'if false then')
+    where proname = 'billing_paddle_link_transactions';`],
+  ["link picks a $0 transaction", `update pg_catalog.pg_proc set prosrc = replace(prosrc, 'and coalesce(x.total_cents, 0) > 0', '')
+    where proname = 'billing_paddle_link_transactions';`],
+  ["link picks the latest charge", `update pg_catalog.pg_proc set prosrc = replace(prosrc, 'order by coalesce(x.billed_at, x.created_at), x.created_at, x.transaction_id', 'order by coalesce(x.billed_at, x.created_at) desc')
+    where proname = 'billing_paddle_link_transactions';`],
+  ["link moves an existing first paid", `update pg_catalog.pg_proc set prosrc = replace(replace(prosrc, 'if s.first_paid_at is null then', 'if true then'), 'where id = s.id and first_paid_at is null', 'where id = s.id')
+    where proname = 'billing_paddle_link_transactions';`],
+  ["clients may run the link", `grant execute on function public.billing_paddle_link_transactions(text) to authenticated;
+    update pg_catalog.pg_proc set prosrc = replace(prosrc, 'perform private.require_service();', '')
+    where proname = 'billing_paddle_link_transactions';`],
 ];
 for (const [name, sql] of MUTATIONS) {
   const m = await fresh();
