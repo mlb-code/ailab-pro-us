@@ -292,7 +292,8 @@ class Engine:
             c.ended = c.ended or end
             if reply:
                 c.transcript.append({"who": "assistant", "text": reply})
-                if counted and (typed or kw.get("claude_calls")):
+                # voice is capped per call and per caller in app.voice; its replies do not use the typed-channel limit
+                if counted and channel != "voice" and (typed or kw.get("claude_calls")):
                     self.save_limit_state(tenant, contact, guard.record_reply(self.limit_state(tenant, contact), now, day))
                 if sms:
                     self._usage(tenant, ts, "sms", guard.sms_segments(reply), now, actions)
@@ -303,7 +304,13 @@ class Engine:
                               lang=c.meta.get("lang"), **kw)
 
         def gate() -> TurnResult | None:
-            """Per-number cap on replies (every reply on SMS; Claude replies on voice)."""
+            """Per-number cap on replies, typed channels only (SMS, chat).
+
+            Voice is exempt (2026-11-27, first live customer test): a phone call has its own caps in app.voice (12
+            customer turns or 6 minutes per call; 3 answered calls per 10 minutes and 10 per day per caller), and this
+            cap (8 replies per 10 minutes) cut a normal call off at its ninth reply and then left the caller in silence."""
+            if channel == "voice":
+                return None
             st = self.limit_state(tenant, contact)
             reason = guard.rate_reason(st, now, cfg.guard.max_replies_10min, cfg.guard.max_replies_day, day)
             if not reason:
@@ -462,7 +469,7 @@ class Engine:
             self._alert(c, actions, "lead", "Customer wrote in Spanish; please call back")
             return done(lang, outcome="message")
 
-        # 5: per-number limit before any Claude call (voice too)
+        # 5: per-number limit before any Claude call (typed channels; voice has its own caps in app.voice)
         if not typed and (blocked := gate()):
             return blocked
 

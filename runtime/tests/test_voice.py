@@ -337,18 +337,22 @@ def test_percentile():
 
 
 @pytest.mark.parametrize("mode", MODES)
-def test_reply_limit_on_voice_never_leaves_dead_air(tmp_path, mode):
+def test_a_long_call_is_answered_on_every_turn_until_the_per_call_cap(tmp_path, mode):
+    """The typed-channel reply limit (8 per 10 minutes) does not apply to voice: found on the first live customer test,
+    where the ninth reply was the limit sentence and the caller then heard nothing. The per-call cap ends the call."""
+    from app import guard
     sim, clock = build(tmp_path, mode)
     call = sim.call()
     call.start()
-    texts = []
-    for _ in range(11):
+    turns = []
+    for _ in range(14):
         clock.advance(seconds=5)
         turn = call.say("Do you service Trane units?")
-        texts.append(turn.text)
+        turns.append(turn)
         if turn.end:
             break
-    assert turn.end and turn.text  # over the per-number limit: a closing sentence, then hang up
+    assert all(t.text for t in turns) and guard.LIMIT_TEXT not in [t.text for t in turns]   # never dead air
+    assert turns[-1].end and len(turns) >= 11                                               # ended by the call cap only
 
 
 def test_webhooks_do_not_wait_for_zapier_or_alerts(tmp_path, demo_raw):
