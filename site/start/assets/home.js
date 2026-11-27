@@ -388,7 +388,7 @@
     if (fp && (fp.state === 'due' || fp.state === 'pending') && (glr || d.client.status === 'live')) {
       h = '<section class="card ppay-card" aria-label="Final payment">' + window.PortalB.finalPayHtml(fp, 'billing') + '</section>' + h;
     }
-    if (!d.payments.length && window.PortalB && window.PortalB.isPlan && window.PortalB.isPlan(d)) return h + '<p class="muted small">Your monthly plan is billed by our payment provider; every receipt comes by email.</p>';
+    if (!d.payments.length && window.PortalB && window.PortalB.isPlan && window.PortalB.isPlan(d)) return h + '<p class="muted small">Your monthly plan is billed by Paddle.com, our reseller and the merchant of record; every receipt comes by email. Billing questions: paddle.net.</p>';
     if (!d.payments.length) return h + '<div class="empty"><b>No payments yet.</b> Payments you make (deposit, final payment, monthly fees) are listed here.</div>';
     return h + '<div class="table-wrap"><table class="table"><caption class="sr-only">Payments</caption><thead><tr><th scope="col">Payment</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead><tbody>' +
       d.payments.map(p => '<tr><td>' + S.esc(payKind(p.kind)) + '</td><td class="num">' + S.money(p.amount_cents) + '</td><td>' +

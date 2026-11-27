@@ -17,7 +17,7 @@
     "lead": "It answers your business calls, helps the caller, puts the visit on your calendar and sends you a summary.",
     "cta": "Start free trial",
     "secondary": "Try the demo",
-    "fine": "No setup fee. Cancel anytime. Live in 1 business day."
+    "fine": "No setup fee. Cancel anytime. Live 1 business day after you finish setup."
   },
   "clock": {
     "caption": "One call you couldn't take, minute by minute. Illustration.",
@@ -73,7 +73,7 @@
       },
       {
         "icon": "calendar",
-        "text": "Appointments in Google Calendar or Calendly"
+        "text": "Appointments in Google Calendar, or in Calendly with your own Calendly plan"
       }
     ]
   },

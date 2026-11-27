@@ -96,7 +96,7 @@ const startedCta = (ctx: EmailCtx, b: EmailBrand) =>
   ctx.client?.status === "live" ? { label: "Open my portal", url: portal(b) } : { label: "Finish my setup", url: portal(b, "onboarding") };
 /** Paddle is the merchant of record: card statements and receipts carry its name */
 const paddleNote = (ctx: EmailCtx): Block[] =>
-  ctx.subscription?.provider === "paddle" ? [{ small: "Billing is handled by Paddle, our payment provider. Your receipts come from them." }] : [];
+  ctx.subscription?.provider === "paddle" ? [{ small: "Billing is handled by Paddle.com, our reseller and the merchant of record. Your receipts come from Paddle, and paddle.net answers billing questions." }] : [];
 const FORWARD_OFF = "Don't want calls to reach it at all? Turn off call forwarding on your business phone (the setup checklist in your portal shows how for your phone provider).";
 /** satisfaction guarantee (pricebook refund_rules.rcp_guarantee): [text, "Month D, YYYY" end date] for RCP/BNDL clients, else null */
 function guaranteeOf(ctx: EmailCtx): { text: string; until: string } | null {
@@ -574,7 +574,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       blocks: [
         { p: `${hi(ctx)} ${rcp ? "your AI receptionist is live." : "your website is live."}` },
         { title: "What happens now", list: rcp
-          ? ["Missed calls forwarded to your receptionist number are answered.", "You get an email for every lead (and a text, once business texting is live).",
+          ? ["Missed calls forwarded to your receptionist number are answered.", "You get an email for every lead.",
             "Each evening you get a short summary of the day.", "Need a change? Open a request in your portal and follow its status there."]
           : ["Your site is online at your domain.", "Need a change? Open a request in your portal and follow its status there."] },
         { facts: [[rcp ? "Receptionist number" : "", num],
@@ -690,6 +690,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         { p: `${hi(ctx)} thanks for signing up. Your free trial of **${planLabel(sub?.plan_code)}** is on.` },
         { facts: [["Free trial until", ends], ["Included in the trial", mins ? `Up to ${minutesOf(mins)} of calls` : ""],
           ["First charge", p ? `${usd(p.monthly_cents)} on ${ends || "the day the trial ends"}, unless you cancel` : ""]] },
+        ...(p ? [{ p: `Then ${usd(p.monthly_cents)}/mo (plus any applicable sales tax), renewing automatically every month until you cancel.` } as Block] : []),
         ...setupStep(ctx),
         { small: `Cancel anytime in your portal (Billing) before ${ends || "the trial ends"} and you pay nothing.` },
         ...paddleNote(ctx),

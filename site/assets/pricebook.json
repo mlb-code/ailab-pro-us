@@ -115,7 +115,7 @@
         "trial": "14-day free trial (up to 100 minutes). Card needed to start; first charge when the trial ends, unless you cancel.",
         "cancel": "Cancel anytime in your online account; it stops at the end of the month you paid for.",
         "minutes": "Never billed per minute: alerts at 80% and 100% of your minutes, a one-click upgrade, and never an extra charge without your yes.",
-        "go_live": "Live in 1 business day.",
+        "go_live": "Live 1 business day after you finish the setup checklist (Business plan: 5).",
         "no_setup": "No setup fee."
       }
     }
@@ -404,10 +404,8 @@
       "excludes": [],
       "retired": {
         "since": "2026-11-25",
-        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes",
-        "replaced_by": [
-          "FR_BUSINESS"
-        ]
+        "note": "FirstRing is sold only as a monthly plan; kept for existing quotes. A second line is not part of any plan (removed from Business 2026-11-27).",
+        "replaced_by": []
       }
     },
     {
@@ -934,7 +932,7 @@
       "trial_days": 14,
       "trial_minutes": 100,
       "go_live_business_days": 5,
-      "go_live_note": "CRM links and a second line take longer to set up.",
+      "go_live_note": "CRM links and on-call dispatch are set up with you, so they take longer.",
       "features": [
         "answer_calls",
         "calendar_booking",
@@ -943,7 +941,6 @@
         "spanish",
         "web_chat",
         "dispatch",
-        "second_line",
         "crm_link"
       ],
       "upgrade_to": null,
@@ -996,30 +993,20 @@
       "replaces": "ADD-CHAT"
     },
     "dispatch": {
-      "label": "Urgent night calls put through to your on-call tech",
+      "label": "Urgent night calls put through to your on-call tech (set up for you on request)",
       "niches": [
         "home_services"
       ],
       "replaces": "ADD-DISPATCH"
     },
-    "second_line": {
-      "label": "A second location or line",
-      "niches": [
-        "*"
-      ],
-      "replaces": "ADD-LOC",
-      "label_by_niche": {
-        "real_estate": "A second line or team number"
-      }
-    },
     "crm_link": {
-      "label": "A direct link to your CRM",
+      "label": "A direct link to HubSpot or Jobber (set up for you on request)",
       "niches": [
         "*"
       ],
       "replaces": "ADD-CRM",
       "label_by_niche": {
-        "real_estate": "A direct link to your CRM (for example Follow Up Boss)"
+        "real_estate": "A direct link to Follow Up Boss (set up for you on request)"
       }
     }
   }

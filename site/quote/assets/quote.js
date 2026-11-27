@@ -50,7 +50,7 @@
   let lastRef = '';   // PayPal reference of the payment made on this page view (receipt note)
 
   // content-hash versions, filled in by tools/asset_version.py (no stale copy after a deploy)
-  const AV = /*asset-v*/{"/assets/brand.json":"c0065a8ebc","/assets/pricebook.json":"111c878ee6","/assets/quote_view.mjs":"18f325a8cd","/assets/paypal_checkout.mjs":"e8c38070e2"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/brand.json":"1834018b68","/assets/pricebook.json":"024d5191c3","/assets/quote_view.mjs":"18f325a8cd","/assets/paypal_checkout.mjs":"e8c38070e2"}/*/asset-v*/;
   const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   async function getJson(u) { const r = await fetch(vurl(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http_' + r.status); return r.json(); }
 

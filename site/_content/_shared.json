@@ -35,8 +35,8 @@
       },
       {
         "num": "7 steps",
-        "title": "Setup checklist with videos",
-        "text": "Connect your calendar, pick who gets alerts, add your FAQ. A short video for each step."
+        "title": "Setup checklist",
+        "text": "Connect your calendar, pick who gets alerts, add your FAQ. Step-by-step instructions for each one."
       },
       {
         "num": "1 day",
@@ -51,7 +51,7 @@
   "trust": [
     {
       "title": "One monthly price",
-      "text": "The price on this page is what you pay. No setup fee. We never charge you extra without your yes."
+      "text": "No setup fee and no per-minute charges. Sales tax, where your state charges it, is added at checkout. We never charge you extra without your yes."
     },
     {
       "title": "No sales calls",
@@ -73,15 +73,15 @@
     },
     "ai_disclosure": {
       "q": "Will callers know it's AI?",
-      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Texting is coming soon, after US carrier registration; once it is live, it asks the caller's permission before it texts a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
+      "a": "Yes. It introduces itself as your virtual assistant and never claims to be a person. The greeting says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Text messages to callers are switched off for now. If texting is turned on for your account later, it first asks the caller's permission to text a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",
-      "a": "No. You pick a plan, sign up online in about 3 minutes, and finish a setup checklist with short videos. If you want a 15-minute video call anyway, you can book one. It's optional."
+      "a": "No. You pick a plan, sign up online in about 3 minutes, and finish a setup checklist with step-by-step instructions. If you want a 15-minute video call anyway, you can book one. It's optional."
     },
     "timeline": {
       "q": "How long until it's live?",
-      "a": "1 business day after you finish the setup checklist (your calendar, who gets alerts, and your business details). On the Business plan it takes {days:FR_BUSINESS} business days, because CRM links and a second line take longer to set up."
+      "a": "1 business day after you finish the setup checklist (your calendar, who gets alerts, and your business details). On the Business plan it takes {days:FR_BUSINESS} business days, because we set up CRM links and on-call dispatch with you."
     },
     "cancel": {
       "q": "Can I cancel? What if I'm not happy?",
@@ -97,7 +97,7 @@
     },
     "builtin_ai": {
       "q": "Why not the AI assistant built into Jobber or Housecall Pro?",
-      "a": "Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, passes the caller to a person when needed, and a real person keeps it running. It works with Google Calendar, Calendly and most apps through Zapier, and the Business plan adds a direct link to your CRM. Some systems (for example Outlook or ServiceTitan) need custom work, so ask us first."
+      "a": "Built-in assistants are a good fit if you only need booking inside that app. Ours answers the phone itself, passes the caller to a person when needed, and a real person keeps it running. It works with Google Calendar, Calendly (with your own paid Calendly plan) and most apps through Zapier. On the Business plan we can also set up a direct link to HubSpot or Jobber for you, on request. Some systems (for example Outlook or ServiceTitan) need custom work, so ask us first."
     },
     "hear_it": {
       "q": "Can I hear it before I buy?",
@@ -111,8 +111,8 @@
   "missed": {
     "eyebrow": "What happens to a missed call"
   },
-  "usage_text_fallback": "{usage_voice} minutes included every month ({usage_sms} texts included too, once business texting is live). We let you know when you've used 80%. No surprise charges: we add more only if you say yes.",
-  "sms_note": "Phone answering works from day one. Texting (automatic text-back, text alerts and text confirmations) is coming soon, after US carrier registration. Until then, alerts come by email.",
+  "usage_text_fallback": "{usage_voice} minutes included every month. We let you know when you've used 80%. No surprise charges: we add more only if you say yes.",
+  "sms_note": "Phone answering and email alerts work from day one. Text messages are switched off for now: business texting needs US carrier registration first. Alerts come by email.",
   "after_pay": {
     "eyebrow": "What happens after you sign up",
     "lead": "Day 0 is the day you start your free trial. Business days.",
@@ -120,7 +120,7 @@
       {
         "num": "Day 0",
         "title": "Welcome + checklist",
-        "text": "A welcome email and your setup checklist in your online account, with a short video for each item."
+        "text": "A welcome email and your setup checklist in your online account, with a short how-to for each item."
       },
       {
         "num": "Day 0",
@@ -184,7 +184,7 @@
     "note": "FirstRing: monthly plans, no setup fee, cancel anytime.",
     "studio": "Built with Claude. Independent studio.",
     "social_title": "Follow *us*",
-    "social_empty": "Social profiles coming soon. Email is the fastest way to reach us.",
+    "social_empty": "Email is the fastest way to reach us.",
     "columns": [
       {
         "title": "Company",

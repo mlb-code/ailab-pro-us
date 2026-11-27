@@ -640,7 +640,7 @@ def tool_status(c, key):
         if it.get('retired'):  # v2.0: the add-on is now part of a plan ("Business plan"), never sold separately
             feat = next((k for k, f in c.pb.get('plan_features', {}).items() if f.get('replaces') == it['code']), None)
             first = next((p for p in c.plans if feat in p['features']), None)
-            return ('is-addon', f'{first["name"]} plan') if first else ('is-custom', 'Ask us')
+            return ('is-addon', f'{first["name"]} plan · set up for you on request') if first else ('is-custom', 'Ask us')
         if soon(c, it['code']):
             return 'is-custom', soon_label(c)
         return 'is-addon', f'Extra {money(it["setup_cents"])} + {money(it["monthly_cents"])}/mo'
@@ -674,6 +674,9 @@ def included_folds(c, niche_key, inc, n):
         if allow is not None and k not in allow:
             continue
         cls, label = tool_status(c, k)
+        if k in inc.get('tools_status', {}):  # content override (Calendly needs the client's own paid plan; HCP/GHL via Zapier)
+            label = inc['tools_status'][k]
+            cls = 'is-zap' if label.startswith('Via Zapier') else cls
         tools.append(f'<li class="{cls}"><span>{esc(meta["label"])}</span><span>{esc(label)}</span></li>')
         if cls == 'is-native':
             names.append(({'calendar': 0, 'automation': 1}.get(meta.get('category'), 2), meta['label']))
@@ -820,7 +823,7 @@ def plan_feature_label(c, key, niche):
 
 
 def go_live_label(days):
-    return f'Live in {days} business day' + ('' if days == 1 else 's')
+    return f'Live in {days} business day' + ('' if days == 1 else 's') + ' after you finish setup'
 
 
 def plan_cards(c, niche, link_niche, *, cta_href=None, cta_label=TRIAL_CTA):

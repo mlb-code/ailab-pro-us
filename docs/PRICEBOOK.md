@@ -16,13 +16,13 @@
 
 - `FR_STARTER`: answers calls, books into your calendar, email summary of every call, online account (hours, FAQs, transcripts).
 - `FR_PRO` (badge "Most popular"): everything in Starter + Spanish + chat box on your website.
-- `FR_BUSINESS`: everything in Pro + urgent night calls put through to your on-call tech + a second location/line + a direct link to your CRM. Go-live takes 5 business days because CRM links and a second line take longer.
-- Real estate: the same three plans and prices, product name "FirstRing AI Lead Assistant". Business for real estate = a second line/team number + a direct CRM link (for example Follow Up Boss); there is no on-call dispatch for real estate. The real-estate page never says "receptionist".
+- `FR_BUSINESS`: everything in Pro + urgent night calls put through to your on-call tech + a direct link to HubSpot or Jobber; both are set up for the client on request (custom, by request). Go-live takes 5 business days because CRM links and on-call dispatch are set up with the client. No second line (removed 2026-11-27: not built). Housecall Pro and GoHighLevel are not direct links: they connect through Zapier.
+- Real estate: the same three plans and prices, product name "FirstRing AI Lead Assistant". Business for real estate = a direct link to Follow Up Boss, set up on request; there is no on-call dispatch for real estate. The real-estate page never says "receptionist".
 - Every plan: no setup fee; 14-day free trial, card required at sign-up, trial capped at 100 voice minutes, first charge when the trial ends (`rules.subscription`); billed monthly in advance, renews monthly; cancel anytime in the online account, effective at the end of the paid month; minutes do not roll over; never billed per minute. Alerts at 80% and 100% of the included minutes with a one-click upgrade to the next plan; we never charge extra without the client's yes.
 - Live in 1 business day after the client finishes the setup checklist (Business: 5 business days).
 - Refunds (draft, owner to confirm): 30-day money-back guarantee on the first paid month (`refund_rules.subscription`); no partial-month refunds after that. Public page: `/legal/refund/`.
 - Spanish (`ADD-ES`), chat (`ADD-CHAT`), dispatch (`ADD-DISPATCH`), a second location (`ADD-LOC`), the CRM link (`ADD-CRM`) and extra minutes (`ADD-USAGE`) are now inside the plans and are no longer sold separately for FirstRing. `BNDL` (receptionist + website) and the `FOUNDING` discount are retired for FirstRing. Feature keys per plan: `plans[].features`, labels in `plan_features`.
-- Payments for the plans go through our payment provider and authorized reseller (merchant of record); the provider is not named on the site until approved.
+- Payments for the plans go through Paddle.com, our reseller and the merchant of record; it is named on the site, in the legal pages and at sign-up (owner decision 2026-11-27). Calendly booking needs the client's own paid Calendly plan.
 
 All prices USD, fixed-price, excluding any sales tax (none expected; service performed outside the US). Setup is paid 50% deposit / 50% before go-live. Monthly fees start on the go-live date, billed monthly in advance, cancel anytime with 30 days notice.
 

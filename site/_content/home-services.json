@@ -48,7 +48,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you don't pick up go to your AI receptionist. It answers with your business name. (Texting callers who hang up is coming soon, after US carrier registration.)"
+      "text": "Calls you don't pick up go to your AI receptionist. It answers with your business name."
     },
     {
       "icon": "chat",
@@ -58,7 +58,7 @@
     {
       "icon": "calendar",
       "title": "It books, you get an email",
-      "text": "Only open times on your calendar, in your areas and hours. You get each lead by email, plus a daily summary (text alerts once business texting is live)."
+      "text": "Only open times on your calendar, in your areas and hours. You get each lead by email, plus a daily summary."
     }
   ],
   "missed_gist": "3 steps: it answers, asks the right questions, books",
@@ -405,14 +405,31 @@
   "included": {
     "eyebrow": "What's included",
     "tools_title": "Works with your tools",
+    "tools_status": {
+      "calendly": "Included · needs your own paid Calendly plan",
+      "housecall_pro": "Via Zapier · included",
+      "gohighlevel": "Via Zapier · included"
+    },
     "tools_extra": [
       {
         "label": "Apple iCloud Calendar",
-        "status": "Via Calendly · included",
+        "status": "Via Calendly · needs your own paid Calendly plan",
         "after": "calendly"
       }
     ]
   },
+  "tools": [
+    "google_calendar",
+    "outlook_calendar",
+    "calendly",
+    "jobber",
+    "housecall_pro",
+    "servicetitan",
+    "gohighlevel",
+    "hubspot",
+    "quickbooks",
+    "zapier"
+  ],
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Three plans. *No setup fee*."
@@ -432,14 +449,14 @@
     },
     {
       "q": "What about emergencies?",
-      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT email right away (and a text, once business texting is live). On the Business plan, urgent night calls are put through to your on-call tech."
+      "a": "You choose the emergency keywords (gas smell, carbon monoxide, flooding, no heat with a baby at home). If there may be danger to life, the caller is told to hang up and call 911 first. Otherwise you get an URGENT email right away. On the Business plan, we can set up urgent night calls to go through to your on-call tech, on request."
     },
     {
       "ref": "builtin_ai"
     },
     {
       "q": "Does it work with Jobber, Housecall Pro or ServiceTitan?",
-      "a": "Booking into Google Calendar or Calendly is included. So is 1 Zapier link (Zapier is an app that connects apps) to send leads to any other tool. A direct link to Jobber, Housecall Pro, GoHighLevel or HubSpot is part of the Business plan. For ServiceTitan, ask us first."
+      "a": "Booking into Google Calendar (free) or Calendly (with your own paid Calendly plan) is included. So is 1 Zapier link (Zapier is an app that connects apps) to send leads to other tools, such as Housecall Pro or GoHighLevel. On the Business plan, we can also set up a direct link to Jobber or HubSpot for you, on request. For ServiceTitan, ask us first."
     },
     {
       "ref": "no_call"
@@ -450,15 +467,14 @@
   ],
   "included_items": [
     "1 new US phone number for your AI receptionist. You keep your own number; calls you miss are sent to the new one.",
-    "Answers the calls you miss (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
+    "Answers the calls you miss",
     "Collects job details: name, callback number, service address/ZIP, job type, urgency, preferred time",
-    "Booking into 1 calendar: Google Calendar or Calendly",
+    "Booking into 1 calendar: Google Calendar (free) or Calendly (needs your own paid Calendly plan)",
     "Appointment manager: callers can check, move or cancel a visit it booked for them just by calling back, and it recognizes returning callers",
     "Answers to up to 25 common questions, your business hours, a nights-and-weekends mode, and emergency words that alert you right away",
-    "An email alert for every lead, plus a daily summary email (text alerts too, once business texting is live)",
+    "An email alert for every lead, plus a daily summary email",
     "1 Zapier link (Zapier is an app that connects apps) that sends each new lead and booking to any other tool",
     "Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
-    "When US carrier registration for business texting opens, we register your business for you (fees included)",
     "{usage_text}",
     "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
   ]

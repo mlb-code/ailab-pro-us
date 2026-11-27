@@ -131,7 +131,8 @@ for rel, ids in (('home-services/index.html', ('how-it-answers', 'after-you-pay'
     check(f'{rel}: FAQPage JSON-LD matches the visible FAQ ({len(faq["mainEntity"])})', all(bl.esc(q['name']) in h for q in faq['mainEntity']))
 for rel in ('home-services/index.html', 'real-estate/index.html'):
     h = pages[rel]
-    check(f'{rel}: texting mentioned with the coming-soon note', 'coming soon, after US carrier registration' in h)
+    check(f'{rel}: texting described as switched off (SMS is off at launch)', 'Text messages are switched off for now' in h)
+    check(f'{rel}: no texting promise to callers (text-back / text alerts)', not re.search(r'(?i)text-back|text alerts|once business texting is live', vis(h)))
 check('/real-estate/: never says "receptionist"', 'receptionist' not in vis(pages['real-estate/index.html']).lower())
 
 # FirstRing monthly plans (owner decision 2026-11-25): three packages from the price book on every FirstRing page, Pro
@@ -167,7 +168,7 @@ for rel, niche in NICHE_OF.items():
     pf = pb['plan_features']
     if niche == 'real_estate':
         check(f'{rel}: no on-call dispatch on the real-estate plans', bl.esc(pf['dispatch']['label']) not in b
-              and bl.esc(pf['second_line']['label_by_niche']['real_estate']) in b and 'Follow Up Boss' in b)
+              and bl.esc(pf['crm_link']['label_by_niche']['real_estate']) in b and 'Follow Up Boss' in b)
     else:
         check(f'{rel}: Business plan lists on-call dispatch', bl.esc(pf['dispatch']['label']) in b)
     ld = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', h, re.S).group(1))

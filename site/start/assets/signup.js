@@ -79,11 +79,13 @@
     if ((S.PB._niches || []).map(n => n.key).indexOf(st.niche) === -1) st.niche = 'home_services';
     renderForm();
   }
+  // consent wording: the stored proof (consentText) and the visible label (consentHtml) must stay word for word the same
+  const BIZ = 'I am signing up on behalf of my business.';
+  const renewText = (p, price) => (st.trial ? 'After the ' + trialDays(p) + '-day free trial, my card is charged ' + price + ' each month'
+    : 'My card is charged ' + price + ' today and then each month') + ', plus any applicable sales tax, until I cancel. I can cancel anytime in Billing in my online account.';
   function consentText() {
     const p = planOf(st.plan), price = S.money(p.monthly_cents);
-    return 'I agree to the Terms of Service and the Service Agreement (version ' + (S.BRAND.agreement_version || '') + '). ' +
-      (st.trial ? 'After the ' + trialDays(p) + '-day free trial, my card is charged ' + price + ' each month until I cancel.'
-        : 'My card is charged ' + price + ' today and then each month until I cancel.');
+    return 'I agree to the Terms of Service and the Service Agreement (version ' + (S.BRAND.agreement_version || '') + '). ' + BIZ + ' ' + renewText(p, price);
   }
   function summaryHtml() {
     const p = planOf(st.plan);
@@ -96,8 +98,7 @@
   function consentHtml() {
     const ver = S.esc(S.BRAND.agreement_version || ''), p = planOf(st.plan), price = S.money(p.monthly_cents);
     return '<label class="check su-consent"><input type="checkbox" id="suConsent" required aria-required="true"><span>I agree to the <a href="/legal/terms/" target="_blank" rel="noopener">Terms of Service</a> and the ' +
-      '<a href="/legal/service-agreement/" target="_blank" rel="noopener">Service Agreement</a> (version ' + ver + '). ' +
-      (st.trial ? 'After the ' + trialDays(p) + '-day free trial, my card is charged ' + price + ' each month until I cancel.' : 'My card is charged ' + price + ' today and then each month until I cancel.') + '</span></label>';
+      '<a href="/legal/service-agreement/" target="_blank" rel="noopener">Service Agreement</a> (version ' + ver + '). ' + S.esc(BIZ + ' ' + renewText(p, price)) + '</span></label>';
   }
   const goLabel = () => st.trial ? 'Start ' + trialDays(planOf(st.plan)) + '-day free trial' : 'Start paid plan · ' + S.money(planOf(st.plan).monthly_cents) + '/mo';
   function field(id, label, input, hint, half) {
@@ -131,7 +132,7 @@
       '<div id="suConsentBox">' + consentHtml() + '</div>' +
       '<div id="suMsg">' + (keepMsg || '') + '</div>' +
       '<div class="navbtns"><button type="submit" class="btn btn--primary" id="suGo">' + S.esc(goLabel()) + '</button></div>' +
-      '<p class="muted small su-fine">Your card is needed to start' + (st.trial ? ', and it isn’t charged today' : '') + '. Payments are handled by our payment provider, the merchant of record, so it may appear on your card statement.</p>' +
+      '<p class="muted small su-fine">Your card is needed to start' + (st.trial ? ', and it isn’t charged today' : '') + '. Our order process is conducted by our online reseller Paddle.com, the merchant of record, so Paddle appears on your card statement. Sales tax, where your state charges it, is added at checkout.</p>' +
       '</form>';
     window.scrollTo(0, 0); app.focus({ preventScroll: true });
     bindForm();
@@ -217,11 +218,11 @@
       '<section class="card su-pay" aria-labelledby="payH">' +
       '<div class="su-line"><span><b>' + S.esc(p.name) + '</b> · ' + S.money(p.monthly_cents) + '/mo · ' + mins(p) + ' min</span><span class="muted small">' + S.esc(fmtPhone(r.business_phone)) + '</span></div>' +
       (live ? '<div class="su-checkout" id="payFrame"><p class="muted small" id="payLoading">Loading the secure card form…</p></div>'
-        : '<div class="paystub" id="payStub"><p><b>Demo checkout</b></p><p class="muted small">Demo mode: no card is needed and nothing is charged. On the live site, the secure card form of our payment provider appears here.</p>' +
+        : '<div class="paystub" id="payStub"><p><b>Demo checkout</b></p><p class="muted small">Demo mode: no card is needed and nothing is charged. On the live site, the secure card form of Paddle.com, our reseller and the merchant of record, appears here.</p>' +
           '<button type="button" class="btn btn--primary btn--block" id="demoPay">' + (st.trial ? 'Use demo card · ' + S.money(0) + ' today' : 'Use demo card') + '</button></div>') +
       '<div id="payMsg" aria-live="polite"></div></section>' +
       '<div class="navbtns"><button type="button" class="btn btn--ghost" id="suBack">Back</button></div>' +
-      '<p class="muted small su-fine">Secure checkout by our payment provider. We never see or store your card number.</p>';
+      '<p class="muted small su-fine">Secure checkout by Paddle.com, our reseller and the merchant of record. We never see or store your card number.</p>';
     window.scrollTo(0, 0); app.focus({ preventScroll: true });
     S.$('#suBack').addEventListener('click', () => { onPaddle = null; renderForm(); });
     const msg = (t, kind) => { S.$('#payMsg').innerHTML = S.msgHtml(t, kind); };

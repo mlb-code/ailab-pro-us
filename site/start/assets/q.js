@@ -251,9 +251,9 @@
     }
     const items = [
       '<b>Accept online</b> and pay a ' + dep + '% deposit. No call needed.',
-      '<b>Setup checklist</b> in your portal, with a short video per step. Nothing to upload now.'
+      '<b>Setup checklist</b> in your portal, with step-by-step instructions. Nothing to upload now.'
     ];
-    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away. Texting (text-back and text alerts) is coming soon, after US carrier registration; until then, alerts come by email.');
+    if (receptionist()) items.push('<b>Going live:</b> phone answering starts right away, and alerts come by email. Text messages are switched off for now: business texting needs US carrier registration first.');
     return '<h2 class="h-sec">What happens next</h2><ol class="next">' + items.map(x => '<li>' + x + '</li>').join('') + '</ol>';
   }
   // one optional tap after submit: profiles.how_heard (never blocks anything; a failure is silent)

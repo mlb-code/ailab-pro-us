@@ -288,17 +288,17 @@
     const url = it.video_url && /^https:\/\//.test(it.video_url) ? it.video_url : '';
     const inner = url ? (/\.mp4(\?|$)/i.test(url) ? '<video controls preload="none" src="' + esc(url) + '" aria-label="Video: ' + esc(it.title) + '"></video>'
       : '<a class="btn btn--ghost btn--sm" href="' + esc(url) + '" target="_blank" rel="noopener">Watch the 2-minute video</a>')
-      : '<div class="vslot__ph" role="img" aria-label="Video for this step is coming soon"><span aria-hidden="true">▶</span> Short video for this step — coming soon</div>';
-    return '<div class="vslot" data-video="onb-' + esc(it.key) + '" data-script="' + esc(VIDEO_SCRIPT[it.key] || '') + '">' + inner + '</div>';
+      : '';   // no video yet: the slot stays empty and hidden (no "coming soon" placeholder)
+    return '<div class="vslot" data-video="onb-' + esc(it.key) + '" data-script="' + esc(VIDEO_SCRIPT[it.key] || '') + '"' + (inner ? '' : ' hidden') + '>' + inner + '</div>';
   }
   function onboardingHtml(d) {
     const items = d.ob.slice().sort((a, b) => a.sort - b.sort);
     const done = items.filter(i => i.status === 'done').length;
     const pct = items.length ? Math.round(done / items.length * 100) : 0;
     if (!state.open || !items.some(i => i.key === state.open)) state.open = (items.find(i => i.status !== 'done') || {}).key || null;
-    return messageModeHtml(d) + '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p>' + done + ' of ' + items.length + ' steps done. Each step has a short video and saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
+    return messageModeHtml(d) + '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p>' + done + ' of ' + items.length + ' steps done. Each step saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
       '<div class="bar" role="progressbar" aria-label="Setup checklist progress" aria-valuemin="0" aria-valuemax="' + items.length + '" aria-valuenow="' + done + '"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="vslot spaced" data-video="onb-welcome" data-script="01-welcome"><div class="vslot__ph" role="img" aria-label="Welcome video coming soon"><span aria-hidden="true">▶</span> Welcome — what happens now (video coming soon)</div></div></section>' +
+      '<div class="vslot spaced" data-video="onb-welcome" data-script="01-welcome" hidden></div></section>' +
       (d.schemaOk === false ? S.msgHtml('Some settings can’t be checked right now. Please reload the page.') : '') + autoGoLiveHtml(d) +
       '<div id="calReturn"></div><ol class="obsteps">' + items.map((it, i) => '<li><details class="obstep" id="ob-' + esc(it.key) + '" data-key="' + esc(it.key) + '"' + (state.open === it.key ? ' open' : '') + '>' +
         '<summary><span class="obstep__n" aria-hidden="true">' + (i + 1) + '</span><span class="obstep__t">' + esc(it.title) + '</span>' + pill(it.status, OB_STATUS[it.status] || it.status) + '</summary>' +

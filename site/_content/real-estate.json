@@ -47,7 +47,7 @@
     {
       "icon": "phone",
       "title": "It answers",
-      "text": "Calls you can't take go to your AI assistant. It answers with your name or your team's name, so sign calls don't go cold. (Texting callers who hang up is coming soon, after US carrier registration.)"
+      "text": "Calls you can't take go to your AI assistant. It answers with your name or your team's name, so sign calls don't go cold."
     },
     {
       "icon": "chat",
@@ -57,7 +57,7 @@
     {
       "icon": "calendar",
       "title": "It books, you get an email",
-      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by email (text once business texting is live), and it can go to Follow Up Boss through Zapier."
+      "text": "Showings, listing consults or buyer calls, only in the windows you open. You get the lead by email, and it can go to Follow Up Boss through Zapier."
     }
   ],
   "missed_gist": "3 steps: it answers, qualifies, books",
@@ -439,10 +439,13 @@
   "included": {
     "eyebrow": "What's included",
     "tools_title": "Works with your tools",
+    "tools_status": {
+      "calendly": "Included · needs your own paid Calendly plan"
+    },
     "tools_extra": [
       {
         "label": "Apple iCloud Calendar",
-        "status": "Via Calendly · included",
+        "status": "Via Calendly · needs your own paid Calendly plan",
         "after": "calendly"
       }
     ]
@@ -466,7 +469,7 @@
     },
     {
       "q": "Does it work with Follow Up Boss?",
-      "a": "Yes. Every plan includes a Zapier link (Zapier is an app that connects apps): each new lead and booking can add a contact and a to-do in Follow Up Boss. The Business plan adds a direct link to your CRM. Booking into Google Calendar or Calendly is included too."
+      "a": "Yes. Every plan includes a Zapier link (Zapier is an app that connects apps): each new lead and booking can add a contact and a to-do in Follow Up Boss. On the Business plan, we can also set up a direct link to Follow Up Boss for you, on request. Booking into Google Calendar (free) or Calendly (with your own paid Calendly plan) is included too."
     },
     {
       "q": "Can it answer questions about my listings?",
@@ -497,14 +500,13 @@
   ],
   "included_items": [
     "1 new US phone number for your lead assistant, for you or your team. You keep your own number; calls you miss are sent to the new one.",
-    "Answers the calls you miss, right away (automatic text-back to callers who hang up is coming soon, after US carrier registration)",
+    "Answers the calls you miss, right away",
     "Lead screening: buying or selling, property or area, timeline, pre-approval, already working with an agent",
-    "Booking showings, listing consults and buyer calls into Google Calendar or Calendly",
+    "Booking showings, listing consults and buyer calls into Google Calendar (free) or Calendly (needs your own paid Calendly plan)",
     "Answers to up to 25 common questions (listings, open houses, your process), your business hours, and a nights-and-weekends mode",
-    "An email alert for every new lead, plus a daily summary email (text alerts too, once business texting is live)",
+    "An email alert for every new lead, plus a daily summary email",
     "Leads sent to Follow Up Boss or kvCORE through 1 included Zapier link",
     "Your own online account shows every call, a written copy of each conversation, your bookings and settings.",
-    "When US carrier registration for business texting opens, we register your business for you (fees included)",
     "{usage_text}",
     "Every month: we check that it works, update its answers, and make small changes for you, one at a time (up to 1 hour each)"
   ]
