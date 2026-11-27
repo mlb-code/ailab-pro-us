@@ -592,7 +592,7 @@ def _e164(v: Any) -> str:
 
 @router.post("/voice/message-mode")
 async def voice_message_mode(request: Request) -> Response:
-    """The caller's one speech turn in message-only mode (app.message_mode)."""
+    """The caller's speech turn in message-only mode (app.message_mode; one re-ask after an empty turn)."""
     rt = _rt(request)
     form = await request.form()
     tenant, problem = rt.resolve_tenant(str(form.get("To", "")))

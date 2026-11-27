@@ -226,6 +226,54 @@ def test_message_mode_silence_is_abandoned_and_blocklist_still_rejected(tmp_path
     assert "<Reject" in resp.text
 
 
+def _mm_call(tmp_path, demo_raw):
+    raw = with_plan(demo_raw, status="canceled", service="message_only", service_reason="canceled")
+    s, rec = sim_with(tmp_path, raw, VOICE_MODE="gather")
+    call = s.call(rec.slug)
+    call.start()
+    return s, call
+
+
+def test_message_mode_empty_turn_asks_once_more_and_keeps_the_message(tmp_path, demo_raw):
+    """Launch leftovers 2026-11-27: words said over the notice are not heard (it plays in full before we listen). An empty
+    turn used to end the call with "We've passed your message on" although nothing was taken; now the caller is asked
+    once more, and the message said then reaches the owner."""
+    from app.message_mode import RETRY, THANKS
+    s, call = _mm_call(tmp_path, demo_raw)
+    again = call.silence()
+    assert again.text == RETRY and not again.end and "passed your message on" not in again.text
+    bye = call.say("This is Dana, 713 555 0123, my AC stopped")
+    assert "passed your message on" in bye.text and bye.end
+    call.hangup(40)
+    row = s.store.select("calls", call_sid=call.call_sid)[0]
+    assert row["outcome"] == "message" and row["summary"].startswith("Message: This is Dana")
+    assert [t["text"] for t in row["transcript"][1:]] == [RETRY, "This is Dana, 713 555 0123, my AC stopped", THANKS]
+    assert [a["kind"] for a in s.rt.alert_log] == ["lead"] and "Dana" in s.rt.alert_log[0]["summary"]
+
+
+def test_message_mode_two_empty_turns_end_without_claiming_a_message(tmp_path, demo_raw):
+    from app.message_mode import NO_MESSAGE, RETRY
+    s, call = _mm_call(tmp_path, demo_raw)
+    assert call.silence().text == RETRY
+    bye = call.silence()
+    assert bye.text == NO_MESSAGE and bye.end and "passed your message on" not in bye.text
+    call.hangup(30)
+    row = s.store.select("calls", call_sid=call.call_sid)[0]
+    assert row["outcome"] == "abandoned" and row["summary"] == "No speech" and s.rt.alert_log == []
+    assert [t["text"] for t in row["transcript"][1:]] == [RETRY, NO_MESSAGE]
+
+
+def test_message_mode_notice_plays_in_full_but_the_second_ask_can_be_talked_over(tmp_path, demo_raw):
+    import xml.etree.ElementTree as ET
+    s, call = _mm_call(tmp_path, demo_raw)
+    first = ET.fromstring(s.twilio.post("/voice/incoming", s.twilio.call_params(call.to, call.caller, "CAmmnotice")).text)
+    assert [el.tag for el in first] == ["Say", "Gather"] and first.find("Gather").find("Say") is None
+    again = ET.fromstring(s.twilio.say(call.to, call.caller, call.call_sid, "", path="/voice/message-mode").text)
+    g = again.find("Gather")
+    assert g is not None and g.get("action") == "/voice/message-mode" and g.get("actionOnEmptyResult") == "true"
+    assert [el.tag for el in g] == ["Say"] and again.find("Hangup") is None
+
+
 def test_trial_minutes_used_switches_calls_to_message_mode_unless_keep(tmp_path, demo_raw, monkeypatch):
     raw = with_plan(demo_raw, status="trialing", period_start="2026-11-20")
     s, rec = sim_with(tmp_path, raw)

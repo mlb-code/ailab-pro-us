@@ -4,7 +4,9 @@ for callers, but it stops costing AI minutes. It takes the caller's name, number
 owner; it does not book visits or answer other questions.
 
 Voice: one short fixed greeting with the call notice, one speech turn for name + number + reason, a thank-you, hang up
-(plain <Say>/<Gather>: no ConversationRelay, no Claude, no booking). The message goes to the owner as a normal lead
+(plain <Say>/<Gather>: no ConversationRelay, no Claude, no booking). The notice plays in full before we listen, so words
+said over it are not heard: when the turn comes back empty, the caller is asked once more (RETRY, can be talked over),
+and a second empty turn ends with NO_MESSAGE, never with "We've passed your message on". The message goes to the owner as a normal lead
 alert (e-mail; SMS once texting is live). SMS and the website chat get one fixed reply and the same owner alert.
 Quote clients (no `config.plan`) never enter this mode: a paused quote tenant behaves as before.
 """
@@ -23,6 +25,8 @@ log = logging.getLogger("rt.message_mode")
 
 VOICE = "Polly.Joanna-Neural"
 THANKS = "Thank you. We've passed your message on, and someone will call you back. Goodbye."
+RETRY = "Sorry, I didn't catch that. Please say your name, your phone number and what you need."
+NO_MESSAGE = "Sorry, we didn't get a message. Please call again when you're ready. Goodbye."
 TEXT_REPLY = "Thanks for your message. We've passed it on, and someone from our team will get back to you soon."
 REASONS = ("trial_ended", "canceled", "past_due", "paused", "trial_minutes_used", "plan_minutes_used", "message_only")
 
@@ -51,6 +55,12 @@ def _flag(call_sid: str) -> str:
     return f"mmcall:{call_sid}"
 
 
+def _listen(vr: VoiceResponse) -> Any:
+    """The caller's speech turn (actionOnEmptyResult: silence also comes back to /voice/message-mode)."""
+    return vr.gather(input="speech", action="/voice/message-mode", method="POST", speech_model="phone_call",
+                     enhanced=True, speech_timeout="auto", action_on_empty_result=True, language="en-US")
+
+
 class MessageMode:
     def __init__(self, rt: Any):
         self.rt = rt
@@ -69,26 +79,32 @@ class MessageMode:
         self.rt.state.put(_flag(call_sid), {"reason": why}, tenant.id)
         vr = VoiceResponse()
         vr.say(text, voice=VOICE)  # the notice plays in full before we listen
-        vr.gather(input="speech", action="/voice/message-mode", method="POST", speech_model="phone_call",
-                  enhanced=True, speech_timeout="auto", action_on_empty_result=True, language="en-US")
+        _listen(vr)
         return str(vr)
 
     def voice_message(self, tenant: Any, call_sid: str, caller: str, speech: str, now: datetime) -> str:
         ts = self.rt.store.for_tenant(tenant.id)
         said = (speech or "").strip()[:500]
+        flag = self.rt.state.get(_flag(call_sid)) or {}
+        retry = not said and not (isinstance(flag, dict) and flag.get("retried"))  # nothing heard: ask once more
+        reply = THANKS if said else RETRY if retry else NO_MESSAGE
         rows = ts.select("calls", call_sid=call_sid)
         if rows:
             transcript = list(rows[0].get("transcript") or [])
             if said:
                 transcript.append({"who": "customer", "text": said})
-            transcript.append({"who": "assistant", "text": THANKS})
+            transcript.append({"who": "assistant", "text": reply})
             ts.update("calls", rows[0]["id"], {"transcript": transcript, "outcome": "message" if said else None,
                                                "summary": f"Message: {said}"[:400] if said else "No speech"})
+        vr = VoiceResponse()
+        if retry:
+            self.rt.state.put(_flag(call_sid), {**(flag if isinstance(flag, dict) else {}), "retried": True}, tenant.id)
+            _listen(vr).say(reply, voice=VOICE)  # the notice was heard already: the caller may talk over this line
+            return str(vr)
         if said:
             self.alert(tenant, caller, "voice", f"Message taken (your receptionist is in message-only mode): {said}",
                        f"mm:{call_sid}")
-        vr = VoiceResponse()
-        vr.say(THANKS, voice=VOICE)
+        vr.say(reply, voice=VOICE)
         vr.hangup()
         return str(vr)
 
