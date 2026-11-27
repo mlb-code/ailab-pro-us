@@ -8,7 +8,7 @@
 
   // content-hash versions, filled in by tools/asset_version.py (a new config = a new URL, so no browser or CDN copy of the
   // old file is used after a deploy)
-  const AV = /*asset-v*/{"/assets/brand.json":"f100dea5cc","/assets/pricebook.json":"8b97c46fbd"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/brand.json":"3e8bb65a84","/assets/pricebook.json":"8b97c46fbd"}/*/asset-v*/;
   const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   let BRAND = {}, PB = {}, cfgOk = false;
   const pause = ms => new Promise(r => setTimeout(r, ms));
@@ -39,12 +39,11 @@
     }
   }
   // GA4 + Meta Pixel only when their IDs are configured (brand.json analytics.ga4_id / meta_pixel_id): /assets/measure.js.
-  // No Microsoft Clarity session replay anywhere under /start (sign-in, sign-up and checkout, questionnaire, portal: legal
-  // review 2026-11-27, Privacy Policy §3.3); the pixel gets page views and funnel event names only (nothing typed is sent).
-  // Never on the admin screens.
+  // No session replay (Microsoft Clarity was removed from the site, legal decisions 2026-11-27, Privacy Policy §3.3); the
+  // pixel gets page views and funnel event names only (nothing typed is sent). Never on the admin screens.
   function analytics() {
     if (!window.Measure || /^\/start\/admin\//.test(location.pathname)) return;
-    window.Measure.init(BRAND.analytics, { clarity: false });
+    window.Measure.init(BRAND.analytics);
   }
   // Funnel events must be declared in brand.json analytics.events; the name is built from parts so it lives only there.
   function trackFunnel(parts, params) { if (window.Measure) window.Measure.trackFunnel(parts, params); }

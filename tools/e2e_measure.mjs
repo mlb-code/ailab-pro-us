@@ -1,18 +1,18 @@
-// Measurement E2E (2026-10-25): GA4 + Microsoft Clarity (+ optional Meta Pixel, 2026-10-29) via /assets/measure.js, on the
-// MOCK backend. Puppeteer + local Chrome. Nothing reaches Google, Microsoft or Meta: googletagmanager.com / clarity.ms /
+// Measurement E2E (2026-10-25): GA4 (+ optional Meta Pixel, 2026-10-29) via /assets/measure.js, on the
+// MOCK backend. Microsoft Clarity was removed from the site (legal decisions 2026-11-27): no session replay anywhere. Puppeteer + local Chrome. Nothing reaches Google, Microsoft or Meta: googletagmanager.com / clarity.ms /
 // connect.facebook.net are answered locally with an empty script, every gtag() call is recorded through a dataLayer spy
 // installed before any page script, and fbq() calls stay in the stub's queue (window.fbq.queue) because the real script never runs.
 //   0. Shipped config (2026-11-25): brand.json carries the real IDs (well-formed), every generated landing page's
-//      data-measure equals brand.json analytics, and served UNCHANGED the landing page loads GA4 + Clarity + Meta with the
-//      shipped IDs while the quote page loads GA4 only. (Before 2026-11-25 this file assumed the shipped IDs were empty.)
+//      data-measure equals brand.json analytics (no clarity_id), and served UNCHANGED the landing page loads GA4 (+ Meta when
+//      an ID is shipped) with the shipped IDs and no session-replay tag, while the quote page loads GA4 only. (Before 2026-11-25 this file assumed the shipped IDs were empty.)
 //   1. IDs empty (served as a patched brand.json / landing data-measure with the three IDs blanked, whatever is shipped):
 //      no tag request, no gtag/clarity/fbq, nothing pushed (not even after a CTA click) on landing, portal and quote pages.
 //   2. IDs set (served as a patched brand.json / landing data-measure with TEST IDs): both tags load with the right IDs, GA config has
-//      Google signals off, the demo-line tel: click and CTA clicks fire events, Clarity masks every form, the quote page
-//      gets GA only with a token-free page_location and fires quote_open + pay_click.
-//   2a. Session replay (legal review 2026-11-27): Clarity loads only on marketing pages without a form or the live demo
-//      chat (/ and /website/); never on /firstring/, /home-services/, /real-estate/, /demo/ (live demo text box), the
-//      portal / sign-in / sign-up under /start, the quote page or the admin, even with a Clarity ID set.
+//      Google signals off, the demo-line tel: click and CTA clicks fire events, the quote page gets GA only with a
+//      token-free page_location and fires quote_open + pay_click.
+//   2a. No session replay (legal decisions 2026-11-27, Privacy Policy §3.3): the patched config also carries a clarity_id,
+//      and still no clarity.ms request and no window.clarity on any landing page, the portal / sign-in under /start, the
+//      quote page or the admin; measure.js has no Clarity loader at all.
 //   2b. Meta Pixel: fbevents.js requested, queue = set autoConfig false -> init (no advanced matching) -> PageView; track()
 //      maps quote_submit -> Lead and pay_click -> InitiateCheckout, everything else trackCustom; loaded on the portal, never on
 //      the quote page.
@@ -83,8 +83,6 @@ async function newPage(browser, { privacy } = {}) {
     const dl = []; const push = dl.push.bind(dl);
     dl.push = function () { for (const a of arguments) { try { window.__measureRec(JSON.stringify(Array.from(a))); } catch (e) { /* not ready */ } } return push.apply(null, arguments); };
     window.dataLayer = dl;
-    const cq = [];   // record Clarity calls too: the stub below never replaces window.clarity
-    Object.defineProperty(window, '__clarityCalls', { value: cq });
   }, privacy || '');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   await page.setRequestInterception(true);
@@ -117,33 +115,32 @@ try {
   CASE = 'shipped';
   const A = brand.analytics;
   const idOk = s => typeof s === 'string' && /^[A-Za-z0-9-]{4,40}$/.test(s);   // same rule as measure.js
-  ok('ga4_id' in A && 'clarity_id' in A && 'meta_pixel_id' in A, 'brand.json analytics declares ga4_id, clarity_id, meta_pixel_id');
+  ok('ga4_id' in A && 'meta_pixel_id' in A, 'brand.json analytics declares ga4_id, meta_pixel_id');
+  ok(!('clarity_id' in A), 'brand.json analytics has no clarity_id (Clarity removed)');
+  ok(!/clarity/i.test(fs.readFileSync(path.join(SITE, 'assets/measure.js'), 'utf8').replace(/Microsoft Clarity was removed[^\n]*/, '')),
+    'measure.js has no Clarity loader');
   ok(!A.ga4_id || (idOk(A.ga4_id) && /^G-/.test(A.ga4_id)), 'shipped GA4 ID is empty or a well-formed G- measurement ID');
-  ok(!A.clarity_id || idOk(A.clarity_id), 'shipped Clarity ID is empty or well-formed');
   ok(!A.meta_pixel_id || /^[0-9]{6,20}$/.test(A.meta_pixel_id), 'shipped Meta Pixel ID is empty or numeric');
-  ok(![A.ga4_id, A.clarity_id, A.meta_pixel_id].some(v => [GA, CL, PX].includes(v)), 'shipped IDs are not the test IDs');
+  ok(![A.ga4_id, A.meta_pixel_id].some(v => [GA, CL, PX].includes(v)), 'shipped IDs are not the test IDs');
   const LANDING = ['/', '/firstring/', '/home-services/', '/real-estate/', '/website/', '/demo/'];
-  const NO_REPLAY = ['/firstring/', '/home-services/', '/real-estate/', '/demo/'];   // live demo chat box: no session replay
-  const wantCfg = { ga4_id: A.ga4_id || '', clarity_id: A.clarity_id || '', meta_pixel_id: A.meta_pixel_id || '', events: A.events || [] };
+  const want = JSON.stringify({ ga4_id: A.ga4_id || '', meta_pixel_id: A.meta_pixel_id || '', events: A.events || [] });
   for (const u of LANDING) {
     const html = fs.readFileSync(path.join(SITE, u, 'index.html'), 'utf8');
     const m = html.match(MEASURE_ATTR);
-    const want = JSON.stringify(NO_REPLAY.includes(u) ? { ...wantCfg, session_replay: false } : wantCfg);
-    ok(m && JSON.stringify(JSON.parse(unesc(m[1]))) === want, u + ': generated data-measure equals brand.json analytics' +
-      (NO_REPLAY.includes(u) ? ' + session_replay false' : '') + ' (rebuild if not)');
-    ok(NO_REPLAY.includes(u) === /data-live="https:\/\//.test(html), u + ': session replay off exactly where the live demo chat is');
+    ok(m && JSON.stringify(JSON.parse(unesc(m[1]))) === want, u + ': generated data-measure equals brand.json analytics (rebuild if not)');
+    ok(!/clarity/i.test(html), u + ': no Clarity anywhere in the generated page');
   }
   idMode = 'shipped';
-  if (A.ga4_id && A.clarity_id && A.meta_pixel_id) {
+  if (A.ga4_id) {
     {
       const { page, rec } = await newPage(browser);
       await page.goto(BASE + '/', { waitUntil: 'load' }); await settle();
       ok(rec.tags.some(u => u.includes('googletagmanager.com/gtag/js?id=' + A.ga4_id)), '/: GA4 tag requested with the shipped ID');
-      ok(rec.tags.some(u => u.includes('clarity.ms/tag/' + A.clarity_id)), '/: Clarity tag requested with the shipped ID');
-      ok(rec.tags.some(u => u.includes('connect.facebook.net/en_US/fbevents.js')), '/: Meta Pixel script requested');
+      ok(!rec.tags.some(u => /clarity\.ms/.test(u)) && await page.evaluate(() => typeof window.clarity === 'undefined'), '/: no session-replay tag');
+      ok(!!A.meta_pixel_id === rec.tags.some(u => u.includes('connect.facebook.net/en_US/fbevents.js')), '/: Meta Pixel script requested exactly when an ID is shipped');
       const cf = configs(rec)[0];
       ok(cf && cf[1] === A.ga4_id && cf[2].allow_google_signals === false && cf[2].allow_ad_personalization_signals === false, '/: gtag config = shipped ID, signals off');
-      ok((await fbqCalls(page)).some(c => c[0] === 'init' && c[1] === A.meta_pixel_id && c.length === 2), '/: fbq init with the shipped ID, no advanced matching');
+      if (A.meta_pixel_id) ok((await fbqCalls(page)).some(c => c[0] === 'init' && c[1] === A.meta_pixel_id && c.length === 2), '/: fbq init with the shipped ID, no advanced matching');
       await page.browserContext().close();
     }
     {
@@ -180,13 +177,12 @@ try {
     const { page, rec } = await newPage(browser);
     await page.goto(BASE + '/?utm_source=facebook&utm_medium=paid&utm_campaign=launch_oct', { waitUntil: 'load' }); await settle();
     ok(rec.tags.some(u => u.includes('googletagmanager.com/gtag/js?id=' + GA)), 'GA4 tag requested with the configured ID');
-    ok(rec.tags.some(u => u.includes('clarity.ms/tag/' + CL)), 'Clarity tag requested with the configured ID');
-    ok(patched.html >= 1 && !rec.tags.some(u => [A.ga4_id, A.clarity_id].filter(Boolean).some(id => u.includes(id))), 'test IDs reached the page; no shipped ID used');
+    ok(!rec.tags.some(u => /clarity\.ms/.test(u)) && await page.evaluate(() => typeof window.clarity === 'undefined'),
+      'no session-replay tag, even with a clarity_id in the served config');
+    ok(patched.html >= 1 && !rec.tags.some(u => [A.ga4_id].filter(Boolean).some(id => u.includes(id))), 'test IDs reached the page; no shipped ID used');
     const cf = configs(rec)[0];
     ok(cf && cf[1] === GA, 'gtag config uses the configured ID');
     ok(cf && cf[2] && cf[2].allow_google_signals === false && cf[2].allow_ad_personalization_signals === false, 'Google signals + ad personalisation off');
-    const masked = await page.evaluate(() => [...document.querySelectorAll('form, input, textarea, select')].every(e => e.getAttribute('data-clarity-mask') === 'True'));
-    ok(masked, 'every form / input is masked for Clarity');
     // Meta Pixel: script requested, stub queue in the documented order, no advanced matching, autoConfig off
     ok(rec.tags.some(u => u.includes('connect.facebook.net/en_US/fbevents.js')), 'Meta Pixel script requested');
     const fq = await fbqCalls(page);
@@ -194,7 +190,7 @@ try {
     ok(fqs[0] === 'set autoConfig' && fq[0][2] === false && fq[0][3] === PX, 'fbq set autoConfig false (before init)');
     ok(fqs[1] === 'init ' + PX && fq[1].length === 2, 'fbq init with the configured ID and no advanced-matching object');
     ok(fqs[2] === 'track PageView', 'fbq track PageView');
-    ok(await page.evaluate(() => window.Measure.loaded.meta === true && window.Measure.loaded.ga === true && window.Measure.loaded.clarity === true), 'Measure.loaded reports ga + clarity + meta');
+    ok(await page.evaluate(() => JSON.stringify(window.Measure.loaded) === '{"ga":true,"meta":true}'), 'Measure.loaded reports ga + meta only');
     ok(await page.$('a[href^="tel:"][data-ev]') !== null, 'demo line tel: link carries data-ev');
     await clickNoNav(page, 'a[href^="tel:"][data-ev]'); await sleep(100);
     const telEv = await page.$eval('a[href^="tel:"][data-ev]', a => a.getAttribute('data-ev'));
@@ -232,8 +228,8 @@ try {
     await page.type('#code', code);
     await page.waitForSelector('#profileForm', { timeout: 10000 });
     ok(rec.tags.some(u => u.includes(GA)), 'portal loads GA4');
-    ok(!rec.tags.some(u => /clarity\.ms/.test(u)) && await page.evaluate(() => window.Measure.loaded.clarity === false),
-      'sign-in / portal never load Clarity session replay');
+    ok(!rec.tags.some(u => /clarity\.ms/.test(u)) && await page.evaluate(() => typeof window.clarity === 'undefined'),
+      'sign-in / portal: no session-replay tag');
     ok(rec.tags.some(u => u.includes('connect.facebook.net')), 'portal loads the Meta Pixel (page views + funnel names only)');
     ok((await fbqCalls(page)).some(c => c[0] === 'init' && c[1] === PX), 'portal: fbq init with the configured ID');
     await page.type('#p_full_name', 'Dana Measure'); await page.type('#p_company', 'Measure HVAC'); await page.type('#p_phone', '7135550199');
@@ -244,14 +240,13 @@ try {
     ok(qn && qn.utm && qn.utm.utm_source === 'facebook' && qn.utm.utm_campaign === 'launch_oct' && qn.utm.landing_path === '/', 'first-touch UTM stored on the questionnaire');
     await page.browserContext().close();
   }
-  CASE = 'session replay';
-  for (const u of ['/website/', ...NO_REPLAY]) {
+  CASE = 'no session replay';
+  for (const u of LANDING) {
     const { page, rec } = await newPage(browser);
     await page.goto(BASE + u, { waitUntil: 'load' }); await settle();
-    const cl = rec.tags.some(t => /clarity\.ms/.test(t));
     ok(rec.tags.some(t => t.includes(GA)), u + ': GA4 loads');
-    ok(NO_REPLAY.includes(u) ? !cl && await page.evaluate(() => window.Measure.loaded.clarity === false) : cl,
-      u + (NO_REPLAY.includes(u) ? ': no Clarity session replay (live demo chat box on the page)' : ': Clarity loads (no form on the page)'));
+    ok(!rec.tags.some(t => /clarity\.ms/.test(t)) && await page.evaluate(() => typeof window.clarity === 'undefined'),
+      u + ': no session-replay tag (clarity_id in the served config is ignored)');
     await page.browserContext().close();
   }
   {
@@ -270,7 +265,7 @@ try {
     await page.goto(BASE + '/quote/?t=fixture-upworklink', { waitUntil: 'load' });
     await page.waitForSelector('[data-pay]', { timeout: 10000 }); await settle();
     ok(rec.tags.some(u => u.includes(GA)), 'quote page loads GA4');
-    ok(!rec.tags.some(u => /clarity\.ms/.test(u)), 'quote page never loads Clarity');
+    ok(!rec.tags.some(u => /clarity\.ms/.test(u)), 'quote page: no session-replay tag');
     ok(!rec.tags.some(u => /facebook\.net/.test(u)), 'quote page never loads the Meta Pixel');
     ok(await page.evaluate(() => typeof window.fbq === 'undefined' && window.Measure.loaded.meta === false), 'quote page: no fbq, loaded.meta false');
     const cf = configs(rec)[0];

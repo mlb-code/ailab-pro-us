@@ -2,7 +2,7 @@
 // Measurement (tags, [data-ev] clicks, first-touch UTM) is /assets/measure.js, loaded before this file.
 (function () {
   'use strict';
-  // Click events ([data-ev]) and GA4 / Clarity loading live in /assets/measure.js.
+  // Click events ([data-ev]) and GA4 loading live in /assets/measure.js.
 
   // Early-access form: POST to the lead endpoint when configured, else open a prefilled email.
   document.querySelectorAll('form[data-lead]').forEach(function (form) {

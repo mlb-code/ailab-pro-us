@@ -199,18 +199,14 @@ ICONS = {
 }
 
 
-def analytics(c, replay=True):
+def analytics(c):
     """Measurement (2026-10-25): /assets/measure.js + its config. Empty IDs in brand.json analytics = no third-party
     tag is ever loaded (measure.js still keeps first-touch UTM in localStorage). measure.js also skips loading when the
-    browser sends Global Privacy Control / Do Not Track, and on localhost. Clarity masks every form (typed values).
+    browser sends Global Privacy Control / Do Not Track, and on localhost.
     Meta Pixel (optional, 2026-10-29): same rules; page views + the funnel events, autoConfig off, no advanced matching.
-    replay=False (a page with a form or the live demo chat, see NO_REPLAY): "session_replay": false, so measure.js never
-    loads Microsoft Clarity there (legal review 2026-11-27, Privacy Policy §3.3)."""
+    No session replay: Microsoft Clarity was removed from the site (legal decisions 2026-11-27, Privacy Policy §3.3)."""
     a = c.brand.get('analytics', {})
-    cfg = {'ga4_id': a.get('ga4_id', ''), 'clarity_id': a.get('clarity_id', ''), 'meta_pixel_id': a.get('meta_pixel_id', ''),
-           'events': a.get('events', [])}
-    if not replay:
-        cfg['session_replay'] = False
+    cfg = {'ga4_id': a.get('ga4_id', ''), 'meta_pixel_id': a.get('meta_pixel_id', ''), 'events': a.get('events', [])}
     js = json.dumps(cfg, ensure_ascii=False, separators=(',', ':'))
     return f'<script src="/assets/measure.js" defer data-measure="{esc(js)}"></script>'
 
@@ -1484,10 +1480,6 @@ def stamp_legal(c):
 
 
 # ---------------------------------------------------------------- main
-# A page with a form field, or the live demo (demo.js adds a text box when the demo runtime is configured): no Clarity.
-NO_REPLAY = re.compile(r'<(form|input|textarea|select)\b|data-live="https://')
-
-
 def build(c):
     contents = {k: load(os.path.join(CONTENT, f)) for k, f in NICHE_FILES.items()}
     c.brand_niche_label = lambda k: next((x['label'] for x in c.brand['niches'] if x['key'] == k), k)
@@ -1506,10 +1498,6 @@ def build(c):
         'website/index.html': website_page(c, website, year),
         'demo/index.html': demo_page(c, contents, year),
     }
-    # session replay only on pages without a form or the live demo chat (a typed chat is shown on the page)
-    for rel, html in pages.items():
-        if NO_REPLAY.search(html):
-            pages[rel] = html.replace(analytics(c), analytics(c, replay=False), 1)
     indexed = ['/', '/firstring/', '/home-services/', '/real-estate/', '/website/', '/demo/']
     pages['sitemap.xml'] = sitemap(c, indexed)
     pages['robots.txt'] = robots(c)

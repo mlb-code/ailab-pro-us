@@ -50,7 +50,7 @@
   let lastRef = '';   // PayPal reference of the payment made on this page view (receipt note)
 
   // content-hash versions, filled in by tools/asset_version.py (no stale copy after a deploy)
-  const AV = /*asset-v*/{"/assets/brand.json":"f100dea5cc","/assets/pricebook.json":"8b97c46fbd","/assets/quote_view.mjs":"18f325a8cd","/assets/paypal_checkout.mjs":"e8c38070e2"}/*/asset-v*/;
+  const AV = /*asset-v*/{"/assets/brand.json":"3e8bb65a84","/assets/pricebook.json":"8b97c46fbd","/assets/quote_view.mjs":"18f325a8cd","/assets/paypal_checkout.mjs":"e8c38070e2"}/*/asset-v*/;
   const vurl = u => u + (AV[u] ? '?v=' + AV[u] : '');
   async function getJson(u) { const r = await fetch(vurl(u), { cache: 'no-store' }); if (!r.ok) throw new Error('http_' + r.status); return r.json(); }
 
@@ -62,8 +62,8 @@
     $('#footer').innerHTML = '<div class="footer__legal"><span>' + esc(BRAND.name || '') + '</span>' +
       '<a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/service-agreement/">Service Agreement</a>' +
       '<span>' + esc((BRAND.disclaimers && BRAND.disclaimers.footer) || '') + sup + '</span></div>';
-    // GA4 only (no Clarity / Meta Pixel on the quote page: names, prices, signature, private token). Token-free page_location, no referrer.
-    if (window.Measure) window.Measure.init(BRAND.analytics, { clarity: false, meta: false, gaConfig: { page_location: cleanUrl, page_referrer: '' } });
+    // GA4 only (no Meta Pixel on the quote page: names, prices, signature, private token; no session replay anywhere). Token-free page_location, no referrer.
+    if (window.Measure) window.Measure.init(BRAND.analytics, { meta: false, gaConfig: { page_location: cleanUrl, page_referrer: '' } });
   }
   // funnel event names live only in brand.json analytics.events; the name is assembled from parts
   function track(parts, params) { if (window.Measure) window.Measure.trackFunnel(parts, params); }

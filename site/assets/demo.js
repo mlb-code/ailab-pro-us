@@ -29,7 +29,6 @@
   function track(name, params) {
     try {
       if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
-      if (typeof window.clarity === 'function') window.clarity('event', name);
     } catch (e) { /* analytics must never break the demo */ }
   }
 

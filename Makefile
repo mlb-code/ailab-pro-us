@@ -141,9 +141,10 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/consent_retention_run.ts
 	$(DENO_RUN) supabase/tests/offline/forwarding_self_confirmed_run.ts
 
-# Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Clarity + Meta Pixel load, events fire,
-# GPC/DNT blocks everything, Clarity masks forms, the pixel maps funnel events and stays off the quote page, first-touch UTM
-# reaches the questionnaire. Nothing reaches Google, Microsoft or Meta.
+# Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Meta Pixel load, events fire,
+# GPC/DNT blocks everything, no session replay anywhere (Clarity removed 2026-11-27, even a served clarity_id loads nothing),
+# the pixel maps funnel events and stays off the quote page, first-touch UTM reaches the questionnaire. Nothing reaches
+# Google, Microsoft or Meta.
 qa-measure:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_measure.mjs
 

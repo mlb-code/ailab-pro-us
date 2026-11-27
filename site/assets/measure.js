@@ -1,18 +1,13 @@
 /* Site measurement (launch readiness, 2026-10-25). One file for landing pages, the client portal (/start) and /quote.
-   window.Measure.init(cfg, opts)  cfg = brand.json analytics {ga4_id, clarity_id, meta_pixel_id, events}; opts:
+   window.Measure.init(cfg, opts)  cfg = brand.json analytics {ga4_id, meta_pixel_id, events}; opts:
      gaConfig  extra gtag('config') params (the quote page passes a token-free page_location)
-     clarity   false = never load Clarity on this page (the quote page)
      meta      false = never load the Meta Pixel on this page (the quote page: its URL carries the private quote token)
-     maskAll   true  = mask the whole page in Clarity
-   Session replay (Microsoft Clarity, legal review 2026-11-27): only on public marketing pages without a form or the
-   live demo chat. It is never loaded on the sign-in / sign-up / checkout pages, the client portal and the questionnaire
-   (/start: common.js passes clarity false), the quote page (quote.js) or the admin; generated landing pages with a form
-   or the live demo carry "session_replay": false in data-measure (tools/build_landing.py), which turns Clarity off.
+   No session replay (legal decisions 2026-11-27, Privacy Policy §3.3): Microsoft Clarity was removed from the site; this
+   file has no loader for it or for any other session-replay tool, whatever the config says.
    Rules:
      * no ID configured             -> nothing third-party is loaded (empty IDs in config = measurement off)
      * Global Privacy Control / Do Not Track on -> nothing third-party is loaded, track() is a no-op
      * localhost / 127.0.0.1        -> nothing loaded (tests opt in with localStorage 'aplp_measure_local' = '1')
-     * Clarity: every form is masked (data-clarity-mask), so typed values are never recorded
      * Meta Pixel (optional, 2026-10-29): fbq('set','autoConfig',false) BEFORE init, so the pixel never auto-collects
        button text / form fields; no advanced matching (no email/phone hashing); PageView on load. track() maps two
        funnel events (names built from parts, see META_STD) to standard Meta events: the questionnaire submit -> Lead,
@@ -27,7 +22,7 @@
   if (window.Measure) return;
   var UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
   var FT_KEY = 'aplp_ft_utm', FT_DAYS = 90;
-  var state = { ga: false, clarity: false, meta: false, events: [] };
+  var state = { ga: false, meta: false, events: [] };
   var META_STD = {};   // brand.json funnel event (name built from parts, as everywhere) -> standard Meta event
   META_STD[['quote', 'submit'].join('_')] = 'Lead';
   META_STD[['pay', 'click'].join('_')] = 'InitiateCheckout';
@@ -68,19 +63,11 @@
   }
 
   // ---------------------------------------------------------------- tags
-  function maskForms(root) {
-    [].forEach.call((root || document).querySelectorAll('form, input, textarea, select'), function (el) {
-      if (!el.hasAttribute('data-clarity-mask')) el.setAttribute('data-clarity-mask', 'True');
-    });
-  }
-  function whenBody(fn) {
-    if (document.body) fn(); else document.addEventListener('DOMContentLoaded', fn);
-  }
   function init(cfg, opts) {
     cfg = cfg || {}; opts = opts || {};
     state.events = Array.isArray(cfg.events) ? cfg.events.slice() : [];
     if (optedOut() || localBlocked()) return api;
-    var ga = cfg.ga4_id, cl = cfg.clarity_id, px = cfg.meta_pixel_id;
+    var ga = cfg.ga4_id, px = cfg.meta_pixel_id;
     if (idOk(ga) && !state.ga) {
       state.ga = true;
       window.dataLayer = window.dataLayer || [];
@@ -92,18 +79,6 @@
       var s = document.createElement('script'); s.async = true;
       s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(ga);
       document.head.appendChild(s);
-    }
-    if (idOk(cl) && opts.clarity !== false && !state.clarity) {
-      state.clarity = true;
-      whenBody(function () {
-        if (opts.maskAll) document.body.setAttribute('data-clarity-mask', 'True');
-        maskForms();
-        if ('MutationObserver' in window) new MutationObserver(function () { maskForms(); }).observe(document.body, { childList: true, subtree: true });
-      });
-      window.clarity = window.clarity || function () { (window.clarity.q = window.clarity.q || []).push(arguments); };
-      var c = document.createElement('script'); c.async = true;
-      c.src = 'https://www.clarity.ms/tag/' + encodeURIComponent(cl);
-      document.head.appendChild(c);
     }
     if (idOk(px) && opts.meta !== false && !state.meta) {
       state.meta = true;
@@ -127,7 +102,6 @@
     if (!name || optedOut()) return;
     try {
       if (state.ga && typeof window.gtag === 'function') window.gtag('event', name, params || {});
-      if (state.clarity && typeof window.clarity === 'function') window.clarity('event', name);
       if (state.meta && typeof window.fbq === 'function') {
         if (META_STD[name]) window.fbq('track', META_STD[name], params || {});
         else window.fbq('trackCustom', name, params || {});
@@ -150,12 +124,9 @@
   var me = document.currentScript;
   captureUtm();
   var api = { init: init, track: track, trackFunnel: trackFunnel, firstTouch: firstTouch, optedOut: optedOut,
-    get loaded() { return { ga: state.ga, clarity: state.clarity, meta: state.meta }; } };
+    get loaded() { return { ga: state.ga, meta: state.meta }; } };
   window.Measure = api;
   // landing pages: config comes on the script tag (tools/build_landing.py), <script src=measure.js defer data-measure="{...}">
   var inline = me && me.getAttribute('data-measure');
-  if (inline) {
-    try { var icfg = JSON.parse(inline); init(icfg, icfg.session_replay === false ? { clarity: false } : {}); }
-    catch (e) { /* bad config = measurement off */ }
-  }
+  if (inline) { try { init(JSON.parse(inline)); } catch (e) { /* bad config = measurement off */ } }
 })();

@@ -51,7 +51,7 @@ async function run(browser, width) {
   page.on('request', r => {
     const u = r.url();
     if (/supabase\.co|anthropic\.com|resend\.com/.test(u)) { problems.push(width + ' live call attempted: ' + u); return r.abort(); }
-    if (/fonts\.(googleapis|gstatic)\.com|googletagmanager|clarity\.ms/.test(u)) return r.respond({ status: 200, contentType: 'text/css', body: '' });
+    if (/fonts\.(googleapis|gstatic)\.com|googletagmanager/.test(u)) return r.respond({ status: 200, contentType: 'text/css', body: '' });
     r.continue();
   });
   page.on('console', m => { if (m.type() === 'error') problems.push(width + ' console ' + page.url().replace(BASE, '') + ' :: ' + m.text()); });
