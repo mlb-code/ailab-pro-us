@@ -609,6 +609,53 @@ Deno.test("FirstRing sign-up mails: trial / paid welcome to the customer, Hebrew
   eq([TEMPLATES.trial_welcome.transactional, TEMPLATES.plan_welcome.transactional], [true, true], "account / billing confirmations are transactional");
 });
 
+Deno.test("cancellation confirmation to the customer: trial, paid (period end / now), money-back; number kept; yearly reminder", async () => {
+  // legal review 2026-11-27, subscription items 2 and 10
+  const s = await samples();
+  const plans = (PRICEBOOK as unknown as { plans: Array<{ code: string; name: string; product: string; monthly_cents: number }> }).plans;
+  const pro = plans.find((p) => p.code === "FR_PRO")!;
+  const base = s.subscription_canceled.ctx, sub = base.subscription!;
+  // paid, canceled at the end of the period
+  const paid = render("subscription_canceled", base, s.subscription_canceled.payload);
+  eq(paid.subject, `Your ${pro.product} plan is canceled: it works until December 26, 2026, and you will not be charged again.`);
+  has(paid, ["Hi Dani,", "keeps working as usual until December 26, 2026", "You will not be charged again.", "message mode",
+    "Restart your plan in your portal (Billing) before December 26, 2026", `Your ${pro.product} number: +1 (713) 555-0142`,
+    "Reserved for you until: January 25, 2027", "e-mail you 7 days before we release it", "move it to another phone provider",
+    "turn off call forwarding", "Paddle"], "canceled: paid, scheduled");
+  assert(paid.html.includes(`href="${SITE}/start/#billing"`), "canceled: Billing button");
+  assert(!/refund/i.test(paid.text) && !/SMS|text message/i.test(paid.text), "canceled: no refund / SMS wording on a plain cancel");
+  // canceled during the trial: ends now, message mode, never charged
+  const trial = render("subscription_canceled", { ...base, subscription: { ...sub, status: "canceled", cancel_at_period_end: false,
+    trial_ends_at: "2026-12-10T15:00:00Z", current_period_end: null, ends_at: "2026-11-27T15:00:00Z", canceled_at: "2026-11-27T15:00:00Z",
+    number_kept_until: "2026-12-27T15:00:00Z" } }, { kind: "ended", from: "trialing" });
+  eq(trial.subject, `Your ${pro.product} plan is canceled: your free trial has ended, and you will not be charged.`);
+  has(trial, ["the trial ended right away", "You have not been charged and you will not be charged.", "in message mode",
+    "Reserved for you until: December 27, 2026"], "canceled: trial");
+  // paid, canceled now (past due / admin)
+  const now = render("subscription_canceled", { ...base, subscription: { ...sub, status: "canceled", cancel_at_period_end: false,
+    ends_at: "2026-11-27T15:00:00Z" } }, { kind: "ended", from: "past_due" });
+  eq(now.subject, `Your ${pro.product} plan is canceled: it ended on November 27, 2026, and you will not be charged again.`);
+  // 30-day money-back
+  const refund = render("subscription_canceled", { ...base, subscription: { ...sub, status: "canceled", refunded: true, refund_cents: pro.monthly_cents } },
+    { kind: "refunded", from: "active" });
+  eq(refund.subject, `Your ${pro.product} plan is canceled: your first monthly payment is refunded in full.`);
+  has(refund, [`refunded your first monthly payment of ${usd(pro.monthly_cents)} in full`, "30-day money-back guarantee", "You will not be charged again.",
+    "5 to 10 business days", "Paddle.com"], "canceled: refunded");
+  // trial scheduled to end (cancel at the trial end), no number yet
+  const trialLater = render("subscription_canceled", { ...base, tenant_number: null, subscription: { ...sub, status: "trialing",
+    trial_ends_at: "2026-12-10T15:00:00Z", current_period_end: null } }, { kind: "scheduled", from: "trialing" });
+  eq(trialLater.subject, `Your ${pro.product} plan is canceled: your free trial runs until December 10, 2026, and you will not be charged.`);
+  assert(!trialLater.text.includes("Reserved for you until"), "canceled: no number line without a number");
+  // yearly reminder: price, renews every month, how to cancel
+  const y = render("plan_yearly_reminder", s.plan_yearly_reminder.ctx, s.plan_yearly_reminder.payload);
+  eq(y.subject, `A yearly reminder about your ${pro.product} ${pro.name} plan`);
+  has(y, [`Price: ${usd(pro.monthly_cents)}/mo (plus any applicable sales tax)`, "Renews: Automatically every month, on the same day of the month, until you cancel",
+    "Next charge: December 10, 2027", "How to cancel:", "in your portal (Billing)", "not charged again"], "plan_yearly_reminder");
+  eq([TEMPLATES.subscription_canceled.audience, TEMPLATES.plan_yearly_reminder.audience], ["client", "client"]);
+  eq([TEMPLATES.subscription_canceled.transactional, TEMPLATES.plan_yearly_reminder.transactional], [true, true],
+    "billing notices are transactional: not gated by client_emails_enabled");
+});
+
 Deno.test("dispatch: sign-up mails go out while client reminders are off (client_emails_enabled = false); Meir's alert waits for 08:00", async () => {
   const s = await samples();
   const db = new MemDb(), m = new FakeMailer();

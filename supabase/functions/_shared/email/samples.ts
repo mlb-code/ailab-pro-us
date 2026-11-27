@@ -85,6 +85,13 @@ export async function samples(): Promise<Record<string, Sample>> {
     admin_subscription_canceled: { ctx: { to: "owner@example.com", profile, client: planClient, subscription: { id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f70",
       plan_code: "FR_PRO", status: "trialing", provider: "paddle", trial_ends_at: "2026-12-10T15:00:00Z", cancel_at_period_end: true,
       business_phone: "+17135550100" } }, payload: { kind: "scheduled", from: "trialing" } },
+    subscription_canceled: { ctx: { to: profile.email, profile, client: { ...planClient, status: "live" }, tenant_number: "+17135550142",
+      subscription: { id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f71", plan_code: "FR_PRO", status: "active", provider: "paddle",
+        current_period_end: "2026-12-26T15:00:00Z", cancel_at_period_end: true, refunded: false, refund_cents: null,
+        number_kept_until: "2027-01-25T15:00:00Z" } }, payload: { kind: "scheduled", from: "active" } },
+    plan_yearly_reminder: { ctx: { to: profile.email, profile, client: { ...planClient, status: "live" }, subscription: {
+      id: "0d9e8f7a-6b5c-4d3e-8f1a-2b3c4d5e6f71", plan_code: "FR_PRO", status: "active", provider: "paddle",
+      current_period_end: "2027-12-10T15:00:00Z", cancel_at_period_end: false } }, payload: { year: 1 } },
     admin_upwork_requested:{ ctx: { to: "owner@example.com", profile, quote: { ...accepted, pay_method: "upwork", pay_link: null } } },
   };
 }

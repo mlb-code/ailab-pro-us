@@ -136,6 +136,7 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/firstring_p3_run.ts
 	$(DENO_RUN) supabase/tests/offline/questionnaire_web_only_run.ts
 	$(DENO_RUN) supabase/tests/offline/subscription_emails_run.ts
+	$(DENO_RUN) supabase/tests/offline/subscription_cancel_yearly_emails_run.ts
 	$(DENO_RUN) supabase/tests/offline/retention_runtime_state_run.ts
 	$(DENO_RUN) supabase/tests/offline/forwarding_self_confirmed_run.ts
 

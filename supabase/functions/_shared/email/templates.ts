@@ -31,7 +31,9 @@ export interface EmailCtx {
     /** sign-up / cancellation mails (20261128100000_us_subscription_emails.sql): the subscription row the mail is about */
     id?: string; current_period_start?: string | null; trial_duplicate?: boolean; created_at?: string | null;
     /** admin mails only: the business phone given at sign-up; true = this client had an earlier subscription */
-    business_phone?: string | null; returning?: boolean };
+    business_phone?: string | null; returning?: boolean;
+    /** subscription_canceled (20261130100000_us_subscription_cancel_yearly_emails.sql): money-back refund, number reserved until */
+    canceled_at?: string | null; refunded?: boolean; refund_cents?: number | null; number_kept_until?: string | null };
   tenant_number?: string | null;
   onboarding?: { total: number; done: number; left: number; left_titles: string[] };
   payment?: { id: string; kind: string; amount_cents: number; method: string | null; status: string; provider?: string | null;
@@ -771,6 +773,92 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         { small: "No action needed. When the service ends, the number release is scheduled on its own (Subscriptions tab: postpone or release now)." },
       ],
       cta: { label: "Open the Subscriptions tab", url: admin(brand, "subscriptions") },
+    };
+  }),
+
+  // ---------------------------------------------------------------- cancellation confirmation + yearly reminder (2026-11-27)
+  // Legal review 2026-11-27 (subscription items 2 and 10), queued by 20261130100000_us_subscription_cancel_yearly_emails.sql.
+  // payload.kind: 'scheduled' (cancel at the period end) | 'ended' (canceled now) | 'refunded' (30-day money-back);
+  // payload.from: the status before the cancel ('trialing' = canceled in the free trial).
+  subscription_canceled: client("transactional", true, (ctx, { brand, payload }) => {
+    const sub = ctx.subscription;
+    const prod = planOf(sub?.plan_code)?.product ?? "";
+    const kind = String(payload?.kind ?? "ended");
+    const trial = String(payload?.from ?? "") === "trialing";
+    const until = fmtDate(trial ? (sub?.trial_ends_at ?? sub?.current_period_end) : (sub?.current_period_end ?? sub?.trial_ends_at));
+    const ended = fmtDate(sub?.ends_at ?? sub?.canceled_at);
+    const kept = fmtDate(sub?.number_kept_until);
+    const refund = sub?.refund_cents ? `${usd(sub.refund_cents)}` : "";
+    const scheduled = kind === "scheduled";
+    let head: string, lines: Block[];
+    if (kind === "refunded") {
+      head = "your first monthly payment is refunded in full";
+      lines = [
+        { p: `${hi(ctx)} as you asked, we refunded your first monthly payment${refund ? ` of **${refund}**` : ""} in full under our 30-day money-back guarantee, and your plan has ended. You will not be charged again.` },
+        { p: "The refund goes back to your original payment method through Paddle.com, our reseller and the merchant of record. Card refunds usually show up within 5 to 10 business days, depending on your bank." },
+        { p: MESSAGE_MODE },
+      ];
+    } else if (scheduled && trial) {
+      head = `your free trial runs until ${until || "its end"}, and you will not be charged`;
+      lines = [
+        { p: `${hi(ctx)} your plan is canceled. Your free trial keeps working until **${until || "the trial ends"}**, then your line switches to message mode. You will not be charged.` },
+        { p: "Changed your mind? Restart your plan in your portal (Billing) before then." },
+      ];
+    } else if (scheduled) {
+      head = `it works until ${until || "the end of the month you paid for"}, and you will not be charged again`;
+      lines = [
+        { p: `${hi(ctx)} your plan is canceled. Your receptionist keeps working as usual until **${until || "the end of the month you paid for"}**, the end of the month you have already paid for. You will not be charged again.` },
+        { p: "After that, your line answers in message mode: it takes the caller's name, number and reason and e-mails them to you. It does not book visits or answer other questions." },
+        { p: `Changed your mind? Restart your plan in your portal (Billing)${until ? ` before ${until}` : ""}.` },
+      ];
+    } else if (trial) {
+      head = "your free trial has ended, and you will not be charged";
+      lines = [
+        { p: `${hi(ctx)} you canceled during your free trial, so the trial ended right away and your plan is canceled. You have not been charged and you will not be charged.` },
+        { p: MESSAGE_MODE },
+      ];
+    } else {
+      head = `it ended${ended ? ` on ${ended}` : ""}, and you will not be charged again`;
+      lines = [
+        { p: `${hi(ctx)} your plan is canceled and ended${ended ? ` on **${ended}**` : ""}. You will not be charged again.` },
+        { p: MESSAGE_MODE },
+      ];
+    }
+    const number: Block[] = ctx.tenant_number && kept ? [
+      { facts: [[`Your ${prod ? prod + " " : ""}number`, fmtPhone(ctx.tenant_number)], ["Reserved for you until", kept]] },
+      { p: `We keep your number until **${kept}** and e-mail you 7 days before we release it. To keep it, restart your plan in your portal (Billing) before that date. To move it to another phone provider, reply to this e-mail before that date. After it is released, we cannot get it back.` },
+    ] : [];
+    return {
+      subject: `Your ${prod ? prod + " " : ""}plan is canceled: ${head}.`,
+      preheader: scheduled ? "Your cancellation is confirmed. Nothing else to do." : "Your cancellation is confirmed.",
+      heading: "Your plan is canceled",
+      blocks: [
+        ...lines,
+        ...number,
+        { small: "When your service ends, turn off call forwarding on your business phone (the setup checklist in your portal shows how for your phone provider)." },
+        ...paddleNote(ctx),
+      ],
+      cta: { label: "Open Billing", url: portal(brand, "billing") },
+    };
+  }),
+
+  plan_yearly_reminder: client("transactional", true, (ctx, { brand }) => {
+    const sub = ctx.subscription;
+    const p = planOf(sub?.plan_code);
+    const next = fmtDate(sub?.current_period_end);
+    return {
+      subject: `A yearly reminder about your ${planLabel(sub?.plan_code)} plan`,
+      preheader: p ? `${usd(p.monthly_cents)}/mo, renewing every month until you cancel. Cancel anytime in your portal.` : "Your plan renews every month until you cancel.",
+      heading: "Your plan renews every month",
+      blocks: [
+        { p: `${hi(ctx)} once a year we remind you how your plan works.` },
+        { facts: [["Plan", planLabel(sub?.plan_code)], ["Price", p ? `${usd(p.monthly_cents)}/mo (plus any applicable sales tax)` : ""],
+          ["Renews", "Automatically every month, on the same day of the month, until you cancel"], ["Next charge", next]] },
+        { p: "**How to cancel:** anytime in your portal (Billing), or by replying to this e-mail. Your plan keeps working until the end of the month you have already paid for, and you are not charged again." },
+        { p: "Nothing to do if you want to keep it." },
+        ...paddleNote(ctx),
+      ],
+      cta: { label: "Review my plan", url: portal(brand, "billing") },
     };
   }),
 
