@@ -108,6 +108,14 @@ qa-signup:
 qa-firstring-p2:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_firstring_p2.mjs
 
+# Setup assistant (2026-11-27, docs/setup-agent-design-2026-11-27.md): the chat in the Setup tab on the mock backend (brand.json served
+# with setup_agent.enabled on; mock/setup-script.js answers): the whole journey, every block type, corrections, calendar OAuth return,
+# forwarding test + self-confirm, every failure path, keyboard-only, on-screen keyboard, contract v1 (the server's JSON Schema when
+# site/assets/setup_contract.json exists, or SETUP_CONTRACT=<file>), flag off / quote clients unchanged, 3 engines, 320-1280 px.
+# SHOTS_DIR=<dir> saves sa-* screenshots at 390 and 1280.
+qa-setup-agent:
+	E2E_PORT=$(FREE) $(NODE) tools/e2e_setup_agent.mjs
+
 # Card / PayPal checkout on the mock backend with brand.json payments.paypal served ON and PayPal's SDK faked locally (nothing
 # reaches paypal.com): the portal's final payment + the admin refund. The quote page's PayPal step is in tools/e2e_quote.mjs.
 qa-paypal:
@@ -145,7 +153,7 @@ qa-sql:
 qa-measure:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_measure.mjs
 
-qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal qa-measure qa-subscription qa-firstring-p2 qa-signup qa-runtime
+qa: qa-fast qa-deno qa-sql qa-browser qa-demo qa-start qa-signin qa-admin qa-portal-b7 qa-dispatch qa-appointments qa-phase-a qa-paypal qa-measure qa-subscription qa-firstring-p2 qa-signup qa-setup-agent qa-runtime
 	@echo "make qa: all checks passed"
 
 # ---------- social (Facebook post bank, social/bank/) ----------
