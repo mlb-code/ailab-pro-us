@@ -570,6 +570,8 @@ Deno.test("admin_provisioning_alert: the setup assistant's alerts (budget / auth
     "setup_agent_daily_budget_usd"], "setup_agent_budget");
   const down = render("admin_provisioning_alert", ctx, { step: "setup_agent_down", error: "x" });
   assert(!/Retry: setup/.test(down.text) && !down.text.includes("setup_agent_down"), "no Retry line, no raw step key");
+  has(render("admin_provisioning_alert", ctx, { step: "setup_agent_request", error: "model bad_request (HTTP 400): invalid_request_error: grammar too large" }),
+    ["Step: Setup assistant: the AI provider refused our request", "grammar too large", "SETUP_WIRE"], "setup_agent_request");
 });
 
 Deno.test("FirstRing sign-up mails: trial / paid welcome to the customer, Hebrew alerts to Meir (new + cancelled)", async () => {

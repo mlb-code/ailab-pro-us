@@ -251,6 +251,15 @@ begin
   perform set_config('role', 'service_role', true); perform set_config('request.jwt.claims', json_build_object('role', svc)::text, true);
   r := public.setup_agent_begin_turn(conv_a, ua, 'paused-001', 'user', 'hi', '[]', true);
   if r ->> 'error' is distinct from 'paused' or (r ->> 'retry_after_s')::int not between 3000 and 3600 then raise exception 'FAIL pause %', r; end if; c := c + 1;
+  perform set_config('role', 'postgres', true); perform set_config('request.jwt.claims', '', true);
+  update private.settings set setup_agent_paused_until = null where id = 1;
+  perform set_config('role', 'service_role', true); perform set_config('request.jwt.claims', json_build_object('role', svc)::text, true);
+  perform public.setup_agent_alert(ua, 'request', 'model bad_request (HTTP 400): invalid_request_error: The compiled grammar is too large');
+  perform set_config('role', 'postgres', true); perform set_config('request.jwt.claims', '', true);
+  if (select setup_agent_paused_until from private.settings where id = 1) is null
+     or not exists (select 1 from private.email_outbox o where o.payload ->> 'step' = 'setup_agent_request' and o.payload ->> 'error' like '%compiled grammar%') then
+    raise exception 'FAIL a refused request (server defect) must pause and alert'; end if; c := c + 1;
+  perform set_config('role', 'service_role', true); perform set_config('request.jwt.claims', json_build_object('role', svc)::text, true);
   begin perform public.setup_agent_alert(ua, 'other', 'x'); raise exception 'FAIL unknown alert kind';
   exception when others then get stacked diagnostics msg = message_text; if msg <> 'bad_kind' then raise; end if; end; c := c + 1;
 

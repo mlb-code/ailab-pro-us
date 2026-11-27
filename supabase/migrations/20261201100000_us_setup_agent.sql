@@ -350,20 +350,21 @@ begin
   return jsonb_build_object('id', pr.id, 'status', pr.status);
 end $$;
 
--- provider trouble: one admin e-mail per kind per day; budget / auth also pause the assistant for an hour
+-- provider trouble: one admin e-mail per kind per day; budget / auth / request (the provider refused OUR request as invalid,
+-- a server defect) also pause the assistant for an hour, so customers go straight to the forms meanwhile
 create or replace function public.setup_agent_alert(p_user uuid, p_kind text, p_detail text default '') returns void
 language plpgsql security definer set search_path = '' as $$
 declare cl public.clients;
 begin
   perform private.require_service();
-  if p_kind is null or p_kind not in ('budget', 'auth', 'down') then raise exception 'bad_kind' using errcode = 'P0001'; end if;
+  if p_kind is null or p_kind not in ('budget', 'auth', 'request', 'down') then raise exception 'bad_kind' using errcode = 'P0001'; end if;
   cl := private.setup_agent_client(p_user);
   perform private.log_event('client', cl.id, p_user, 'setup_agent_' || p_kind, jsonb_build_object('detail', left(coalesce(p_detail, ''), 300)), false);
   perform private.enqueue_email_safe('admin_provisioning_alert',
     'admin_provisioning_alert:setup_agent:' || p_kind || ':' || to_char(now() at time zone 'utc', 'YYYYMMDD'),
     'client', cl.id, p_user, jsonb_build_object('step', 'setup_agent_' || p_kind,
       'error', 'Setup assistant: ' || left(coalesce(nullif(p_detail, ''), p_kind), 300)));
-  if p_kind in ('budget', 'auth') then
+  if p_kind in ('budget', 'auth', 'request') then
     update private.settings s set setup_agent_paused_until = greatest(coalesce(s.setup_agent_paused_until, now()), now() + interval '1 hour')
      where s.id = 1;
   end if;
