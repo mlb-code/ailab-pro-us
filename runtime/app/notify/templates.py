@@ -169,7 +169,10 @@ def daily_summary(business: str, d: dict[str, Any], sms_enabled: bool = False) -
 # --- monthly ROI report (owner) ------------------------------------------------------------
 def monthly_roi(business: str, r: dict[str, Any], sms_enabled: bool = False) -> tuple[str, str, str]:
     """sms_enabled = settings.sms_enabled (SMS_ENABLED, via NotifyPolicy), as in `daily_summary`: off = no texting rows
-    ("Missed callers texted back", "SMS segments used"); the other rows, the estimated value and the ROI do not use them."""
+    ("Missed callers texted back", "SMS segments used"); the other rows, the estimated value and the ROI do not use them.
+    FirstRing plan clients (`r["plan"]`, reports.monthly_roi_data): the month's call minutes next to what the plan
+    includes per billing period (the trial's total while trialing), no SMS allowance row (plans include none), and the
+    value compared with the plan's monthly price only when `roi_multiple` is set (an active, paid plan)."""
     subject = f"Your {r['month_label']} report: {r['calls_answered']} calls answered, {r['booked']} booked"
     pairs = [("Calls answered by the AI receptionist", r["calls_answered"]),
              ("  of them after hours", r["after_hours_calls"]),
@@ -178,19 +181,37 @@ def monthly_roi(business: str, r: dict[str, Any], sms_enabled: bool = False) -> 
     if sms_enabled:
         pairs.append(("Missed callers texted back", r["text_backs"]))
     pairs += dispatch_rows(r)
-    pairs.append(("Voice minutes used", f"{r['usage']['voice_minutes']:g} of {r['included']['voice_minutes']:g}"))
-    if sms_enabled:
-        pairs.append(("SMS segments used", f"{r['usage']['sms_segments']:g} of {r['included']['sms_segments']:g}"))
+    plan = r.get("plan")
+    if plan is None:
+        pairs.append(("Voice minutes used", f"{r['usage']['voice_minutes']:g} of {r['included']['voice_minutes']:g}"))
+        if sms_enabled:
+            pairs.append(("SMS segments used", f"{r['usage']['sms_segments']:g} of {r['included']['sms_segments']:g}"))
+    else:
+        used, inc = f"{r['usage']['voice_minutes']:,g}", plan.get("included_minutes")
+        pairs.append(("Voice minutes used", used if not inc else
+                      f"{used} (your free trial includes {inc:,g} minutes in total)" if plan.get("trial") else
+                      f"{used} (your {plan['name']} plan includes {inc:,g} minutes each billing period)"))
     if r.get("est_value_usd") is not None:
         pairs.insert(3, ("Estimated value of booked jobs", f"{money(r['est_value_usd'])} "
                                                            f"({r['booked']} x {money(r['avg_job_value_usd'])} average job)"))
     if r.get("roi_multiple") is not None:
-        pairs.insert(4, ("Value vs. your monthly fee", f"{r['roi_multiple']:.1f}x"))
-    note = ("Estimated value uses the average job value you set; it is an estimate, not revenue."
-            if r.get("est_value_usd") is not None else
-            "Tip: set your average job value in the portal to see the estimated value of booked jobs.")
-    text = "\n".join([subject, business, ""] + [f"{k.strip()}: {v}" for k, v in pairs] + ["", note, f"Portal: {portal_url()}"])
-    body = _rows(pairs) + f'<p style="margin-top:14px;color:#667">{esc(note)}</p>'
+        pairs.insert(4, ("Value vs. your monthly fee" if plan is None else
+                         f"Value vs. your {plan['name']} plan price ({money(r['monthly_fee_usd'])}/month)",
+                         f"{r['roi_multiple']:.1f}x"))
+    notes = ["Estimated value uses the average job value you set; it is an estimate, not revenue."
+             if r.get("est_value_usd") is not None else
+             "Tip: set your average job value in the portal to see the estimated value of booked jobs."]
+    if plan is not None:
+        minutes_note = "Voice minutes are this month's calls, each rounded up to the next minute."
+        if plan.get("included_minutes") and plan.get("trial"):
+            minutes_note += (" Your free trial's minutes cover the whole trial; the Billing tab in your portal shows "
+                             "how many are left.")
+        elif plan.get("included_minutes"):
+            minutes_note += (" Your plan's included minutes start over on each billing date; the Billing tab in your "
+                             "portal shows the current period.")
+        notes.append(minutes_note)
+    text = "\n".join([subject, business, ""] + [f"{k.strip()}: {v}" for k, v in pairs] + ["", *notes, f"Portal: {portal_url()}"])
+    body = _rows(pairs) + "".join(f'<p style="margin-top:14px;color:#667">{esc(n)}</p>' for n in notes)
     return subject, text, _wrap(f"{business} · {r['month_label']}", body, "en", _footer_en())
 
 
@@ -367,6 +388,11 @@ def number_release_warning(business: str, number: str, release_at: Any) -> tuple
     return subject, text, _wrap(subject, "".join(f"<p>{esc(x)}</p>" for x in lines), "en", _footer_en())
 
 
+def _pct(v: Any) -> str:
+    """Usage percent in the admin table; None = no allowance to compare with (plan SMS, unknown plan): '-'."""
+    return "-" if v is None else f"{v}%"
+
+
 def admin_daily(d: dict[str, Any]) -> tuple[str, str, str]:
     t = d["totals"]
     subject = (f"Daily summary {d['date']}: {t['leads']} leads, {t['booked']} bookings, "
@@ -375,7 +401,7 @@ def admin_daily(d: dict[str, Any]) -> tuple[str, str, str]:
         f"<tr><td>{esc(x['business'])}</td><td>{x['calls']}</td><td>{x['booked']}</td><td>{x['leads']}</td>"
         f'<td><span dir="ltr">{esc(money(x["claude_usd"]))}</span></td>'
         f'<td><span dir="ltr">{esc(money(x["twilio_usd"]))}</span></td>'
-        f"<td>{x['voice_pct']}% / {x['sms_pct']}%</td><td>{esc(', '.join(x['flags']) or '-')}</td></tr>"
+        f"<td>{_pct(x['voice_pct'])} / {_pct(x['sms_pct'])}</td><td>{esc(', '.join(x['flags']) or '-')}</td></tr>"
         for x in d["tenants"])
     head = "".join(f'<th style="text-align:left;padding:4px">{h}</th>' for h in
                    ("Client", "Calls", "Bookings", "Leads", "Claude", "Twilio", "Voice/SMS usage", "Flags"))

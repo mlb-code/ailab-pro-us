@@ -7,8 +7,13 @@
   the daily summary), usage vs. included,
   estimated value of booked jobs (= bookings x the average job value the client sets; omitted
   until set) and that value as a multiple of the RCP monthly fee (read from pricebook.json).
+  FirstRing plan clients (`config.plan`) are metered per billing period, not per calendar month, so for them the report
+  shows the minutes of the month's calls (rounded up per call, like the meter), the plan's included minutes (per
+  billing period; the free trial's total while trialing) and the plan's monthly price from the price book. Value is
+  compared with that price only for an active plan whose trial ended before the month did (`plan_summary`).
 - `admin_daily`: 08:00 in the admin timezone (brand.json owner.timezone), English, to Meir: per tenant calls / bookings / leads, Claude and
-  Twilio cost, usage %, flags (needs_addon_approval, calendar reconnect, Zapier dead letters),
+  Twilio cost, usage % (plan clients: the current billing period against the plan's minutes; no SMS allowance), flags
+  (needs_addon_approval; plan clients plan_minutes_used_up; calendar reconnect, Zapier dead letters),
   plus notices that were held overnight.
 Every report is stored as an `events` row (`report.daily_summary` / `report.monthly_roi`,
 client_visible) so the portal renders it; e-mail goes through the Notifier.
@@ -22,12 +27,13 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from . import plans as plans_mod
 from .notify import templates as T
 from .notify.calllog import twilio_cost_key
 from .notify.core import Notifier
 from .store import StateStore, Store, StoreError
 from .tenants import DAYS, TenantConfigError, TenantRecord, load_record
-from .usage import KINDS, included_usage
+from .usage import KINDS, UsageMeter, included_usage
 
 log = logging.getLogger("rt.reports")
 
@@ -186,17 +192,44 @@ def month_bounds(tenant: TenantRecord, month: str) -> tuple[datetime, datetime]:
     return start, end
 
 
+def call_minutes(store: Store, tenant: TenantRecord, start: datetime, end: datetime) -> float:
+    """Voice minutes of the calls that started in [start, end): each call's Twilio duration rounded up to whole
+    minutes, as the usage meter counts it (voice.record_minutes, message_mode.voice_finished)."""
+    return float(sum(-(-int(c.get("duration_s") or 0) // 60) for c in store.for_tenant(tenant.id).select("calls")
+                     if int(c.get("duration_s") or 0) > 0 and _in(c.get("started_at") or c.get("created_at"), start, end)))
+
+
+def plan_summary(tenant: TenantRecord, end: datetime) -> dict[str, Any] | None:
+    """The plan block of a FirstRing plan client's monthly report (None = RCP / quote client). Names, minutes and the
+    price come from the price book (app.plans). `fee_applies`: the month's value is compared with the plan price only
+    for an active plan whose free trial ended before the reported month did (no fee was paid otherwise)."""
+    t = plans_mod.terms(tenant.config)
+    if t is None:
+        return None
+    cents = (plans_mod.plan(t.code) or {}).get("monthly_cents")
+    trial_end = _dt(tenant.config.plan.trial_ends_at)
+    return {"code": t.code, "name": t.name, "status": t.status, "trial": t.trialing,
+            "included_minutes": t.included_minutes, "monthly_price_usd": cents / 100 if cents else None,
+            "fee_applies": t.known and t.status == "active" and not (trial_end and trial_end >= end)}
+
+
 def monthly_roi_data(store: Store, state: StateStore, tenant: TenantRecord, month: str) -> dict[str, Any]:
     start, end = month_bounds(tenant, month)
     r = activity(store, tenant, start, end)
     r.pop("leads")
     r["month"] = month
     r["month_label"] = start.strftime("%B %Y")
-    r["included"] = included_usage()
-    r["usage"] = {v: float(state.get(f"usage:{tenant.id}:{month}:{v}", 0) or 0) for v in KINDS.values()}
-    r["needs_addon_approval"] = bool(state.get(f"usage:{tenant.id}:{month}:needs_addon_approval"))
+    plan = plan_summary(tenant, end)
+    if plan is None:  # RCP / quote client: calendar-month counters against rules.included_usage, the RCP fee
+        r["included"] = included_usage()
+        r["usage"] = {v: float(state.get(f"usage:{tenant.id}:{month}:{v}", 0) or 0) for v in KINDS.values()}
+        r["needs_addon_approval"] = bool(state.get(f"usage:{tenant.id}:{month}:needs_addon_approval"))
+        fee = rcp_monthly_usd()
+    else:  # plan client: metered per billing period, so the month's minutes come from the month's calls
+        r["plan"] = {k: v for k, v in plan.items() if k != "fee_applies"}
+        r["usage"] = {"voice_minutes": call_minutes(store, tenant, start, end)}
+        fee = plan["monthly_price_usd"] if plan["fee_applies"] else None
     avg = state.get(avg_job_value_key(tenant.id))
-    fee = rcp_monthly_usd()
     r["avg_job_value_usd"] = float(avg) if avg else None
     r["est_value_usd"] = round(r["booked"] * float(avg), 2) if avg else None
     r["monthly_fee_usd"] = fee
@@ -360,13 +393,22 @@ class Reporter:
             act = activity(self.store, t, start, start + timedelta(days=1))
             month = start.strftime("%Y-%m")
             inc = included_usage()
-            used = {v: float(self.state.get(f"usage:{t.id}:{month}:{v}", 0) or 0) for v in KINDS.values()}
             ts = self.store.for_tenant(t.id)
             evs = ts.select("events")
             dead = sum(1 for e in evs if e.get("type") == "zapier.dead_letter" and _in(e.get("created_at"), start, now))
             flags = []
-            if self.state.get(f"usage:{t.id}:{month}:needs_addon_approval"):
-                flags.append("needs_addon_approval")
+            if plans_mod.terms(t.config) is None:  # quote client: calendar month against rules.included_usage
+                used = {v: float(self.state.get(f"usage:{t.id}:{month}:{v}", 0) or 0) for v in KINDS.values()}
+                voice_pct: int | None = round(100 * used["voice_minutes"] / inc["voice_minutes"])
+                sms_pct: int | None = round(100 * used["sms_segments"] / inc["sms_segments"])
+                if self.state.get(f"usage:{t.id}:{month}:needs_addon_approval"):
+                    flags.append("needs_addon_approval")
+            else:  # plan client: the current billing period's minutes against the plan (plans include no SMS)
+                meter = UsageMeter(self.state, inc)
+                limit = meter.limit(t, "voice")
+                voice_pct, sms_pct = (round(100 * meter.used(t, "voice", now) / limit) if limit else None), None
+                if meter.needs_addon_approval(t, now):
+                    flags.append("plan_minutes_used_up")
             reconnect = self.state.get(f"cal:{t.id}:needs_reconnect")
             if reconnect:
                 flags.append(f"calendar_reconnect:{reconnect.get('provider')}")
@@ -379,8 +421,7 @@ class Reporter:
                 "booked": act["booked"], "leads": act["calls_answered"] + act["sms_threads"],
                 "claude_usd": round(float(self.state.get(f"spend:{t.id}:{yday.isoformat()}", 0) or 0), 2),
                 "twilio_usd": round(float(self.state.get(twilio_cost_key(t.id, yday.isoformat()), 0) or 0), 2),
-                "voice_pct": round(100 * used["voice_minutes"] / inc["voice_minutes"]),
-                "sms_pct": round(100 * used["sms_segments"] / inc["sms_segments"]),
+                "voice_pct": voice_pct, "sms_pct": sms_pct,
                 "flags": flags})
         totals = {"leads": sum(r["leads"] for r in rows), "booked": sum(r["booked"] for r in rows),
                   "problems": sum(1 for r in rows if any(not f.startswith("paused") for f in r["flags"])),
