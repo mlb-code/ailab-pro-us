@@ -421,6 +421,8 @@
         const num = d.tenant && d.tenant.twilio_number;
         const car = data.carrier || '';
         return '<p>Send the calls you miss to your receptionist. Your phone still rings first; only unanswered or busy calls are forwarded.</p>' +
+          // Service Agreement section 8, "Your own privacy notice" (legal decisions 2026-11-27, item 5)
+          '<p class="notice" role="note" id="ob_privnote">Your privacy notice to your customers (for example on your website) needs to say that you use service providers, including AI providers, to answer, transcribe and record calls and messages for your business. You may use this sentence: <i>“We use service providers, including AI assistants, to answer, transcribe and record calls and messages on our behalf.”</i></p>' +
           (num ? '<p>Your receptionist’s number: <b class="mono bignum" id="ob_fwdnum">' + esc(fmtPhone(num)) + '</b></p>' : S.msgHtml('Your receptionist’s number appears here when your receptionist is ready to test. We’ll email you. You can do the other steps first.', 'info')) +
           '<div class="field"><label for="ob_car">Your phone provider</label><select class="select" id="ob_car"><option value="">Choose…</option>' + carrierOptions(car) + '</select></div>' +
           '<div id="ob_carhow">' + carrierHow(car, num) + '</div>' +

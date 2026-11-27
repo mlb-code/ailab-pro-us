@@ -74,12 +74,15 @@ if (up) {
     const { ctx, page, errors } = await open('/demo/');
     const box = page.locator('[data-demo-live]');
     check(await box.isVisible(), '/demo/ live box visible (home_services)');
+    check(/sent to our AI provider \(Anthropic\); please do not type personal information/.test(
+      await page.locator('[data-demo-chat] .bubble--system').first().textContent()), '/demo/ AI-provider notice before typing');
     try {
       for (const t of ['My AC is blowing warm air', '77005', 'the first one works', 'My name is Dana Lee', '1200 Main Street, Houston 77005']) await typeAndWait(page, t);
       await page.locator('[data-booked]').waitFor({ timeout: 8000 });
       const note = await page.locator('[data-demo-chat] .bubble--system').last().textContent();
       check(/This is a demo/.test(note), '/demo/ live booked + demo note');
-      check(/Live demo/.test(await page.locator('[data-demo-chat] .bubble--system').first().textContent()), '/demo/ live label');
+      check(/^Live demo with a fictional business: .*sent to our AI provider \(Anthropic\) to write the replies and is not used to train AI models\. Please do not type personal information\. No real booking is made\.$/.test(
+        await page.locator('[data-demo-chat] .bubble--system').first().textContent()), '/demo/ live label + AI-provider notice (legal decisions item 14)');
     } catch (e) { check(false, '/demo/ live booking (' + e.message.split('\n')[0] + ')'); }
     await overflow(page, '/demo/ after live chat');
     await page.setViewportSize({ width: 390, height: 860 });

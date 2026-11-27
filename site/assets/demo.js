@@ -208,6 +208,11 @@
   // ------------------------------------------------------------------ live mode (B8)
   var PROBE_MS = 4000, TURN_MS = 25000, MAX_CHARS = 500;
   var PAUSED_TEXT = 'Live demo paused. Showing the scripted demo instead.';
+  // legal decisions 2026-11-27, item 14 (Privacy Policy 3.3: text typed into the demo): shown with the first typed line,
+  // and the AI-provider part already before typing (sync)
+  var LIVE_NOTICE = 'Live demo with a fictional business: you type, the AI assistant answers as it would on a call. ' +
+    'What you type is sent to our AI provider (Anthropic) to write the replies and is not used to train AI models. ' +
+    'Please do not type personal information. No real booking is made.';
 
   function liveUrl(root) {
     var u = '', local = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
@@ -311,7 +316,8 @@
     this.form.style.display = this.form.hidden ? 'none' : 'flex';
     var first = this.demo.chat.querySelector('.bubble--system');
     if (this.ready() && first && this.demo.chat.children.length === 1) {
-      first.textContent = 'Pick a situation, or type what you would say below. You play the caller.';
+      first.textContent = 'Pick a situation, or type what you would say below. You play the caller. What you type is sent to ' +
+        'our AI provider (Anthropic); please do not type personal information.';
     }
   };
 
@@ -360,7 +366,7 @@
       d.chat.textContent = '';
       d.end.hidden = true;
       d.picks.querySelectorAll('[data-scenario]').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
-      d.add(el('p', 'bubble bubble--system', 'Live demo: you type, the AI assistant answers as it would on a call. No real booking is made.'));
+      d.add(el('p', 'bubble bubble--system', LIVE_NOTICE));
       d.root.setAttribute('data-state', 'running');
       d.clock(true);
       d.touched = true;

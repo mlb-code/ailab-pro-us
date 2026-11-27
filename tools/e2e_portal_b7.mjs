@@ -254,6 +254,8 @@ async function main() {
     await page.select('#ob_car', 'att'); await sleep(80);
     ok(/text-back message/.test(await page.$eval('#ob_textback', e => e.innerText)), 'test call: warns that hanging up silent sends a text-back');
     ok(/30 minutes/.test(await page.$eval('#ob-forward_calls', e => e.innerText)), 'test call: 30-minute window explained');
+    ok(/We use service providers, including AI assistants, to answer, transcribe and record calls and messages on our behalf\./.test(await page.$eval('#ob_privnote', e => e.innerText)),
+      'forward step: the privacy-notice sentence for the client\'s own privacy notice (Service Agreement section 8)');
     await page.click('#ob_test'); await sleep(250);
     ok(await waitText(page, 'Test started'), 'test call started');
     ok(!!(await db(page)).onboarding_items.find(o => o.key === 'forward_calls').data.test_started_at, 'test start stamped');
