@@ -312,3 +312,99 @@ fieldset.field .hint{margin-top:-4px;margin-bottom:6px}
 .su-card{display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:14px 16px;border:1.5px solid var(--line-2);border-radius:var(--radius-sm);background:var(--wd-card);min-width:0}
 .su-price{font-size:1.4rem;margin-top:4px}
 .plan-ids{overflow-wrap:anywhere}
+
+/* ---------------------------------------------------------------- setup assistant (setup-chat.js, 2026-11-27)
+   One column that reads like a messaging app on a phone: bubbles, cards with two big buttons, a composer that stays on top
+   of the on-screen keyboard (--sa-kb from visualViewport). Same tokens as the checklist; nothing new to load. */
+.sahead__top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px 14px;flex-wrap:wrap}
+.sahead .h-card{margin-bottom:10px}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:14px;background:var(--wd-bg);max-width:100%}
+.seg__b{min-height:40px;padding:8px 14px;border:0;border-radius:11px;background:transparent;color:var(--fg-2);font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.seg__b:hover{color:var(--fg)}
+.seg__b[aria-pressed="true"]{background:var(--wd-ink);color:#fff}
+.seg__b:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+.sa-forced{margin:12px 0 0}
+.sa-forced p{margin:0;color:var(--fg)}
+.setupchat{display:flex;flex-direction:column;min-width:0;margin-top:14px}
+.sa-disc{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--wd-card);font-size:.84rem;color:var(--fg-2)}
+.sa-disc a{color:inherit}
+.sa-ai{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:22px;padding:0 6px;border-radius:6px;background:var(--wd-blue-soft);color:var(--wd-blue);font-size:.72rem;font-weight:800;letter-spacing:.04em}
+.chatlog{list-style:none;display:flex;flex-direction:column;gap:12px;margin:0 0 12px;padding:0;min-width:0}
+.sa-m{display:flex;flex-direction:column;gap:8px;min-width:0;scroll-margin-top:150px;scroll-margin-bottom:calc(var(--sa-composer-h,130px) + var(--sa-kb,0px) + 12px)}
+.sa-m--out{align-items:flex-end}
+.sa-m--in{align-items:flex-start}
+.sa-m .bubble{max-width:min(86%,560px);font-size:1rem;white-space:pre-line}
+.sa-m--in>.scard,.sa-m--in>.acard,.sa-m--in>.sa-notice{align-self:stretch;max-width:560px}
+.sa-m--note{align-items:center}
+.sa-note{max-width:52ch;margin:0;padding:6px 12px;border:1px dashed var(--line-2);border-radius:12px;font-size:.84rem;color:var(--fg-2);text-align:center}
+.sa-note--ok{border-style:solid;border-color:var(--ok);color:var(--ok)}
+.sa-note--err{border-style:solid;border-color:var(--err);color:var(--err)}
+.sa-fail{display:flex;gap:8px;align-items:center;color:var(--err)}
+.sa-skel span{display:block;width:min(70%,360px);height:44px;border-radius:18px;background:var(--line);animation:sapulse 1.2s infinite ease-in-out}
+.sa-skel span+span{margin-top:8px;width:min(50%,260px)}
+.sa-skel--s{display:flex;flex-direction:column;align-items:flex-end}
+.sa-skel--s span{width:min(40%,200px)}
+@keyframes sapulse{50%{opacity:.45}}
+.sa-typing{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px}
+.sa-typing__t{color:var(--fg-3)}
+/* summary card ("Here's what I understood") and action cards (calendar, forwarding, test call) */
+.scard,.acard{min-width:0;padding:14px 16px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--wd-card);box-shadow:var(--shadow)}
+.scard__h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.scard__t,.acard__t{min-width:0;margin:0;font-size:1.02rem;letter-spacing:-.01em;overflow-wrap:anywhere}
+.scard__f{display:grid;gap:10px;margin:0}
+.scard__f dt{font-size:.8rem;font-weight:600;color:var(--fg-3)}
+.scard__f dd{margin:2px 0 0;color:var(--fg);overflow-wrap:anywhere}
+.sa-list{display:grid;gap:2px;margin:0;padding-left:18px}
+.sa-list li::marker{color:var(--wd-blue)}
+.sa-faq{display:grid;gap:8px;margin:0;padding-left:20px}
+.sa-faq b{display:block}
+.scard__n{margin:10px 0 0}
+.scard__r{margin:8px 0 0}
+.scard__a{margin-top:14px}
+.scard--confirmed,.scard--superseded{box-shadow:none}
+.scard--superseded{opacity:.75}
+.scard--failed{border-color:var(--err)}
+.acard{border-left:4px solid var(--wd-blue)}
+.acard__t{margin-bottom:8px}
+.acard p{margin:0 0 8px;color:var(--fg-2)}
+.acard .notice{margin:6px 0;padding:4px 0 4px 12px;border-width:0 0 0 3px;border-radius:0;background:none}
+.acard .help{margin-top:8px}
+.sa-how .how{margin:4px 0 6px}
+.sa-car{margin:12px 0 4px}
+.sa-wait{display:flex;gap:10px;align-items:flex-start}
+.sa-amsg:empty{display:none}
+.sa-openform{align-self:flex-start}
+.sa-notice{margin:0}
+/* choices in a message and quick replies above the composer: big pill buttons */
+.sa-chips{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.chip{min-height:44px;max-width:100%;padding:10px 16px;border:1.5px solid var(--wd-blue);border-radius:999px;background:var(--wd-card);color:var(--wd-blue);font:inherit;font-size:.95rem;font-weight:600;line-height:1.25;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.chip:hover{background:var(--wd-blue-soft)}
+.chip:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+.chip:disabled{opacity:.55;cursor:default}
+.chip--ghost{border-color:var(--line-2);color:var(--fg)}
+/* composer: sticky at the bottom of the screen, lifted above the on-screen keyboard */
+.composer{position:sticky;bottom:var(--sa-kb,0px);z-index:30;margin:0 -16px;padding:10px 16px calc(6px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+.composer .sa-quick{margin-bottom:8px}
+.composer__f{display:flex;gap:8px;align-items:flex-end}
+.composer__t{flex:1;min-width:0;min-height:48px;max-height:136px;padding:11px 14px;font-size:16px;line-height:1.4;resize:none;overflow-y:auto}
+.composer__t[readonly]{background:var(--wd-bg)}
+.composer__send{flex:none;width:48px;min-width:48px;height:48px;min-height:48px;padding:0;border-radius:14px}
+.composer__send:disabled{opacity:.5;cursor:not-allowed}
+.composer__row{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:40px}
+.composer__row .linkbtn{min-height:40px;font-size:.88rem;white-space:nowrap}
+#saHint{min-width:0}
+.sa-kbpad{height:var(--sa-kb,0px);flex:none}
+.sa-banner{margin:0 0 8px}
+.sa-banner p{margin:0;color:var(--fg)}
+.sa-banner .btn-row{margin-top:8px}
+html:has(#saComposer){scroll-padding-bottom:calc(var(--sa-composer-h,130px) + 8px)}
+html:has(#saComposer) .toast{bottom:calc(var(--sa-composer-h,130px) + var(--sa-kb,0px) + 12px)}
+/* finished: every step, Edit asks the assistant to change it */
+.sa-done{margin-top:14px}
+.sa-done p{color:var(--fg-2)}
+.sa-steps{list-style:none;display:grid;margin:10px 0 0;padding:0}
+.sa-steps li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-height:48px;border-bottom:1px solid var(--line)}
+.sa-steps li:last-child{border-bottom:0}
+.sa-steps__t{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
+@media (max-width:420px){.seg{width:100%}.seg__b{flex:1;padding-inline:8px}.sa-m .bubble{max-width:92%}.scard,.acard{padding:12px 14px}}
+@media (prefers-reduced-motion:reduce){.sa-skel span{animation:none}}

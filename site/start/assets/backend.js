@@ -40,6 +40,10 @@
    Sign-up + Paddle (SQL in supabase/migrations/*_us_paddle.sql):
      checkoutStart(plan, phone, agreementVersion, consentText, trial) -> {ref, plan_code, trial, business_phone} (billing_checkout_start)
      paddleAction(action, {plan_code}) -> Edge Function paddle-billing (change_plan | start_now | cancel | resume | update_card | manage)
+   Setup assistant (Edge Function setup-agent, contract v1 in docs/setup-agent-design-2026-11-27.md section 2.3):
+     setupChat(input, clientTurnId) -> response {v, conversation_id, status, messages, progress, composer, fallback, limits}
+       input = {type: 'resume'} | {type: 'message', text} | {type: 'confirm'|'change', proposal_id} | {type: 'choose', choice_id}
+             | {type: 'event', event}; an error throws Error(code) with .code, .status and .retry_after_s (429 rate_limited)
    Error messages carry the same codes the DB guards raise (questionnaire_locked, offer_required, too_many_files, ...). */
 (function () {
   const C = window.SITE_CONFIG || {};   // /assets/config.js (written by tools/us_setup.py, task A2)
@@ -201,6 +205,18 @@
       },
       async paddleAction(action, extra) { return invoke('paddle-billing', Object.assign({ action }, extra || {})); },
       async confirmForwardingTest(id) { return must(await sb.rpc('confirm_forwarding_test', { p_item: id })); },
+      // setup assistant: one turn; the same client_turn_id on a retry returns the same answer (idempotent on the server)
+      async setupChat(input, clientTurnId) {
+        const r = await sb.functions.invoke('setup-agent', { body: { v: 1, client_turn_id: clientTurnId, input } });
+        if (r.error) {
+          let j = null; try { j = await r.error.context.json(); } catch (e) { /* not JSON: a network or gateway error */ }
+          const e = new Error((j && j.error) || r.error.message || 'setup_agent_failed');
+          e.code = e.message; e.status = (r.error.context && r.error.context.status) || 0;
+          if (j && j.retry_after_s != null) e.retry_after_s = +j.retry_after_s;
+          throw e;
+        }
+        return r.data;
+      },
       async getResults(tenantId, month) { return must(await sb.rpc('client_results', { p_tenant_id: tenantId, p_month: month || null })); },
       async markNoShow(bookingId, noShow) { return must(await sb.rpc('client_mark_no_show', { p_booking_id: bookingId, p_no_show: noShow !== false })); },
       async setAvgJobValue(tenantId, value) { return must(await sb.rpc('client_set_avg_job_value', { p_tenant_id: tenantId, p_value: value })); },
@@ -272,7 +288,7 @@
     // appointment manager
     'getResults', 'markNoShow', 'setAvgJobValue',
     // FirstRing monthly plans
-    'getBilling', 'trialEligible', 'mockCheckout', 'changePlan', 'cancelPlan', 'resumePlan', 'confirmForwardingTest',
+    'getBilling', 'trialEligible', 'mockCheckout', 'changePlan', 'cancelPlan', 'resumePlan', 'confirmForwardingTest', 'setupChat',
     // sign-up + Paddle
     'checkoutStart', 'paddleAction'].forEach(fn => {
     api[fn] = async (...args) => { await readyP; if (!impl) throw new Error('backend_off'); return impl[fn](...args); };
