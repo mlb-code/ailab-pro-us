@@ -108,9 +108,10 @@ def _check(out: list, name: str, fn: Any) -> None:
 
 
 def run_checks(row: dict[str, Any], *, store: Any = None, now: datetime | None = None,
-               ai: dict[str, Any] | None = None) -> dict[str, Any]:
+               ai: dict[str, Any] | None = None, sms: bool = False) -> dict[str, Any]:
     """Run every check against a stored tenant row. Returns {passed, checks[], ran_at, slug} (+ ai_check when `ai` is
-    given: {model, settings, env} for the live AI check, see live_ai_check)."""
+    given: {model, settings, env} for the live AI check, see live_ai_check). sms = the production SMS_ENABLED switch
+    (settings.sms_enabled): the greeting is checked as the line will play it (texting notice only while it is on)."""
     now = now or datetime.now(timezone.utc)
     checks: list[dict[str, Any]] = []
     slug = row.get("slug")
@@ -125,12 +126,15 @@ def run_checks(row: dict[str, Any], *, store: Any = None, now: datetime | None =
     checks.append({"name": "config_valid", "ok": True, "skipped": False, "detail": "", "label_he": CHECK_LABELS["config_valid"]})
     _check(checks, "number_assigned", lambda: (bool(rec.twilio_number), rec.twilio_number and "ok" or "no number yet"))
 
-    from .voice import greeting, has_disclosure
+    from .voice import TEXT_PART, greeting, has_disclosure
 
     def _greeting():
-        g = greeting(rec)
-        ok = cfg.business.name.lower() in g.lower() and has_disclosure(g)
-        return ok, "" if ok else "greeting is missing the business name or the call notice"
+        g = greeting(rec, sms)
+        if not (cfg.business.name.lower() in g.lower() and has_disclosure(g, sms)):
+            return False, "greeting is missing the business name or the call notice"
+        if not sms and TEXT_PART.search(g):  # a custom greeting that still says we may text, while texting is off
+            return False, "greeting mentions texting, but text messaging is off"
+        return True, ""
     _check(checks, "greeting", _greeting)
     _check(checks, "alerts_reach_owner", lambda: (bool(cfg.notify.email), "" if cfg.notify.email else "no alert e-mail"))
 
@@ -323,14 +327,14 @@ def _script(cfg: Any, zip_ok: str) -> list[tuple[str, str]]:
             ("bye", "That's all, thanks")]
 
 
-def _converse(row: dict[str, Any], rec: Any, at: datetime, model: Any, zip_ok: str) -> dict[str, Any]:
+def _converse(row: dict[str, Any], rec: Any, at: datetime, model: Any, zip_ok: str, sms: bool = False) -> dict[str, Any]:
     from sim.fake_calendar import FakeCalendar
 
     from .conversation import Engine
     env = _Env(row)
     env.engine = Engine(env.store, model, FakeCalendar(), env.settings)
     from .voice import greeting
-    hello = greeting(env.tenant)
+    hello = greeting(env.tenant, sms)  # as a live call plays it (texting notice only with SMS_ENABLED on)
     transcript = [{"who": "assistant", "text": hello}]
     replies: dict[str, str] = {}
     tools: list[str] = []
@@ -404,13 +408,14 @@ def live_ai_check(row: dict[str, Any], rec: Any, at: datetime, *, model: Any = N
         model = LLMClient(s, namespace="golive_ai", mode=getattr(s, "brain_mode", "live"))
     zips = list(rec.config.business.service_area_zips)
     zip_ok = zips[0] if zips else "10001"
+    sms = bool(getattr(settings, "sms_enabled", False))  # the greeting as the line plays it (texting clause or not)
     meter = _Metered(model)
     rep: dict[str, Any] = {"status": "error", "problems": [], "transcript": [], "attempts": 0, "model": meter.model}
     pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="golive-ai")
     try:
         for attempt in range(1, retries + 2):
             rep["attempts"] = attempt
-            fut = pool.submit(_converse, row, rec, at, meter, zip_ok)
+            fut = pool.submit(_converse, row, rec, at, meter, zip_ok, sms)
             try:
                 conv = fut.result(timeout=timeout)
             except FutTimeout:

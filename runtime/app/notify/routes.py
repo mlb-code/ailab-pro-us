@@ -214,7 +214,7 @@ def admin_sim_run(slug: str, request: Request):
     from ..golive import run_checks
     rt = getattr(request.app.state, "rt", None)
     now = rt.now() if rt is not None else datetime.now(timezone.utc)
-    return run_checks(rows[0], store=svc.store, now=now)
+    return run_checks(rows[0], store=svc.store, now=now, sms=bool(getattr(svc.settings, "sms_enabled", False)))
 
 
 @router.get("/reports/{slug}/daily")

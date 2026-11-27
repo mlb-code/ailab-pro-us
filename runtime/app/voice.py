@@ -17,9 +17,10 @@ the cap hears one short sentence (+ one owner alert a day), later ones are rejec
 Billable minutes come from Twilio's status callback (CallDuration, rounded up per call) and feed
 the monthly usage meter (80% / 100% alerts).
 
-Call notice (SA §8 item 2, legal v1.1; AI wording 2026-11-27): every call starts with `DISCLOSURE` (AI assistant, recorded and
-transcribed by us and our service providers, we may text you). A tenant's custom greeting that lacks any part
-of it gets the full sentence appended; it cannot be removed. The caller's speech is not processed before the
+Call notice (SA §8 item 2, legal v1.1; AI wording 2026-11-27): every call starts with `guard.disclosure(sms)` (AI
+assistant, recorded and transcribed by us and our service providers; "and we may text you about it" only while
+SMS_ENABLED is on). A tenant's custom greeting that lacks any part of it gets the full sentence appended; it cannot be
+removed. The caller's speech is not processed before the
 greeting ends: gather mode plays the greeting with <Say> BEFORE <Gather> (no barge-in), stream mode sets
 welcomeGreetingInterruptible="none" and holds the first prompt until the greeting's estimated end
 (`voice_stream`). A caller who objects to recording ends the call with no transcript kept
@@ -49,6 +50,7 @@ from .message_mode import MessageMode, insert_call
 from .message_mode import reason as message_mode_reason
 from .runtime_ctx import Runtime, who
 from .sms_outbound import after_turn
+from .sms_outbound import sms_enabled as _sms_enabled
 from .tenants import TenantRecord
 
 log = logging.getLogger("rt.voice")
@@ -63,14 +65,14 @@ DIAL_NO_ANSWER_TEXT = ("Sorry, no one could pick up right now. I've passed your 
                        "and someone will call you back soon. Goodbye.")
 FALLBACK_TEXT = "Sorry, we're having trouble right now. Someone from our team will call you back soon. Goodbye."
 REPEAT_TEXT = "Sorry, could you say that again?"
-DISCLOSURE = guard.DISCLOSURE
 # every part of the notice must be in the greeting (a custom greeting that only says "calls may be recorded for
-# quality" would drop the service providers and the texting notice). The last part is the AI disclosure: it needs
-# "AI assistant" / "an AI" / "artificial intelligence" (a business called "AI Plumbing" does not count), so a
-# client-written greeting without it gets the standard notice added.
+# quality" would drop the service providers). The AI part needs "AI assistant" / "an AI" / "artificial intelligence"
+# (a business called "AI Plumbing" does not count), so a client-written greeting without it gets the standard notice
+# added. The texting part (`TEXT_PART`) is required only while SMS_ENABLED is on.
+AI_PART = re.compile(r"\b(?:an\s+AI\b|AI\s+(?:assistant|receptionist|agent)|artificial\s+intelligence)", re.I)
+TEXT_PART = guard.TEXT_NOTICE
 DISCLOSURE_PARTS = (re.compile(r"\brecorded\b", re.I), re.compile(r"\btranscribed\b", re.I),
-                    re.compile(r"\bservice providers?\b", re.I), re.compile(r"\btext\b", re.I),
-                    re.compile(r"\b(?:an\s+AI\b|AI\s+(?:assistant|receptionist|agent)|artificial\s+intelligence)", re.I))
+                    re.compile(r"\bservice providers?\b", re.I), AI_PART)
 
 MAX_TURNS = 12
 MAX_CALL = timedelta(minutes=6)
@@ -80,28 +82,37 @@ CALLS_PER_DAY = 10
 TERMINAL = {"completed", "busy", "no-answer", "failed", "canceled"}
 
 
-def has_disclosure(text: str) -> bool:
-    return all(p.search(text or "") for p in DISCLOSURE_PARTS)
+def sms_on(rt: Any) -> bool:
+    """SMS_ENABLED (the texting master switch) for this runtime: decides the call notice's texting clause."""
+    return _sms_enabled(getattr(rt, "settings", None))
 
 
-def default_greeting(cfg: Any) -> str:
-    """Generated greeting per niche (the call notice is added by `greeting`)."""
+def has_disclosure(text: str, sms: bool = False) -> bool:
+    """Every part of the call notice is in `text`; with sms (SMS_ENABLED on) the texting notice as well."""
+    return all(p.search(text or "") for p in DISCLOSURE_PARTS) and (not sms or bool(TEXT_PART.search(text or "")))
+
+
+def default_greeting(cfg: Any, sms: bool = False) -> str:
+    """Generated greeting per niche, with the call notice for the line's texting state (sms = settings.sms_enabled)."""
+    notice = guard.disclosure(sms)
     if cfg.business.niche == "real_estate":
         agent = (cfg.real_estate.agent_name or "").strip()
         who = f"{agent}'s assistant at {cfg.business.name}" if agent else f"the assistant for {cfg.business.name}"
         missed = f"Sorry {agent.split()[0]} missed you! " if agent else "Sorry we missed your call! "
-        return f"Hi, this is {who}. {missed}{DISCLOSURE} What are you calling about?"
-    return f"Thanks for calling {cfg.business.name}. {DISCLOSURE} How can I help?"
+        return f"Hi, this is {who}. {missed}{notice} What are you calling about?"
+    return f"Thanks for calling {cfg.business.name}. {notice} How can I help?"
 
 
-def greeting(tenant: TenantRecord) -> str:
+def greeting(tenant: TenantRecord, sms: bool = False) -> str:
+    """The greeting a call plays. sms = settings.sms_enabled (`sms_on(rt)`): the texting clause of the notice is spoken
+    only while texting is on. Default off, as in production until A2P 10DLC is approved."""
     cfg = tenant.config
-    text = (cfg.voice.greeting or "").strip() or default_greeting(cfg)
-    text = text if has_disclosure(text) else f"{text} {DISCLOSURE}"
+    text = (cfg.voice.greeting or "").strip() or default_greeting(cfg, sms)
+    text = text if has_disclosure(text, sms) else f"{text} {guard.disclosure(sms)}"
     if "es" in cfg.voice.languages:  # ADD-ES: the notice (and an invitation) in Spanish too, never removable
         es = (cfg.voice.greeting_es or "").strip() or guard.SPANISH_INVITE
-        if guard.DISCLOSURE_ES not in es:
-            es = f"{es} {guard.DISCLOSURE_ES}"
+        if guard.disclosure_es(sms) not in es:
+            es = f"{es} {guard.disclosure_es(sms)}"
         text = f"{text} {es}"
     return text
 
@@ -200,7 +211,7 @@ class VoiceFlow:
         row = existing[0] if existing else insert_call(ts, new_row)
         c.meta.update({"call_row_id": row["id"], "started_at": now.isoformat(), "mode": mode, "turns": 0,
                        "timing": []})
-        c.transcript.append({"who": "assistant", "text": greeting(tenant)})
+        c.transcript.append({"who": "assistant", "text": greeting(tenant, sms_on(self.rt))})
         eng.save_convo(c)
         ts.log_event("voice.incoming", {"call_sid": call_sid, "mode": mode})
         if eng.llm.mode == "live" and eng.llm.prompt_cache:
@@ -510,7 +521,7 @@ async def voice_incoming(request: Request) -> Response:
     if mode == "stream":
         from .voice_stream import relay_twiml
         return _xml(relay_twiml(rt, request, tenant, call_sid))
-    return _xml(twiml_gather(greeting(tenant), tenant.config.voice.tts_voice, barge_in=False))
+    return _xml(twiml_gather(greeting(tenant, sms_on(rt)), tenant.config.voice.tts_voice, barge_in=False))
 
 
 async def _safe_voice(rt: Runtime, form: Any, step: str) -> str:

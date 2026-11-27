@@ -309,7 +309,8 @@ class Provisioner:
 
     def _golive(self, tenant: dict[str, Any], now: datetime) -> tuple[str, dict[str, Any]]:
         from .golive import live_ai_enabled
-        kw: dict[str, Any] = {"store": self.store, "now": now}
+        kw: dict[str, Any] = {"store": self.store, "now": now,
+                              "sms": bool(getattr(self.settings, "sms_enabled", False))}  # greeting as it will play
         if live_ai_enabled(self.env):  # GOLIVE_LIVE_AI_CHECK=1: one scripted conversation on the real model too
             kw["ai"] = {"model": self.ai_model, "settings": self.settings, "env": self.env}
         rep = self.golive(tenant, **kw)

@@ -73,7 +73,7 @@
     },
     "ai_disclosure": {
       "q": "Will callers know it's AI?",
-      "a": "Yes. The greeting tells callers they're speaking with an AI assistant, and if someone asks, it says it's an AI assistant, not a person. The greeting also says the call may be recorded and transcribed by us and our service providers, and that we may text the caller about it. Text messages to callers are switched off for now. If texting is turned on for your account later, it first asks the caller's permission to text a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
+      "a": "Yes. The greeting tells callers they're speaking with an AI assistant, and if someone asks, it says it's an AI assistant, not a person. The greeting also says the call may be recorded and transcribed by us and our service providers. Text messages to callers are switched off for now, so the greeting doesn't mention texting. If texting is turned on for your account later, the greeting also says we may text the caller about the call, and it first asks the caller's permission to text a booking confirmation or reminder, and saves their answer. If a caller doesn't want to be recorded, it stops and keeps no written copy. We keep written copies of calls, never the audio."
     },
     "no_call": {
       "q": "Do I have to get on a call with you?",

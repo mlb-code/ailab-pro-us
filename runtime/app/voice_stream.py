@@ -5,7 +5,7 @@
 Twilio runs streaming STT + TTS; we exchange JSON over the socket:
     in : setup {callSid, from, to} | prompt {voicePrompt, last} | interrupt | dtmf | error
     out: text {token, last, interruptible} | end {handoffData}
-The welcome greeting (with the call notice, `voice.DISCLOSURE`) is spoken by Twilio from the TwiML with
+The welcome greeting (with the call notice, `guard.disclosure(sms)`) is spoken by Twilio from the TwiML with
 welcomeGreetingInterruptible="none" (the caller cannot cut it off), and a prompt that arrives while it is
 still playing (estimated from its length) is held until it has ended: nothing the caller says reaches
 Claude before the notice is complete (SA §8, "AI and recording notice").
@@ -41,7 +41,7 @@ from twilio.twiml.voice_response import VoiceResponse
 from . import crypto, guard
 from .runtime_ctx import Runtime
 from .tenants import TenantConfigError, TenantRecord, load_record
-from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, twiml_gather, twiml_say_hangup)
+from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, sms_on, twiml_gather, twiml_say_hangup)
 
 log = logging.getLogger("rt.voice_stream")
 
@@ -70,7 +70,7 @@ def relay_twiml(rt: Runtime, request: Request, tenant: TenantRecord, call_sid: s
     vr = VoiceResponse()
     connect = vr.connect(action="/voice/relay-end", method="POST")
     relay = connect.conversation_relay(
-        url=f"{ws_base(rt, request)}/voice/relay?t={token}", welcome_greeting=greeting(tenant),
+        url=f"{ws_base(rt, request)}/voice/relay?t={token}", welcome_greeting=greeting(tenant, sms_on(rt)),
         welcome_greeting_interruptible="none", interruptible="speech", language=guard.ENGLISH_LANG,
         tts_provider=provider, voice=voice, transcription_provider="Deepgram", dtmf_detection=False)
     if "es" in tenant.config.voice.languages:  # ADD-ES: the Spanish voice + STT, switched per turn with a `language` frame
@@ -149,7 +149,7 @@ class RelaySession:
             return
         self.caller = str(first.get("from", ""))
         loop = asyncio.get_running_loop()
-        greeting_s = speaking_seconds(self.rt, greeting(self.tenant))
+        greeting_s = speaking_seconds(self.rt, greeting(self.tenant, sms_on(self.rt)))
         greeting_ends = loop.time() + greeting_s
         timeout = self.rt.settings.voice_silence_s + greeting_s
         while True:

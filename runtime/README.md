@@ -43,8 +43,9 @@ Twilio cost estimate per call: `TWILIO_VOICE_USD_PER_MIN` (default 0.0785 = inbo
 Invalid tenant config = safe mode (`app/voice_safe.py`): polite sentence + name/number message, SMS text-back, minimal SMS replies
 (STOP/HELP still work), event `tenant_config_invalid` + Hebrew admin alert once a day; `/health/deep` lists `tenants_invalid`.
 Consent rules (legal v1.1, SA §8; `tests/test_legal_v11.py`, scenarios 46-49; AI wording + SMS switch + objection data:
-`tests/test_launch_fixes_2026_11_27.py`): every greeting carries `guard.DISCLOSURE` ("You're speaking with an AI assistant. ..."; a custom
-greeting missing any part, the AI wording included, gets it appended; stream mode holds caller speech until the greeting ends, `VOICE_GREETING_HOLD`);
+`tests/test_launch_fixes_2026_11_27.py`): every greeting carries `guard.disclosure(sms)` ("You're speaking with an AI assistant. ..."; the texting clause "and we may
+text you about it" only while `SMS_ENABLED` is on, `tests/test_disclosure_sms_switch.py`; the text-back consent row stores the
+variant heard, version `2026-11-27` or `2026-11-27-nosms`; a custom greeting missing any part, the AI wording included, gets it appended; stream mode holds caller speech until the greeting ends, `VOICE_GREETING_HOLD`);
 after a booking the assistant asks before texting (confirmation + reminder only on "yes"); a recording objection ends the call
 with `calls.transcript_withheld` and keeps only name + phone (webhooks/Zapier/CRM get those plus `recording_declined: true`); opt-outs by keyword, sentence or voice; texting window in the business AND caller (area-code)
 zone; locked SMS templates; every decision in `sms_consent` (5 years, `supabase/migrations/20261012100000_us_sms_consent.sql`).

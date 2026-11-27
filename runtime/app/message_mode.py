@@ -27,8 +27,9 @@ TEXT_REPLY = "Thanks for your message. We've passed it on, and someone from our 
 REASONS = ("trial_ended", "canceled", "past_due", "paused", "trial_minutes_used", "plan_minutes_used", "message_only")
 
 
-def greeting(name: str) -> str:
-    return (f"Thanks for calling {name}. {guard.DISCLOSURE} We can't take your call live right now. "
+def greeting(name: str, sms: bool = False) -> str:
+    """sms = settings.sms_enabled: the notice's texting clause only while texting is on (`guard.disclosure`)."""
+    return (f"Thanks for calling {name}. {guard.disclosure(sms)} We can't take your call live right now. "
             "Please say your name, your phone number and what you need, and someone will call you back.")
 
 
@@ -57,7 +58,7 @@ class MessageMode:
     def voice_incoming(self, tenant: Any, call_sid: str, caller: str, why: str, now: datetime,
                        forwarded_from: str = "") -> str:
         ts = self.rt.store.for_tenant(tenant.id)
-        text = greeting(tenant.config.business.name)
+        text = greeting(tenant.config.business.name, bool(getattr(self.rt.settings, "sms_enabled", False)))
         if not ts.select("calls", call_sid=call_sid):
             row = {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
                    "transcript": [{"who": "assistant", "text": text}], "outcome": None}

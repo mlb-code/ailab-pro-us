@@ -32,8 +32,9 @@ SAFE_VOICE = "Polly.Joanna-Neural"
 FALLBACK_TZ = "America/New_York"
 
 
-def safe_greeting(name: str) -> str:
-    return (f"Thanks for calling {name}. Sorry we missed you. {guard.DISCLOSURE} "
+def safe_greeting(name: str, sms: bool = False) -> str:
+    """sms = settings.sms_enabled: the notice's texting clause only while texting is on (`guard.disclosure`)."""
+    return (f"Thanks for calling {name}. Sorry we missed you. {guard.disclosure(sms)} "
             "Please say your name and the best number to reach you, and someone will call you back.")
 
 
@@ -119,14 +120,18 @@ class SafeMode:
         self.rt._submit(_admin_send, self.rt, bt, summary, f"{KIND}:{self._day(bt, now)}", now)
 
     # --- voice -------------------------------------------------------------------------------------
+    def _sms(self) -> bool:
+        return bool(getattr(self.rt.settings, "sms_enabled", False))
+
     def voice_incoming(self, bt: BrokenTenant, call_sid: str, caller: str, now: datetime) -> str:
         self.report(bt, "voice", now)
         ts = self.rt.store.for_tenant(bt.id)
+        hello = safe_greeting(bt.name, self._sms())
         if not ts.select("calls", call_sid=call_sid):
             ts.insert("calls", {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
-                                "transcript": [{"who": "assistant", "text": safe_greeting(bt.name)}], "outcome": None})
+                                "transcript": [{"who": "assistant", "text": hello}], "outcome": None})
         vr = VoiceResponse()
-        vr.say(safe_greeting(bt.name), voice=SAFE_VOICE)  # the disclosure plays in full before we listen
+        vr.say(hello, voice=SAFE_VOICE)  # the disclosure plays in full before we listen
         vr.gather(input="speech", action="/voice/safe-message", method="POST", speech_model="phone_call",
                   enhanced=True, speech_timeout="auto", action_on_empty_result=True, language="en-US")
         return str(vr)
@@ -163,8 +168,9 @@ class SafeMode:
         if caller and not self.rt.state.get(flag):
             self.rt.state.put(flag, True, bt.id)
             if self.send(bt, caller, safe_textback(bt.sms_name), now).get("sent"):
-                ts.record_consent(caller, "voice", "text_back", "notice", guard.DISCLOSURE, call_sid,
-                                  guard.DISCLOSURE_VERSION)
+                heard = guard.call_greeting(rows[0] if rows else None)
+                notice, version = guard.spoken_disclosure(heard, self._sms())  # the variant the caller heard
+                ts.record_consent(caller, "voice", "text_back", "notice", notice, call_sid, version)
 
     # --- sms ---------------------------------------------------------------------------------------
     def send(self, bt: BrokenTenant, to: str, body: str, now: datetime) -> dict[str, Any]:

@@ -145,7 +145,8 @@ def test_greeting_names_the_agent_and_keeps_the_notice():
     g = greeting(tenant_with())
     assert g.startswith("Hi, this is Jenna Harper's assistant at Maple & Main Realty. Sorry Jenna missed you! "
                         "You're speaking with an AI assistant.")
-    assert guard.DISCLOSURE in g
+    assert guard.DISCLOSURE_NO_SMS in g and "text" not in g  # SMS_ENABLED off (the default): no texting clause
+    assert guard.DISCLOSURE_SMS in greeting(tenant_with(), sms=True)
     g2 = greeting(tenant_with(real_estate={"agent_name": ""}))
     assert "the assistant for Maple & Main Realty" in g2 and "Sorry we missed your call" in g2
 

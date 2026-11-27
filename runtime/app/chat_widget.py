@@ -58,9 +58,9 @@ NOTICE = "You're chatting with an AI assistant; this chat is saved to help the b
 
 def greeting(tenant: TenantRecord) -> str:
     """Opening line of the chat box (the phone greeting without the recording sentence; the chat shows its own notice)."""
-    from .voice import DISCLOSURE, default_greeting
+    from .voice import default_greeting
     # the call notice becomes the chat's own AI line (the recording sentence is the phone's; the chat shows NOTICE)
-    text = default_greeting(tenant.config).replace(DISCLOSURE, "I'm an AI assistant.")
+    text = default_greeting(tenant.config, sms=False).replace(guard.DISCLOSURE_NO_SMS, "I'm an AI assistant.")
     sentences = [s for s in text.split(". ") if not all(p.search(s) for p in DISCLOSURE_PARTS[:2])]
     out = ". ".join(sentences).replace("missed your call", "missed you").replace("Thanks for calling", "Welcome to")
     return out if out.endswith((".", "?", "!")) else out + "."

@@ -47,7 +47,7 @@ def test_spanish_fixed_texts_carry_business_phone_and_opt_out_word():
     assert "Cool Breeze HVAC" in s and "+17135550100" in s and "INICIAR" in s
     assert "PARAR" in guard.help_text_es("Cool Breeze HVAC", "+17135550100") and "+17135550100" in guard.help_text_es("x", "+17135550100")
     assert "PARAR" in guard.start_confirmation_es("x") and guard.robot_answer_es("x").startswith("Soy un asistente de IA")
-    assert "no una persona" in guard.robot_answer_es("x") and guard.DISCLOSURE_ES.startswith("Está hablando con un asistente de IA")
+    assert "no una persona" in guard.robot_answer_es("x") and guard.DISCLOSURE_ES_SMS.startswith("Está hablando con un asistente de IA")
     assert guard.consent_answer_es("Sí, claro") == "yes" and guard.consent_answer_es("No, mejor no") == "no"
     assert guard.consent_answer_es("no me mande mensajes") == "no" and guard.consent_answer_es("quizás") is None
 
@@ -56,9 +56,12 @@ def test_greeting_adds_the_spanish_notice_only_with_the_addon(demo_raw):
     en = greeting(load_record(demo_raw))
     assert "grabada" not in en
     es = greeting(es_tenant(demo_raw))
-    assert es.startswith(en) and guard.SPANISH_INVITE in es and guard.DISCLOSURE_ES in es
+    assert es.startswith(en) and guard.SPANISH_INVITE in es and guard.DISCLOSURE_ES_NO_SMS in es
     custom = greeting(es_tenant(demo_raw, greeting_es="Hola, gracias por llamar a Cool Breeze."))
-    assert "Hola, gracias por llamar a Cool Breeze." in custom and guard.DISCLOSURE_ES in custom  # notice never removable
+    assert "Hola, gracias por llamar a Cool Breeze." in custom and guard.DISCLOSURE_ES_NO_SMS in custom  # never removable
+    assert "texto" not in es  # SMS_ENABLED off (the default): no texting clause in either language
+    on = greeting(es_tenant(demo_raw), sms=True)
+    assert guard.DISCLOSURE_SMS in on and guard.DISCLOSURE_ES_SMS in on
 
 
 def test_voice_and_language_per_turn(demo_raw):

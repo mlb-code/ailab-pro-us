@@ -50,11 +50,43 @@ VOICE_MAX_SENTENCES = 2
 
 # Call disclosure (SA §8 item 2): played first on every AI-answered call, never removable. It says plainly that the
 # caller is speaking with an AI assistant (legal review 2026-11-27, 2.1: "virtual assistant" alone could be a remote
-# human), then the recording/transcription + texting notice. The version id goes into the consent log with every text
-# that relies on it.
-DISCLOSURE = ("You're speaking with an AI assistant. "
-              "This call may be recorded and transcribed by us and our service providers, and we may text you about it.")
-DISCLOSURE_VERSION = "2026-11-27"
+# human), then the recording/transcription notice. The texting clause ("and we may text you about it") is the notice a
+# missed-call text-back relies on (SA §8 item 3a), so it is spoken ONLY while SMS_ENABLED is on: with texting off the
+# line never texts, and the notice must not say it might. Pick the sentence with `disclosure(sms)`; the version id
+# (`disclosure_version(sms)`) goes into the consent log with every text that relies on it, so the record names the
+# variant that was actually spoken.
+DISCLOSURE_NO_SMS = ("You're speaking with an AI assistant. "
+                     "This call may be recorded and transcribed by us and our service providers.")
+DISCLOSURE_SMS = ("You're speaking with an AI assistant. "
+                  "This call may be recorded and transcribed by us and our service providers, and we may text you about it.")
+DISCLOSURE_VERSION = "2026-11-27"  # the texting variant (DISCLOSURE_SMS); unchanged id, so earlier consent rows still match
+DISCLOSURE_VERSION_NO_SMS = "2026-11-27-nosms"
+TEXT_NOTICE = re.compile(r"\btext(?:s|ed|ing)?\b", re.I)  # a greeting that tells the caller we may text them
+
+
+def disclosure(sms: bool) -> str:
+    """The call notice for the line's texting state (sms = settings.sms_enabled, the SMS_ENABLED master switch)."""
+    return DISCLOSURE_SMS if sms else DISCLOSURE_NO_SMS
+
+
+def disclosure_version(sms: bool) -> str:
+    return DISCLOSURE_VERSION if sms else DISCLOSURE_VERSION_NO_SMS
+
+
+def call_greeting(row: dict | None) -> str | None:
+    """The greeting stored as the first assistant line of a call row's transcript (None when there is none)."""
+    t = (row or {}).get("transcript")
+    if isinstance(t, list) and t and isinstance(t[0], dict) and t[0].get("who") == "assistant":
+        return str(t[0].get("text") or "") or None
+    return None
+
+
+def spoken_disclosure(greeting_text: str | None, sms: bool) -> tuple[str, str]:
+    """(notice text, version id) for the consent log: the variant the caller actually heard, read from the call's
+    stored greeting (transcript[0]); `sms` (the current switch) only when no greeting was stored."""
+    if greeting_text:
+        sms = bool(TEXT_NOTICE.search(greeting_text))
+    return disclosure(sms), disclosure_version(sms)
 # Texting consent at booking (SA §8 item 3b). Voice asks about the confirmation + one reminder; by text the reply
 # itself is the confirmation, so only the reminder is asked about.
 CONSENT_PROMPT_VERSION = "2026-10-12"
@@ -306,9 +338,16 @@ def language_fixed_reply(text: str, cfg: TenantConfig) -> str:
 
 
 # ---- ADD-ES: Spanish line (voice + SMS). English stays the default; these apply once a caller uses Spanish -----
-DISCLOSURE_ES = ("Está hablando con un asistente de IA (inteligencia artificial). "
-                 "Esta llamada puede ser grabada y transcrita por nosotros y nuestros proveedores de servicio, y podemos "
-                 "enviarle mensajes de texto.")
+DISCLOSURE_ES_NO_SMS = ("Está hablando con un asistente de IA (inteligencia artificial). "
+                        "Esta llamada puede ser grabada y transcrita por nosotros y nuestros proveedores de servicio.")
+DISCLOSURE_ES_SMS = ("Está hablando con un asistente de IA (inteligencia artificial). "
+                     "Esta llamada puede ser grabada y transcrita por nosotros y nuestros proveedores de servicio, y podemos "
+                     "enviarle mensajes de texto.")
+
+
+def disclosure_es(sms: bool) -> str:
+    """Spanish call notice (ADD-ES); the texting clause only while SMS_ENABLED is on, as in `disclosure`."""
+    return DISCLOSURE_ES_SMS if sms else DISCLOSURE_ES_NO_SMS
 SPANISH_INVITE = "Para español, hable en español."
 STOP_WORDS_ES = {"PARAR", "ALTO", "CANCELAR", "DETENER", "BAJA", "NOMAS", "NOMÁS"}
 START_WORDS_ES = {"INICIAR", "EMPEZAR", "COMENZAR", "SI", "SÍ", "ACTIVAR"}

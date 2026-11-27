@@ -14,10 +14,11 @@ import pytest
 from app import guard, sms_outbound
 from app.area_codes import timezone_for
 from app.tenants import load_file
-from app.voice import DISCLOSURE, greeting, has_disclosure
+from app.voice import greeting, has_disclosure
 from sim import harness
 from sim.fake_twilio import parse_twiml
 
+DISCLOSURE = guard.DISCLOSURE_SMS  # the simulator runs with SMS_ENABLED on: the notice with the texting clause
 TZ = ZoneInfo("America/Chicago")
 MON_9 = datetime(2026, 10, 12, 9, 0, tzinfo=TZ)
 CFG = load_file(harness.TENANTS_DIR / "demo-hvac.json").config
@@ -57,8 +58,8 @@ def test_disclosure_is_the_memo_sentence_and_in_every_default_greeting():
                           "This call may be recorded and transcribed by us and our service providers, "
                           "and we may text you about it.")
     t = load_file(harness.TENANTS_DIR / "demo-hvac.json")
-    g = greeting(t)
-    assert DISCLOSURE in g and "AI assistant" in g and has_disclosure(g)
+    g = greeting(t, sms=True)
+    assert DISCLOSURE in g and "AI assistant" in g and has_disclosure(g, sms=True)
     assert g.count("AI") == 1  # the default greeting no longer says it twice
 
 
@@ -77,18 +78,19 @@ def test_disclosure_is_the_memo_sentence_and_in_every_default_greeting():
     ("We may text you. This call is recorded.", False),
 ])
 def test_custom_greeting_needs_every_part(text, ok):
-    assert has_disclosure(text) is ok
+    assert has_disclosure(text, sms=True) is ok
 
 
 def test_safe_mode_greeting_has_the_disclosure_before_listening():
     from app.voice_safe import safe_greeting
-    assert DISCLOSURE in safe_greeting("Acme")
+    assert DISCLOSURE in safe_greeting("Acme", sms=True)
+    assert guard.DISCLOSURE_NO_SMS in safe_greeting("Acme") and "text" not in safe_greeting("Acme")
 
 
 def test_stream_mode_holds_speech_until_the_greeting_has_played(tmp_path):
     """welcomeGreetingInterruptible=none + a prompt sent during the greeting is processed only after its end."""
     sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="40", VOICE_GREETING_HOLD="1")
-    words = len(greeting(sim.tenant("demo-hvac")).split())
+    words = len(greeting(sim.tenant("demo-hvac"), sms=True).split())
     call = sim.call()
     call.start()
     t0 = time.perf_counter()

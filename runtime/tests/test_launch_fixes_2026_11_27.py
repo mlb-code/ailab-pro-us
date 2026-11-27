@@ -22,11 +22,12 @@ from app.notify import Notifier, NotifyPolicy, TwilioSms
 from app.notify.core import lead_from
 from app.store import JsonStore, StateStore
 from app.tenants import load_file, load_record
-from app.voice import DISCLOSURE, greeting, has_disclosure
+from app.voice import greeting, has_disclosure
 from app.voice_safe import safe_greeting
 from sim import harness
 from sim.fake_twilio import FakeTwilioClient, parse_twiml
 
+DISCLOSURE = guard.DISCLOSURE_SMS  # the simulator runs with SMS_ENABLED on unless a test switches it off
 TZ = ZoneInfo("America/Chicago")
 MON_9 = datetime(2026, 10, 12, 9, 0, tzinfo=TZ)
 ASK = "My furnace stopped working, I'm in 77019"
@@ -46,11 +47,13 @@ def zaps(sim, event):
 
 # --- 1. AI disclosure ------------------------------------------------------------------------------------------
 
-def test_disclosure_says_ai_assistant_in_english_and_ia_in_spanish():
-    assert DISCLOSURE.startswith("You're speaking with an AI assistant. ")
-    assert "recorded and transcribed by us and our service providers" in DISCLOSURE  # the recording notice stays
-    assert guard.DISCLOSURE_ES.startswith("Está hablando con un asistente de IA (inteligencia artificial). ")
-    assert "grabada y transcrita" in guard.DISCLOSURE_ES
+@pytest.mark.parametrize("sms", [True, False])
+def test_disclosure_says_ai_assistant_in_english_and_ia_in_spanish(sms):
+    en, es = guard.disclosure(sms), guard.disclosure_es(sms)
+    assert en.startswith("You're speaking with an AI assistant. ")
+    assert "recorded and transcribed by us and our service providers" in en  # the recording notice stays
+    assert es.startswith("Está hablando con un asistente de IA (inteligencia artificial). ")
+    assert "grabada y transcrita" in es
     assert guard.DISCLOSURE_VERSION == "2026-11-27"  # consent-log rows that rely on the new notice say which one
 
 
@@ -66,7 +69,7 @@ def test_robot_answer_is_direct():
     "Hi, I'm the virtual assistant. Calls are recorded and transcribed by our service providers, and we may text you.",
 ])
 def test_greeting_without_ai_wording_is_not_a_disclosure(text):
-    assert not has_disclosure(text)
+    assert not has_disclosure(text) and not has_disclosure(text, sms=True)
 
 
 @pytest.mark.parametrize("mode", ["stream", "gather"])
@@ -87,15 +90,17 @@ def test_default_greeting_says_ai_once_in_both_voice_modes(tmp_path, mode):
     assert text == f"Thanks for calling Cool Breeze HVAC. {DISCLOSURE} How can I help?"
 
 
-def test_spanish_greeting_carries_the_ia_notice(demo_raw):
+@pytest.mark.parametrize("sms", [True, False])
+def test_spanish_greeting_carries_the_ia_notice(demo_raw, sms):
     demo_raw["config"]["voice"]["languages"] = ["en", "es"]
-    g = greeting(load_record(demo_raw))
-    assert DISCLOSURE in g and guard.DISCLOSURE_ES in g and "asistente de IA" in g
+    g = greeting(load_record(demo_raw), sms=sms)
+    assert guard.disclosure(sms) in g and guard.disclosure_es(sms) in g and "asistente de IA" in g
 
 
-def test_message_mode_and_safe_mode_greetings_say_ai():
-    assert DISCLOSURE in message_mode.greeting("Acme") and "AI assistant" in message_mode.greeting("Acme")
-    assert DISCLOSURE in safe_greeting("Acme") and "AI assistant" in safe_greeting("Acme")
+@pytest.mark.parametrize("sms", [True, False])
+def test_message_mode_and_safe_mode_greetings_say_ai(sms):
+    for g in (message_mode.greeting("Acme", sms=sms), safe_greeting("Acme", sms=sms)):
+        assert guard.disclosure(sms) in g and "AI assistant" in g
 
 
 @pytest.mark.parametrize("mode", ["stream", "gather"])
@@ -235,7 +240,7 @@ def test_sms_off_safe_mode_sends_no_textback_and_no_reply(tmp_path, demo_raw):
     sim, _ = broken(tmp_path, demo_raw, SMS_ENABLED="0")
     call = sim.call()
     first = call.start()
-    assert DISCLOSURE in first.text
+    assert guard.DISCLOSURE_NO_SMS in first.text and "text" not in first.text  # texting off: no texting notice
     call.hangup(3)
     assert sim.twilio_client.outbox == []
     assert sms_in(sim, "is anyone there?") == ""

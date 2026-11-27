@@ -401,8 +401,10 @@ class Outbound:
                 if res["sent"]:
                     self.state.put(day_flag, now.isoformat(), tenant.id)
                     # consent basis: the caller's own call + the texting notice in the greeting (SA §8 items 2, 3a)
-                    ts.record_consent(contact, "voice", "text_back", "notice", guard.DISCLOSURE, job.get("call_sid"),
-                                      guard.DISCLOSURE_VERSION)
+                    calls = ts.select("calls", call_sid=job.get("call_sid")) if job.get("call_sid") else []
+                    heard = guard.call_greeting(calls[0] if calls else None)
+                    notice, version = guard.spoken_disclosure(heard, sms_enabled(self.settings))  # the variant heard
+                    ts.record_consent(contact, "voice", "text_back", "notice", notice, job.get("call_sid"), version)
                     tid = thread_id(self.state, tenant, contact, now)
                     self.rt.engine.note_outbound(tenant, "sms", contact, tid, body, prior=body)
             ts.log_event("sms.textback", {"call_sid": job.get("call_sid"), **{k: v for k, v in res.items() if k != "sid"}})

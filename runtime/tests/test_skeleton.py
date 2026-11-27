@@ -105,7 +105,7 @@ def test_signed_voice_incoming_greets_gather_mode(tmp_path):
 
 def test_custom_greeting(sim, demo_raw):
     """A custom greeting that already has every part of the notice is used as written."""
-    from app.voice import DISCLOSURE
+    from app.guard import DISCLOSURE_SMS as DISCLOSURE  # simulator: SMS_ENABLED on
     demo_raw["config"]["voice"]["greeting"] = f"Hello from the test line. {DISCLOSURE}"
     t = sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
@@ -118,7 +118,7 @@ def test_custom_greeting(sim, demo_raw):
     "Hi. This call may be recorded and transcribed by our service providers.",  # texting notice missing
 ])
 def test_custom_greeting_missing_any_part_gets_full_disclosure(sim, demo_raw, custom):
-    from app.voice import DISCLOSURE
+    from app.guard import DISCLOSURE_SMS as DISCLOSURE  # simulator: SMS_ENABLED on
     demo_raw["config"]["voice"]["greeting"] = custom
     t = sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
