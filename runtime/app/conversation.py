@@ -915,7 +915,7 @@ class Engine:
                        "job_type": args.get("job_type") if args.get("job_type") in cfg.booking.job_types
                        else cfg.booking.job_types[0],
                        "urgency": "urgent" if c.urgency == "urgent" or args.get("urgency") == "urgent" else "normal",
-                       "notes": str(args.get("notes") or "")[:300],
+                       "notes": guard.scrub_health(args.get("notes"))[:300],  # no health details saved (item 11)
                        **({"alt_phone": str(alt_phone)[:20]} if alt_phone else {})}
             res = self.calendar.book(tenant.id, cfg, now, slot_id, details)
             if not res.get("ok"):
@@ -941,7 +941,7 @@ class Engine:
         if name == "qualify_lead":  # real estate: screening answers -> Convo.meta["lead"] (alerts, Zapier, Follow Up Boss)
             lead = dict(c.meta.get("lead") or {})
             for k in LEAD_FIELDS:
-                v = str(args.get(k) or "").strip()
+                v = guard.scrub_health(str(args.get(k) or "").strip()) if k not in ("name", "email") else str(args.get(k) or "").strip()
                 if v and v.lower() not in ("unknown", "null", "none", "other"):
                     lead[k] = v[:200]
             c.meta["lead"] = lead
@@ -964,7 +964,8 @@ class Engine:
             if channel == "chat":
                 c.collect(phone=guard.find_phone(str(args.get("contact") or "")) or "",
                           email=guard.find_email(str(args.get("contact") or "")) or "")
-            c.message = {"summary": str(args.get("summary") or "")[:300], "urgency": urgency, **self._details(c)}
+            # no health details saved or sent (legal decisions 2026-11-27, item 11): "Caller reports a health-related urgency."
+            c.message = {"summary": guard.scrub_health(args.get("summary"))[:300], "urgency": urgency, **self._details(c)}
             c.set_outcome("message")
             self._alert(c, actions, "lead", c.message["summary"])
             out = {"ok": True}

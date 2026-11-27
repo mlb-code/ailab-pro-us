@@ -1,14 +1,14 @@
 {
- "1b3fdb8cab5fb74118048ad7": {
+ "1a8d1dd3243130d62346beee": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:05 AM. The business is open now. The customer's phone number is already known.",
       "type": "text"
      },
      {
-      "text": "Customer: The first one works",
+      "text": "Customer: Thanks",
       "type": "text"
      }
     ],
@@ -19,25 +19,32 @@
   "response": {
    "content": [
     {
-     "text": "Great. What name should I put the booking under?",
-     "type": "text"
+     "id": "toolu_mock_015",
+     "input": {
+      "outcome": "booked"
+     },
+     "name": "end_conversation",
+     "type": "tool_use"
     }
    ],
-   "stop_reason": "end_turn",
+   "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1317,
-    "output_tokens": 19
+    "input_tokens": 1806,
+    "output_tokens": 26
    }
   }
  },
- "3a32390dbe4cc85eda0cadc7": {
+ "2ddb63f5346f094ff4916a8e": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My name is Dana Miller",
+      "type": "text"
      }
     ],
     "role": "user"
@@ -47,18 +54,18 @@
   "response": {
    "content": [
     {
-     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "text": "Thanks, Dana. What's the street address for the visit?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1209,
-    "output_tokens": 34
+    "input_tokens": 1498,
+    "output_tokens": 21
    }
   }
  },
- "5fa7ea1590752038c70af57e": {
+ "7e885aed711094c8068161b8": {
   "request": {
    "last_message": {
     "content": [
@@ -90,12 +97,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1064,
+    "input_tokens": 1152,
     "output_tokens": 36
    }
   }
  },
- "7721879575fa8bc9295d1a18": {
+ "908eb376546f549f86943a8b": {
   "request": {
    "last_message": {
     "content": [
@@ -121,22 +128,19 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 964,
+    "input_tokens": 1052,
     "output_tokens": 30
    }
   }
  },
- "8a8b64bef54c9b47d0825f97": {
+ "b8d546b6b9a1c24f80625548": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:05 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Thanks",
-      "type": "text"
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_015",
+      "type": "tool_result"
      }
     ],
     "role": "user"
@@ -146,53 +150,77 @@
   "response": {
    "content": [
     {
-     "id": "toolu_mock_015",
-     "input": {
-      "outcome": "booked"
-     },
-     "name": "end_conversation",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1718,
-    "output_tokens": 26
-   }
-  }
- },
- "9ad8b76734b722ddf5c87289": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:03 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My name is Dana Miller",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Thanks, Dana. What's the street address for the visit?",
+     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1410,
+    "input_tokens": 1871,
     "output_tokens": 21
    }
   }
  },
- "9f100c267b4922e4d9a12754": {
+ "d36fad47528eccd2e3008f7a": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The first one works",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Great. What name should I put the booking under?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1405,
+    "output_tokens": 19
+   }
+  }
+ },
+ "d6561f39b058096b40f9625c": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_011",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1716,
+    "output_tokens": 19
+   }
+  }
+ },
+ "d9b3c5959e972f74a4605ecc": {
   "request": {
    "last_message": {
     "content": [
@@ -228,18 +256,18 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1507,
+    "input_tokens": 1595,
     "output_tokens": 71
    }
   }
  },
- "af1e2c2178d17432c043f379": {
+ "e3c17ffe1a2e730caade8943": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_015",
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_003",
       "type": "tool_result"
      }
     ],
@@ -250,42 +278,14 @@
   "response": {
    "content": [
     {
-     "text": "Thanks for contacting Cool Breeze HVAC. Have a great day!",
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1783,
-    "output_tokens": 21
-   }
-  }
- },
- "c3509fbf72b4067c0a755fd7": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_011",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're all set for Monday Oct 12, 12 PM to 4 PM.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1628,
-    "output_tokens": 19
+    "input_tokens": 1297,
+    "output_tokens": 34
    }
   }
  }

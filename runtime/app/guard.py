@@ -681,6 +681,8 @@ def sms_segments(text: str) -> int:
 # 2026-11-27 (legal review, privacy 3.9): + characteristics many states and cities protect (age, marital status, sexual
 # orientation, gender identity, military or veteran status, immigration status, criminal history), as questions or
 # labels only: "the roof's age" or "a VA loan" stay allowed.
+# 2026-11-27 (legal decisions, item 12): + genetic information, comments on crime or school quality, and telling a
+# caller they do not qualify ("the Austin ISD school district" as a listing fact stays allowed).
 FAIR_HOUSING = re.compile(
     r"\b(race|racial|ethnic\w*|hispanic|latino|latina|black|white|asian|jewish|muslim|christian|catholic|church\w*|"
     r"synagogue|mosque|religio\w*|national origin|nationality|country of origin|foreigners?|immigrants?|citizenship|"
@@ -697,13 +699,60 @@ FAIR_HOUSING = re.compile(
     r"good schools|how old are you|your age|age group|marital status|are you (married|single|divorced|separated|widowed)|"
     r"sexual orientation|lgbt\w*|transgender|gender identity|(military|veteran) status|"
     r"are you (a veteran|in the military|on active duty)|immigration status|undocumented|illegal (immigrants?|aliens?)|"
-    r"green card|criminal (record|history|background)|felon(y|ies|s)?|(been|ever) (arrested|convicted))\b", re.I)
+    r"green card|criminal (record|history|background)|felon(y|ies|s)?|(been|ever) (arrested|convicted)|"
+    r"genetic\w*|crimes?|crime (rate|rates|stats|statistics)|(high|low)[- ]crime|(best|worst|top[- ]rated|great|bad) schools|"
+    r"school (quality|scores?)|(you|they) (don'?t|do not|wouldn'?t|would not|won'?t|will not) qualify)\b", re.I)
 FAIR_HOUSING_TEXT = ("I can share facts about listings and the area, and the agent can walk you through any area you like. "
                      "What else can I help with?")
 
 
 def fair_housing_issue(text: str) -> bool:
     return bool(FAIR_HOUSING.search(text or ""))
+
+
+# ---- health details (legal decisions 2026-11-27, item 11: data minimization, all niches and channels) -----------------
+# A caller may mention a health detail to explain urgency ("my mom is on oxygen and the AC is out"). The prompt tells the
+# AI not to repeat or save it (brain.HEALTH_RULE); this is the code-level backstop on what is SAVED and SENT to the
+# business: the tool executor scrubs take_message summaries, booking notes and qualify_lead answers, and the lead e-mail's
+# transcript excerpt and the call summary are scrubbed the same way. The transcript itself stays as the call record.
+HEALTH = re.compile(
+    r"\b(oxygen|o2|medical (condition|equipment|device|issues?|problems?|needs?|emergency)|medically|medications?|meds|"
+    r"medicines?|prescriptions?|insulin|dialysis|ventilator|cpap|nebuli[sz]er|wheelchair|disabilit(y|ies)|disabled|"
+    r"handicap\w*|pregnan\w*|heart (condition|problems?|attack|disease|surgery)|asthma\w*|diabet\w*|cancer|chemo\w*|"
+    r"surgery|illness|sick|(in|from|out of) (the )?hospital|hospitali[sz]ed|health (condition|issues?|problems?)|"
+    r"dementia|alzheimer'?s|stroke|seizures?|epilep\w*|copd|immunocompromised|bed-?ridden|hospice|newborn|"
+    r"heat (stroke|exhaustion)|blood pressure)\b", re.I)
+HEALTH_NOTE = "Caller reports a health-related urgency."
+_SENTENCE_CUT = re.compile(r"(?<=[.!?;])\s+")
+_CLAUSE_CUT = re.compile(r",\s*|\s+(?:and|but|because|since|so)\s+", re.I)
+
+
+def scrub_health(text: str | None) -> str:
+    """`text` without the clauses that carry a health detail, plus HEALTH_NOTE once when anything was removed."""
+    t = str(text or "")
+    if not HEALTH.search(t):
+        return t
+    out = []
+    for sentence in _SENTENCE_CUT.split(t):
+        kept = [c.strip(" .;!?") for c in _CLAUSE_CUT.split(sentence) if c.strip(" .;!?") and not HEALTH.search(c)]
+        kept = [c for c in kept if c.lower() != HEALTH_NOTE.lower().rstrip(".")]
+        if kept:
+            body = ", ".join(kept)
+            out.append(body[:1].upper() + body[1:] + ".")
+    return " ".join(out + [HEALTH_NOTE])
+
+
+# ---- relay calls (legal decisions 2026-11-27, item 19) -----------------------------------------------------------------
+# A deaf or hard-of-hearing caller may call through a relay service: an operator reads the caller's typed words aloud
+# and types ours back, so replies take longer. Once detected, the runtime doubles the silence wait for the rest of the
+# call (app.voice); the voice prompt asks for short sentences (brain.RELAY_RULE).
+RELAY_CALL = re.compile(r"\b(relay (call|service|operator|conversation)|telecommunications relay|video relay|ip relay|"
+                        r"captioned (call|telephone|phone)|captel|tty|tdd|operator (for|with) a (deaf|hard of hearing))\b",
+                        re.I)
+
+
+def is_relay_call(text: str | None) -> bool:
+    return bool(RELAY_CALL.search(text or ""))
 
 
 # ---- contact details in free text (chat box: no caller id) -------------------------------------------

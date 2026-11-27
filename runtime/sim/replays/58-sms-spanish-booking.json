@@ -1,5 +1,36 @@
 {
- "05e55ee979568ec114880b1e": {
+ "35aaac9b1a356ddb4fa292d4": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hola, necesito ayuda, el aire acondicionado no funciona",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Lamento escuchar eso. Puedo enviar a un técnico. ¿Cuál es el código postal de la dirección?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1080,
+    "output_tokens": 36
+   }
+  }
+ },
+ "6ac247a408ad08790bb9b16a": {
   "request": {
    "last_message": {
     "content": [
@@ -31,71 +62,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1109,
+    "input_tokens": 1197,
     "output_tokens": 36
    }
   }
  },
- "30ad2bdadfb25dfab02eef77": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Puedo enviar a un técnico Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. ¿Cuál le conviene más?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1254,
-    "output_tokens": 40
-   }
-  }
- },
- "5b966c75807748eaeed9aabd": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known. The customer uses Spanish: reply in Spanish.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Hola, necesito ayuda, el aire acondicionado no funciona",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Lamento escuchar eso. Puedo enviar a un técnico. ¿Cuál es el código postal de la dirección?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 992,
-    "output_tokens": 36
-   }
-  }
- },
- "6517826c11cd213fcac5350c": {
+ "77c3e1973056c77fdd4c9d02": {
   "request": {
    "last_message": {
     "content": [
@@ -131,12 +103,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1394,
+    "input_tokens": 1482,
     "output_tokens": 78
    }
   }
  },
- "98106d7848ae3e065fd65d94": {
+ "9009193123d721dbe7bc5afb": {
   "request": {
    "last_message": {
     "content": [
@@ -159,8 +131,36 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1522,
+    "input_tokens": 1610,
     "output_tokens": 22
+   }
+  }
+ },
+ "fcc0027bba40fb034f6f715f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Puedo enviar a un técnico Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. ¿Cuál le conviene más?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1342,
+    "output_tokens": 40
    }
   }
  }

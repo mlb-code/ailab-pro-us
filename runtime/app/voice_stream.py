@@ -220,7 +220,8 @@ class RelaySession:
                     await run_in_threadpool(flow.finalize, self.tenant, self.call_sid, now())
                 await self.send({"type": "end", "handoffData": json.dumps(handoff)})
                 return
-            timeout = self.rt.settings.voice_silence_s + speaking_seconds(self.rt, turn.reply)
+            # a relay call (legal decisions item 19): twice VOICE_SILENCE_SECONDS before a turn counts as silent
+            timeout = self.rt.settings.voice_silence_s * (2 if turn.relay else 1) + speaking_seconds(self.rt, turn.reply)
 
     def _sentence_sink(self):
         """Called from the worker thread for each guarded sentence: send it now, in order, as a

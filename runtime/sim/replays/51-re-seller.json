@@ -1,11 +1,42 @@
 {
- "0b671a437691db43f71d0cb6": {
+ "06e5b0e5774af28d63976ee2": {
   "request": {
    "last_message": {
     "content": [
      {
-      "content": "{\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_013",
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: 4512 Berkman Dr, Austin 78723",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Are you already working with an agent?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1808,
+    "output_tokens": 17
+   }
+  }
+ },
+ "42357e4db862b9eb5239dde8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"meeting_type\": \"Listing consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"property_address\", \"timeline\"]}",
+      "tool_use_id": "toolu_mock_007",
       "type": "tool_result"
      }
     ],
@@ -16,27 +47,61 @@
   "response": {
    "content": [
     {
-     "text": "You're all set for Monday Oct 12, 3 PM to 5 PM. Jenna will see you then.",
+     "id": "toolu_mock_009",
+     "input": {
+      "date_from": null,
+      "job_type": "Listing consultation",
+      "zip": "78723"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 2045,
+    "output_tokens": 39
+   }
+  }
+ },
+ "4ca6a2635a77b35831a1e990": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 2230,
-    "output_tokens": 25
+    "input_tokens": 2192,
+    "output_tokens": 31
    }
   }
  },
- "13e32f3e5a851bf46fbc41d3": {
+ "7cf5731d4e98a3e99f94f2e9": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
       "type": "text"
      },
      {
-      "text": "Customer: Later this year, we're relocating for work",
+      "text": "Customer: I'm thinking about selling my home in Mueller",
       "type": "text"
      }
     ],
@@ -47,18 +112,18 @@
   "response": {
    "content": [
     {
-     "text": "What's the address of the property?",
+     "text": "What's your timeline, roughly when would you like to move?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1500,
-    "output_tokens": 16
+    "input_tokens": 1615,
+    "output_tokens": 22
    }
   }
  },
- "2d247d16dc17e4d80e60e70f": {
+ "81128d5bc0224521c7766e1d": {
   "request": {
    "last_message": {
     "content": [
@@ -94,105 +159,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 2087,
+    "input_tokens": 2303,
     "output_tokens": 93
    }
   }
  },
- "439c6af4ad3a14a092f382c1": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"meeting_type\": \"Listing consultation\", \"ok\": true, \"saved\": [\"area\", \"has_agent\", \"intent\", \"property_address\", \"timeline\"]}",
-      "tool_use_id": "toolu_mock_007",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_009",
-     "input": {
-      "date_from": null,
-      "job_type": "Listing consultation",
-      "zip": "78723"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1829,
-    "output_tokens": 39
-   }
-  }
- },
- "632ce13913c4b81c36565892": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1976,
-    "output_tokens": 31
-   }
-  }
- },
- "66ce7ea32e02172d6f1ec5ae": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: I'm thinking about selling my home in Mueller",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "What's your timeline, roughly when would you like to move?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1399,
-    "output_tokens": 22
-   }
-  }
- },
- "93979a6fbfcfea8cb5b8d5a8": {
+ "b16ea80925a149937252363f": {
   "request": {
    "last_message": {
     "content": [
@@ -230,21 +202,49 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1681,
+    "input_tokens": 1897,
     "output_tokens": 77
    }
   }
  },
- "9e76393dbb0c1f1df1a7a8ec": {
+ "d9a12520406aeef13a5b3fad": {
   "request": {
    "last_message": {
     "content": [
      {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:02 AM. The business is open now. The customer's phone number is already known.",
+      "content": "{\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_013",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 3 PM to 5 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2446,
+    "output_tokens": 25
+   }
+  }
+ },
+ "ec525a8dfde673dfdd4aa951": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:01 AM. The business is open now. The customer's phone number is already known.",
       "type": "text"
      },
      {
-      "text": "Customer: 4512 Berkman Dr, Austin 78723",
+      "text": "Customer: Later this year, we're relocating for work",
       "type": "text"
      }
     ],
@@ -255,14 +255,14 @@
   "response": {
    "content": [
     {
-     "text": "Are you already working with an agent?",
+     "text": "What's the address of the property?",
      "type": "text"
     }
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1592,
-    "output_tokens": 17
+    "input_tokens": 1716,
+    "output_tokens": 16
    }
   }
  }

@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from ..guard import scrub_health
 from ..settings import REPO_DIR, brand
 
 SMS_MAX = 320
@@ -115,7 +116,10 @@ def lead_alert(business: str, kind: str, lead: dict[str, Any]) -> tuple[str, str
         kind, "The AI receptionist took a new lead for you.")
     body = f"<p>{esc(intro)}</p>{_rows(pairs)}"
     if lead.get("transcript"):
-        lines = "".join(f"<div><b>{esc(t.get('who', ''))}:</b> {esc(t.get('text', ''))}</div>"
+        # the caller's health details are left out of the e-mail (legal decisions 2026-11-27, item 11); the full
+        # transcript stays in the portal as the call record
+        lines = "".join(f"<div><b>{esc(t.get('who', ''))}:</b> "
+                        f"{esc(scrub_health(t.get('text', '')))}</div>"
                         for t in lead["transcript"][-12:])
         body += f'<p style="margin-top:16px;color:#667">Transcript (last lines)</p>{lines}'
     html_ = _wrap(f"{business}: {subject}", body, "en", _footer_en())

@@ -1,5 +1,33 @@
 {
- "4587ebe6941e59a1cded13b2": {
+ "9ed9ceb28567980d9f5f3f74": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry, that address is outside our service area. I've passed your details to the team.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1225,
+    "output_tokens": 29
+   }
+  }
+ },
+ "b08ba918dea37cec9b1d72d4": {
   "request": {
    "last_message": {
     "content": [
@@ -29,12 +57,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1050,
+    "input_tokens": 1138,
     "output_tokens": 41
    }
   }
  },
- "6f27d3f3dfba045653a81500": {
+ "d0cd35622d4cbd817fa6815a": {
   "request": {
    "last_message": {
     "content": [
@@ -66,36 +94,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 963,
+    "input_tokens": 1051,
     "output_tokens": 36
-   }
-  }
- },
- "c5e6a0b4a2a7f044da5b27fa": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"reason\": \"out_of_area\"}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry, that address is outside our service area. I've passed your details to the team.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1137,
-    "output_tokens": 29
    }
   }
  }

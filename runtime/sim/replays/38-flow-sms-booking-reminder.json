@@ -1,5 +1,5 @@
 {
- "14a4e79bca4bb8929e540f67": {
+ "15ebe2644683d4ac1cb7510c": {
   "request": {
    "last_message": {
     "content": [
@@ -35,12 +35,40 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1509,
+    "input_tokens": 1597,
     "output_tokens": 71
    }
   }
  },
- "2e2850d7b3df090a382b4527": {
+ "5471adcbc7f4844a49f6a934": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}, {\"label\": \"Wednesday Oct 14, 8 AM to 12 PM\", \"slot_id\": \"2026-10-14T08:00-12:00\"}, {\"label\": \"Wednesday Oct 14, 12 PM to 4 PM\", \"slot_id\": \"2026-10-14T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can get a technician out Tuesday Oct 13, 12 PM to 4 PM or Wednesday Oct 14, 8 AM to 12 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1298,
+    "output_tokens": 35
+   }
+  }
+ },
+ "681553a702dfa435074f3c7a": {
   "request": {
    "last_message": {
     "content": [
@@ -66,130 +94,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1412,
+    "input_tokens": 1500,
     "output_tokens": 21
    }
   }
  },
- "2e45ee54cddebd51a1c39f64": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_011",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're all set for Tuesday Oct 13, 12 PM to 4 PM.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1630,
-    "output_tokens": 19
-   }
-  }
- },
- "3f60fef9cc64f9e89259d62b": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: The first one works",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Great. What name should I put the booking under?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1319,
-    "output_tokens": 19
-   }
-  }
- },
- "7721879575fa8bc9295d1a18": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: Hi, my AC is blowing warm air",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 964,
-    "output_tokens": 30
-   }
-  }
- },
- "7ac95a01561678bc46d4a7a3": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}, {\"label\": \"Wednesday Oct 14, 8 AM to 12 PM\", \"slot_id\": \"2026-10-14T08:00-12:00\"}, {\"label\": \"Wednesday Oct 14, 12 PM to 4 PM\", \"slot_id\": \"2026-10-14T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can get a technician out Tuesday Oct 13, 12 PM to 4 PM or Wednesday Oct 14, 8 AM to 12 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1210,
-    "output_tokens": 35
-   }
-  }
- },
- "aa20b16a7472bbbec7f2f30d": {
+ "6c77c8d1f8de851694c86fa8": {
   "request": {
    "last_message": {
     "content": [
@@ -221,8 +131,98 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1064,
+    "input_tokens": 1152,
     "output_tokens": 36
+   }
+  }
+ },
+ "8eb729b0f60114a2ed84821b": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: The first one works",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Great. What name should I put the booking under?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1407,
+    "output_tokens": 19
+   }
+  }
+ },
+ "908eb376546f549f86943a8b": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: sms. Local time: Monday Oct 12 2026, 09:00 AM. The business is open now. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: Hi, my AC is blowing warm air",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Sorry to hear that. I can get a technician out. What's the ZIP code for the service address?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1052,
+    "output_tokens": 30
+   }
+  }
+ },
+ "90f03222d2a92be698b64ef3": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_011",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Tuesday Oct 13, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1718,
+    "output_tokens": 19
    }
   }
  }

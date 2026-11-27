@@ -1,5 +1,40 @@
 {
- "1313ba00bfe325ac36bf3eb8": {
+ "013ac89c2f16634ebab6da40": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_007",
+     "input": {
+      "name": null,
+      "summary": "Customer wants to change a booking we could not find",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1463,
+    "output_tokens": 45
+   }
+  }
+ },
+ "076220b0694c07f8d15701f2": {
   "request": {
    "last_message": {
     "content": [
@@ -30,104 +65,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1053,
+    "input_tokens": 1178,
     "output_tokens": 28
    }
   }
  },
- "19455062bc0beac6deae2f52": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_007",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1421,
-    "output_tokens": 28
-   }
-  }
- },
- "1efdb2c9f1c4e2409227b277": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_007",
-     "input": {
-      "name": null,
-      "summary": "Customer wants to change a booking we could not find",
-      "urgency": "normal"
-     },
-     "name": "take_message",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1337,
-    "output_tokens": 45
-   }
-  }
- },
- "336b5961ba38dbd343491b19": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can't find a booking for this number. What phone number is the booking under, and what name is it under?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1131,
-    "output_tokens": 34
-   }
-  }
- },
- "9f1166f62711b157a423871f": {
+ "1875fd7124593b28d9449a1f": {
   "request": {
    "last_message": {
     "content": [
@@ -158,8 +101,65 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1254,
+    "input_tokens": 1380,
     "output_tokens": 32
+   }
+  }
+ },
+ "448bc293939dd08b990b9e63": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"no_booking\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can't find a booking for this number. What phone number is the booking under, and what name is it under?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1257,
+    "output_tokens": 34
+   }
+  }
+ },
+ "78ca78ed574da409af272903": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_007",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1547,
+    "output_tokens": 28
    }
   }
  }

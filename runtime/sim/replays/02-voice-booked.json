@@ -1,5 +1,5 @@
 {
- "1a38733c39c72b8c235bfa9b": {
+ "0b5c9ed3e3a8980debe2f185": {
   "request": {
    "last_message": {
     "content": [
@@ -22,12 +22,40 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1305,
+    "input_tokens": 1431,
     "output_tokens": 19
    }
   }
  },
- "1b8cd6699f1f45c7ef3ec4bd": {
+ "410d527edf8120d8cb44ff9d": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1182,
+    "output_tokens": 34
+   }
+  }
+ },
+ "b6c5d484834542a50b823557": {
   "request": {
    "last_message": {
     "content": [
@@ -59,12 +87,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 910,
+    "input_tokens": 1036,
     "output_tokens": 37
    }
   }
  },
- "2a4ebcee9a47d07ec5116c72": {
+ "d65de485390c95b3e827b7b5": {
   "request": {
    "last_message": {
     "content": [
@@ -100,36 +128,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1180,
+    "input_tokens": 1306,
     "output_tokens": 75
-   }
-  }
- },
- "5fc51556359ccc5dfd118ade": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}, {\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"slot_id\": \"2026-10-13T12:00-16:00\"}]}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can get a technician out Monday Oct 12, 12 PM to 4 PM or Tuesday Oct 13, 8 AM to 12 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1056,
-    "output_tokens": 34
    }
   }
  }

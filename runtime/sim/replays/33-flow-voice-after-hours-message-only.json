@@ -1,68 +1,5 @@
 {
- "8aa43556c638453821ed83db": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1093,
-    "output_tokens": 28
-   }
-  }
- },
- "8faf810736d2d8e7ffc1091c": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": false, \"reason\": \"after_hours_message_only\"}",
-      "is_error": true,
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_003",
-     "input": {
-      "name": null,
-      "summary": "Customer needs service: My AC is blowing warm air, zip 77002",
-      "urgency": "normal"
-     },
-     "name": "take_message",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1007,
-    "output_tokens": 47
-   }
-  }
- },
- "c93c9e3858575883aa92efb7": {
+ "3e2b13c69abd28f4d29c6d38": {
   "request": {
    "last_message": {
     "content": [
@@ -94,8 +31,71 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 917,
+    "input_tokens": 1043,
     "output_tokens": 36
+   }
+  }
+ },
+ "97f44ec272adfca6a489e862": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Got it. I've passed your message to the team and someone will get back to you soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1219,
+    "output_tokens": 28
+   }
+  }
+ },
+ "b973e4c2ab2c124594402291": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": false, \"reason\": \"after_hours_message_only\"}",
+      "is_error": true,
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_003",
+     "input": {
+      "name": null,
+      "summary": "Customer needs service: My AC is blowing warm air, zip 77002",
+      "urgency": "normal"
+     },
+     "name": "take_message",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1133,
+    "output_tokens": 47
    }
   }
  }

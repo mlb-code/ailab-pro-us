@@ -1,5 +1,33 @@
 {
- "0deca2f77b9c4bc0bb198375": {
+ "0457821bd4ca3e33d3400f71": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_005",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2011,
+    "output_tokens": 31
+   }
+  }
+ },
+ "163ef186673172936dbefd9c": {
   "request": {
    "last_message": {
     "content": [
@@ -35,12 +63,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1866,
+    "input_tokens": 2119,
     "output_tokens": 71
    }
   }
  },
- "53e36d0b83e0f48465b7686f": {
+ "1f45e5338588a3153d50d21a": {
   "request": {
    "last_message": {
     "content": [
@@ -66,68 +94,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1354,
+    "input_tokens": 1607,
     "output_tokens": 22
    }
   }
  },
- "5e7276850eb18f8299cc6453": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"slot_id\": \"2026-10-12T13:00-15:00\"}, {\"label\": \"Monday Oct 12, 3 PM to 5 PM\", \"slot_id\": \"2026-10-12T15:00-17:00\"}, {\"label\": \"Tuesday Oct 13, 10 AM to 12 PM\", \"slot_id\": \"2026-10-13T10:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_005",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Jenna can meet Monday Oct 12, 1 PM to 3 PM or Monday Oct 12, 3 PM to 5 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1757,
-    "output_tokens": 31
-   }
-  }
- },
- "b91b3c22974618d7bd6f2447": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1987,
-    "output_tokens": 25
-   }
-  }
- },
- "d045f0d6cbb73b597b086859": {
+ "59948597748868b22ef99435": {
   "request": {
    "last_message": {
     "content": [
@@ -156,12 +128,40 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1611,
+    "input_tokens": 1865,
     "output_tokens": 38
    }
   }
  },
- "d7c3b3fdb281cd334ac23846": {
+ "bc0b8bc631cccb4b806b0d00": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Monday Oct 12, 1 PM to 3 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "You're all set for Monday Oct 12, 1 PM to 3 PM. Jenna will see you then.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 2241,
+    "output_tokens": 25
+   }
+  }
+ },
+ "c9a0b7b2380cdc84108a9551": {
   "request": {
    "last_message": {
     "content": [
@@ -199,7 +199,7 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1466,
+    "input_tokens": 1720,
     "output_tokens": 71
    }
   }

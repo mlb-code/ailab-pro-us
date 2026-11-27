@@ -1,5 +1,33 @@
 {
- "e399785e6227d7759e350439": {
+ "3e8fab41344228a4dbd4abd4": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"action\": \"message\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I've let the team know you'd like to talk to someone, and they'll call you back soon.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1127,
+    "output_tokens": 28
+   }
+  }
+ },
+ "fa4aee29809d0536c26991da": {
   "request": {
    "last_message": {
     "content": [
@@ -29,36 +57,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 965,
+    "input_tokens": 1053,
     "output_tokens": 29
-   }
-  }
- },
- "f74c40e28598cc2a2b5f35b7": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"action\": \"message\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I've let the team know you'd like to talk to someone, and they'll call you back soon.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1039,
-    "output_tokens": 28
    }
   }
  }

@@ -169,6 +169,7 @@ class VoiceTurn:
     streamed: bool = False  # the reply was already sent sentence by sentence (relay); only `last` remains
     lang: str | None = None  # "es" once the caller used Spanish (ADD-ES): TTS voice + STT language follow
     dispatch: bool = False  # ADD-DISPATCH: the call goes to the on-call waterfall (app.dispatch)
+    relay: bool = False  # a relay call (guard.is_relay_call, legal decisions item 19): the silence wait is doubled
 
 
 def _first_sentence_stats(rows: list[list[float]]) -> dict[str, float]:
@@ -308,6 +309,8 @@ class VoiceFlow:
         res = eng.handle(tenant, "voice", caller, text, call_sid, now, on_sentence=on_sentence)
         c = eng.convo(tenant, "voice", caller, call_sid)
         c.meta["turns"] = c.meta.get("turns", 0) + 1
+        if guard.is_relay_call(text):  # a relay operator: wait twice as long for replies for the rest of the call
+            c.meta["relay_call"] = True
         dial = next((a["number"] for a in res.actions if a.get("type") == "dial"), None)
         if dial:
             c.meta["dialing"] = {"number": dial, "reason": next(a.get("reason") for a in res.actions if a.get("type") == "dial")}
@@ -326,7 +329,8 @@ class VoiceFlow:
         self._persist(tenant, c)
         streamed = res.streamed and reply == res.reply
         return VoiceTurn(reply, end=end, dial=dial, outcome=c.outcome, actions=res.actions, streamed=streamed,
-                         lang=res.lang or c.meta.get("lang"), dispatch=bool(dispatching))
+                         lang=res.lang or c.meta.get("lang"), dispatch=bool(dispatching),
+                         relay=bool(c.meta.get("relay_call")))
 
     # --- relay socket lost (streaming mode) ---------------------------------------------------------
     def relay_lost(self, tenant: TenantRecord, call_sid: str, now: datetime) -> None:
@@ -474,7 +478,7 @@ def summary(c: Convo) -> str:
             details = [c.collected.get(k) for k in ("name", "job_type", "address") if c.collected.get(k)]
         tail = f" ({', '.join(details)})" if details else ""
         return f"Message ({c.message.get('urgency', 'normal')}): {c.message.get('summary', '')}{tail}"[:400]
-    said = next((t["text"] for t in c.transcript if t["who"] == "customer"), "")
+    said = guard.scrub_health(next((t["text"] for t in c.transcript if t["who"] == "customer"), ""))
     return (f"Caller said: {said}" if said else "No speech")[:400]
 
 
@@ -534,7 +538,12 @@ def speech_hints(cfg: Any) -> str:
     return text
 
 
-def twiml_gather(text: str, voice: str, barge_in: bool = True, lang: str = guard.ENGLISH_LANG, hints: str = "") -> str:
+# Twilio's <Gather> waits 5 s for speech to start by default; a relay call (an operator reads and types) gets twice that
+RELAY_GATHER_TIMEOUT_S = 10
+
+
+def twiml_gather(text: str, voice: str, barge_in: bool = True, lang: str = guard.ENGLISH_LANG, hints: str = "",
+                 timeout_s: int | None = None) -> str:
     """Speak `text` and listen. `barge_in=False` (the greeting with the call notice): <Say> before <Gather>, so the
     caller cannot cut the notice off and nothing they say is processed before it ends. `lang` = the STT language and
     the <Say> language of this turn (es-US once the caller used Spanish). `hints` = speech_hints(tenant config)."""
@@ -542,7 +551,8 @@ def twiml_gather(text: str, voice: str, barge_in: bool = True, lang: str = guard
     if not barge_in:
         _say(vr, text, voice, lang)
     g = vr.gather(input="speech", action="/voice/turn", method="POST", speech_model="phone_call", enhanced=True,
-                  speech_timeout="auto", action_on_empty_result=True, language=lang, hints=hints or None)
+                  speech_timeout="auto", action_on_empty_result=True, language=lang, hints=hints or None,
+                  timeout=timeout_s)
     if barge_in:
         _say(g, text, voice, lang)
     return str(vr)
@@ -562,7 +572,8 @@ def twiml_for(turn: VoiceTurn, tenant: TenantRecord) -> str:
         return twiml_dial(turn.reply, voice, turn.dial, lang)
     if turn.end:
         return twiml_say_hangup(turn.reply, voice, lang)
-    return twiml_gather(turn.reply, voice, lang=lang, hints=speech_hints(tenant.config))
+    return twiml_gather(turn.reply, voice, lang=lang, hints=speech_hints(tenant.config),
+                        timeout_s=RELAY_GATHER_TIMEOUT_S if turn.relay else None)
 
 
 def twiml_reject() -> str:

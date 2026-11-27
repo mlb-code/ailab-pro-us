@@ -1,39 +1,5 @@
 {
- "15fb160c0734ce4660fbf9dd": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"Maintenance\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77019\"}], \"ok\": true}",
-      "tool_use_id": "toolu_mock_003",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_005",
-     "input": {
-      "date_from": null,
-      "job_type": "Maintenance",
-      "zip": "77019"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 1329,
-    "output_tokens": 36
-   }
-  }
- },
- "42da0a6ea5e5319583506947": {
+ "7ee9bfb1647303d427c98fe2": {
   "request": {
    "last_message": {
     "content": [
@@ -64,12 +30,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1227,
+    "input_tokens": 1353,
     "output_tokens": 28
    }
   }
  },
- "4d48ad7a39445106df2ef88a": {
+ "89f26ecfbff32b848606e813": {
   "request": {
    "last_message": {
     "content": [
@@ -92,12 +58,74 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1452,
+    "input_tokens": 1577,
     "output_tokens": 32
    }
   }
  },
- "728eadf3632643a4f0ad9e4e": {
+ "a11870fd900f545003a66f4f": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
+      "tool_use_id": "toolu_mock_009",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1770,
+    "output_tokens": 22
+   }
+  }
+ },
+ "b49d5e4d23b66001d68829c8": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"bookings\": [{\"booking_id\": \"B1\", \"job_type\": \"Maintenance\", \"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"zip\": \"77019\"}], \"ok\": true}",
+      "tool_use_id": "toolu_mock_003",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_005",
+     "input": {
+      "date_from": null,
+      "job_type": "Maintenance",
+      "zip": "77019"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1454,
+    "output_tokens": 36
+   }
+  }
+ },
+ "e7f850bbad407e904dfb1ba0": {
   "request": {
    "last_message": {
     "content": [
@@ -123,12 +151,12 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1124,
+    "input_tokens": 1250,
     "output_tokens": 25
    }
   }
  },
- "7d739b301e25a23a3bc27cf2": {
+ "fb14c0e1201e7ead99b64ae4": {
   "request": {
    "last_message": {
     "content": [
@@ -159,36 +187,8 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1558,
+    "input_tokens": 1684,
     "output_tokens": 36
-   }
-  }
- },
- "a974296007082e6c8759ae10": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"label\": \"Tuesday Oct 13, 12 PM to 4 PM\", \"ok\": true}",
-      "tool_use_id": "toolu_mock_009",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "Done. I moved your visit to Tuesday Oct 13, 12 PM to 4 PM.",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1644,
-    "output_tokens": 22
    }
   }
  }

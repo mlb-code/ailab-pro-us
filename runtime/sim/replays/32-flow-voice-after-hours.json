@@ -1,5 +1,70 @@
 {
- "1288d1390a8911e6d94073ff": {
+ "64e61fc4b8ba0118a3cb01a5": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "text": "[context] Channel: voice. Local time: Sunday Oct 11 2026, 10:30 PM. The business is closed now: offer the next available slots. The customer's phone number is already known.",
+      "type": "text"
+     },
+     {
+      "text": "Customer: My AC is blowing warm air, zip 77002",
+      "type": "text"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "id": "toolu_mock_001",
+     "input": {
+      "date_from": null,
+      "job_type": "AC repair",
+      "zip": "77002"
+     },
+     "name": "get_availability",
+     "type": "tool_use"
+    }
+   ],
+   "stop_reason": "tool_use",
+   "usage": {
+    "input_tokens": 1044,
+    "output_tokens": 36
+   }
+  }
+ },
+ "783a03e8681ae9ea20513fac": {
+  "request": {
+   "last_message": {
+    "content": [
+     {
+      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"slot_id\": \"2026-10-12T08:00-12:00\"}, {\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}]}",
+      "tool_use_id": "toolu_mock_001",
+      "type": "tool_result"
+     }
+    ],
+    "role": "user"
+   },
+   "model": "claude-haiku-5-5"
+  },
+  "response": {
+   "content": [
+    {
+     "text": "I can get a technician out Monday Oct 12, 8 AM to 12 PM or Monday Oct 12, 12 PM to 4 PM. Which works better?",
+     "type": "text"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "usage": {
+    "input_tokens": 1188,
+    "output_tokens": 34
+   }
+  }
+ },
+ "c3a8f8cef8d02e63de0676ed": {
   "request": {
    "last_message": {
     "content": [
@@ -35,77 +100,12 @@
    ],
    "stop_reason": "tool_use",
    "usage": {
-    "input_tokens": 1190,
+    "input_tokens": 1315,
     "output_tokens": 71
    }
   }
  },
- "12f6fac2b8a392694a5defb3": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "content": "{\"ok\": true, \"slots\": [{\"label\": \"Monday Oct 12, 8 AM to 12 PM\", \"slot_id\": \"2026-10-12T08:00-12:00\"}, {\"label\": \"Monday Oct 12, 12 PM to 4 PM\", \"slot_id\": \"2026-10-12T12:00-16:00\"}, {\"label\": \"Tuesday Oct 13, 8 AM to 12 PM\", \"slot_id\": \"2026-10-13T08:00-12:00\"}]}",
-      "tool_use_id": "toolu_mock_001",
-      "type": "tool_result"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "text": "I can get a technician out Monday Oct 12, 8 AM to 12 PM or Monday Oct 12, 12 PM to 4 PM. Which works better?",
-     "type": "text"
-    }
-   ],
-   "stop_reason": "end_turn",
-   "usage": {
-    "input_tokens": 1062,
-    "output_tokens": 34
-   }
-  }
- },
- "670a83f32709095bb34b037a": {
-  "request": {
-   "last_message": {
-    "content": [
-     {
-      "text": "[context] Channel: voice. Local time: Sunday Oct 11 2026, 10:30 PM. The business is closed now: offer the next available slots. The customer's phone number is already known.",
-      "type": "text"
-     },
-     {
-      "text": "Customer: My AC is blowing warm air, zip 77002",
-      "type": "text"
-     }
-    ],
-    "role": "user"
-   },
-   "model": "claude-haiku-5-5"
-  },
-  "response": {
-   "content": [
-    {
-     "id": "toolu_mock_001",
-     "input": {
-      "date_from": null,
-      "job_type": "AC repair",
-      "zip": "77002"
-     },
-     "name": "get_availability",
-     "type": "tool_use"
-    }
-   ],
-   "stop_reason": "tool_use",
-   "usage": {
-    "input_tokens": 918,
-    "output_tokens": 36
-   }
-  }
- },
- "77335246953f541ae9ee926c": {
+ "da4f3534c0f3de15fe9c6c97": {
   "request": {
    "last_message": {
     "content": [
@@ -128,7 +128,7 @@
    ],
    "stop_reason": "end_turn",
    "usage": {
-    "input_tokens": 1310,
+    "input_tokens": 1436,
     "output_tokens": 19
    }
   }
