@@ -38,12 +38,13 @@
         '<span>' + esc((BRAND.disclaimers && BRAND.disclaimers.footer) || '') + sup + '</span></div>';
     }
   }
-  // GA4 + Clarity + Meta Pixel only when their IDs are configured (brand.json analytics.ga4_id / clarity_id / meta_pixel_id):
-  // /assets/measure.js. The portal is personal throughout, so Clarity masks the whole page; the pixel gets page views and
-  // funnel event names only (nothing typed is sent). Never on the admin screens.
+  // GA4 + Meta Pixel only when their IDs are configured (brand.json analytics.ga4_id / meta_pixel_id): /assets/measure.js.
+  // No Microsoft Clarity session replay anywhere under /start (sign-in, sign-up and checkout, questionnaire, portal: legal
+  // review 2026-11-27, Privacy Policy §3.3); the pixel gets page views and funnel event names only (nothing typed is sent).
+  // Never on the admin screens.
   function analytics() {
     if (!window.Measure || /^\/start\/admin\//.test(location.pathname)) return;
-    window.Measure.init(BRAND.analytics, { maskAll: true });
+    window.Measure.init(BRAND.analytics, { clarity: false });
   }
   // Funnel events must be declared in brand.json analytics.events; the name is built from parts so it lives only there.
   function trackFunnel(parts, params) { if (window.Measure) window.Measure.trackFunnel(parts, params); }

@@ -3,7 +3,11 @@
      gaConfig  extra gtag('config') params (the quote page passes a token-free page_location)
      clarity   false = never load Clarity on this page (the quote page)
      meta      false = never load the Meta Pixel on this page (the quote page: its URL carries the private quote token)
-     maskAll   true  = mask the whole page in Clarity (portal: everything there is personal)
+     maskAll   true  = mask the whole page in Clarity
+   Session replay (Microsoft Clarity, legal review 2026-11-27): only on public marketing pages without a form or the
+   live demo chat. It is never loaded on the sign-in / sign-up / checkout pages, the client portal and the questionnaire
+   (/start: common.js passes clarity false), the quote page (quote.js) or the admin; generated landing pages with a form
+   or the live demo carry "session_replay": false in data-measure (tools/build_landing.py), which turns Clarity off.
    Rules:
      * no ID configured             -> nothing third-party is loaded (empty IDs in config = measurement off)
      * Global Privacy Control / Do Not Track on -> nothing third-party is loaded, track() is a no-op
@@ -150,5 +154,8 @@
   window.Measure = api;
   // landing pages: config comes on the script tag (tools/build_landing.py), <script src=measure.js defer data-measure="{...}">
   var inline = me && me.getAttribute('data-measure');
-  if (inline) { try { init(JSON.parse(inline)); } catch (e) { /* bad config = measurement off */ } }
+  if (inline) {
+    try { var icfg = JSON.parse(inline); init(icfg, icfg.session_replay === false ? { clarity: false } : {}); }
+    catch (e) { /* bad config = measurement off */ }
+  }
 })();
