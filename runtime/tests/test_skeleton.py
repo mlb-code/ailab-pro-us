@@ -20,6 +20,7 @@ from sim.__main__ import main as sim_main
 from sim.fake_calendar import FakeCalendar
 from sim.fake_twilio import FakeTwilio, FakeTwilioClient, parse_twiml
 from sim.replay import ReplayMissing, ReplayStore, request_key
+from app.voice import ASK
 
 TZ = ZoneInfo("America/Chicago")
 
@@ -109,7 +110,8 @@ def test_custom_greeting(sim, demo_raw):
     demo_raw["config"]["voice"]["greeting"] = f"Hello from the test line. {DISCLOSURE}"
     t = sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
-    assert parse_twiml(r.text).text == f"Hello from the test line. {DISCLOSURE}"
+    # stream mode (the simulator default): the greeting is a <Say> before the relay, which then asks "How can I help?"
+    assert parse_twiml(r.text).says == [f"Hello from the test line. {DISCLOSURE}", ASK]
 
 
 @pytest.mark.parametrize("custom", [
@@ -122,7 +124,7 @@ def test_custom_greeting_missing_any_part_gets_full_disclosure(sim, demo_raw, cu
     demo_raw["config"]["voice"]["greeting"] = custom
     t = sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
-    assert parse_twiml(r.text).text == f"{custom} {DISCLOSURE}"
+    assert parse_twiml(r.text).says == [f"{custom} {DISCLOSURE}", ASK]  # <Say> the greeting, then the relay's question
 
 
 def test_unsigned_and_forged_rejected(sim):

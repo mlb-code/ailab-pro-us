@@ -62,7 +62,10 @@ def test_relay_twiml(tmp_path):
     relay = root.find("Connect/ConversationRelay")
     assert root.find("Connect").get("action") == "/voice/relay-end"
     assert relay.get("ttsProvider") == "Amazon" and relay.get("voice") == "Joanna-Neural"
-    assert "transcribed" in relay.get("welcomeGreeting") and relay.get("welcomeGreetingInterruptible") == "none"
+    # the notice is a <Say> BEFORE <Connect> (nothing listens while it plays); the relay itself only asks the question
+    assert [c.tag for c in root] == ["Say", "Connect"] and "transcribed" in root.find("Say").text
+    assert root.find("Say").get("voice") == "Polly.Joanna-Neural"
+    assert relay.get("welcomeGreeting") == "How can I help?" and relay.get("welcomeGreetingInterruptible") == "none"
     assert relay.get("url").startswith("ws://testserver/voice/relay?t=")
 
 

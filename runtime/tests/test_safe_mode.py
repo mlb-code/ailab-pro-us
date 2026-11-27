@@ -157,3 +157,17 @@ def test_retired_niche_config_goes_to_safe_mode_not_a_crash(tmp_path, demo_raw):
     assert "Thanks for calling Cool Breeze HVAC" in first.text and not first.end
     ev = events(sim, "tenant_config_invalid")
     assert len(ev) == 1 and "business.niche" in str(ev[0])
+
+
+def test_safe_mode_records_the_notice_and_when_it_ended(tmp_path, demo_raw):
+    """Legal decisions 2026-11-27, item 2: the safe-mode call row keeps the notice heard (<Say> before <Gather>) and
+    notice_completed_at = the caller's turn, which comes only after it."""
+    from app import guard
+    sim, clock = broken(tmp_path, demo_raw)
+    call = sim.call()
+    call.start()
+    row = sim.store.select("calls")[0]
+    assert (row["notice_version"], row["notice_lang"], row.get("notice_completed_at")) == (guard.DISCLOSURE_VERSION, "en", None)
+    clock.advance(seconds=9)
+    call.say("This is Dana Miller, call me at 713 555 0123")
+    assert sim.store.select("calls")[0]["notice_completed_at"] == clock().isoformat()

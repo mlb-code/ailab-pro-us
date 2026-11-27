@@ -366,3 +366,16 @@ def test_quote_client_over_100_percent_keeps_full_answering(tmp_path, demo_raw):
     rec = s.tenant("demo-hvac")
     s.rt.state.put(s.rt.engine.usage.key(rec, "voice", s.rt.now()), 5000.0, rec.id)
     assert "can't take your call live" not in s.call("demo-hvac").start().text
+
+
+def test_message_mode_records_the_notice_and_when_it_ended(tmp_path, demo_raw):
+    """Legal decisions 2026-11-27, item 2: the calls row keeps the notice heard; notice_completed_at = the first speech
+    turn (it comes only after the <Say> with the notice)."""
+    from app import guard
+    s, call = _mm_call(tmp_path, demo_raw)
+    row = s.store.select("calls", call_sid=call.call_sid)[0]
+    assert (row["notice_version"], row["notice_lang"]) == (guard.DISCLOSURE_VERSION, "en")
+    assert not row.get("notice_completed_at")
+    call.say("This is Dana, 713 555 0123, my AC stopped")
+    row = s.store.select("calls", call_sid=call.call_sid)[0]
+    assert row["notice_completed_at"] and row["notice_completed_at"] >= row["started_at"]

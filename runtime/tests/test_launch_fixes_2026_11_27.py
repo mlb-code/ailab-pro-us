@@ -79,7 +79,8 @@ def test_client_greeting_without_ai_gets_the_standard_notice_in_both_voice_modes
     sim, _ = build(tmp_path, mode)
     t = sim.store.upsert_tenant(demo_raw)
     _, r = sim.twilio.start_call(t.twilio_number, harness.CALLER)
-    assert parse_twiml(r.text).text == f"{custom} {DISCLOSURE}"
+    # stream: the greeting is a <Say> before the relay; the relay then asks its question (the greeting has none at its end)
+    assert parse_twiml(r.text).text == (f"{custom} {DISCLOSURE}" + (" How can I help?" if mode == "stream" else ""))
 
 
 @pytest.mark.parametrize("mode", ["stream", "gather"])

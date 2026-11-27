@@ -5,12 +5,14 @@
 Twilio runs streaming STT + TTS; we exchange JSON over the socket:
     in : setup {callSid, from, to} | prompt {voicePrompt, last} | interrupt | dtmf | error
     out: text {token, last, interruptible} | end {handoffData}
-The welcome greeting (with the call notice, `guard.disclosure(sms)`) is spoken by Twilio from the TwiML with
-welcomeGreetingInterruptible="none" (the caller cannot cut it off), and a prompt that arrives while it is
-still playing (estimated from its length) is discarded, not processed later (legal review 2026-11-27,
-privacy item 3.1): it never reaches Claude, the transcript or any record. When the notice has ended and
-something was discarded, the caller is asked again (NOTICE_REASK), so the first prompt we process always
-comes after the notice (SA §8, "AI and recording notice").
+The call notice (`guard.disclosure(sms)`, and the Spanish notice on a Spanish line) is played with TwiML <Say> BEFORE
+<Connect> (legal decisions 2026-11-27, item 1; `voice.notice_then_ask`): Twilio runs the verbs in order, so the relay
+session, and with it speech-to-text, starts only after the notice has finished; nothing the caller says over it is
+transcribed or sent to the AI (SA §8, "AI and recording notice"). The relay's welcomeGreeting is only the closing
+question ("How can I help?"), welcomeGreetingInterruptible="none". Second line of defense (legal review 2026-11-27,
+privacy item 3.1): a prompt that arrives while that welcome question is still playing (estimated from its length) is
+discarded, not processed later (never sent to Claude, the transcript or any record), and the caller is asked again
+(NOTICE_REASK). The session's `setup` stamps calls.notice_completed_at (`VoiceFlow.notice_heard`).
 After `end`, Twilio requests the Connect action (/voice/relay-end) with HandoffData: we answer
 <Dial> (handoff / urgent line) or <Hangup>. If the relay session fails, /voice/relay-end
 continues the same call in turn-based <Gather> mode (same conversation state).
@@ -43,14 +45,14 @@ from twilio.twiml.voice_response import VoiceResponse
 from . import crypto, guard
 from .runtime_ctx import Runtime
 from .tenants import TenantConfigError, TenantRecord, load_record
-from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, greeting, sms_on, speech_hints, twiml_gather,
-                    twiml_say_hangup)
+from .voice import (DIAL_TIMEOUT_S, REPEAT_TEXT, TWIML, _say, notice_then_ask, say_voice, sms_on, speech_hints,
+                    twiml_gather, twiml_say_hangup)
 
 log = logging.getLogger("rt.voice_stream")
 
 TOKEN_TTL_S = 900
-# said once the call notice has ended, if the caller spoke over it (their words were discarded, not heard)
-NOTICE_REASK = "Sorry, I couldn't hear you while that message was playing. How can I help you today?"
+# said once the welcome question has ended, if the caller spoke over it (their words were discarded, not heard)
+NOTICE_REASK = "Sorry, I missed that. How can I help?"
 
 
 def ws_base(rt: Runtime, request_or_ws: Any) -> str:
@@ -72,10 +74,14 @@ def tts(tenant: TenantRecord, lang: str | None = None) -> tuple[str, str]:
 def relay_twiml(rt: Runtime, request: Request, tenant: TenantRecord, call_sid: str) -> str:
     token = crypto.sign(rt.settings.cred_key, {"c": call_sid, "t": tenant.id}, ttl_s=TOKEN_TTL_S)
     provider, voice = tts(tenant)
+    en, es, ask = notice_then_ask(tenant, sms_on(rt))
     vr = VoiceResponse()
+    _say(vr, en, say_voice(tenant.config.voice.tts_voice), guard.ENGLISH_LANG)  # the notice, before anything listens
+    if es:  # ADD-ES: the Spanish notice in the Spanish voice, also before the relay starts
+        _say(vr, es, say_voice(tenant.config.voice.tts_voice_es, guard.SPANISH_LANG), guard.SPANISH_LANG)
     connect = vr.connect(action="/voice/relay-end", method="POST")
     relay = connect.conversation_relay(
-        url=f"{ws_base(rt, request)}/voice/relay?t={token}", welcome_greeting=greeting(tenant, sms_on(rt)),
+        url=f"{ws_base(rt, request)}/voice/relay?t={token}", welcome_greeting=ask,
         welcome_greeting_interruptible="none", interruptible="speech", language=guard.ENGLISH_LANG,
         tts_provider=provider, voice=voice, transcription_provider="Deepgram", dtmf_detection=False,
         hints=speech_hints(tenant.config) or None)  # the tenant's names, services and FAQ terms, spelled right
@@ -155,7 +161,9 @@ class RelaySession:
             return
         self.caller = str(first.get("from", ""))
         loop = asyncio.get_running_loop()
-        greeting_s = speaking_seconds(self.rt, greeting(self.tenant, sms_on(self.rt)))
+        # the relay starts only after the <Say> with the notice: the notice is complete now
+        await run_in_threadpool(flow.notice_heard, self.tenant, self.call_sid, now())
+        greeting_s = speaking_seconds(self.rt, notice_then_ask(self.tenant, sms_on(self.rt))[2])  # the welcome question
         greeting_ends = loop.time() + greeting_s
         timeout = self.rt.settings.voice_silence_s + greeting_s
         spoke_over_notice = False
@@ -163,7 +171,7 @@ class RelaySession:
             try:
                 msg = await asyncio.wait_for(self.queue.get(), timeout)
             except asyncio.TimeoutError:
-                if spoke_over_notice:  # the notice has ended; the words said over it were dropped: ask again (not a silent turn)
+                if spoke_over_notice:  # the welcome question has ended; words said over it were dropped: ask again (not a silent turn)
                     spoke_over_notice = False
                     await self.send({"type": "text", "token": NOTICE_REASK, "last": True, "interruptible": True})
                     timeout = self.rt.settings.voice_silence_s + speaking_seconds(self.rt, NOTICE_REASK)
@@ -183,11 +191,11 @@ class RelaySession:
                 continue
             hold = greeting_ends - loop.time()
             if hold > 0 and self.rt.settings.voice_greeting_hold and not msg.get("_silence"):
-                # caller spoke over the notice: discarded (its words are never sent to Claude, stored or logged);
-                # wait for the notice's end, then ask again unless the caller speaks after it
+                # caller spoke over the welcome question: discarded (its words are never sent to Claude, stored or
+                # logged); wait for its end, then ask again unless the caller speaks after it
                 spoke_over_notice = True
                 timeout = hold
-                log.info("relay: speech during the call notice discarded")
+                log.info("relay: speech during the welcome question discarded")
                 continue
             spoke_over_notice = False
             turn = await run_in_threadpool(flow.turn, self.tenant, self.call_sid, self.caller,

@@ -86,9 +86,10 @@ class Settings:
     voice_mode: str = "stream"
     voice_silence_s: float = 7.0
     voice_tts_wps: float = 2.5
-    # Discard a caller prompt that arrives while the greeting (with the call notice) is still playing (before its
-    # estimated end) and ask again once it has ended, so nothing the caller says over the notice is processed (SA §8,
-    # Privacy §3.2). VOICE_GREETING_HOLD=0 switches it off (the simulator does, see sim.harness.SIM_VOICE_ENV).
+    # Stream mode plays the call notice with <Say> before the relay starts (nothing is transcribed before it ends). Second
+    # line of defense: discard a caller prompt that arrives while the relay's welcome question is still playing (before
+    # its estimated end) and ask again once it has ended (SA §8, Privacy §3.2). VOICE_GREETING_HOLD=0 switches this
+    # discard off (the simulator does, see sim.harness.SIM_VOICE_ENV); the <Say> order does not depend on it.
     voice_greeting_hold: bool = True
     # Relay socket closed without an `end` from us: wait this long for /voice/relay-end (-> continue with
     # <Gather>) or the call status callback (-> finalize) before closing the call ourselves.

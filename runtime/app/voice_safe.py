@@ -22,6 +22,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from twilio.twiml.voice_response import VoiceResponse
 
 from . import guard
+from .message_mode import insert_call, notice_completed, notice_record
 from .runtime_ctx import Runtime, who
 from .tenants import TenantConfigError, load_record
 
@@ -128,8 +129,9 @@ class SafeMode:
         ts = self.rt.store.for_tenant(bt.id)
         hello = safe_greeting(bt.name, self._sms())
         if not ts.select("calls", call_sid=call_sid):
-            ts.insert("calls", {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
-                                "transcript": [{"who": "assistant", "text": hello}], "outcome": None})
+            insert_call(ts, {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
+                             "transcript": [{"who": "assistant", "text": hello}], "outcome": None,
+                             **notice_record(self._sms())})
         vr = VoiceResponse()
         vr.say(hello, voice=SAFE_VOICE)  # the disclosure plays in full before we listen
         vr.gather(input="speech", action="/voice/safe-message", method="POST", speech_model="phone_call",
@@ -141,6 +143,7 @@ class SafeMode:
         rows = ts.select("calls", call_sid=call_sid)
         said = (speech or "").strip()[:300]
         if rows:
+            notice_completed(ts, rows[0], now)  # this turn comes only after the <Say> with the notice
             transcript = list(rows[0].get("transcript") or [])
             if said:
                 transcript.append({"who": "customer", "text": said})

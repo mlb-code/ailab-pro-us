@@ -20,10 +20,14 @@ the monthly usage meter (80% / 100% alerts).
 Call notice (SA §8 item 2, legal v1.1; AI wording 2026-11-27): every call starts with `guard.disclosure(sms)` (AI
 assistant, recorded and transcribed by us and our service providers; "and we may text you about it" only while
 SMS_ENABLED is on). A tenant's custom greeting that lacks any part of it gets the full sentence appended; it cannot be
-removed. The caller's speech is not processed before the
-greeting ends: gather mode plays the greeting with <Say> BEFORE <Gather> (no barge-in), stream mode sets
-welcomeGreetingInterruptible="none" and discards any prompt that arrives before the greeting's estimated end, then
-asks again (`voice_stream`). A caller who objects to recording ends the call with no transcript kept
+removed. Nothing the caller says is transcribed or sent to the AI before the notice ends (legal decisions 2026-11-27,
+item 1): gather mode plays the greeting with <Say> BEFORE <Gather> (no barge-in), and stream mode plays the notice with
+<Say> BEFORE <Connect><ConversationRelay> (`notice_then_ask`): Twilio opens the relay, and so speech-to-text, only
+after the <Say> has finished; the relay itself speaks only the closing question. As a second line of defense the relay
+still discards a prompt that arrives while that question is playing and asks again (`voice_stream`). Message mode and
+safe mode are <Say> BEFORE <Gather> as well. Every call row records the notice heard (`notice_version`, `notice_lang`)
+and `notice_completed_at`, the first moment we know it had finished (the relay session started, or the first speech
+turn arrived; `message_mode.notice_record`). A caller who objects to recording ends the call with no transcript kept
 (`transcript_withheld`), and the transcript keeps only the greeting as proof of the notice.
 """
 from __future__ import annotations
@@ -46,7 +50,7 @@ from twilio.twiml.voice_response import VoiceResponse
 from . import _stubs_b56 as hooks
 from . import guard
 from .conversation import Convo
-from .message_mode import MessageMode, insert_call
+from .message_mode import MessageMode, insert_call, notice_completed, notice_record
 from .message_mode import reason as message_mode_reason
 from .runtime_ctx import Runtime, who
 from .sms_outbound import after_turn
@@ -103,18 +107,49 @@ def default_greeting(cfg: Any, sms: bool = False) -> str:
     return f"Thanks for calling {cfg.business.name}. {notice} How can I help?"
 
 
-def greeting(tenant: TenantRecord, sms: bool = False) -> str:
-    """The greeting a call plays. sms = settings.sms_enabled (`sms_on(rt)`): the texting clause of the notice is spoken
-    only while texting is on. Default off, as in production until A2P 10DLC is approved."""
+def _greeting_parts(tenant: TenantRecord, sms: bool) -> tuple[str, str]:
+    """(English greeting with the full notice, Spanish part with the Spanish notice; "" when the line has no Spanish)."""
     cfg = tenant.config
     text = (cfg.voice.greeting or "").strip() or default_greeting(cfg, sms)
     text = text if has_disclosure(text, sms) else f"{text} {guard.disclosure(sms)}"
+    es = ""
     if "es" in cfg.voice.languages:  # ADD-ES: the notice (and an invitation) in Spanish too, never removable
         es = (cfg.voice.greeting_es or "").strip() or guard.SPANISH_INVITE
         if guard.disclosure_es(sms) not in es:
             es = f"{es} {guard.disclosure_es(sms)}"
-        text = f"{text} {es}"
-    return text
+    return text, es
+
+
+def greeting(tenant: TenantRecord, sms: bool = False) -> str:
+    """The greeting a call plays. sms = settings.sms_enabled (`sms_on(rt)`): the texting clause of the notice is spoken
+    only while texting is on. Default off, as in production until A2P 10DLC is approved."""
+    en, es = _greeting_parts(tenant, sms)
+    return f"{en} {es}" if es else en
+
+
+ASK = "How can I help?"  # the relay's question when the greeting does not end with one of its own
+_SENTENCES = re.compile(r"(?<=[.!?])\s+")
+
+
+def notice_then_ask(tenant: TenantRecord, sms: bool = False) -> tuple[str, str, str]:
+    """Stream mode (legal decisions 2026-11-27, item 1): (English part played with <Say> before <Connect>, Spanish part
+    played with <Say> in the Spanish voice or "", the question the relay speaks as its welcome greeting once it is
+    listening). The question is the greeting's own last sentence when it is one and the notice is complete without it
+    ("How can I help?", "What are you calling about?"); otherwise the whole greeting is played and the relay asks ASK.
+    The words of the notice are those of `greeting()`; only the closing question moves after the Spanish part."""
+    en, es = _greeting_parts(tenant, sms)
+    parts = _SENTENCES.split(en)
+    if len(parts) > 1 and parts[-1].endswith("?") and has_disclosure(" ".join(parts[:-1]), sms):
+        return " ".join(parts[:-1]), es, parts[-1]
+    return en, es, ASK
+
+
+def say_voice(voice: str, lang: str = guard.ENGLISH_LANG) -> str:
+    """A <Say> voice for a configured TTS voice: Amazon Polly voices as they are; another provider's voice id (ElevenLabs,
+    ConversationRelay only) gets the default Polly neural voice of that language."""
+    if voice.startswith("Polly."):
+        return voice
+    return "Polly.Lupe-Neural" if lang == guard.SPANISH_LANG else "Polly.Joanna-Neural"
 
 
 def voice_for(tenant: TenantRecord, lang: str | None) -> tuple[str, str]:
@@ -205,7 +240,7 @@ class VoiceFlow:
         ts = self.rt.store.for_tenant(tenant.id)
         existing = ts.select("calls", call_sid=call_sid)
         new_row = {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(), "transcript": [],
-                   "outcome": None}
+                   "outcome": None, **notice_record(sms_on(self.rt), "es" in tenant.config.voice.languages)}
         if forwarded_from:  # Twilio's ForwardedFrom: the line that forwarded the call (the forwarding test checks it)
             new_row["forwarded_from"] = forwarded_from
         row = existing[0] if existing else insert_call(ts, new_row)
@@ -219,6 +254,22 @@ class VoiceFlow:
             # caller's first turn does not pay the cold start (~$0.0003 cache write per call, Haiku).
             threading.Thread(target=self._prewarm, args=(tenant,), daemon=True).start()
         return c
+
+    def notice_heard(self, tenant: TenantRecord, call_sid: str, now: datetime) -> None:
+        """The call notice has finished playing (stream: the relay session started, which Twilio does only after the
+        <Say> with the notice; gather: the first speech turn arrived, after the <Say>): calls.notice_completed_at, once."""
+        with self._lock(call_sid):
+            self._notice_heard(tenant, call_sid, now)
+
+    def _notice_heard(self, tenant: TenantRecord, call_sid: str, now: datetime) -> None:
+        c = self.rt.engine.find_convo(tenant, "voice", call_sid)
+        if c is None or c.meta.get("notice_completed_at"):
+            return
+        c.meta["notice_completed_at"] = now.isoformat()
+        self.rt.engine.save_convo(c)
+        ts = self.rt.store.for_tenant(tenant.id)
+        rows = ts.select("calls", call_sid=call_sid)
+        notice_completed(ts, rows[0] if rows else None, now)
 
     def _prewarm(self, tenant: TenantRecord) -> None:
         from .brain import prewarm
@@ -241,6 +292,9 @@ class VoiceFlow:
         c = eng.convo(tenant, "voice", caller, call_sid)
         if not c.meta.get("call_row_id"):
             c = self.start(tenant, call_sid, caller, now, "gather")
+        if not c.meta.get("notice_completed_at"):  # gather mode: this turn comes only after the <Say> with the notice
+            self._notice_heard(tenant, call_sid, now)
+            c = eng.convo(tenant, "voice", caller, call_sid)
         if c.ended:
             return VoiceTurn("", end=True, outcome=c.outcome)
         started = datetime.fromisoformat(c.meta["started_at"])

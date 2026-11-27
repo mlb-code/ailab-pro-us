@@ -71,7 +71,8 @@ class MessageMode:
         text = greeting(tenant.config.business.name, bool(getattr(self.rt.settings, "sms_enabled", False)))
         if not ts.select("calls", call_sid=call_sid):
             row = {"call_sid": call_sid, "from_e164": caller, "started_at": now.isoformat(),
-                   "transcript": [{"who": "assistant", "text": text}], "outcome": None}
+                   "transcript": [{"who": "assistant", "text": text}], "outcome": None,
+                   **notice_record(bool(getattr(self.rt.settings, "sms_enabled", False)))}
             if forwarded_from:
                 row["forwarded_from"] = forwarded_from
             insert_call(ts, row)
@@ -90,6 +91,7 @@ class MessageMode:
         reply = THANKS if said else RETRY if retry else NO_MESSAGE
         rows = ts.select("calls", call_sid=call_sid)
         if rows:
+            notice_completed(ts, rows[0], now)  # this turn comes only after the <Say> with the notice
             transcript = list(rows[0].get("transcript") or [])
             if said:
                 transcript.append({"who": "customer", "text": said})
@@ -132,14 +134,38 @@ class MessageMode:
                                   "contact": contact, "channel": channel}], ref)
 
 
+# calls columns added by later migrations: dropped from the insert if the database does not have them yet, so a runtime
+# deployed before its migration never loses a call (forwarded_from: 2026-11-25; the notice record: 2026-11-30)
+OPTIONAL_CALL_COLUMNS = ("forwarded_from", "notice_version", "notice_lang")
+
+
 def insert_call(ts: Any, row: dict[str, Any]) -> dict[str, Any]:
-    """Insert a calls row; `forwarded_from` is dropped if the database does not have the column yet (the 2026-11-25
-    migration), so a runtime deployed before the migration never loses a call."""
+    """Insert a calls row; OPTIONAL_CALL_COLUMNS are dropped if the database does not accept them yet."""
     from .store import StoreError
     try:
         return ts.insert("calls", row)
     except StoreError:
-        if "forwarded_from" not in row:
+        if not any(k in row for k in OPTIONAL_CALL_COLUMNS):
             raise
-        log.warning("calls.forwarded_from not accepted by the store; saved the call without it")
-        return ts.insert("calls", {k: v for k, v in row.items() if k != "forwarded_from"})
+        log.warning("calls: newer columns not accepted by the store; saved the call without them")
+        return ts.insert("calls", {k: v for k, v in row.items() if k not in OPTIONAL_CALL_COLUMNS})
+
+
+def notice_record(sms: bool, spanish: bool = False) -> dict[str, str]:
+    """The call notice a call plays, for its calls row (legal decisions 2026-11-27, item 2): the version id of the variant
+    (`guard.disclosure_version`, with or without the texting clause) and its languages ("en", or "en+es" when the
+    Spanish notice is played too). Kept with the call record (the row outlives the 90-day transcript purge)."""
+    return {"notice_version": guard.disclosure_version(sms), "notice_lang": "en+es" if spanish else "en"}
+
+
+def notice_completed(ts: Any, row: dict[str, Any] | None, now: Any) -> None:
+    """Stamp calls.notice_completed_at once: the first moment we know the notice had finished playing (the relay session
+    started, which Twilio does only after the <Say>; or the first speech turn, which comes only after the <Say>).
+    Never fails the call (a database without the column yet)."""
+    from .store import StoreError
+    if not row or row.get("notice_completed_at"):
+        return
+    try:
+        ts.update("calls", row["id"], {"notice_completed_at": now.isoformat()})
+    except StoreError:
+        log.warning("calls.notice_completed_at not accepted by the store")

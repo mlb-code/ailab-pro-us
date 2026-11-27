@@ -87,21 +87,23 @@ def test_safe_mode_greeting_has_the_disclosure_before_listening():
     assert guard.DISCLOSURE_NO_SMS in safe_greeting("Acme") and "text" not in safe_greeting("Acme")
 
 
-def test_stream_mode_discards_speech_said_over_the_notice_and_asks_again(tmp_path):
-    """welcomeGreetingInterruptible=none, and (legal review 2026-11-27, privacy 3.1) a prompt that arrives while the
-    greeting with the call notice is playing is discarded, not processed after it: it never reaches the assistant, the
-    transcript or the stored conversation. Once the notice has ended the caller is asked again; only what they say
-    after the notice is processed."""
+def test_stream_mode_discards_speech_said_over_the_welcome_question_and_asks_again(tmp_path):
+    """Second line of defense (legal review 2026-11-27, privacy 3.1; the notice itself is a <Say> before the relay,
+    legal decisions item 1, tests/test_notice_before_relay.py): welcomeGreetingInterruptible=none, and a prompt that
+    arrives while the relay's welcome question is playing is discarded, not processed after it: it never reaches the
+    assistant, the transcript or the stored conversation. Once the question has ended the caller is asked again; only
+    what they say after it is processed."""
     import json
+    from app.voice import notice_then_ask
     from app.voice_stream import NOTICE_REASK
-    sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="40", VOICE_GREETING_HOLD="1")
-    words = len(greeting(sim.tenant("demo-hvac"), sms=True).split())
+    sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="4", VOICE_GREETING_HOLD="1")
+    words = len(notice_then_ask(sim.tenant("demo-hvac"), sms=True)[2].split())
     call = sim.call()
     call.start()
     t0 = time.perf_counter()
     again = call.say("This is Dana Overtalk at 9 Hidden Lane, my AC is broken")
     assert again.text == NOTICE_REASK and not again.end
-    assert time.perf_counter() - t0 >= words / 40 * 0.8          # the first answer comes only after the notice
+    assert time.perf_counter() - t0 >= words / 4 * 0.8           # the re-ask comes only after the welcome question
     reply = call.say(ASK)
     assert reply.text and reply.text != NOTICE_REASK and not reply.end
     call.hangup()
@@ -113,13 +115,15 @@ def test_stream_mode_discards_speech_said_over_the_notice_and_asks_again(tmp_pat
 
 
 def test_stream_mode_speech_after_the_notice_is_answered_directly(tmp_path):
-    """The rule only covers the notice: a caller who waits for it gets a normal answer to the first thing they say."""
+    """The discard only covers the welcome question: a caller who waits for it gets a normal answer to the first thing
+    they say."""
+    from app.voice import notice_then_ask
     from app.voice_stream import NOTICE_REASK
-    sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="40", VOICE_GREETING_HOLD="1")
-    words = len(greeting(sim.tenant("demo-hvac"), sms=True).split())
+    sim, _ = build(tmp_path, mode="stream", VOICE_TTS_WPS="4", VOICE_GREETING_HOLD="1")
+    words = len(notice_then_ask(sim.tenant("demo-hvac"), sms=True)[2].split())
     call = sim.call()
     call.start()
-    time.sleep(words / 40 + 0.2)
+    time.sleep(words / 4 + 0.2)
     reply = call.say(ASK)
     assert reply.text and reply.text != NOTICE_REASK
     call.hangup()
