@@ -95,7 +95,7 @@ export function liveDeps(): Deps {
     },
     model: () => {
       const m = liveSetupModel();
-      if (!keyLogged) { keyLogged = true; console.log(JSON.stringify({ ev: "setup_agent_key", key_source: m.keySource })); }   // which key, never its value
+      if (!keyLogged) { keyLogged = true; console.log(JSON.stringify({ ev: "setup_agent_key", key_source: m.keySource, wire: m.wire })); }   // which key, never its value
       return m.keySource === "none" ? null : m;
     },
   };

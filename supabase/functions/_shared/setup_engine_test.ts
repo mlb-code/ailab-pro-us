@@ -3,7 +3,7 @@
 // settings the forms would have saved; then every guard is attacked. Every response is checked against setup_contract.json.
 // deno-lint-ignore-file no-explicit-any
 import { runTurn, type Input } from "./setup_engine.ts";
-import { scriptedSetupModel, type SetupModel } from "./setup_model.ts";
+import { scriptedSetupModel as baseScripted, type SetupModel } from "./setup_model.ts";
 import { pathValues } from "./setup_rules.ts";
 import { assert, eq } from "./test_util.ts";
 import {
@@ -35,8 +35,13 @@ const msg = (text: string): Input => ({ type: "message", text });
 const card = (r: any) => cards(r.body).pop();
 const statusOf = (t: T, k: string) => t.item(k).status;
 
+// Every test below runs twice: the scripted model writes its turns in the "compact" and in the "json" wire format
+// (setup_wire.ts), and the engine must behave identically.
+for (const WIRE of ["compact", "json"] as const) {
+const scriptedSetupModel = (steps: any[], usage?: any) => baseScripted(steps, usage, WIRE);
+
 // ------------------------------------------------------------------ the home-services journey of design section 1.1
-Deno.test("journey (home services): chat to testing, settings equal the forms', one model call per typed turn", async () => {
+Deno.test(`[${WIRE}] journey (home services): chat to testing, settings equal the forms', one model call per typed turn`, async () => {
   const t = world();
   const model = scriptedSetupModel([
     turn("Here's what I understood.", [propose("services", { items: ["Drain cleaning", "Water heater repair", "Leak repair", "Toilet repair", "Remodel estimate"] })]),
@@ -165,7 +170,7 @@ Deno.test("journey (home services): chat to testing, settings equal the forms', 
   eq([st[first.proposal_id], st[second.proposal_id]], ["superseded", "confirmed"]);
 });
 
-Deno.test("journey (real estate): default meeting types pre-filled, screening with the fair-housing line", async () => {
+Deno.test(`[${WIRE}] journey (real estate): default meeting types pre-filled, screening with the fair-housing line`, async () => {
   const t = world({ niche: "real_estate" });
   const model = scriptedSetupModel([
     turn("Got it.", [propose("re_leads", { types: ["buyers", "sellers", "renters"] })]), confirmLatest(),
@@ -198,7 +203,7 @@ async function withCard(t: T, extraSteps: any[] = []) {
   const r = await send(t, model, msg("monday 9 to 5"));
   return { model, r, card: card(r) };
 }
-Deno.test("attack: confirm with a forged id, another conversation's id, or before the card -> nothing is written", async () => {
+Deno.test(`[${WIRE}] attack: confirm with a forged id, another conversation's id, or before the card -> nothing is written`, async () => {
   const t = world();
   const { model, card: c1 } = await withCard(t);
   const other = addClient(t.w);                                    // another customer with their own card
@@ -218,7 +223,7 @@ Deno.test("attack: confirm with a forged id, another conversation's id, or befor
   eq(t.item("hours").data.hours.mon, ["09:00", "17:00"], "the real card still works");
   eq(t.item("hours").data.hours.tue, null);
 });
-Deno.test("attack: a typed yes only confirms the LATEST card; 'yes but…' is a correction; the model cannot confirm on its own", async () => {
+Deno.test(`[${WIRE}] attack: a typed yes only confirms the LATEST card; 'yes but…' is a correction; the model cannot confirm on its own`, async () => {
   const t = world();
   const { model, card: c1 } = await withCard(t, [
     turn("Updated.", [propose("hours", { days: days({ mon: ["09:00", "16:00"] }) })]),
@@ -242,7 +247,7 @@ Deno.test("attack: a typed yes only confirms the LATEST card; 'yes but…' is a 
   r = await send(t, model, { type: "confirm", proposal_id: c2.proposal_id });
   eq(t.item("hours").data.hours.mon, ["09:00", "16:00"]);
 });
-Deno.test("attack: model output with foreign fields, ids or unknown ops is refused (one repair, then the fixed text)", async () => {
+Deno.test(`[${WIRE}] attack: model output with foreign fields, ids or unknown ops is refused (one repair, then the fixed text)`, async () => {
   const t = world();
   const bad1 = turn("ok", [{ op: "propose", topic: "hours", data: { days: days({ mon: ["09:00", "17:00"] }), client_id: "x" } }]);
   const bad2 = turn("ok", [{ op: "write_setting", path: "billing.plan", value: "FR_BUSINESS" }]);
@@ -258,7 +263,7 @@ Deno.test("attack: model output with foreign fields, ids or unknown ops is refus
   r = await send(t, model, msg("monday 9 to 5"));
   eq(t.w.writes.length, 0); eq(cards(r.body).length, 0, "no card from an invalid output");
 });
-Deno.test("attack: an invented price is rejected and repaired from the customer's words", async () => {
+Deno.test(`[${WIRE}] attack: an invented price is rejected and repaired from the customer's words`, async () => {
   const t = world();
   const model = scriptedSetupModel([
     turn("Prices.", [propose("prices", { mention: true, items: [{ name: "Service call", price_usd: 99, note: "" }] })]),
@@ -271,7 +276,7 @@ Deno.test("attack: an invented price is rejected and repaired from the customer'
   assert(stateMsg(model.requests[1]).includes('invented: price for "Service call" "99" was not said by the customer'), stateMsg(model.requests[1]));
   eq(card(r).fields[0].text, "Service call: $89");
 });
-Deno.test("attack: invented hours, phone, email and links are rejected", async () => {
+Deno.test(`[${WIRE}] attack: invented hours, phone, email and links are rejected`, async () => {
   const t = world();
   const model = scriptedSetupModel([
     turn("Hours.", [propose("hours", { days: days({ mon: ["06:30", "17:00"] }) })]),
@@ -284,7 +289,7 @@ Deno.test("attack: invented hours, phone, email and links are rejected", async (
   eq(cards(r.body).length, 0); eq(t.w.writes.length, 0);
   eq((await t.store.open(t.uid)).conversation.state.attempts.hours, 1);
 });
-Deno.test("invalid_setting from the database preview -> one repair -> fixed text; twice -> 'fill this one in the form'", async () => {
+Deno.test(`[${WIRE}] invalid_setting from the database preview -> one repair -> fixed text; twice -> 'fill this one in the form'`, async () => {
   const t = world();
   const model = scriptedSetupModel(Array(4).fill(turn("Hours.", [propose("hours", { days: days({ mon: ["09:00", "17:00"] }) })])));
   await send(t, model, { type: "resume" });
@@ -297,7 +302,7 @@ Deno.test("invalid_setting from the database preview -> one repair -> fixed text
   eq(blocks(r, "open_form")[0], { type: "open_form", item_key: "hours", label: "Want to fill this one in the form instead?" });
   eq(model.requests.length, 4, "two calls per turn at most");
 });
-Deno.test("confirm after the form changed the step re-proposes from the fresh state; a failed write is shown in the forms' words", async () => {
+Deno.test(`[${WIRE}] confirm after the form changed the step re-proposes from the fresh state; a failed write is shown in the forms' words`, async () => {
   const t = world();
   const { model, card: c1 } = await withCard(t, [turn("Hours.", [{ op: "switch_topic", topic: "hours" }, propose("hours", { days: days({ mon: ["09:00", "17:00"] }) })])]);
   await t.db.update(t.items.hours, null, { after_hours: { mode: "message_only" } });   // a manual form save meanwhile
@@ -315,7 +320,7 @@ Deno.test("confirm after the form changed the step re-proposes from the fresh st
   r = await send(t, model, { type: "confirm", proposal_id: card(r).proposal_id });
   eq(blocks(r, "notice")[0].text, "Hours for mon (opening must be before closing, HH:MM) wasn’t accepted. Please check it and save again.");
 });
-Deno.test("calendar: Calendly link saved as todo + connect; never done without the OAuth return", async () => {
+Deno.test(`[${WIRE}] calendar: Calendly link saved as todo + connect; never done without the OAuth return`, async () => {
   const t = world();
   const model = scriptedSetupModel([turn("Calendly.", [propose("calendar", { choice: "calendly", calendly_link: "https://calendly.com/lopez/visit" })]), confirmLatest()]);
   await send(t, model, { type: "resume" });
@@ -333,7 +338,7 @@ Deno.test("calendar: Calendly link saved as todo + connect; never done without t
   try { await t.db.update(t.items.calendar, "done", { provider: "calendly" }); } catch (e) { refused = (e as any).code; }
   eq(refused, "calendar_not_connected");
 });
-Deno.test("choices: only the options the server offered, only while offered", async () => {
+Deno.test(`[${WIRE}] choices: only the options the server offered, only while offered`, async () => {
   const t = world();
   const model = scriptedSetupModel([]);
   await send(t, model, { type: "resume" });
@@ -344,7 +349,7 @@ Deno.test("choices: only the options the server offered, only while offered", as
 });
 
 // ------------------------------------------------------------------ idempotency, concurrency, limits, failures
-Deno.test("replay: the same client_turn_id returns the stored answer, no second model call or write", async () => {
+Deno.test(`[${WIRE}] replay: the same client_turn_id returns the stored answer, no second model call or write`, async () => {
   const t = world();
   const model = scriptedSetupModel([turn("Services.", [propose("services", { items: ["Drain cleaning"] })])]);
   await send(t, model, { type: "resume" });
@@ -355,11 +360,11 @@ Deno.test("replay: the same client_turn_id returns the stored answer, no second 
   eq(b.body.messages.map((m: any) => m.text), a.body.messages.filter((m: any) => m.role !== "user").map((m: any) => m.text));
   eq(cards(b.body)[0].proposal_id, cards(a.body)[0].proposal_id);
 });
-Deno.test("concurrency: a second turn while one is in flight gets 409 turn_in_progress", async () => {
+Deno.test(`[${WIRE}] concurrency: a second turn while one is in flight gets 409 turn_in_progress`, async () => {
   const t = world();
   let release!: () => void;
   const gate = new Promise<void>((r) => { release = r; });
-  const slow: SetupModel = { mode: "scripted", keySource: "test", async call() {
+  const slow: SetupModel = { mode: "scripted", wire: "internal", keySource: "test", async call() {
     await gate;
     return { output: turn("Services?", []), model: "m", usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }, cost_usd: 0, stop_reason: "end_turn", latency_ms: 1 };
   } };
@@ -372,7 +377,7 @@ Deno.test("concurrency: a second turn while one is in flight gets 409 turn_in_pr
   eq((await first).status, 200);
   eq((await send(t, slow, { type: "resume" })).status, 200, "the lock is released afterwards");
 });
-Deno.test("rate limit: 12 inputs a minute, the 13th is 429 with retry_after_s", async () => {
+Deno.test(`[${WIRE}] rate limit: 12 inputs a minute, the 13th is 429 with retry_after_s`, async () => {
   const t = world();
   const model = scriptedSetupModel(Array(20).fill(turn("What jobs do you book?", [])));
   await send(t, model, { type: "resume" });
@@ -383,7 +388,7 @@ Deno.test("rate limit: 12 inputs a minute, the 13th is 429 with retry_after_s", 
   eq(r.status, 429); assert(r.body.retry_after_s >= 1 && r.body.retry_after_s <= 60);
   eq(model.requests.length, 12, "the refused turn never reaches the model");
 });
-Deno.test("model down: unavailable + fallback, the message is kept unanswered; 'Try again' (same id) answers the STORED text", async () => {
+Deno.test(`[${WIRE}] model down: unavailable + fallback, the message is kept unanswered; 'Try again' (same id) answers the STORED text`, async () => {
   const t = world();
   const model = scriptedSetupModel([{ throws: "unavailable" }, turn("Here's what I understood.", [propose("services", { items: ["AC repair"] })])]);
   await send(t, model, { type: "resume" });
@@ -399,7 +404,7 @@ Deno.test("model down: unavailable + fallback, the message is kept unanswered; '
   eq(card(r).fields[0].text, "AC repair");
   assert(JSON.stringify(model.requests[1].messages).includes("ac repair") && !JSON.stringify(model.requests[1].messages).includes("different body"));
 });
-Deno.test("bad key / spend limit: admin alert + pause; buttons keep working; global budget -> fallback budget", async () => {
+Deno.test(`[${WIRE}] bad key / spend limit: admin alert + pause; buttons keep working; global budget -> fallback budget`, async () => {
   const t = world();
   const model = scriptedSetupModel([{ throws: "auth" }]);
   await send(t, model, { type: "resume" });
@@ -417,7 +422,7 @@ Deno.test("bad key / spend limit: admin alert + pause; buttons keep working; glo
   r = await send(t, model, { type: "choose", choice_id: "calendar:google" });
   eq(r.status, 200, "a button press needs no model and is not blocked by the budget");
 });
-Deno.test("kill switch off / no API key -> fallback disabled, no model call", async () => {
+Deno.test(`[${WIRE}] kill switch off / no API key -> fallback disabled, no model call`, async () => {
   const t = world();
   const model = scriptedSetupModel([turn("x", [])]);
   t.store.settings.enabled = false;
@@ -431,7 +436,7 @@ Deno.test("kill switch off / no API key -> fallback disabled, no model call", as
   eq(r.body.fallback.reason, "disabled");
   eq(model.requests.length, 0);
 });
-Deno.test("redaction: card numbers, SSNs and passwords never reach the store or the model; one nudge", async () => {
+Deno.test(`[${WIRE}] redaction: card numbers, SSNs and passwords never reach the store or the model; one nudge`, async () => {
   const t = world();
   const model = scriptedSetupModel([turn("Please don't share card numbers here. What jobs do you book?", []), turn("ok", [])]);
   await send(t, model, { type: "resume" });
@@ -444,7 +449,7 @@ Deno.test("redaction: card numbers, SSNs and passwords never reach the store or 
   await send(t, model, msg("my other card 4111111111111111"));
   assert(!stateMsg(model.requests[1]).includes("Ask them once"), "the nudge is said once");
 });
-Deno.test("forms_saved: the chat sees a manual save and moves on", async () => {
+Deno.test(`[${WIRE}] forms_saved: the chat sees a manual save and moves on`, async () => {
   const t = world();
   const model = scriptedSetupModel([]);
   await send(t, model, { type: "resume" });
@@ -453,7 +458,7 @@ Deno.test("forms_saved: the chat sees a manual save and moves on", async () => {
   assert(/I see you updated services & faq in the form/.test(lastText(r)), lastText(r));
   assert(/When is someone usually there/.test(lastText(r)));
 });
-Deno.test("no receptionist number yet: test_call state no_number, the conversation stays open", async () => {
+Deno.test(`[${WIRE}] no receptionist number yet: test_call state no_number, the conversation stays open`, async () => {
   const t = world({ twilio: null });
   const model = scriptedSetupModel([]);
   await send(t, model, { type: "resume" });
@@ -466,7 +471,7 @@ Deno.test("no receptionist number yet: test_call state no_number, the conversati
   eq(blocks(r2, "action").pop().state, "no_number");
   eq(r2.body.status, "active");
 });
-Deno.test("size: a full FAQ (25 long pairs) still fits the message row; over the item limit it is the forms' 'too long'", async () => {
+Deno.test(`[${WIRE}] size: a full FAQ (25 long pairs) still fits the message row; over the item limit it is the forms' 'too long'`, async () => {
   const t = world();
   const pairs = Array.from({ length: 25 }, (_, i) => ({ q: `Question ${"q".repeat(140)} ${String.fromCharCode(65 + i)}?`, a: `Answer ${"a".repeat(430)}.` }));
   const model = scriptedSetupModel([turn("Your questions.", [propose("faq", { items: pairs })])]);
@@ -482,7 +487,7 @@ Deno.test("size: a full FAQ (25 long pairs) still fits the message row; over the
   assert(stateMsg(m2.requests[1]).includes("data_too_large: This is too long to save"), "the item's 20,000-byte limit, in the forms' words");
   eq(lastText(r2), "I couldn't fit that into the settings. Could you say it more briefly?");
 });
-Deno.test("logs carry ids, op names and counts, never the customer's words or the model's text", async () => {
+Deno.test(`[${WIRE}] logs carry ids, op names and counts, never the customer's words or the model's text`, async () => {
   const t = world();
   const lines: string[] = [];
   const model = scriptedSetupModel([turn("Here's what I understood, Maria.", [propose("services", { items: ["Secret-Sauce Drain Cleaning"] })]),
@@ -495,10 +500,45 @@ Deno.test("logs carry ids, op names and counts, never the customer's words or th
   assert(lines.length > 3 && /setup_ops/.test(all) && /setup_proposal_rejected/.test(all));
   for (const s of ["Secret", "sauce", "5551234", "Maria", "4242", "bad items"]) assert(!all.toLowerCase().includes(s.toLowerCase()), `log leaks "${s}"`);
 });
-Deno.test("a normal question is not mistaken for a claimed save", async () => {
+Deno.test(`[${WIRE}] a normal question is not mistaken for a claimed save`, async () => {
   const t = world();
   const model = scriptedSetupModel([turn("Got it. What time are you done on Fridays?", [])]);
   await send(t, model, { type: "resume" });
   const r = await send(t, model, msg("we work weekdays"));
   eq(lastText(r), "Got it. What time are you done on Fridays?");
 });
+}
+
+Deno.test("[json] malformed data_json: one repair, then the fixed text and the form; nothing saved", async () => {
+  const t = world();
+  const broken = { raw: { reply: "Hours.", ops: [{ op: "propose", topic: "hours", proposal_id: null, text: null, value: null, data_json: '{"days": {"mon": ' }] } };
+  const model = baseScripted([broken, broken], undefined, "json");
+  await send(t, model, { type: "resume" });
+  t.item("faq").status = "done";
+  const r = await send(t, model, msg("monday 9 to 5"));
+  eq(model.requests.length, 2, "exactly one repair");
+  assert(stateMsg(model.requests[1]).includes("REPAIR: Your output did not match the schema ($.ops[0].data_json: not valid JSON)"), stateMsg(model.requests[1]));
+  eq(lastText(r), "I couldn't fit that into the settings. Could you say it more briefly?");
+  eq(blocks(r, "open_form")[0].item_key, "hours");
+  eq([t.w.writes.length, cards(r).length], [0, 0]);
+});
+for (const WIRE of ["compact", "json"] as const) {
+  Deno.test(`[${WIRE}] the provider refuses OUR request (HTTP 400): fallback to the forms, provider reason logged + alerted, paused; never 'say it more briefly'`, async () => {
+    const t = world();
+    const detail = "invalid_request_error: The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.";
+    const model = baseScripted([{ throws: "bad_request", detail }, turn("x", [])], undefined, WIRE);
+    const lines: string[] = [];
+    const extra = { log: (ev: string, f: Record<string, unknown>) => lines.push(JSON.stringify({ ev, ...f })) };
+    await send(t, model, { type: "resume" }, tid(), extra);
+    let r = await send(t, model, msg("we fix drains"), tid(), extra);
+    eq([r.body.status, r.body.fallback.reason, r.body.fallback.item_key, r.body.fallback.retry_after_s], ["unavailable", "assistant_unavailable", "faq", 3600]);
+    assert(!JSON.stringify(r.body).includes("more briefly"), "not blamed on the customer's wording");
+    eq(model.requests.length, 1, "no repair call for a refused request");
+    const a = t.store.alerts.pop()!;
+    eq(a.kind, "request"); assert(a.detail.includes("HTTP 400") && a.detail.includes("compiled grammar is too large"), a.detail);
+    assert(lines.some((l) => l.includes('"kind":"bad_request"') && l.includes('"status":400') && l.includes("compiled grammar")), "provider reason in the log");
+    assert(!lines.join("").includes("drains"), "and still no customer text in the log");
+    r = await send(t, model, msg("we fix drains"));
+    eq([r.body.status, model.requests.length], ["unavailable", 1], "paused: the next message does not reach the model");
+  });
+}

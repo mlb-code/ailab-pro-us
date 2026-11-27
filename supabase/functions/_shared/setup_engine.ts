@@ -398,7 +398,7 @@ async function event(c: Ctx, ev: string) {
 const SOFT: string[] = ["refusal", "max_tokens", "bad_output"];
 async function callModel(c: Ctx, userText: string, topic: Topic | null, repair: string) {
   const m = c.deps.model!;
-  const messages = buildModelMessages(c.history, userText, stateText(c, topic, repair ? `REPAIR: ${repair}` : ""));
+  const messages = buildModelMessages(c.history, userText, stateText(c, topic, repair ? `REPAIR: ${repair}` : ""), m.wire);
   c.modelCalls++;
   try {
     const r = await m.call({ messages });
@@ -411,7 +411,8 @@ async function callModel(c: Ctx, userText: string, topic: Topic | null, repair: 
   } catch (e) {
     const err = e instanceof SetupModelError ? e : new SetupModelError("unavailable");
     if (err.usage) { c.usage.input_tokens += err.usage.input_tokens; c.usage.output_tokens += err.usage.output_tokens; }
-    log(c, "setup_model_error", { kind: err.kind, key_source: m.keySource });
+    // the provider's status and error text (e.g. "invalid_request_error: The compiled grammar is too large") hold no customer text
+    log(c, "setup_model_error", { kind: err.kind, status: err.status, provider: err.detail, wire: m.wire, key_source: m.keySource });
     throw err;
   }
 }
@@ -443,7 +444,7 @@ async function modelTurn(c: Ctx, text: string, topic: Topic | null): Promise<{ p
       if (attempt === 0) return err;   // provider trouble: the turn is "unavailable"
       break;                           // the repair call failed: use what we have
     }
-    const p = parseTurn(out);
+    const p = parseTurn(out, c.deps.model!.wire);
     if (!p.ok) { failed = "schema: " + p.errors.join("; "); repair = `Your output did not match the schema (${p.errors.slice(0, 2).join("; ")}). Answer again.`; continue; }
     parsed = { reply: p.reply, ops: p.ops };
     failed = await checkProposals(c, p.ops, topic);
@@ -676,8 +677,9 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
       const r = await message(c, text, b.retry ? text : inp.text);
       if (r instanceof SetupModelError) {
         await finish();   // the customer's message stays, unanswered; usage is kept; the lock is released
-        const kind = r.kind === "auth" || r.kind === "budget" ? r.kind : "down";
-        await deps.store.alert(req.userId, kind, `model ${r.kind}`).catch(() => {});
+        // one admin e-mail per kind per day (SQL); budget / auth / request also pause the assistant for an hour
+        const kind = r.kind === "auth" || r.kind === "budget" ? r.kind : r.kind === "bad_request" ? "request" : "down";
+        await deps.store.alert(req.userId, kind, `model ${r.kind}${r.status ? ` (HTTP ${r.status})` : ""}${r.detail ? `: ${r.detail}` : ""}`).catch(() => {});
         const shown = inputMsg().map((m) => ({ ...m, unanswered: true, client_turn_id: req.client_turn_id, retry_input: { type: "message", text: m.text } }));
         return respond(open, c.snap, c.state, shown, { status: "unavailable", limits: c.limits,
           fallback: fallback(r.kind === "budget" ? "budget" : "assistant_unavailable", c.snap, c.state, r.retryAfterS ?? (kind === "down" ? null : 3600)) });

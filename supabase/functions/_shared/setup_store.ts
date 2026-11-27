@@ -42,7 +42,7 @@ export interface SetupStore {
   begin(a: BeginArgs): Promise<BeginResult>;
   finish(conversationId: string, lock: string, turn: TurnOut): Promise<{ messages: Array<{ id: string | number; seq: number; created_at: string }> }>;
   decide(conversationId: string, lock: string, proposalId: string, status: "confirmed" | "failed" | "superseded", error: string | null, seq: number | null): Promise<void>;
-  alert(userId: string, kind: "budget" | "auth" | "down", detail: string): Promise<void>;
+  alert(userId: string, kind: "budget" | "auth" | "request" | "down", detail: string): Promise<void>;
 }
 
 // ------------------------------------------------------------------ PostgREST (deployed function)
@@ -323,7 +323,7 @@ export class MemorySetupStore implements SetupStore {
       return Promise.resolve();
     } catch (e) { return Promise.reject(e); }
   }
-  alert(user: string, kind: "budget" | "auth" | "down", detail: string) {
+  alert(user: string, kind: "budget" | "auth" | "request" | "down", detail: string) {
     this.alerts.push({ user, kind, detail });
     if (kind !== "down") this.settings.paused_until = new Date(this.clock() + 3600000).toISOString();
     return Promise.resolve();

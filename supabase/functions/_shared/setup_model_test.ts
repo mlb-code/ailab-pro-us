@@ -3,9 +3,10 @@
 // error mapping, key selection, prompt contents, output parsing. No network.
 // deno-lint-ignore-file no-explicit-any
 import { BRAND, PRICEBOOK } from "./config.ts";
-import { buildParams, costUsd, liveSetupModel, mapError, SETUP_MODEL } from "./setup_model.ts";
+import { buildParams, costUsd, liveSetupModel, mapError, providerDetail, SETUP_MODEL } from "./setup_model.ts";
 import { buildModelMessages, parseTurn, SETUP_SYSTEM, SETUP_TURN_SCHEMA } from "./setup_prompt.ts";
-import { validate, wireSchema } from "./setup_schema.ts";
+import { validate } from "./setup_schema.ts";
+import { COMPACT_WIRE_SCHEMA, JSON_WIRE_SCHEMA } from "./setup_wire.ts";
 import { assert, eq, rejects } from "./test_util.ts";
 import { days } from "./setup_fixtures_test.ts";
 
@@ -18,7 +19,7 @@ function walk(v: any, f: (k: string, x: any) => void) {
   else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) { f(k, x); walk(x, f); }
 }
 Deno.test("request: model + effort from brand.json, structured output, fallback, cached system; no thinking / tool_choice", () => {
-  const p: any = buildParams({ messages: buildModelMessages([], "hi", "STATE") });
+  const p: any = buildParams({ messages: buildModelMessages([], "hi", "STATE") }, "compact");
   eq(p.model, (BRAND.claude as any).setup_model); eq(SETUP_MODEL, (BRAND.claude as any).setup_model);
   eq(p.output_config.effort, (BRAND.claude.effort as any).setup); eq(p.output_config.effort, "low");
   eq(p.output_config.format.type, "json_schema"); eq(p.max_tokens, 4000);
@@ -31,7 +32,9 @@ Deno.test("request: model + effort from brand.json, structured output, fallback,
     if (k === "minItems") assert(x <= 1, "minItems above 1 is not accepted by structured outputs");
     if (x && typeof x === "object" && x.type === "object") eq(x.additionalProperties, false, "every object is closed");
   });
-  eq(JSON.stringify(wireSchema(SETUP_TURN_SCHEMA)), JSON.stringify(p.output_config.format.schema));
+  eq(p.output_config.format.schema, COMPACT_WIRE_SCHEMA);
+  eq((buildParams({ messages: [] }, "json") as any).output_config.format.schema, JSON_WIRE_SCHEMA);
+  eq((buildParams({ messages: [] }) as any).output_config.format.schema, JSON_WIRE_SCHEMA, "default wire = json (SETUP_WIRE unset)");
 });
 Deno.test("messages: history replayed as user text + assistant model_json, user message cached, state message last", () => {
   const m = buildModelMessages([
@@ -57,7 +60,13 @@ Deno.test("errors -> kinds: timeout, 429 with retry-after, 401/403 auth, spend l
   eq(mapError({ status: 400, message: "Your credit balance is too low to access the Anthropic API." }).kind, "budget");
   eq(mapError({ status: 400, error: { error: { message: "Workspace spend limit reached" } } }).kind, "budget");
   eq([mapError({ status: 529 }).kind, mapError({ name: "APIConnectionError", message: "fetch failed" }).kind], ["unavailable", "unavailable"]);
-  eq(mapError({ status: 400, message: "messages: bad" }).kind, "bad_output");
+  // the live failure of 2026-12-01: a 400 that says OUR request is invalid is a server defect, with the provider's reason kept
+  const grammar = mapError({ status: 400, message: "400 {...}", error: { type: "error", error: { type: "invalid_request_error",
+    message: "The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools." } } });
+  eq([grammar.kind, grammar.status], ["bad_request", 400]);
+  eq(grammar.detail, "invalid_request_error: The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.");
+  eq([mapError({ status: 404 }).kind, mapError({ status: 413 }).kind], ["bad_request", "bad_request"]);
+  eq(providerDetail({ message: "boom" }), "boom");
 });
 Deno.test("key: ANTHROPIC_API_KEY_SETUP first, then ANTHROPIC_API_KEY; none = auth without any network call", async () => {
   const env = (m: Record<string, string>) => (k: string) => m[k];
