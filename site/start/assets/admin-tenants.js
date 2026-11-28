@@ -22,6 +22,20 @@
   const err = e => { const m = (e && [e.code, e.message].filter(Boolean).join(' ')) || ''; for (const k in E) if (m.indexOf(k) !== -1) return E[k]; return C.errText(e); };
   const toE164 = s => { const dg = String(s || '').replace(/\D/g, ''); return /^\+/.test(String(s || '').trim()) ? '+' + dg : dg.length === 10 ? '+1' + dg : dg.length === 11 && dg[0] === '1' ? '+' + dg : null; };
   const money = usd => C.money(Math.round((usd || 0) * 100));
+  /** What a tenant's usage is measured against, the way the runtime does it (runtime/app/usage.py UsageMeter.limit +
+   *  plans.terms; the monthly report and the daily admin digest use the same): a FirstRing plan client = the plan's minutes
+   *  (while trialing: the trial minutes) and no SMS allowance; a quote client, or a plan the price book does not know or that
+   *  has no minutes = rules.included_usage. {voice, sms}: a number, or null = no allowance to show. */
+  function allowanceOf(cfg, pb) {
+    const inc = ((pb && pb.rules) || {}).included_usage || {}, base = { voice: inc.voice_minutes || null, sms: inc.sms_segments || null };
+    const p = cfg && cfg.plan;
+    if (!p || typeof p !== 'object') return base;
+    const row = ((pb && pb.plans) || []).find(x => x.code === p.code);
+    if (!row) return base;
+    const sub = ((pb.rules || {}).subscription) || {};
+    const v = p.status === 'trialing' ? +(row.trial_minutes || sub.trial_minutes || 0) : +((row.included_usage || {}).voice_minutes || 0);
+    return v ? { voice: v, sms: null } : base;
+  }
   const keyOf = (t, cid) => t ? t.id : 'new-' + cid;
 
   function messageText(e) {
@@ -55,15 +69,15 @@
     const esc = C.esc, box = C.$('#tuBody'); if (!box) return;
     if (usageErr) { box.innerHTML = '<div class="notice notice--err" role="alert"><div>' + esc(usageErr) + '</div></div>'; return; }
     if (!usage.length) { box.innerHTML = '<p class="empty">No tenants yet.</p>'; return; }
-    const inc = (C.PB.rules || {}).included_usage || {};
     const pct = (v, m) => m ? Math.round(v / m * 100) + '%' : '';
     box.innerHTML = '<div class="table-wrap"><table class="table tu"><caption class="sr-only">Usage and cost per tenant</caption><thead><tr><th scope="col">Tenant</th><th scope="col">Client</th><th scope="col">Voice minutes</th><th scope="col">SMS segments</th>' +
       '<th scope="col">Claude</th><th scope="col">Twilio</th><th scope="col">Cost vs. monthly fee</th></tr></thead><tbody>' + usage.map(u => {
         const t = C.D.tenants.find(x => x.id === u.tenant_id) || {}, c = C.D.clients.find(x => x.id === t.client_id);
+        const inc = allowanceOf(t.config, C.PB);   // the plan's minutes for plan clients, not the quote clients' allowance
         const cost = (+u.claude_usd || 0) + (+u.twilio_usd || 0), fee = c && c.monthly_cents ? c.monthly_cents / 100 : 0;
         return '<tr><td><bdi dir="ltr">' + esc(u.slug) + '</bdi></td><td>' + esc(C.clientName(c) || '—') + '</td>' +
-          '<td><span dir="ltr" class="num">' + esc(Math.round(u.voice_minutes || 0)) + ' / ' + esc(inc.voice_minutes || '—') + '</span> ' + esc(pct(u.voice_minutes || 0, inc.voice_minutes)) + '</td>' +
-          '<td><span dir="ltr" class="num">' + esc(Math.round(u.sms_segments || 0)) + ' / ' + esc(inc.sms_segments || '—') + '</span> ' + esc(pct(u.sms_segments || 0, inc.sms_segments)) + '</td>' +
+          '<td><span dir="ltr" class="num">' + esc(Math.round(u.voice_minutes || 0)) + ' / ' + esc(inc.voice || '—') + '</span> ' + esc(pct(u.voice_minutes || 0, inc.voice)) + '</td>' +
+          '<td><span dir="ltr" class="num">' + esc(Math.round(u.sms_segments || 0)) + ' / ' + esc(inc.sms || '—') + '</span> ' + esc(pct(u.sms_segments || 0, inc.sms)) + '</td>' +
           '<td>' + money(u.claude_usd) + '</td><td>' + money(u.twilio_usd) + '</td>' +
           '<td>' + money(cost) + (fee ? ' <span class="muted small">(' + esc(Math.round(cost / fee * 100)) + '% of <span dir="ltr">' + esc(C.moneyText ? C.moneyText(c.monthly_cents) : '') + '</span>)</span>' : '') +
           (u.needs_addon_approval ? ' <span class="pill pill--need_help">Over 100% — approve a pack with the client</span>' : '') + '</td></tr>';
@@ -188,5 +202,5 @@
     return cfg;
   }
 
-  window.AdminTenants = { render, fromOnboarding };
+  window.AdminTenants = { render, fromOnboarding, allowanceOf };
 })();
