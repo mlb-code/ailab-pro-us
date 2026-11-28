@@ -275,7 +275,10 @@
   })();
 
   const api = { mode, get googleEnabled() { return !!(impl && impl.googleEnabled); }, get appleEnabled() { return !!(impl && impl.appleEnabled); },
-    get providers() { return (impl && impl.providers) || []; }, ready: () => readyP };
+    get providers() { return (impl && impl.providers) || []; }, ready: () => readyP,
+    // tests only (tools/e2e_setup_agent_engine.mjs): this file's own Supabase adapter over a stand-in client, so the real
+    // setup-agent handler is reached through the same setupChat code the live portal runs. Holds no keys and calls nothing.
+    supabaseAdapter };
   ['getSession', 'consumeLink', 'sendCode', 'verifyCode', 'signInWithGoogle', 'signInWithApple', 'signOut', 'getProfile', 'saveProfile',
     'listQuestionnaires', 'createQuestionnaire', 'getQuestionnaire', 'saveQuestionnaire', 'submitQuestionnaire',
     'deleteQuestionnaire', 'listAttachments', 'uploadAttachment', 'removeAttachment', 'downloadUrl', 'listQuotes',

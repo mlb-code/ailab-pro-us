@@ -113,8 +113,12 @@ qa-firstring-p2:
 # forwarding test + self-confirm, every failure path, keyboard-only, on-screen keyboard, contract v1 (the server's JSON Schema when
 # site/assets/setup_contract.json exists, or SETUP_CONTRACT=<file>), flag off / quote clients unchanged, 3 engines, 320-1280 px.
 # SHOTS_DIR=<dir> saves sa-* screenshots at 390 and 1280.
+# Then the same chat against the REAL setup-agent handler + engine (tools/setup_agent_browser.ts, bundled by `deno bundle` and
+# run in the page; settings go through the mock's update_onboarding_item; only the model is scripted): journey to live, the
+# number arriving later, the line going live, Try again, HTTP errors, the server's kill switch = the plain checklist.
 qa-setup-agent:
 	E2E_PORT=$(FREE) $(NODE) tools/e2e_setup_agent.mjs
+	E2E_PORT=$(FREE) DENO=$(DENO) $(NODE) tools/e2e_setup_agent_engine.mjs
 
 # Card / PayPal checkout on the mock backend with brand.json payments.paypal served ON and PayPal's SDK faked locally (nothing
 # reaches paypal.com): the portal's final payment + the admin refund. The quote page's PayPal step is in tools/e2e_quote.mjs.
