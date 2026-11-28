@@ -141,6 +141,7 @@ qa-sql:
 	$(DENO_RUN) supabase/tests/offline/consent_retention_run.ts
 	$(DENO_RUN) supabase/tests/offline/forwarding_self_confirmed_run.ts
 	$(DENO_RUN) supabase/tests/offline/call_notice_record_run.ts
+	$(DENO_RUN) supabase/tests/offline/setup_agent_run.ts
 
 # Measurement (2026-10-25): no tag loads with empty IDs; with IDs served (mock) GA4 + Meta Pixel load, events fire,
 # GPC/DNT blocks everything, no session replay anywhere (Clarity removed 2026-11-27, even a served clarity_id loads nothing),

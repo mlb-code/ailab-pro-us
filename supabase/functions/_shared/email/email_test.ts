@@ -560,6 +560,20 @@ Deno.test("admin_provisioning_alert: each step has a human label; self-confirmed
     "forwarding_self_confirmed: human subject, no raw step key");
 });
 
+Deno.test("admin_provisioning_alert: the setup assistant's alerts (budget / auth / down) are labelled and say what to check", async () => {
+  const s = await samples();
+  const ctx = s.admin_provisioning_alert.ctx;
+  const auth = render("admin_provisioning_alert", ctx, { step: "setup_agent_auth", error: "Setup assistant: model auth" });
+  has(auth, ["Step: Setup assistant: API key refused", "ANTHROPIC_API_KEY_SETUP", "paused for an hour"], "setup_agent_auth");
+  eq(auth.subject, "⚠️ Setup assistant: API key refused");
+  has(render("admin_provisioning_alert", ctx, { step: "setup_agent_budget", error: "x" }), ["Step: Setup assistant: spend limit or daily budget reached",
+    "setup_agent_daily_budget_usd"], "setup_agent_budget");
+  const down = render("admin_provisioning_alert", ctx, { step: "setup_agent_down", error: "x" });
+  assert(!/Retry: setup/.test(down.text) && !down.text.includes("setup_agent_down"), "no Retry line, no raw step key");
+  has(render("admin_provisioning_alert", ctx, { step: "setup_agent_request", error: "model bad_request (HTTP 400): invalid_request_error: grammar too large" }),
+    ["Step: Setup assistant: the AI provider refused our request", "grammar too large", "SETUP_WIRE"], "setup_agent_request");
+});
+
 Deno.test("FirstRing sign-up mails: trial / paid welcome to the customer, Hebrew alerts to Meir (new + cancelled)", async () => {
   const s = await samples();
   const plans = (PRICEBOOK as unknown as { plans: Array<{ code: string; name: string; product: string; monthly_cents: number; trial_minutes: number;

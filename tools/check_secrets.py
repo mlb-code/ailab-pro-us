@@ -124,6 +124,7 @@ def self_test():
         'sk-ant-...',                                         # documentation ellipsis
         'see https://supabase.com/docs, sbp_ prefix tokens',  # prefix mention only
         'ANTHROPIC_API_KEY=',                                 # empty example value
+        'ANTHROPIC_API_KEY_SETUP=',                           # empty example value (setup assistant key)
         'PAYPAL_LIVE_CLIENT_SECRET=',                         # empty example value (.secrets.env.example)
         'secrets PAYPAL_CLIENT_SECRET, PAYPAL_ENV',           # a name in prose
         'API keys start with pdl_live_apikey_ or pdl_sdbx_apikey_',   # prefix mention only

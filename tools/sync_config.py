@@ -7,6 +7,7 @@ Targets (byte-identical copies; never edit them by hand):
 Also writes site/CNAME = brand.json "domain" (GitHub Pages custom domain), then re-stamps the ?v=<content hash> versions
 (tools/asset_version.py) so pages never point at an old copy.
 Also: supabase/functions/_shared/{pricing,quote_view}.mjs -> site/assets/ (one pricing + public-view module for server, admin, quote mock),
+      supabase/functions/_shared/setup_contract.json -> site/assets/setup_contract.json (setup assistant contract, portal + iOS),
       runtime/app/tenant_schema.json -> site/assets/tenant_schema.json (tenant config validation in the portal/admin, B7).
 
 usage:
@@ -31,7 +32,9 @@ MODULES = [('supabase/functions/_shared/pricing.mjs', ['site/assets/pricing.mjs'
            # A6: public quote view + accept rules, used by the quote page's mock mode (imports ./pricing.mjs)
            ('supabase/functions/_shared/quote_view.mjs', ['site/assets/quote_view.mjs']),
            # B7: the tenant config JSON schema (generated from the runtime's pydantic model) for the portal + admin editor
-           ('runtime/app/tenant_schema.json', ['site/assets/tenant_schema.json'])]
+           ('runtime/app/tenant_schema.json', ['site/assets/tenant_schema.json']),
+           # setup assistant (2026-12-01): the request/response contract of the setup-agent function, for the portal + iOS
+           ('supabase/functions/_shared/setup_contract.json', ['site/assets/setup_contract.json'])]
 BRAND_REQUIRED = ['name', 'domain', 'site_url', 'support_email', 'senders', 'claude', 'niches', 'disclaimers']
 
 
@@ -56,10 +59,13 @@ def validate_config():
         if not claude.get(key):
             errs.append(f'brand: missing claude.{key}')
     prices = claude.get('price_usd_per_mtok') or {}
-    for key in ('model', 'voice_model', 'quote_model'):
+    for key in ('model', 'voice_model', 'quote_model', 'setup_model'):   # setup_model is optional (falls back to model)
         if claude.get(key) and len(prices.get(claude[key]) or []) != 4:
             errs.append(f'brand: claude.price_usd_per_mtok needs [in, out, cache_read, cache_write] for claude.{key}')
     errs += ['brand: ' + e for e in paypal_errors(brand)]
+    setup = brand.get('setup_agent')   # public flag for the portal's setup chat; a missing section = chat off
+    if setup is not None and not (isinstance(setup, dict) and isinstance(setup.get('enabled'), bool)):
+        errs.append('brand: setup_agent.enabled must be true or false')
     texting = brand.get('texting')   # public flag for the portal's texting step; a missing section = texting off
     if texting is not None and not (isinstance(texting, dict) and isinstance(texting.get('enabled'), bool)):
         errs.append('brand: texting.enabled must be true or false')
