@@ -1,7 +1,8 @@
 // What the model is asked to write (the "wire" format), and the way back to the engine's internal ops.
 // The full internal schema (setup_prompt.ts SETUP_TURN_SCHEMA, 21 anyOf branches) is too large for the structured-output
 // grammar compiler ("The compiled grammar is too large"), so the API gets one of two small formats instead, chosen per
-// deploy by the env SETUP_WIRE (default "json"):
+// deploy by the env SETUP_WIRE (default "compact", 2026-11-28: its typed topic fields are constrained by the grammar, so the
+// model cannot hand back malformed topic data the way a free JSON string can; both passed the live trial):
 //   compact  one flat op object: op enum, topic enum|null, proposal_id, text, value, data|null; data = the union of the leaf
 //            fields of every topic, none nullable, no nested anyOf (hours = 7 strings "mon 07:00-18:00" / "sun closed")
 //   json     the smallest grammar: every op field a string|null; the topic data travels as JSON text in data_json
@@ -13,7 +14,7 @@ import type { Schema } from "./setup_schema.ts";
 
 export type Wire = "compact" | "json" | "internal";   // "internal" = the engine's own shape (tests only; never from the env)
 export const WIRE_ENV = "SETUP_WIRE";
-export const DEFAULT_WIRE: "compact" | "json" = "json";
+export const DEFAULT_WIRE: "compact" | "json" = "compact";
 export const OP_NAMES = ["propose", "note", "confirm", "switch_topic", "skip", "set_carrier", "show_action", "request_help"] as const;
 
 /** SETUP_WIRE=compact|json; anything else (or unset) = the default. */

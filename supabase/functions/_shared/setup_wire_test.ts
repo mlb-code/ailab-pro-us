@@ -88,7 +88,7 @@ Deno.test("wire schemas: small, closed, only keywords structured outputs accepts
     for (const k of banned) if (!(w === "compact" && k === "anyOf")) assert(!text.includes(`"${k}"`), `${w} uses ${k}`);
     if (w === "compact") eq(text.split('"anyOf"').length - 1, 1, "compact: a single anyOf (data or null)");
   }
-  eq([wireFormat(() => undefined), wireFormat(() => "compact"), wireFormat(() => " JSON "), wireFormat(() => "full")], ["json", "compact", "json", "json"]);
+  eq([wireFormat(() => undefined), wireFormat(() => "compact"), wireFormat(() => " JSON "), wireFormat(() => "full")], ["compact", "compact", "json", "compact"], "unset / unknown = the default, compact");
   const pc: any = buildParams({ messages: [] }, "compact"), pj: any = buildParams({ messages: [] }, "json");
   eq([pc.output_config.format.schema, pj.output_config.format.schema], [COMPACT_WIRE_SCHEMA, JSON_WIRE_SCHEMA]);
   eq([pc.system[0].text, pj.system[0].text], [systemFor("compact"), systemFor("json")]);

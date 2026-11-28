@@ -4,7 +4,7 @@
 //   ANTHROPIC_API_KEY=... deno run -A --node-modules-dir=none tools/setup_agent_spike.ts --probe              one short turn per wire format
 //   ANTHROPIC_API_KEY=... deno run -A --node-modules-dir=none tools/setup_agent_spike.ts [--wire json|compact] [--runs 3] [--quiet]
 //   deno run -A --node-modules-dir=none tools/setup_agent_spike.ts --dry [--wire compact]   offline check of the script (no key, no cost)
-// --wire defaults to the env SETUP_WIRE (else json), the same switch the function reads. The full run stops at the first
+// --wire defaults to the env SETUP_WIRE (else compact), the same switch the function reads. The full run stops at the first
 // refused request (HTTP 4xx: bad_request / auth / budget) and prints the provider's reason; exit code 1.
 // (ANTHROPIC_API_KEY_SETUP is used first when set, like the function.) Costs real money: about $1 per run on Opus 5.5 at effort
 // low (design 4.3). Prints per-turn latency, p50/p90, schema-validity rate, tokens (with cache read / write) and dollars per

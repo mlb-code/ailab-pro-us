@@ -1,6 +1,6 @@
 // The setup assistant's model adapter (design 2026-11-27, sections 3.1 and 4.2-4.4). Same pattern as claude.ts, separate key.
 //   buildParams(req, wire)    the exact request body: model from brand.json claude.setup_model, effort claude.effort.setup,
-//                             structured output in the wire format (setup_wire.ts; env SETUP_WIRE=compact|json, default json),
+//                             structured output in the wire format (setup_wire.ts; env SETUP_WIRE=compact|json, default compact),
 //                             max_tokens 4000, server-side fallback, no thinking setting, no tool_choice
 //   liveSetupModel(env)       the official SDK, imported lazily; key ANTHROPIC_API_KEY_SETUP, else ANTHROPIC_API_KEY (never logged)
 //   scriptedSetupModel(steps) tests and the offline mock: canned outputs per call, every request recorded. It can only be

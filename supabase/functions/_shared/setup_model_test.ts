@@ -34,7 +34,7 @@ Deno.test("request: model + effort from brand.json, structured output, fallback,
   });
   eq(p.output_config.format.schema, COMPACT_WIRE_SCHEMA);
   eq((buildParams({ messages: [] }, "json") as any).output_config.format.schema, JSON_WIRE_SCHEMA);
-  eq((buildParams({ messages: [] }) as any).output_config.format.schema, JSON_WIRE_SCHEMA, "default wire = json (SETUP_WIRE unset)");
+  eq((buildParams({ messages: [] }) as any).output_config.format.schema, COMPACT_WIRE_SCHEMA, "default wire = compact (SETUP_WIRE unset)");
 });
 Deno.test("messages: history replayed as user text + assistant model_json, user message cached, state message last", () => {
   const m = buildModelMessages([
