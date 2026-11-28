@@ -15,7 +15,6 @@ import { COMPACT_WIRE_SCHEMA, JSON_WIRE_SCHEMA, toWire, type Wire, wireFormat } 
 export const SETUP_MODEL: string = (BRAND.claude as any).setup_model || BRAND.claude.model;
 export const SETUP_EFFORT: string = (BRAND.claude.effort as any).setup || "low";
 export const SETUP_MAX_TOKENS = 4000;
-const SDK_SPEC = "npm:@anthropic-ai/sdk@0.130.0";   // same pinned SDK as claude.ts
 
 export interface Usage { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number }
 export interface SetupModelRequest { messages: ModelMessage[]; system?: string }
@@ -100,9 +99,13 @@ export function liveSetupModel(env: (k: string) => string | undefined = (k) => D
     async call(req) {
       if (!apiKey) throw new SetupModelError("auth");
       if (!client) {
-        const spec = SDK_SPEC;   // resolved at runtime so offline tests never download the SDK
-        const { default: Anthropic } = await import(spec);
-        client = new Anthropic({ apiKey, timeout: 30_000, maxRetries: 1 });
+        // a failed SDK load must reach the log with its message (live test 2026-11-28: it surfaced as a bare "unavailable")
+        try {
+          // a LITERAL specifier: the hosted bundle only carries npm packages it can see statically (live test 2026-11-28:
+          // with a variable the function failed with "Could not find constraint '@anthropic-ai/sdk@0.130.0'"). Still lazy.
+          const { default: Anthropic } = await import("npm:@anthropic-ai/sdk@0.130.0");
+          client = new Anthropic({ apiKey, timeout: 30_000, maxRetries: 1 });
+        } catch (e) { throw mapError(e); }
       }
       const t0 = Date.now();
       let msg: any;
