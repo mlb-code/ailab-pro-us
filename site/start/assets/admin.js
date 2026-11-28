@@ -51,7 +51,11 @@
     'sms.incoming': 'SMS received', 'sms.not_sent': 'SMS not sent', 'sms.outbox': 'SMS queued', 'sms.reminder': 'SMS reminder', 'sms.send_failed': 'SMS send failed',
     'sms.sent': 'SMS sent', 'sms.status': 'SMS status', 'sms.textback': 'Text-back to caller', 'voice.call_cap': 'Call cap per number', 'voice.fallback': 'Switched to backup answering',
     'voice.incoming': 'Incoming call', 'voice.latency': 'Latency measured', 'voice.relay_failed': 'Voice connection failed', 'zapier.dead_letter': 'Zapier failed for good',
-    'zapier.pending': 'Zapier queued', 'zapier.sent': 'Zapier sent' };
+    'zapier.pending': 'Zapier queued', 'zapier.sent': 'Zapier sent',
+    // setup assistant (public.setup_agent_alert, 20261201100000_us_setup_agent.sql): one per kind per day, like its admin e-mail
+    setup_agent_budget: 'Setup assistant: spend limit or daily budget reached', setup_agent_auth: 'Setup assistant: API key refused',
+    setup_agent_down: 'Setup assistant: AI provider not answering', setup_agent_request: 'Setup assistant: the AI provider refused our request',
+    setup_retention_run: 'Setup assistant: old conversations deleted' };
   const EVT_PREFIX = { sms: 'SMS', voice: 'Call', calendar: 'Calendar', zapier: 'Zapier', notify: 'Alert', email: 'Email', booking: 'Booking', alert: 'Alert', delivery: 'Delivery' };
   // every event type gets a label: known map, else "<area>: <type>" for runtime dotted types, else "System event"
   const evtLabel = t => EVT[t] || (t && t.indexOf('.') > 0 && EVT_PREFIX[t.split('.')[0]] ? EVT_PREFIX[t.split('.')[0]] + ': ' + t.split('.').slice(1).join('.') : 'System event (' + t + ')');
