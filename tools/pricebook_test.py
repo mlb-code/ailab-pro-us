@@ -302,7 +302,8 @@ def main():
     check(brand['claude']['model'] == 'claude-opus-5-5', 'claude.model is claude-opus-5-5')
     check(brand['claude']['effort'] == {'voice': 'low', 'sms': 'low', 'quote': 'medium', 'setup': 'low'}, 'claude efforts voice/sms/setup low, quote medium')
     check(brand['claude'].get('setup_model') == 'claude-opus-5-5', 'claude.setup_model is claude-opus-5-5 (setup assistant, design 2026-11-27)')
-    check(brand.get('setup_agent', {}).get('enabled') is False, 'setup_agent.enabled is off by default')
+    # owner decision 2026-11-28 (Meir): the switch may be on; the gate now only checks that it is an explicit true/false
+    check(isinstance(brand.get('setup_agent', {}).get('enabled'), bool), 'setup_agent.enabled is an explicit true/false')
     check('Not affiliated with Anthropic' in brand['disclaimers']['footer'], 'footer disclaimer present')
     check('Claude' not in brand['name'] + brand['domain'], 'no "Claude" in brand name or domain')
 
