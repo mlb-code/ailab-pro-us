@@ -10,7 +10,7 @@ window.SITE_CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_AtzeR4Qp6tRp2-IbAmgcoQ_F2G3YPwJ",
   SUPABASE_JS: "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js",
   GOOGLE_ENABLED: true,
-  APPLE_ENABLED: false,
+  APPLE_ENABLED: true,
   ALLOW_MOCK_SWITCH: false,
   BUCKET: 'client-files',
   MAX_FILES: 5,
