@@ -28,7 +28,8 @@
     'leads', 'onboarding_items', 'requests', 'tenants', 'runtime_state', 'admin_notes', 'quote_reviews',   // second row: admin (A7)
     'calls', 'sms_messages', 'bookings', 'dispatch_events',   // third row: receptionist data written by the runtime (B7 reads it)
     'subscriptions', 'provisioning_jobs', 'trial_claims', 'tenant_credentials',   // FirstRing plans (*_us_subscriptions.sql)
-    'billing_checkouts', 'paddle_calls'];   // sign-up + Paddle (*_us_paddle.sql); paddle_calls = what paddle-billing would send to Paddle
+    'billing_checkouts', 'paddle_calls',   // sign-up + Paddle (*_us_paddle.sql); paddle_calls = what paddle-billing would send to Paddle
+    'setup_conversations', 'setup_messages', 'setup_proposals'];   // setup assistant (*_us_setup_agent.sql; answered by mock/setup-script.js)
   // mirrors private.handle_new_user() setting is_admin for the owner's address; in the mock that address is a demo one
   const MOCK_ADMIN_EMAIL = () => (window.SITE_CONFIG && window.SITE_CONFIG.MOCK_ADMIN_EMAIL) || 'admin@demo.local';
   const ss = {
@@ -40,6 +41,13 @@
     if (p.has('mock_providers')) ss.set('start_mock_providers', p.get('mock_providers') || '');
     if (p.has('mock_oauth_outcome')) ss.set('start_mock_oauth_outcome', p.get('mock_oauth_outcome') || 'ok');
     if (p.has('mock_oauth_email')) ss.set('start_mock_oauth_email', p.get('mock_oauth_email') || '');
+    // setup assistant (mock/setup-script.js): mock_setup_agent=1 shows the chat without brand.json setup_agent.enabled;
+    // mock_setup_fail=<reason>[:n] makes the next n turns (default: all) fail like the server would: assistant_unavailable |
+    // budget | limit | disabled (200 + fallback), rate_limited (429), turn_in_progress (409), server_error (500), network;
+    // mock_setup_delay=<ms> = how long the assistant "thinks" (default 350)
+    if (p.has('mock_setup_agent')) ss.set('start_mock_setup_agent', p.get('mock_setup_agent') === '0' ? '0' : '1');
+    if (p.has('mock_setup_fail')) ss.set('start_mock_setup_fail', p.get('mock_setup_fail') || '');
+    if (p.has('mock_setup_delay')) ss.set('start_mock_setup_delay', p.get('mock_setup_delay') || '');
   })();
   const mockProviders = () => (ss.get('start_mock_providers') || '').split(',').map(x => x.trim()).filter(Boolean);
   const RELAY_DEMO = 'k7x2mq9ab3@privaterelay.appleid.com';
@@ -875,6 +883,16 @@
     autoGoLive(db, t.client_id);
   }
 
+  // the scripted setup assistant is loaded on first use (demo mode only; a real portal never fetches it)
+  const AVM = /*asset-v*/{"/start/assets/mock/setup-script.js":"968f5e1e3e"}/*/asset-v*/;
+  function loadSetupScript() {
+    if (window.StartMockSetup) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const u = '/start/assets/mock/setup-script.js', s = document.createElement('script');
+      s.src = u + (AVM[u] ? '?v=' + AVM[u] : ''); s.async = true; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
   function portalBApi() {
     function ctx() {
       const db = load(), u = me(db); if (!u) return { err: 'not_authenticated' };
@@ -892,6 +910,45 @@
     const nameOf = (db, uid) => { const p = db.profiles.find(x => x.id === uid) || {}; return p.company || p.full_name || p.email || ''; };
     const emailOf = (db, uid) => (db.profiles.find(p => p.id === uid) || {}).email || null;
     const tenantRow = t => t && { id: t.id, client_id: t.client_id, slug: t.slug, status: t.status, twilio_number: t.twilio_number || null, config: t.config || {} };
+    // public.update_onboarding_item (+ the private.onboarding_apply trigger for plan clients): one item, the caller's rights.
+    // Shared by the checklist (updateOnboarding) and the setup assistant's saves (setupChat), like the real function does.
+    function obApply(x, id, status, data) {
+      const it = x.db.onboarding_items.find(o => o.id === id);
+      if (!it || !(ownsClient(x, it.client_id) || isAdmin(x))) throw err('not_your_item');
+      if (status != null && ['todo', 'done', 'need_help'].indexOf(status) === -1) throw err('invalid_status');
+      if (data != null && (typeof data !== 'object' || Array.isArray(data))) throw err('data_must_be_object');
+      const merged = Object.assign({}, it.data || {}, data || {});
+      // private.onboarding_go_live_gate: go-live only in 'testing' with every item done (optional 'tools' + 'sms' excepted)
+      if (merged.go_live_requested_at && !(it.data || {}).go_live_requested_at && !isAdmin(x)) {
+        const cl = x.db.clients.find(cc => cc.id === it.client_id) || {};
+        const open = x.db.onboarding_items.some(o => o.client_id === it.client_id && o.id !== it.id && OPTIONAL_ITEMS.indexOf(o.key) === -1 && o.status !== 'done');
+        if (((status || it.status) !== 'done' && OPTIONAL_ITEMS.indexOf(it.key) === -1) || cl.status !== 'testing' || open) throw err('go_live_not_ready');
+      }
+      // private.onboarding_apply: calendar done only with a connected calendar or "take messages only" (every client)
+      if (it.key === 'calendar' && status === 'done' && it.status !== 'done' && !isAdmin(x) && merged.booking_mode !== 'messages_only'
+          && !x.db.tenant_credentials.some(k => k.provider === merged.provider && x.db.tenants.some(t => t.id === k.tenant_id && t.client_id === it.client_id))) throw err('calendar_not_connected');
+      const subCl = x.db.clients.find(cc => cc.id === it.client_id) || {};
+      const t = subCl.billing_mode === 'subscription' ? x.db.tenants.find(tt => tt.client_id === it.client_id) : null;
+      // every save of a plan client goes straight into the live config (same rules as SQL); nothing changes on an error
+      const cfg = t && window.OnboardingConfig ? window.OnboardingConfig.patch(it.key, merged, t.config) : null;
+      if (JSON.stringify(merged).length >= 20000) throw err('data_too_large');
+      if (cfg) { t.config = cfg; planGuard(x.db, t); t.updated_at = now(); }
+      const from = it.status, prevData = it.data || {};
+      it.data = merged;
+      if (status) it.status = status;
+      it.done_at = it.status === 'done' ? (from === 'done' ? it.done_at : now()) : null;
+      it.updated_at = now();
+      const c = x.db.clients.find(cc => cc.id === it.client_id) || {};
+      x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'onboarding_item', entity_id: it.id, user_id: c.user_id || null,
+        type: status === 'need_help' ? 'need_help' : 'onboarding_updated', payload: { key: it.key, status: it.status }, client_visible: true, created_at: now() });
+      if (status === 'need_help') x.db.outbox.push({ id: uuid(), to: 'owner', template: 'need_help', subject: nameOf(x.db, c.user_id) + ' needs help with: ' + it.title, created_at: now() });
+      if (data && data.go_live_requested_at && !(prevData && prevData.go_live_requested_at)) {
+        x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'client', entity_id: c.id, user_id: c.user_id || null, type: 'go_live_requested', payload: { item_id: it.id }, client_visible: true, created_at: now() });
+        x.db.outbox.push({ id: uuid(), to: emailOf(x.db, c.user_id), template: 'final_payment_due', subject: 'Final payment before go-live', created_at: now() });
+      }
+      autoGoLive(x.db, it.client_id);
+      return it;
+    }
     // card / PayPal checkout: mirrors the SQL RPCs pay_target / pay_set_order / pay_record_capture with fake PayPal ids
     // (the quote page keeps its own copy for the deposit; here: the portal's final payment, own quotes only)
     function payRow(x, token, which) {
@@ -949,44 +1006,30 @@
       listOnboarding() {
         return run(x => x.db.onboarding_items.filter(o => ownsClient(x, o.client_id)).sort((a, b) => a.sort - b.sort));
       },
-      updateOnboarding(id, status, data) {
-        return run(x => {
-          const it = x.db.onboarding_items.find(o => o.id === id);
-          if (!it || !(ownsClient(x, it.client_id) || isAdmin(x))) throw err('not_your_item');
-          if (status != null && ['todo', 'done', 'need_help'].indexOf(status) === -1) throw err('invalid_status');
-          if (data != null && (typeof data !== 'object' || Array.isArray(data))) throw err('data_must_be_object');
-          const merged = Object.assign({}, it.data || {}, data || {});
-          // private.onboarding_go_live_gate: go-live only in 'testing' with every item done (optional 'tools' + 'sms' excepted)
-          if (merged.go_live_requested_at && !(it.data || {}).go_live_requested_at && !isAdmin(x)) {
-            const cl = x.db.clients.find(cc => cc.id === it.client_id) || {};
-            const open = x.db.onboarding_items.some(o => o.client_id === it.client_id && o.id !== it.id && OPTIONAL_ITEMS.indexOf(o.key) === -1 && o.status !== 'done');
-            if (((status || it.status) !== 'done' && OPTIONAL_ITEMS.indexOf(it.key) === -1) || cl.status !== 'testing' || open) throw err('go_live_not_ready');
-          }
-          // private.onboarding_apply: calendar done only with a connected calendar or "take messages only" (every client)
-          if (it.key === 'calendar' && status === 'done' && it.status !== 'done' && !isAdmin(x) && merged.booking_mode !== 'messages_only'
-              && !x.db.tenant_credentials.some(k => k.provider === merged.provider && x.db.tenants.some(t => t.id === k.tenant_id && t.client_id === it.client_id))) throw err('calendar_not_connected');
-          const subCl = x.db.clients.find(cc => cc.id === it.client_id) || {};
-          if (subCl.billing_mode === 'subscription') {   // every save goes straight into the live config (same rules as SQL)
-            const t = x.db.tenants.find(tt => tt.client_id === it.client_id);
-            if (t && window.OnboardingConfig) { t.config = window.OnboardingConfig.patch(it.key, merged, t.config); planGuard(x.db, t); t.updated_at = now(); }
-          }
-          if (JSON.stringify(merged).length >= 20000) throw err('data_too_large');
-          const from = it.status, prevData = it.data || {};
-          it.data = merged;
-          if (status) it.status = status;
-          it.done_at = it.status === 'done' ? (from === 'done' ? it.done_at : now()) : null;
-          it.updated_at = now();
-          const c = x.db.clients.find(cc => cc.id === it.client_id) || {};
-          x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'onboarding_item', entity_id: it.id, user_id: c.user_id || null,
-            type: status === 'need_help' ? 'need_help' : 'onboarding_updated', payload: { key: it.key, status: it.status }, client_visible: true, created_at: now() });
-          if (status === 'need_help') x.db.outbox.push({ id: uuid(), to: 'owner', template: 'need_help', subject: nameOf(x.db, c.user_id) + ' needs help with: ' + it.title, created_at: now() });
-          if (data && data.go_live_requested_at && !(prevData && prevData.go_live_requested_at)) {
-            x.db.events.push({ id: uuid(), actor: 'client:' + x.u.id, entity: 'client', entity_id: c.id, user_id: c.user_id || null, type: 'go_live_requested', payload: { item_id: it.id }, client_visible: true, created_at: now() });
-            x.db.outbox.push({ id: uuid(), to: emailOf(x.db, c.user_id), template: 'final_payment_due', subject: 'Final payment before go-live', created_at: now() });
-          }
-          autoGoLive(x.db, it.client_id);
-          return it;
-        });
+      updateOnboarding(id, status, data) { return run(x => obApply(x, id, status, data)); },
+      // setup assistant: the Edge Function setup-agent, answered by the scripted engine in mock/setup-script.js. Its saves go
+      // through obApply (= update_onboarding_item with the customer's own rights), so the same checks run as for the forms.
+      setupChat(input, turnId) { return loadSetupScript().then(() => this.setupTurn(input, turnId), () => fail('server_error')); },
+      setupTurn(input, turnId) {
+        const x = ctx(); if (x.err) return fail(x.err);
+        const fl = (ss.get('start_mock_setup_fail') || '').split(':'), delay = +(ss.get('start_mock_setup_delay') || 350);
+        const failNow = fl[0] || '';
+        const resumeLike = !input || input.type === 'resume' || (input.type === 'event' && input.event === 'back_online');
+        if (failNow && fl[1] && !resumeLike) { const n = +fl[1] - 1; ss.set('start_mock_setup_fail', n > 0 ? failNow + ':' + n : ''); }
+        const env = { db: x.db, u: x.u, client: x.client, tenant: x.tenant, now, uuid, clone, fail: failNow, brand: brandNow(), pb: (window.Start && window.Start.PB) || {},
+          profile: x.db.profiles.find(p => p.id === x.u.id) || {}, mock: true,
+          items: () => x.db.onboarding_items.filter(o => x.client && o.client_id === x.client.id).sort((a, b) => a.sort - b.sort),
+          apply: (itemId, status, data) => obApply(x, itemId, status, data) };
+        let out = null, e2 = null;
+        try {
+          if (!window.StartMockSetup) throw err('server_error');
+          out = window.StartMockSetup.turn(env, { v: 1, client_turn_id: turnId, input });
+        } catch (e) {
+          e2 = new Error(e.code || e.message); e2.code = e.code || e.message; e2.status = e.status || 500;
+          if (e.retry_after_s != null) e2.retry_after_s = e.retry_after_s;
+        }
+        store(x.db);
+        return new Promise((res, rej) => setTimeout(() => e2 ? rej(e2) : res(clone(out)), resumeLike ? 40 : delay));
       },
       startForwardingTest(id) {
         return run(x => {
@@ -1962,7 +2005,9 @@
       paddleFirstCharge: (daysAgo) => { const db = load(), u = me(db), c = db.clients.find(x => x.user_id === (u || {}).id && x.billing_mode === 'subscription'), s = c && subOf(db, c.id);
         if (!s) throw new Error('no_subscription'); s.first_paid_at = iso(Date.now() - (daysAgo || 0) * 86400000); s.first_paid_transaction_id = 'txn_mock' + rnd(12); store(db); return clone(s); },
       setUsage: (tid, minutes) => setUsage(tid, minutes),     // FirstRing: this period's voice minutes
-      p2Tick: opts => p2Tick(opts)   // FirstRing phase 2: release tick (dry run) + go-live AI check result {ai: 'pass'|'fail'|'error'}
+      p2Tick: opts => p2Tick(opts),  // FirstRing phase 2: release tick (dry run) + go-live AI check result {ai: 'pass'|'fail'|'error'}
+      // setup assistant: fail the next n turns of this tab like the server would (see mock_setup_fail above); '' = stop failing
+      setupFail: (reason, n) => ss.set('start_mock_setup_fail', reason ? reason + (n ? ':' + n : '') : '')
     }
   };
 })();

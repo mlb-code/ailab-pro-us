@@ -287,15 +287,19 @@
     const trial = t && t.trial ? ' Free trial until ' + S.fmtDate(t.sub.trial_ends_at) + '.' : '';
     const rl = window.PortalB.numberRelease && window.PortalB.numberRelease(d);   // the number is kept until a date (plan ended)
     // plan steps (no questionnaire / quote / deposit): Plan started (trial until X) -> Setup checklist -> Test call -> Live
-    const stages = [t && t.trial ? 'Plan started · trial until ' + S.fmtDate(t.sub.trial_ends_at) : 'Plan started', 'Setup checklist', 'Test call', 'Live'];
-    const r = planStageOf(d, t, pr, left, plan, trial, rl);
+    // with the setup assistant (setup-chat.js) the step is "Setup", done by chatting; otherwise the checklist wording, as before
+    const chat = !!(window.PortalSetupChat && window.PortalSetupChat.on(d));
+    const stages = [t && t.trial ? 'Plan started · trial until ' + S.fmtDate(t.sub.trial_ends_at) : 'Plan started', chat ? 'Setup' : 'Setup checklist', 'Test call', 'Live'];
+    const r = planStageOf(d, t, pr, left, plan, trial, rl, chat);
     return Object.assign(r, { stages });
   }
-  function planStageOf(d, t, pr, left, plan, trial, rl) {
+  function planStageOf(d, t, pr, left, plan, trial, rl, chat) {
     if (window.PortalB.messageMode(d)) return { i: 3, text: 'Your receptionist is in message mode: calls are answered and messages are emailed to you. ' +
       (rl ? rl.text :'See Billing to restart full answering.'), action: { id: 'goBilling', label: 'Open Billing' } };
     if (d.client.status === 'live') return { i: 3, text: 'You’re live on ' + plan + '. Calls you miss are answered for you.' + trial, action: null };
     if (d.client.status === 'testing') return { i: 2, text: 'Setup done. We’re running automatic test calls against your settings; you’ll be live within minutes.' + trial, action: null };
+    if (chat) return { i: 1, text: plan + ' is set up.' + trial + ' Setup: ' + pr.done + ' of ' + pr.total + ' steps done. You go live automatically when it’s done.',
+      action: { id: 'goOnboarding', label: left ? 'Continue setup with the assistant' : 'Review your setup' } };
     return { i: 1, text: plan + ' is set up.' + trial + ' Setup checklist: ' + pr.done + ' of ' + pr.total + ' steps done. You go live automatically when it’s done.',
       action: { id: 'goOnboarding', label: left ? 'Continue the setup checklist' : 'Review your setup' } };
   }

@@ -74,6 +74,8 @@
   let state = { open: null, testPoll: null, calendarReturn: null };
   // ------------------------------------------------------------ FirstRing plan helpers (numbers from the price book)
   const isPlan = d => !!(d.client && d.client.billing_mode === 'subscription');
+  // setup assistant (setup-chat.js): plan clients only, brand.json setup_agent.enabled on; otherwise the checklist as before
+  const chatOn = d => !!(window.PortalSetupChat && window.PortalSetupChat.on(d));
   // brand.json texting.enabled: business texting is off until US carriers approve our registration (A2P 10DLC); the
   // runtime's SMS_ENABLED is the twin switch. Off = a plan client's 'sms' step ("Texting registration") is not shown or counted.
   const textingOn = () => !!(S.BRAND.texting && S.BRAND.texting.enabled === true);
@@ -165,7 +167,7 @@
   function tabs(d) {
     if (!d.client) return [];
     const t = [];
-    if (d.ob.length) t.push(['onboarding', d.client.status === 'live' ? 'Setup' : 'Setup checklist', onboardingHtml]);
+    if (d.ob.length) t.push(['onboarding', d.client.status === 'live' || chatOn(d) ? 'Setup' : 'Setup checklist', chatOn(d) ? window.PortalSetupChat.html : onboardingHtml]);
     if (isRcp(d) && d.tenant && ['testing', 'live', 'paused'].indexOf(d.client.status) !== -1) t.push(['receptionist', 'My receptionist', receptionistHtml]);
     if (isRcp(d) && d.tenant && window.PortalResults && ['testing', 'live', 'paused'].indexOf(d.client.status) !== -1) t.push(['results', 'Results', window.PortalResults.html]);
     t.push(['requests', 'Requests', requestsHtml]);
@@ -308,17 +310,21 @@
     return '<div class="vslot" data-video="onb-' + esc(it.key) + '" data-script="' + esc(VIDEO_SCRIPT[it.key] || '') + '"' + (inner ? '' : ' hidden') + '>' + inner + '</div>';
   }
   function onboardingHtml(d) {
-    const pr = obProgress(d), items = pr.items, done = pr.done;
+    const pr = obProgress(d), done = pr.done;
     const pct = pr.total ? Math.round(done / pr.total * 100) : 0;
     const opt = pr.optional.length ? ' Optional: ' + pr.optional.map(o => '“' + esc(o.title) + '”').join(', ') + '.' : '';
-    if (!state.open || !items.some(i => i.key === state.open)) state.open = (items.find(i => i.status !== 'done') || {}).key || null;
     return messageModeHtml(d) + '<section class="card obhead"><h2 class="h-card">Your setup checklist</h2><p id="obCount">' + done + ' of ' + pr.total + ' steps done.' + opt + ' Each step saves as you go. Stuck? Use “Need help” in the step and we’ll answer in writing.</p>' +
       '<div class="bar" role="progressbar" aria-label="Setup checklist progress" aria-valuemin="0" aria-valuemax="' + pr.total + '" aria-valuenow="' + done + '"><i style="width:' + pct + '%"></i></div>' +
       '<div class="vslot spaced" data-video="onb-welcome" data-script="01-welcome" hidden></div></section>' +
-      (d.schemaOk === false ? S.msgHtml('Some settings can’t be checked right now. Please reload the page.') : '') + autoGoLiveHtml(d) +
-      '<div id="calReturn"></div><ol class="obsteps">' + items.map((it, i) => '<li><details class="obstep" id="ob-' + esc(it.key) + '" data-key="' + esc(it.key) + '"' + (state.open === it.key ? ' open' : '') + '>' +
+      (d.schemaOk === false ? S.msgHtml('Some settings can’t be checked right now. Please reload the page.') : '') + autoGoLiveHtml(d) + stepsHtml(d, false);
+  }
+  /** The checklist steps (one <details> per item). noVideo: the setup assistant's "Edit manually" view (no video slots). */
+  function stepsHtml(d, noVideo) {
+    const items = obProgress(d).items;
+    if (!state.open || !items.some(i => i.key === state.open)) state.open = (items.find(i => i.status !== 'done') || {}).key || null;
+    return '<div id="calReturn"></div><ol class="obsteps">' + items.map((it, i) => '<li><details class="obstep" id="ob-' + esc(it.key) + '" data-key="' + esc(it.key) + '"' + (state.open === it.key ? ' open' : '') + '>' +
         '<summary><span class="obstep__n" aria-hidden="true">' + (i + 1) + '</span><span class="obstep__t">' + esc(it.title) + '</span>' + pill(it.status, OB_STATUS[it.status] || it.status) + '</summary>' +
-        '<div class="obstep__b">' + videoSlot(it) + stepBody(it, d) + helpBox(it) + '</div></details></li>').join('') + '</ol>';
+        '<div class="obstep__b">' + (noVideo ? '' : videoSlot(it)) + stepBody(it, d) + helpBox(it) + '</div></details></li>').join('') + '</ol>';
   }
   // plan clients: no "Request go-live" and no final payment; the server goes live after the automatic test calls
   function autoGoLiveHtml(d) {
@@ -751,17 +757,21 @@
       try { await B.updateOnboarding(sk.dataset.item, 'done', { skipped: true, zapier_webhook_url: null }); S.toast('Step skipped'); state.open = null; await api.refresh('onboarding', ['#ob-tools > summary']); }
       catch (e) { sk.disabled = false; errBox('msg_tools', [settingsErr(e)]); }
     });
+    bindHelp(d, it => { state.open = it.key; return api.refresh('onboarding', ['#ob-' + it.key + ' > summary']); });
+    if (state.calendarReturn) { const r = state.calendarReturn; state.calendarReturn = null; S.$('#calReturn').innerHTML = S.msgHtml(r.text, r.kind); }
+    const last = lastItem(d);
+    if (last) mountFinalPay(d, document, () => { state.open = last.key; api.refresh('onboarding', ['#ob-' + last.key + ' > summary']); });
+  }
+  // "Need help with this step?" (helpBox): the request goes to our team as the item's need_help status; `after(it)` redraws
+  function bindHelp(d, after) {
     S.$$('[data-help]').forEach(b => b.addEventListener('click', async () => {
       const it = d.ob.find(o => o.id === b.dataset.help); const ta = S.$('#help_' + it.key);
       const text = ta.value.trim();
       if (text.length < 5) { errBox('helpMsg_' + it.key, ['Please write a few words about what you need.']); ta.focus(); return; }
       b.disabled = true;
-      try { await B.updateOnboarding(it.id, 'need_help', { help_message: text, help_at: new Date().toISOString() }); S.toast('Sent — we’ll reply in writing'); state.open = it.key; await api.refresh('onboarding', ['#ob-' + it.key + ' > summary']); }
+      try { await B.updateOnboarding(it.id, 'need_help', { help_message: text, help_at: new Date().toISOString() }); S.toast('Sent — we’ll reply in writing'); await after(it); }
       catch (e) { b.disabled = false; errBox('helpMsg_' + it.key, [settingsErr(e)]); }
     }));
-    if (state.calendarReturn) { const r = state.calendarReturn; state.calendarReturn = null; S.$('#calReturn').innerHTML = S.msgHtml(r.text, r.kind); }
-    const last = lastItem(d);
-    if (last) mountFinalPay(d, document, () => { state.open = last.key; api.refresh('onboarding', ['#ob-' + last.key + ' > summary']); });
   }
   function pollTest(d, itemId, api) {
     clearInterval(state.testPoll);
@@ -1190,12 +1200,18 @@
 
   // ------------------------------------------------------------ dispatch from home.js
   function bind(d, tab, api) {
-    if (tab === 'onboarding') { bindOnboarding(d, api); return true; }
+    if (tab === 'onboarding') { if (chatOn(d)) window.PortalSetupChat.bind(d, api); else bindOnboarding(d, api); return true; }
     if (tab === 'receptionist') { bindReceptionist(d, api); return true; }
     if (tab === 'requests') { bindRequests(d, api); return true; }
     if (tab === 'results' && window.PortalResults) return window.PortalResults.bind(d, api);
     if (tab === 'billing') bindPlanActions(d, api, 'billing');   // home.js binds the rest of Billing
     return false;
   }
-  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay, isPlan, planTerms, messageMode, numberRelease, obProgress };
+  // shared with the setup assistant (setup-chat.js): the same editors, wording and actions as the checklist, not copies
+  const carrierLabel = car => (CARRIERS.find(x => x[0] === car) || [])[1] || '';
+  const takeCalendarReturn = () => { const r = state.calendarReturn; state.calendarReturn = null; return r; };
+  const setOpen = key => { state.open = key || null; };
+  window.PortalB = { load, tabs, bind, usageHtml, handleCalendarReturn, toE164, finalPay, finalPayHtml, mountFinalPay, isPlan, planTerms, messageMode, numberRelease, obProgress,
+    messageModeHtml, autoGoLiveHtml, onboardingHtml, stepsHtml, bindOnboarding, bindPlanActions, carrierHow, carrierOptions, carrierLabel, forwardStateHtml, helpBox, bindHelp, settingsErr,
+    fmtPhone, when, textingOn, takeCalendarReturn, setOpen };
 })();
