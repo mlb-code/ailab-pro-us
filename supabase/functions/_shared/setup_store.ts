@@ -132,6 +132,7 @@ export class MemoryWorld {
   items = new Map<string, Item & { client_id: string }>();
   tenants = new Map<string, { id: string; client_id: string; config: any; twilio_number: string | null }>();
   credentials = new Set<string>();        // `${tenant_id}:${provider}`
+  golive = new Map<string, string>();     // client id -> status of its latest golive_sim provisioning job
   profiles = new Map<string, { full_name: string | null; company: string | null; email: string | null; contact_email: string | null }>();
   writes: Array<{ item: string; status: string | null; data: any }> = [];
   constructor(public patch: Patch) {}
@@ -220,7 +221,7 @@ export class MemorySetupStore implements SetupStore {
     return Promise.resolve(structuredClone({
       conversation: { id: cv.id, status: cv.status, topic: cv.topic, state: cv.state, turns: cv.turns },
       client: { id: cl.id, status: cl.status, business_name: cl.business_name },
-      golive: { client_status: cl.status, has_number: !!t?.twilio_number, sim_status: null, number_status: null },
+      golive: { client_status: cl.status, has_number: !!t?.twilio_number, sim_status: this.world.golive.get(cl.id) ?? null, number_status: null },
       messages: this.msgsOf(cv.id).slice(-200).map(this.pub),
       proposals: [...this.proposals.values()].filter((p) => p.conversation_id === cv.id).map((p) => ({ id: p.id, topic: p.topic, item_key: p.item_key, status: p.status, shown_seq: p.shown_seq, error: p.error ?? null })),
       switches: { enabled: this.settings.enabled, paused_until: this.settings.paused_until, budget_usd: this.settings.budget_usd, spent_today_usd: this.spent() },

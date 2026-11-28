@@ -470,6 +470,37 @@ Deno.test(`[${WIRE}] no receptionist number yet: test_call state no_number, the 
   const r2 = await send(t, model, { type: "event", event: "test_started" });
   eq(blocks(r2, "action").pop().state, "no_number");
   eq(r2.body.status, "active");
+  // the number arrives (provisioning job), the customer comes back from the e-mail: resume = the thread + one catch-up turn
+  const stored = (await send(t, model, { type: "resume" })).body.messages.length;
+  t.w.tenants.get(t.tenantId)!.twilio_number = "+13465550199";
+  const r3 = await send(t, model, { type: "resume" });
+  assert(r3.body.messages.length > stored, "the whole thread comes back, plus the catch-up");
+  assert(/Good news: your receptionist's number is ready\./.test(lastText(r3)), lastText(r3));
+  eq(blocks(r3, "action").slice(-2).map((b: any) => [b.action, b.state ?? b.forward_to]), [["forwarding_instructions", "+13465550199"], ["test_call", "ready"]]);
+  eq(r3.body.progress.go_live, "steps_left");
+  const r4 = await send(t, model, { type: "resume" });
+  eq(r4.body.messages.length, r3.body.messages.length, "said once: the next resume is the stored thread only");
+  eq(model.requests.length, 0, "no model call for any of this");
+});
+Deno.test(`[${WIRE}] go-live: check job failed or held -> "delayed"; the line goes live -> said once on the next resume`, async () => {
+  const t = world();
+  const model = scriptedSetupModel([]);
+  await send(t, model, { type: "resume" });
+  for (const k of ["faq", "hours", "alerts", "calendar", "tools", "forward_calls"]) t.item(k).status = "done";
+  t.w.clients.get(t.clientId)!.status = "testing";
+  eq((await send(t, model, { type: "event", event: "test_changed" })).body.progress.go_live, "testing");
+  for (const [job, want] of [["running", "testing"], ["failed", "delayed"], ["held", "delayed"], ["done", "testing"]]) {
+    t.w.golive.set(t.clientId, job);
+    eq((await send(t, model, { type: "resume" })).body.progress.go_live, want, `golive_sim ${job}`);
+  }
+  t.w.clients.get(t.clientId)!.status = "live";
+  const r = await send(t, model, { type: "resume" });
+  eq([r.body.status, r.body.progress.go_live], ["complete", "live"]);
+  assert(/^You're live\. Calls forwarded from your business line are answered\./.test(lastText(r)), lastText(r));
+  eq(r.body.composer.hint, "Tell me what to change");
+  const again = await send(t, model, { type: "resume" });
+  eq(again.body.messages.length, r.body.messages.length, "said once");
+  eq(model.requests.length, 0);
 });
 Deno.test(`[${WIRE}] size: a full FAQ (25 long pairs) still fits the message row; over the item limit it is the forms' 'too long'`, async () => {
   const t = world();

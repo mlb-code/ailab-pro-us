@@ -37,6 +37,7 @@ export const AFFIRMATIVE = /^(?:(?:y(?:es|ep|eah|up)?|ok(?:ay)?|correct|right|pe
 export const isAffirmative = (t: string) => t.trim().length <= 40 && AFFIRMATIVE.test(t.trim());
 const EVENT_TEXT: Record<string, string> = { calendar_returned: "Back from the calendar sign-in.", test_started: "Test call started.",
   test_changed: "Checked the test call.", forms_saved: "Back from the forms.", back_online: "Back online." };
+const LIVE_TEXT = "You're live. Calls forwarded from your business line are answered.";
 const FIXED_REPHRASE = "I couldn't fit that into the settings. Could you say it more briefly?";
 
 // ------------------------------------------------------------------ the turn's working set
@@ -69,7 +70,9 @@ function goLive(open: OpenResult, s: Snapshot): "waiting_number" | "steps_left" 
   if (open.golive.client_status === "live") return "live";
   if (!s.tenant?.twilio_number) return "waiting_number";
   if (s.items.some((i) => !OPTIONAL_ITEMS.includes(i.key) && i.status !== "done")) return "steps_left";
-  return open.golive.sim_status === "delayed" ? "delayed" : "testing";
+  // the go-live check job (provisioning_jobs.status pending | running | done | failed | held): failed = a check found something,
+  // held = the live AI check could not run and waits for a manual approval. Either way the customer waits on us: "delayed".
+  return ["failed", "held"].includes(String(open.golive.sim_status)) ? "delayed" : "testing";
 }
 function progress(open: OpenResult, s: Snapshot, st: ConvState) {
   const steps = s.items.map((i) => ({ key: i.key, title: i.title ?? i.key, status: i.status, required: !OPTIONAL_ITEMS.includes(i.key) }));
@@ -82,7 +85,7 @@ const HINTS: Partial<Record<Topic, string>> = { services: "List the jobs you boo
 function composer(topic: Topic | null, enabled: boolean, quick: Ctx["quick"]) {
   const q = [...quick];
   if (topic && SKIPPABLE.includes(topic) && !q.length) q.push({ label: "Skip for now", input: { type: "message", text: "skip" } });
-  return { enabled, hint: (topic && HINTS[topic]) || "Type your answer", quick_replies: q.slice(0, 4) };
+  return { enabled, hint: topic ? HINTS[topic] || "Type your answer" : "Tell me what to change", quick_replies: q.slice(0, 4) };
 }
 /** Stored messages for the client: live card statuses; a user input without an answer carries "Try again". */
 function present(msgs: StoredMessage[], statuses: Map<string, string>): any[] {
@@ -106,6 +109,15 @@ function respond(open: OpenResult, s: Snapshot, st: ConvState, messages: any[], 
 }
 const fallback = (reason: string, s: Snapshot, st: ConvState, retry: number | null = null) =>
   ({ reason, item_key: (() => { const t = currentTopic(s, st); return t ? TOPIC_ITEM[t] : null; })(), retry_after_s: retry });
+
+/** On resume: what happened outside the chat since its last answer that the customer is waiting to hear (null = nothing):
+ *  the line went live, or the receptionist number arrived after a "number isn't ready yet" test card. */
+function catchUpOf(open: OpenResult, s: Snapshot, st: Record<string, any>): "number" | "live" | null {
+  if (goLive(open, s) === "live") return st.said_live ? null : "live";
+  const last = [...open.messages].reverse().find((m) => m.role === "assistant");
+  const waiting = (last?.blocks ?? []).some((b: any) => b?.type === "action" && b.action === "test_call" && b.state === "no_number");
+  return waiting && s.tenant?.twilio_number ? "number" : null;
+}
 
 // ------------------------------------------------------------------ state message (role "system", after the user's message)
 function stateText(c: Ctx, topic: Topic | null, extra = ""): string {
@@ -147,7 +159,8 @@ async function askNext(c: Ctx, lead = ""): Promise<void> {
   if (!topic) {
     c.state.last_card = null;
     const gl = goLive(c.open, s);
-    say(gl === "live" ? "You're live. Calls forwarded from your business line are answered."
+    if (gl === "live") c.state.said_live = true;
+    say(gl === "live" ? LIVE_TEXT
       : gl === "waiting_number" ? "That's everything I can set up for now. Your receptionist's number is on its way; we'll email you, then come back here for the test call."
       : "All required steps are done. We're running automatic test calls against your settings now; you'll be live within minutes and get an email.");
     return;
@@ -617,7 +630,14 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
     const s = await snap0();
     return respond(open, s, state0, inp.type === "resume" ? present(open.messages, statuses) : [], { status: "unavailable", fallback: fallback("disabled", s, state0) });
   }
-  if (inp.type === "resume" && open.messages.length) return respond(open, await snap0(), state0, present(open.messages, statuses));
+  // a resume shows the stored thread, unless something the customer waits for happened outside the chat: then one server
+  // turn (no model) tells them and moves on (design 3.3: "the customer resumes when the e-mail arrives")
+  let catchUp: "number" | "live" | null = null;
+  if (inp.type === "resume" && open.messages.length) {
+    const s = await snap0();
+    catchUp = catchUpOf(open, s, state0);
+    if (!catchUp) return respond(open, s, state0, present(open.messages, statuses));
+  }
   const { role, text: inText, redacted } = inputOf(inp, open);
   const needsModel = inp.type === "message";
   if (needsModel && !deps.model) return unavailable("disabled");   // no API key configured
@@ -665,7 +685,10 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
         c.out.messages.push({ role: "assistant", text: hi, blocks: [], model_json: { reply: hi.slice(0, 350), ops: [] } },
           { role: "note", text: DISCLOSURE, blocks: [] });
         await askNext(c);
-      }
+      } else if (catchUp === "live") {
+        c.state.said_live = true;
+        c.text.push(`${LIVE_TEXT} Want to change something? Just tell me, like "change my hours".`);
+      } else if (catchUp === "number") await askNext(c, "Good news: your receptionist's number is ready.");
     } else if (inp.type === "confirm") await confirmFlow(c, inp.proposal_id, false);
     else if (inp.type === "change") {
       const p = c.pending.find((x) => x.id === inp.proposal_id);
@@ -696,7 +719,9 @@ export async function runTurn(deps: EngineDeps, req: TurnRequest): Promise<Engin
     const fresh = [...inputMsg(), ...c.out.messages.map((m, i) => ({ id: String(saved.messages[i]?.id ?? ""), seq: saved.messages[i]?.seq,
       role: m.role, text: m.text, created_at: saved.messages[i]?.created_at, blocks: m.blocks }))];
     log(c, "setup_turn", { input: inp.type, topic: currentTopic(c.snap, c.state), model_calls: c.modelCalls, cost_usd: c.usage.cost, cards: c.out.proposals.length });
-    return respond(open, c.snap, c.state, fresh, { limits: c.limits, quick: c.quick });
+    // a resume always answers with the whole thread (the client replaces its copy): the stored one plus the catch-up
+    const messages = catchUp ? [...present(open.messages, statuses), ...fresh].slice(-200) : fresh;
+    return respond(open, c.snap, c.state, messages, { limits: c.limits, quick: c.quick });
   } catch (e) {
     await deps.store.finish(open.conversation.id, c.lock, { messages: [], proposals: [] }).catch(() => {});   // never leave the lock held
     throw e;
