@@ -695,3 +695,32 @@ Deno.test("dispatch: sign-up mails go out while client reminders are off (client
   await runDispatch(deps(db2, m2));
   eq([t2.status, a2.status, (a2.done as { error?: string }).error], ["sent", "pending", "admin_quiet_hours"]);
 });
+
+Deno.test("setup assistant copy follows brand.json setup_agent.enabled: off (shipped) = the checklist words unchanged; on = plan clients only", async () => {
+  const s = await samples();
+  const ON = brandWith({ setup_agent: { enabled: true } }), OFF = brandWith({ setup_agent: { enabled: false } });
+  const ABSENT = brandWith({}) as EmailBrand & { setup_agent?: unknown };
+  delete ABSENT.setup_agent;
+  eq((B as EmailBrand & { setup_agent?: { enabled?: boolean } }).setup_agent?.enabled, false, "shipped brand.json: the switch is off");
+  const r = (k: string, ctx: EmailCtx, brand: EmailBrand, payload?: Record<string, unknown>) => TEMPLATES[k].render(ctx, { brand, now: NOON_IL, payload });
+  const plan = (ctx: EmailCtx, status = "onboarding"): EmailCtx => ({ ...ctx, client: { ...ctx.client!, billing_mode: "subscription", status } });
+  const cases: Array<[string, EmailCtx, Record<string, unknown>?]> = [
+    ["trial_welcome", s.trial_welcome.ctx], ["plan_welcome", s.plan_welcome.ctx], ["onboarding_nudge", plan(s.onboarding_nudge.ctx)],
+    ["ready_to_test", plan(s.ready_to_test.ctx, "testing")], ["subscription_restored", s.subscription_restored.ctx],
+    ["subscription_message_mode", s.subscription_message_mode.ctx], ["subscription_canceled", s.subscription_canceled.ctx, s.subscription_canceled.payload],
+  ];
+  for (const [k, ctx, payload] of cases) {
+    const off = r(k, ctx, OFF, payload), absent = r(k, ctx, ABSENT, payload), on = r(k, ctx, ON, payload);
+    eq([off.subject, off.text, off.html], [absent.subject, absent.text, absent.html], `${k}: off = no switch at all`);
+    assert(/checklist|on the step/.test(off.text), `${k}: off keeps the checklist wording`);
+    assert(!/checklist/i.test(on.text + on.html), `${k}: on, no checklist left`);
+    assert(/setup assistant|Setup in your portal|your setup is complete/.test(on.text), `${k}: on, the assistant / Setup wording`);
+  }
+  has(r("trial_welcome", s.trial_welcome.ctx, ON), ["Our AI setup assistant asks a few short questions (about 10 minutes)", "prefer forms? They're one tap away"], "trial_welcome on");
+  assert(r("plan_welcome", s.plan_welcome.ctx, ON).html.includes("Next step: finish setup with our AI setup assistant."), "plan_welcome on: preheader");
+  // quote clients (RCP / BNDL by quote) never get the assistant: the same mail with the switch on
+  for (const k of ["onboarding_nudge", "deposit_received", "ready_to_test"]) {
+    const ctx = s[k].ctx, off = r(k, ctx, OFF), on = r(k, ctx, ON);
+    eq([on.subject, on.text, on.html], [off.subject, off.text, off.html], `${k}: quote client unchanged with the switch on`);
+  }
+});

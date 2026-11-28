@@ -90,16 +90,24 @@ const trialMinutes = (p?: PlanRow) => Number(p?.trial_minutes ?? SUB_RULES().tri
 const minutesOf = (n?: number | null) => (n ? `${Number(n).toLocaleString("en-US")} minutes` : "");
 /** what message mode does, in the words of the terms (owner decision 2026-11-25) */
 const MESSAGE_MODE = "Your line still answers every call, in message mode: it takes the caller's name, number and reason and e-mails them to you. It does not book visits or answer other questions.";
+/** brand.json setup_agent.enabled (the portal's switch for the AI setup assistant, plan clients only): ON = plan clients set
+ *  up by chatting, the forms one tap away, and these mails say so. OFF (the default) or a quote client = the checklist wording,
+ *  word for word as before the assistant existed. */
+const chatSetup = (ctx: EmailCtx, b: EmailBrand) => isPlan(ctx) && (b as { setup_agent?: { enabled?: unknown } }).setup_agent?.enabled === true;
 /** sign-up mails: the one next step (the checklist; go-live is automatic), or nothing to do when the line is already live */
-const setupStep = (ctx: EmailCtx): Block[] => ctx.client?.status === "live"
+const setupStep = (ctx: EmailCtx, b: EmailBrand): Block[] => ctx.client?.status === "live"
   ? [{ p: "Your receptionist is already live. Nothing to do." }]
+  : chatSetup(ctx, b)
+  ? [{ p: "**Next step:** finish setup in your portal. Our AI setup assistant asks a few short questions (about 10 minutes) and sets things up from your answers; prefer forms? They're one tap away. After your test call, our automatic checks run and your receptionist goes live on its own." }]
   : [{ p: "**Next step:** finish the setup checklist in your portal. After your test call, our automatic checks run and your receptionist goes live on its own." }];
+/** where the customer finds their phone provider's forwarding steps: the checklist, or Setup when the assistant is on */
+const howWhere = (ctx: EmailCtx, b: EmailBrand) => chatSetup(ctx, b) ? "Setup in your portal shows how" : "the setup checklist in your portal shows how";
 const startedCta = (ctx: EmailCtx, b: EmailBrand) =>
   ctx.client?.status === "live" ? { label: "Open my portal", url: portal(b) } : { label: "Finish my setup", url: portal(b, "onboarding") };
 /** Paddle is the merchant of record: card statements and receipts carry its name */
 const paddleNote = (ctx: EmailCtx): Block[] =>
   ctx.subscription?.provider === "paddle" ? [{ small: "Billing is handled by Paddle.com, our reseller and the merchant of record. Your receipts come from Paddle, and paddle.net answers billing questions." }] : [];
-const FORWARD_OFF = "Don't want calls to reach it at all? Turn off call forwarding on your business phone (the setup checklist in your portal shows how for your phone provider).";
+const forwardOff = (ctx: EmailCtx, b: EmailBrand) => `Don't want calls to reach it at all? Turn off call forwarding on your business phone (${howWhere(ctx, b)} for your phone provider).`;
 /** satisfaction guarantee (pricebook refund_rules.rcp_guarantee): [text, "Month D, YYYY" end date] for RCP/BNDL clients, else null */
 function guaranteeOf(ctx: EmailCtx): { text: string; until: string } | null {
   const rr = PRICEBOOK.refund_rules;
@@ -480,12 +488,13 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const what = isReceptionist(ctx) ? "receptionist" : "website";
     return {
       subject: `${left} step${left === 1 ? "" : "s"} left to get your ${what} live`,
-      preheader: "Pick up where you left off. Each step has a short how-to.",
+      preheader: chatSetup(ctx, brand) ? "Pick up where you left off. The setup assistant remembers your answers." : "Pick up where you left off. Each step has a short how-to.",
       heading: `${left} step${left === 1 ? "" : "s"} left`,
       blocks: [
         { p: `${hi(ctx)} your setup is waiting on ${left === 1 ? "one step" : `${left} steps`} from you:` },
         { list: ctx.onboarding?.left_titles ?? [] },
-        { small: "Stuck? Press \"Need help\" on the step and we'll answer in writing." },
+        { small: chatSetup(ctx, brand) ? "Stuck? Tell the setup assistant, or press \"Need help\" in the form, and we'll answer in writing."
+          : "Stuck? Press \"Need help\" on the step and we'll answer in writing." },
       ],
       cta: { label: "Continue setup", url: portal(brand, "onboarding") },
     };
@@ -512,7 +521,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         preheader: "We're testing your receptionist with your settings. You'll get an email the moment it's live.",
         heading: "Setup done",
         blocks: [
-          { p: `${hi(ctx)} thanks, your setup checklist is complete and your test call came through.` },
+          { p: `${hi(ctx)} thanks, your setup${chatSetup(ctx, brand) ? "" : " checklist"} is complete and your test call came through.` },
           ...(num ? [{ facts: [["Your receptionist's number", num]] } as Block] : []),
           { p: "We're now running automatic test calls against your exact settings (hours, services, FAQ, alerts, calendar). This usually takes minutes. You don't need to do anything." },
           { p: "As soon as the checks pass, it goes live on its own and we email you." },
@@ -626,7 +635,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
         { p: MESSAGE_MODE },
         { p: r === "past_due" ? "To get full answering back, update your payment details in your portal (Billing)."
           : "To get full answering back (booking, answers, alerts), restart your plan in your portal (Billing). Your number and settings are kept." },
-        { small: FORWARD_OFF },
+        { small: forwardOff(ctx, brand) },
       ],
       cta: { label: "Restart my plan", url: portal(brand, "billing") },
     };
@@ -639,7 +648,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     blocks: [
       { p: `${hi(ctx)} your plan is active again${ctx.subscription?.plan_code ? ` (${planName(ctx.subscription.plan_code)})` : ""}. Your receptionist answers, books visits and sends alerts as before.` },
       ...(ctx.tenant_number ? [{ facts: [["Receptionist number", fmtPhone(ctx.tenant_number)]] } as Block] : []),
-      { small: "If you turned call forwarding off, turn it back on (your setup checklist shows how)." },
+      { small: `If you turned call forwarding off, turn it back on (${chatSetup(ctx, brand) ? "Setup in your portal shows how" : "your setup checklist shows how"}).` },
     ],
     cta: { label: "Open my portal", url: portal(brand, "receptionist") },
   })),
@@ -704,14 +713,14 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const mins = trialMinutes(p);
     return {
       subject: `Your free trial of ${planLabel(sub?.plan_code)} has started`,
-      preheader: `${ends ? `Free until ${ends}. ` : ""}Next step: finish your setup checklist.`,
+      preheader: `${ends ? `Free until ${ends}. ` : ""}Next step: ${chatSetup(ctx, brand) ? "finish setup with our AI setup assistant." : "finish your setup checklist."}`,
       heading: "Your free trial has started",
       blocks: [
         { p: `${hi(ctx)} thanks for signing up. Your free trial of **${planLabel(sub?.plan_code)}** is on.` },
         { facts: [["Free trial until", ends], ["Included in the trial", mins ? `Up to ${minutesOf(mins)} of calls` : ""],
           ["First charge", p ? `${usd(p.monthly_cents)} on ${ends || "the day the trial ends"}, unless you cancel` : ""]] },
         ...(p ? [{ p: `Then ${usd(p.monthly_cents)}/mo (plus any applicable sales tax), renewing automatically every month until you cancel.` } as Block] : []),
-        ...setupStep(ctx),
+        ...setupStep(ctx, brand),
         { small: `Cancel anytime in your portal (Billing) before ${ends || "the trial ends"} and you pay nothing.` },
         ...paddleNote(ctx),
       ],
@@ -724,13 +733,13 @@ export const TEMPLATES: Record<string, TemplateDef> = {
     const p = planOf(sub?.plan_code);
     return {
       subject: `Your ${planLabel(sub?.plan_code)} plan has started`,
-      preheader: `${p ? `${usd(p.monthly_cents)}/mo. ` : ""}Next step: finish your setup checklist.`,
+      preheader: `${p ? `${usd(p.monthly_cents)}/mo. ` : ""}Next step: ${chatSetup(ctx, brand) ? "finish setup with our AI setup assistant." : "finish your setup checklist."}`,
       heading: "Your plan has started",
       blocks: [
         { p: `${hi(ctx)} thanks for signing up. Your **${planLabel(sub?.plan_code)}** plan is active.` },
         { facts: [["Monthly", p ? `${usd(p.monthly_cents)}/mo` : ""], ["Included", p?.included_usage?.voice_minutes ? `${minutesOf(p.included_usage.voice_minutes)} of calls a month` : ""],
           ["Next charge", fmtDate(sub?.current_period_end)]] },
-        ...setupStep(ctx),
+        ...setupStep(ctx, brand),
         { small: SUB_RULES().texts?.cancel || "Cancel anytime in your portal (Billing)." },
         ...paddleNote(ctx),
       ],
@@ -846,7 +855,7 @@ export const TEMPLATES: Record<string, TemplateDef> = {
       blocks: [
         ...lines,
         ...number,
-        { small: "When your service ends, turn off call forwarding on your business phone (the setup checklist in your portal shows how for your phone provider)." },
+        { small: `When your service ends, turn off call forwarding on your business phone (${howWhere(ctx, brand)} for your phone provider).` },
         ...paddleNote(ctx),
       ],
       cta: { label: "Open Billing", url: portal(brand, "billing") },
